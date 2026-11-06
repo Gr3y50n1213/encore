@@ -1,0 +1,198 @@
+# CI for the core and server track (core/, server/, tools/, design/tokens.json).
+# The platform tracks own their own workflow files.
+name: core
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "core/**"
+      - "server/**"
+      - "tools/**"
+      - "design/tokens.json"
+      - "Makefile"
+      - ".github/workflows/core.yml"
+  pull_request:
+    paths:
+      - "core/**"
+      - "server/**"
+      - "tools/**"
+      - "design/tokens.json"
+      - "Makefile"
+      - ".github/workflows/core.yml"
+  workflow_dispatch:
+    inputs:
+      regenerate:
+        description: "Regenerate every binding and the token constants and upload them as an artifact (no checks)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: core-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  FRB_VERSION: 2.13.0
+  JNA_VERSION: 5.17.0
+  JNA_SHA1: 33d12735bef894440780fce64f9758d420c7bae2
+
+jobs:
+  regenerate:
+    name: Regenerate bindings and tokens (Linux)
+    if: ${{ inputs.regenerate }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust (stable, with rustfmt)
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt
+          rustup default stable
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - name: flutter_rust_bridge_codegen ${{ env.FRB_VERSION }}
+        run: cargo install flutter_rust_bridge_codegen --version "$FRB_VERSION" --locked
+      - name: Generate
+        run: |
+          (cd core/bindings/dart && dart pub get)
+          make -C core tokens bindings
+      - name: Upload the generated files
+        uses: actions/upload-artifact@v4
+        with:
+          name: encore-core-generated
+          path: |
+            core/bindings/
+            core/encore-dart/src/frb_generated.rs
+            !core/bindings/dart/.dart_tool/
+            !core/bindings/dart/pubspec.lock
+          if-no-files-found: error
+
+  check:
+    name: make check-core (Linux)
+    if: ${{ !inputs.regenerate }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust (stable, with rustfmt and clippy)
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt,clippy
+          rustup default stable
+          rustc --version
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin/flutter_rust_bridge_codegen
+            core/target
+            server/target
+            tools/target
+          key: core-${{ runner.os }}-${{ hashFiles('core/Cargo.lock', 'server/Cargo.lock', 'tools/Cargo.lock') }}-frb${{ env.FRB_VERSION }}
+          restore-keys: core-${{ runner.os }}-
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: flutter_rust_bridge_codegen ${{ env.FRB_VERSION }}
+        run: |
+          if ! flutter_rust_bridge_codegen --version 2>/dev/null | grep -q "$FRB_VERSION"; then
+            cargo install flutter_rust_bridge_codegen --version "$FRB_VERSION" --locked --force
+          fi
+          flutter_rust_bridge_codegen --version
+
+      - name: make check-core
+        run: |
+          (cd core/bindings/dart && dart pub get)
+          make check-core REQUIRE_DART=1
+
+      - name: Upload the generated bindings
+        uses: actions/upload-artifact@v4
+        with:
+          name: encore-core-bindings
+          path: |
+            core/bindings/
+            core/encore-dart/src/frb_generated.rs
+            !core/bindings/dart/.dart_tool/
+            !core/bindings/dart/pubspec.lock
+          if-no-files-found: error
+
+  smoke:
+    name: Swift, Kotlin and Dart call the core (Linux)
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust (stable)
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            core/target
+          key: core-${{ runner.os }}-${{ hashFiles('core/Cargo.lock', 'server/Cargo.lock', 'tools/Cargo.lock') }}-frb${{ env.FRB_VERSION }}
+          restore-keys: core-${{ runner.os }}-
+
+      - name: Build the core libraries
+        working-directory: core
+        run: cargo build --locked -p encore-core -p encore-dart
+
+      - name: Swift
+        working-directory: core
+        run: |
+          swiftc --version
+          swiftc -module-name SmokeSwift \
+            -I bindings/swift -Xcc -fmodule-map-file=bindings/swift/EncoreCoreFFI.modulemap \
+            -L target/debug -lencore_core \
+            bindings/swift/EncoreCore.swift bindings/tokens/EncoreTokens.swift smoke/swift/main.swift \
+            -o target/smoke-swift
+          LD_LIBRARY_PATH=target/debug target/smoke-swift
+
+      - name: Kotlin (JVM with JNA)
+        working-directory: core
+        run: |
+          kotlinc -version
+          curl -fsSL -o target/jna.jar "https://repo1.maven.org/maven2/net/java/dev/jna/jna/$JNA_VERSION/jna-$JNA_VERSION.jar"
+          echo "$JNA_SHA1  target/jna.jar" | sha1sum -c -
+          kotlinc -cp target/jna.jar -include-runtime -d target/smoke-kotlin.jar \
+            bindings/kotlin/uk/gcartee/encore/core/encore_core.kt bindings/tokens/EncoreTokens.kt smoke/kotlin/Main.kt
+          java -Djna.library.path=target/debug -cp target/smoke-kotlin.jar:target/jna.jar MainKt
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Dart
+        working-directory: core/bindings/dart
+        run: |
+          dart --version
+          dart pub get
+          dart analyze
+          ENCORE_DART_LIB="$GITHUB_WORKSPACE/core/target/debug/libencore_dart.so" dart test
+
+  windows:
+    name: core tests (Windows)
+    runs-on: windows-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust (stable)
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+      - name: Test core and server
+        shell: bash
+        run: |
+          (cd core && cargo test --workspace --locked)
+          (cd server && cargo test --locked)

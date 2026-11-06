@@ -1,0 +1,3 @@
+# A library package: apps pin their own versions, so the lock file is not committed.
+pubspec.lock
+.dart_tool/
