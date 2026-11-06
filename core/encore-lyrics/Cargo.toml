@@ -1,0 +1,12 @@
+[package]
+name = "encore-lyrics"
+description = "LRC, enhanced LRC and TTML parsers into one lyrics model with optional per-word timings."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true

@@ -1,0 +1,17 @@
+[package]
+name = "uniffi-bindgen"
+description = "Runs UniFFI's binding generator at the pinned version, so Swift and Kotlin bindings always match the core."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/main.rs"
+
+[dependencies]
+uniffi = { workspace = true, features = ["cli"] }
+
+[lints]
+workspace = true

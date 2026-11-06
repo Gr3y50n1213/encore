@@ -1,0 +1,12 @@
+[package]
+name = "encore-sources"
+description = "The MediaSource trait, the normalized library model and one adapter per media server (Jellyfin first; OpenSubsonic, Plex, Emby and local files later)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true

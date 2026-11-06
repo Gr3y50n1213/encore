@@ -1,0 +1,11 @@
+# UniFFI binding settings. The Kotlin package uses the owner's domain, gcartee.uk,
+# reversed (docs/adr/core-0001-names-and-identifiers.md).
+[bindings.kotlin]
+package_name = "uk.gcartee.encore.core"
+cdylib_name = "encore_core"
+
+[bindings.swift]
+module_name = "EncoreCore"
+ffi_module_name = "EncoreCoreFFI"
+ffi_module_filename = "EncoreCoreFFI"
+generate_module_map = true

@@ -1,0 +1,12 @@
+[package]
+name = "encore-recs"
+description = "The smart-picks engine: signals, candidate pools, the ranker, autoplay, radio, mixes and Smart shuffle."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true

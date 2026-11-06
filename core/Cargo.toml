@@ -1,0 +1,46 @@
+# The Encore core: one Rust workspace compiled into every app (plan section 3).
+# No UI code lives here. The platform tracks compile these crates for their own
+# targets inside their own folders; the Rust source stays in core/.
+[workspace]
+resolver = "3"
+members = [
+    "encore-core",
+    "encore-sources",
+    "encore-recs",
+    "encore-sync",
+    "encore-store",
+    "encore-lyrics",
+    "encore-audio",
+    "encore-recap",
+    "encore-dart",
+    "uniffi-bindgen",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+publish = false
+# No licence field yet: MPL-2.0 (apps) and AGPL-3.0 (server) is a suggestion that
+# the owner has not confirmed (docs/DECISIONS.md section 4).
+
+[workspace.dependencies]
+# Bindings. Versions checked on crates.io on 5 Nov 2026; licences in THIRD_PARTY_LICENSES.
+uniffi = "=0.32.2"
+flutter_rust_bridge = "=2.13.0"
+
+encore-core = { path = "encore-core", default-features = false }
+
+[workspace.lints.rust]
+missing_debug_implementations = "warn"
+unreachable_pub = "warn"
+# flutter_rust_bridge's macros and generated code use this cfg (encore-dart).
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "debuginfo"

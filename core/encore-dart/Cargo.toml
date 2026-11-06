@@ -1,0 +1,18 @@
+[package]
+name = "encore-dart"
+description = "flutter_rust_bridge glue that exposes the Encore core to Dart. It wraps encore-core and holds no logic of its own."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["lib", "cdylib", "staticlib"]
+name = "encore_dart"
+
+[dependencies]
+flutter_rust_bridge = { workspace = true }
+encore-core = { workspace = true }
+
+[lints]
+workspace = true

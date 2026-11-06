@@ -1,0 +1,25 @@
+[package]
+name = "encore-core"
+description = "The public API of the Encore core, exposed to Swift and Kotlin over UniFFI."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+# lib: used by the server and by encore-dart. cdylib: Android (JNI) and desktop.
+# staticlib: the Apple track's XCFramework.
+crate-type = ["lib", "cdylib", "staticlib"]
+name = "encore_core"
+
+[features]
+default = ["uniffi"]
+# The UniFFI scaffolding for Swift and Kotlin. encore-dart and the server turn it
+# off, so their libraries carry no UniFFI symbols.
+uniffi = ["dep:uniffi"]
+
+[dependencies]
+uniffi = { workspace = true, optional = true }
+
+[lints]
+workspace = true
