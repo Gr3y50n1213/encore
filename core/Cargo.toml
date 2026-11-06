@@ -19,7 +19,8 @@ members = [
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+# 1.89: rusqlite 0.41 needs it.
+rust-version = "1.89"
 publish = false
 # No licence field yet: MPL-2.0 (apps) and AGPL-3.0 (server) is a suggestion that
 # the owner has not confirmed (docs/DECISIONS.md section 4).
@@ -30,6 +31,26 @@ uniffi = "=0.32.2"
 flutter_rust_bridge = "=2.13.0"
 
 encore-core = { path = "encore-core", default-features = false }
+encore-sources = { path = "encore-sources" }
+encore-store = { path = "encore-store" }
+
+# Phase 2, approved by the owner on 6 Nov 2026. Versions from crates.io that day;
+# licences read and listed in THIRD_PARTY_LICENSES.md.
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+thiserror = "2.0.21"
+tokio = { version = "1.54.1", default-features = false }
+url = "2.5.8"
+ulid = "3.0.0"
+unicode-normalization = "0.1.26"
+sha2 = "0.11.0"
+rusqlite = { version = "0.41.1", features = ["bundled"] }
+# HTTP: reqwest without its default aws-lc-rs backend, which needs CMake to
+# cross-compile for iOS and Android. rustls runs on ring instead, and certificates
+# are checked by the operating system's verifier (docs/adr/core-0005).
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls-no-provider", "json"] }
+rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
+rustls-platform-verifier = "0.7.1"
 
 [workspace.lints.rust]
 missing_debug_implementations = "warn"

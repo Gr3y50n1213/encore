@@ -1535,4 +1535,59 @@ public enum EncoreTokens {
             public static let duplicateKey: String = "songKey"
         }
     }
+
+    /// Source: plan section 8
+    /// Status: Starting values chosen for the plan, not measurements. Tune on real devices and real libraries.
+    public enum Playback {
+        public static let preloadBeforeEndSeconds: Int = 20
+
+        /// Stream quality caps, set separately for Wi-Fi and cellular. original plays the file as it is; the others ask the server to transcode to AAC or Opus.
+        public enum Quality {
+            public static let levels: [String] = ["original", "high", "normal", "dataSaver"]
+            public static let highKbps: Int = 320
+            public static let normalKbps: Int = 160
+            public static let dataSaverKbps: Int = 96
+            public static let codecs: [String] = ["aac", "opus"]
+            public static let defaultWifi: String = "original"
+            public static let defaultCellular: String = "high"
+        }
+    }
+
+    /// Source: plan sections 5 and 8
+    /// Status: Starting values chosen for the plan, not measurements. Tune on real devices and real libraries.
+    /// Every play is written the moment it starts and updated while it plays, so history survives a crash.
+    public enum PlayLog {
+        public static let checkpointSeconds: Int = 10
+    }
+
+    /// Source: plan section 4, board 21 (Connect a server), board 18 (Servers and sources)
+    /// Status: Starting values chosen for the plan, not measurements. Tune on real devices and real libraries.
+    public enum Library {
+        public static let syncPageSize: Int = 500
+
+        /// A typed address without a port is tried as https on 443, then https on 8920, then plain http on 8096 (local network addresses only). Jellyfin's defaults are 8096 (http) and 8920 (https).
+        public enum Probe {
+            public static let httpsPorts: [Int] = [443, 8920]
+            public static let httpPort: Int = 8096
+            public static let timeoutSeconds: Int = 5
+            public static let typingPauseMs: Int = 600
+        }
+        public static let quickConnectExpirySeconds: Int = 300
+    }
+
+    /// Source: board 07 (Search)
+    /// Status: Starting values chosen for the plan, not measurements. Tune on real devices and real libraries.
+    public enum Search {
+        public static let budgetMs: Int = 50
+        public static let sections: [String] = ["topResult", "songs", "albums", "artists", "playlists"]
+
+        public enum Limits {
+            public static let songs: Int = 20
+            public static let albums: Int = 10
+            public static let artists: Int = 10
+            public static let playlists: Int = 10
+        }
+        public static let recentSearchesMax: Int = 20
+        public static let typoMaxEdits: Int = 2
+    }
 }

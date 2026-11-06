@@ -1555,4 +1555,67 @@ object EncoreTokens {
             const val duplicateKey: String = "songKey"
         }
     }
+
+    /**
+     * Source: plan section 8
+     * Status: Starting values chosen for the plan, not measurements. Tune on real devices and real libraries.
+     */
+    object Playback {
+        const val preloadBeforeEndSeconds: Int = 20
+
+        /** Stream quality caps, set separately for Wi-Fi and cellular. original plays the file as it is; the others ask the server to transcode to AAC or Opus. */
+        object Quality {
+            val levels: List<String> = listOf("original", "high", "normal", "dataSaver")
+            const val highKbps: Int = 320
+            const val normalKbps: Int = 160
+            const val dataSaverKbps: Int = 96
+            val codecs: List<String> = listOf("aac", "opus")
+            const val defaultWifi: String = "original"
+            const val defaultCellular: String = "high"
+        }
+    }
+
+    /**
+     * Source: plan sections 5 and 8
+     * Status: Starting values chosen for the plan, not measurements. Tune on real devices and real libraries.
+     * Every play is written the moment it starts and updated while it plays, so history survives a crash.
+     */
+    object PlayLog {
+        const val checkpointSeconds: Int = 10
+    }
+
+    /**
+     * Source: plan section 4, board 21 (Connect a server), board 18 (Servers and sources)
+     * Status: Starting values chosen for the plan, not measurements. Tune on real devices and real libraries.
+     */
+    object Library {
+        const val syncPageSize: Int = 500
+
+        /** A typed address without a port is tried as https on 443, then https on 8920, then plain http on 8096 (local network addresses only). Jellyfin's defaults are 8096 (http) and 8920 (https). */
+        object Probe {
+            val httpsPorts: List<Int> = listOf(443, 8920)
+            const val httpPort: Int = 8096
+            const val timeoutSeconds: Int = 5
+            const val typingPauseMs: Int = 600
+        }
+        const val quickConnectExpirySeconds: Int = 300
+    }
+
+    /**
+     * Source: board 07 (Search)
+     * Status: Starting values chosen for the plan, not measurements. Tune on real devices and real libraries.
+     */
+    object Search {
+        const val budgetMs: Int = 50
+        val sections: List<String> = listOf("topResult", "songs", "albums", "artists", "playlists")
+
+        object Limits {
+            const val songs: Int = 20
+            const val albums: Int = 10
+            const val artists: Int = 10
+            const val playlists: Int = 10
+        }
+        const val recentSearchesMax: Int = 20
+        const val typoMaxEdits: Int = 2
+    }
 }

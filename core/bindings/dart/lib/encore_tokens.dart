@@ -22,6 +22,10 @@ abstract final class EncoreTokens {
   static const EncoreTokensSmartPicks smartPicks = EncoreTokensSmartPicks._();
   static const EncoreTokensRecap recap = EncoreTokensRecap._();
   static const EncoreTokensGestures gestures = EncoreTokensGestures._();
+  static const EncoreTokensPlayback playback = EncoreTokensPlayback._();
+  static const EncoreTokensPlayLog playLog = EncoreTokensPlayLog._();
+  static const EncoreTokensLibrary library = EncoreTokensLibrary._();
+  static const EncoreTokensSearch search = EncoreTokensSearch._();
 }
 
 final class EncoreTokensMeta {
@@ -2036,4 +2040,76 @@ final class EncoreTokensGesturesDragAndDropAddToEndModifier {
 
   final String mac = 'Option';
   final String windowsLinux = 'Alt';
+}
+
+/// Source: plan section 8
+/// Status: Starting values chosen for the plan, not measurements. Tune on real devices and real libraries.
+final class EncoreTokensPlayback {
+  const EncoreTokensPlayback._();
+
+  final int preloadBeforeEndSeconds = 20;
+  final EncoreTokensPlaybackQuality quality = const EncoreTokensPlaybackQuality._();
+}
+
+/// Stream quality caps, set separately for Wi-Fi and cellular. original plays the file as it is; the others ask the server to transcode to AAC or Opus.
+final class EncoreTokensPlaybackQuality {
+  const EncoreTokensPlaybackQuality._();
+
+  final List<String> levels = const ['original', 'high', 'normal', 'dataSaver'];
+  final int highKbps = 320;
+  final int normalKbps = 160;
+  final int dataSaverKbps = 96;
+  final List<String> codecs = const ['aac', 'opus'];
+  final String defaultWifi = 'original';
+  final String defaultCellular = 'high';
+}
+
+/// Source: plan sections 5 and 8
+/// Status: Starting values chosen for the plan, not measurements. Tune on real devices and real libraries.
+/// Every play is written the moment it starts and updated while it plays, so history survives a crash.
+final class EncoreTokensPlayLog {
+  const EncoreTokensPlayLog._();
+
+  final int checkpointSeconds = 10;
+}
+
+/// Source: plan section 4, board 21 (Connect a server), board 18 (Servers and sources)
+/// Status: Starting values chosen for the plan, not measurements. Tune on real devices and real libraries.
+final class EncoreTokensLibrary {
+  const EncoreTokensLibrary._();
+
+  final int syncPageSize = 500;
+  final EncoreTokensLibraryProbe probe = const EncoreTokensLibraryProbe._();
+  final int quickConnectExpirySeconds = 300;
+}
+
+/// A typed address without a port is tried as https on 443, then https on 8920, then plain http on 8096 (local network addresses only). Jellyfin's defaults are 8096 (http) and 8920 (https).
+final class EncoreTokensLibraryProbe {
+  const EncoreTokensLibraryProbe._();
+
+  final List<int> httpsPorts = const [443, 8920];
+  final int httpPort = 8096;
+  final int timeoutSeconds = 5;
+  final int typingPauseMs = 600;
+}
+
+/// Source: board 07 (Search)
+/// Status: Starting values chosen for the plan, not measurements. Tune on real devices and real libraries.
+final class EncoreTokensSearch {
+  const EncoreTokensSearch._();
+
+  final int budgetMs = 50;
+  final List<String> sections = const ['topResult', 'songs', 'albums', 'artists', 'playlists'];
+  final EncoreTokensSearchLimits limits = const EncoreTokensSearchLimits._();
+  final int recentSearchesMax = 20;
+  final int typoMaxEdits = 2;
+}
+
+final class EncoreTokensSearchLimits {
+  const EncoreTokensSearchLimits._();
+
+  final int songs = 20;
+  final int albums = 10;
+  final int artists = 10;
+  final int playlists = 10;
 }
