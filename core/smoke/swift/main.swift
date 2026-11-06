@@ -1,6 +1,8 @@
 // Smoke test: Swift calls the Rust core through the UniFFI bindings.
 // CI compiles this with bindings/swift/EncoreCore.swift and bindings/tokens/EncoreTokens.swift
-// on Linux. It proves the bindings work; the Apple track proves them on Apple devices.
+// on Linux, and on macOS for every Apple target in Swift 6 mode: it runs on macOS and in an
+// iOS Simulator, and the iOS device build is linked but not run. The Apple track proves the
+// bindings on real iPhones, iPads and Macs.
 
 let greeting = hello(name: "CI")
 precondition(greeting == "Hello, CI, from the Encore core.", "unexpected greeting: \(greeting)")

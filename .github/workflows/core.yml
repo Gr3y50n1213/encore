@@ -181,6 +181,143 @@ jobs:
           dart analyze
           ENCORE_DART_LIB="$GITHUB_WORKSPACE/core/target/debug/libencore_dart.so" dart test
 
+  apple:
+    # Builds the core for every Apple target, links the Swift bindings against it in
+    # Swift 6 language mode, runs the result on macOS and in an iOS Simulator, and
+    # packages an XCFramework. An iPhone or iPad can't be reached from CI, so the
+    # iOS device slice is built and linked but not run.
+    name: Swift calls the core (macOS, iOS Simulator, iOS device link)
+    runs-on: macos-latest
+    needs: check
+    defaults:
+      run:
+        shell: bash
+        working-directory: core
+    env:
+      # Plan section 15: iOS and iPadOS 17, macOS 14.
+      IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+      MACOSX_DEPLOYMENT_TARGET: "14.0"
+      APPLE_TARGETS: aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios aarch64-apple-darwin x86_64-apple-darwin
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust (stable, with the Apple targets) and Xcode
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add $APPLE_TARGETS
+          rustc --version
+          xcodebuild -version
+          uname -m
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            core/target
+          key: core-apple-${{ runner.os }}-${{ hashFiles('core/Cargo.lock') }}
+          restore-keys: core-apple-${{ runner.os }}-
+
+      - name: Build libencore_core.a for each Apple target
+        run: |
+          # Touch the crate so rustc prints the system libraries the static library
+          # needs even when the cache already holds a build.
+          touch encore-core/src/lib.rs
+          for t in $APPLE_TARGETS; do
+            echo "::group::$t"
+            cargo rustc --locked --release -p encore-core --target "$t" --crate-type staticlib \
+              -- --print native-static-libs 2>&1 | tee "target/$t.build.log"
+            grep -o 'native-static-libs: .*' "target/$t.build.log" | tail -n 1 \
+              | sed 's/^native-static-libs: //' > "target/$t.native-libs"
+            echo "links: $(cat "target/$t.native-libs")"
+            test -s "target/$t.native-libs"
+            test -f "target/$t/release/libencore_core.a"
+            echo "::endgroup::"
+          done
+
+      - name: Compile and link the Swift bindings for each Apple target (Swift 6 mode)
+        run: |
+          mkdir -p target/smoke
+          swift_build() { # rust target, swift target, SDK
+            echo "::group::$1 ($2)"
+            # shellcheck disable=SC2046 # the system library flags are meant to split
+            xcrun --sdk "$3" swiftc -swift-version 6 -module-name SmokeSwift -target "$2" \
+              -I bindings/swift -Xcc -fmodule-map-file=bindings/swift/EncoreCoreFFI.modulemap \
+              bindings/swift/EncoreCore.swift bindings/tokens/EncoreTokens.swift smoke/swift/main.swift \
+              "target/$1/release/libencore_core.a" $(cat "target/$1.native-libs") \
+              -o "target/smoke/$1"
+            lipo -info "target/smoke/$1"
+            echo "::endgroup::"
+          }
+          swift_build aarch64-apple-ios     arm64-apple-ios17.0            iphoneos
+          swift_build aarch64-apple-ios-sim arm64-apple-ios17.0-simulator  iphonesimulator
+          swift_build x86_64-apple-ios      x86_64-apple-ios17.0-simulator iphonesimulator
+          swift_build aarch64-apple-darwin  arm64-apple-macos14.0          macosx
+          swift_build x86_64-apple-darwin   x86_64-apple-macos14.0         macosx
+
+      - name: Run on macOS
+        run: |
+          case "$(uname -m)" in
+            arm64) bin=target/smoke/aarch64-apple-darwin ;;
+            *)     bin=target/smoke/x86_64-apple-darwin ;;
+          esac
+          out="$("$bin")"
+          echo "$out"
+          grep -q 'Hello, CI, from the Encore core.' <<<"$out"
+
+      - name: Run in an iOS Simulator
+        run: |
+          case "$(uname -m)" in
+            arm64) bin="$PWD/target/smoke/aarch64-apple-ios-sim" ;;
+            *)     bin="$PWD/target/smoke/x86_64-apple-ios" ;;
+          esac
+          # The newest installed iOS runtime, first available iPhone in it.
+          udid="$(xcrun simctl list devices available -j | jq -r '
+            [.devices | to_entries[] | select(.key | test("SimRuntime\\.iOS-"))]
+            | sort_by(.key | capture("iOS-(?<maj>[0-9]+)-(?<min>[0-9]+)") | [(.maj | tonumber), (.min | tonumber)])
+            | reverse | map(.value[] | select(.name | startswith("iPhone"))) | first | .udid // empty')"
+          test -n "$udid" || { echo "no available iPhone simulator"; xcrun simctl list runtimes; exit 1; }
+          xcrun simctl list devices available | grep "$udid"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          status=0
+          out="$(xcrun simctl spawn "$udid" "$bin")" || status=$?
+          xcrun simctl shutdown "$udid" || true
+          echo "$out"
+          test "$status" -eq 0
+          grep -q 'Hello, CI, from the Encore core.' <<<"$out"
+
+      - name: Package an XCFramework
+        run: |
+          out=target/apple
+          rm -rf "$out"
+          mkdir -p "$out/headers" "$out/ios-simulator" "$out/macos"
+          cp bindings/swift/EncoreCoreFFI.h "$out/headers/"
+          cp bindings/swift/EncoreCoreFFI.modulemap "$out/headers/module.modulemap"
+          lipo -create target/aarch64-apple-ios-sim/release/libencore_core.a target/x86_64-apple-ios/release/libencore_core.a \
+            -output "$out/ios-simulator/libencore_core.a"
+          lipo -create target/aarch64-apple-darwin/release/libencore_core.a target/x86_64-apple-darwin/release/libencore_core.a \
+            -output "$out/macos/libencore_core.a"
+          xcodebuild -create-xcframework \
+            -library target/aarch64-apple-ios/release/libencore_core.a -headers "$out/headers" \
+            -library "$out/ios-simulator/libencore_core.a" -headers "$out/headers" \
+            -library "$out/macos/libencore_core.a" -headers "$out/headers" \
+            -output "$out/EncoreCoreFFI.xcframework"
+          cp bindings/swift/EncoreCore.swift bindings/tokens/EncoreTokens.swift "$out/"
+          cat "$out/EncoreCoreFFI.xcframework/Info.plist"
+
+      - name: Upload the XCFramework
+        uses: actions/upload-artifact@v4
+        with:
+          name: encore-core-apple
+          path: |
+            core/target/apple/EncoreCoreFFI.xcframework
+            core/target/apple/EncoreCore.swift
+            core/target/apple/EncoreTokens.swift
+          retention-days: 14
+          if-no-files-found: error
+
   windows:
     name: core tests (Windows)
     runs-on: windows-latest
