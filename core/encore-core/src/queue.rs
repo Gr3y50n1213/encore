@@ -360,6 +360,22 @@ impl Queue {
         self.peek_next()
     }
 
+    /// Where Next (or a swipe forward) would land; None is the end of the queue,
+    /// where the UI shows the rubber band (board 42).
+    pub fn peek_skip(&self) -> Option<&QueueItem> {
+        self.peek_next()
+    }
+
+    /// Where a swipe back would land: the song before, or with Repeat All at the
+    /// first song, the session's last. None is the start of the queue.
+    pub fn peek_previous(&self) -> Option<&QueueItem> {
+        self.state.history.last().or_else(|| {
+            (self.state.repeat == RepeatMode::All)
+                .then(|| self.state.session.last())
+                .flatten()
+        })
+    }
+
     fn peek_next(&self) -> Option<&QueueItem> {
         if let Some(i) = self.state.up_next.first() {
             return Some(i);
@@ -428,8 +444,21 @@ impl Queue {
         if !always_back && position_ms > restart_after_ms {
             return PreviousOutcome::Restart;
         }
-        let Some(prev) = self.state.history.pop() else {
-            return PreviousOutcome::Restart;
+        let prev = match self.state.history.pop() {
+            Some(p) => p,
+            // The first song with Repeat All wraps to the session's last (board 42).
+            None if self.state.repeat == RepeatMode::All => {
+                match self.state.session.last().cloned() {
+                    Some(last) => self.make(NewItem {
+                        track_id: last.track_id,
+                        chosen_by: last.chosen_by,
+                        started_from: last.started_from,
+                        context_id: last.context_id,
+                    }),
+                    None => return PreviousOutcome::Restart,
+                }
+            }
+            None => return PreviousOutcome::Restart,
         };
         self.undo = None;
         if let Some(cur) = self.state.current.take() {
@@ -614,6 +643,42 @@ mod tests {
         assert_eq!(q.peek_after_end().map(|i| i.track_id), Some(1));
         assert_eq!(q.advance(Advance::Ended).map(|i| i.track_id), Some(1));
         assert_eq!(ids(q.view().up_next), [2, 3]);
+    }
+
+    /// Board 42: the targets a swipe shows, the end of the queue, and the wrap.
+    #[test]
+    fn swipe_targets_and_the_ends_of_the_queue() {
+        let mut q = Queue::new(1);
+        q.play(album(&[1, 2, 3]), 0);
+        q.set_autoplay_enabled(false);
+        assert_eq!(q.peek_skip().map(|i| i.track_id), Some(2));
+        assert_eq!(q.peek_previous(), None, "the first song: the rubber band");
+        q.advance(Advance::Skip);
+        q.advance(Advance::Skip);
+        assert_eq!(
+            q.peek_skip(),
+            None,
+            "the last song, no autoplay: the rubber band"
+        );
+        assert_eq!(q.peek_previous().map(|i| i.track_id), Some(2));
+
+        // Repeat All: both ends wrap.
+        let mut q = Queue::new(1);
+        q.play(album(&[1, 2, 3]), 0);
+        q.set_autoplay_enabled(false);
+        q.set_repeat(RepeatMode::All);
+        assert_eq!(q.peek_previous().map(|i| i.track_id), Some(3));
+        assert_eq!(q.previous(0, 3_000, true), PreviousOutcome::Moved);
+        assert_eq!(cur(&q), Some(3), "swiping back from the first song wraps");
+        assert_eq!(
+            ids(q.view().up_next),
+            [1, 2, 3],
+            "the song left is next again"
+        );
+        q.advance(Advance::Skip);
+        q.advance(Advance::Skip);
+        q.advance(Advance::Skip);
+        assert_eq!(q.peek_skip().map(|i| i.track_id), Some(1));
     }
 
     #[test]

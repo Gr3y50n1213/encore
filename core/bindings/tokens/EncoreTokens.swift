@@ -1319,6 +1319,7 @@ public enum EncoreTokens {
     /// Status: Starting values chosen for the plan, not measurements. Tune with offline replay on real listening histories.
     public enum SmartPicks {
         public static let earlySkipBoundarySeconds: Int = 30
+        public static let lateSkipPercent: Int = 80
 
         public enum ExplorationPercent {
             public static let familiar: Int = 5

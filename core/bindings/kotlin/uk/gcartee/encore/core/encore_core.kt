@@ -758,6 +758,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_next(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_next_target(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_open_profile(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_play(
@@ -766,7 +768,11 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_playback_ended(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_playback_interrupted(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_playback_progress(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_playback_seeked(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_playback_started(
     ): Int
@@ -777,6 +783,8 @@ internal object IntegrityCheckingUniffiLib {
     external fun uniffi_encore_core_checksum_method_encorecore_playlists(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_previous(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_previous_target(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_profiles(
     ): Int
@@ -819,6 +827,10 @@ internal object IntegrityCheckingUniffiLib {
     external fun uniffi_encore_core_checksum_method_encorecore_sign_in(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_sign_out(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_skip_next(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_skip_previous(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_song(
     ): Int
@@ -913,6 +925,8 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_next(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_next_target(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_open_profile(`ptr`: Long,`profileId`: RustBuffer.ByValue,`tokens`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_encore_core_fn_method_encorecore_play(`ptr`: Long,`songIds`: RustBuffer.ByValue,`startIndex`: Int,`startedFrom`: RustBuffer.ByValue,`contextId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -921,7 +935,11 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_playback_ended(`ptr`: Long,`reason`: RustBuffer.ByValue,`listenedMs`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_playback_interrupted(`ptr`: Long,`kind`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     external fun uniffi_encore_core_fn_method_encorecore_playback_progress(`ptr`: Long,`positionMs`: Long,`listenedMs`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_playback_seeked(`ptr`: Long,`fromMs`: Long,`toMs`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_encore_core_fn_method_encorecore_playback_started(`ptr`: Long,`uid`: Long,`utcOffsetMinutes`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
@@ -932,6 +950,8 @@ internal object UniffiLib {
     external fun uniffi_encore_core_fn_method_encorecore_playlists(`ptr`: Long,`offset`: Int,`limit`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_previous(`ptr`: Long,`positionMs`: Long,`fromSwipe`: Byte,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_previous_target(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_profiles(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -975,6 +995,10 @@ internal object UniffiLib {
     ): Long
     external fun uniffi_encore_core_fn_method_encorecore_sign_out(`ptr`: Long,`sourceId`: Long,
     ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_skip_next(`ptr`: Long,`origin`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_skip_previous(`ptr`: Long,`origin`: RustBuffer.ByValue,`positionMs`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_song(`ptr`: Long,`songId`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_songs(`ptr`: Long,`sort`: RustBuffer.ByValue,`offset`: Int,`limit`: Int,uniffi_out_err: UniffiRustCallStatus, 
@@ -1200,7 +1224,10 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_encore_core_checksum_method_encorecore_move_in_queue() and 0xFFFF) != 44822) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if ((lib.uniffi_encore_core_checksum_method_encorecore_next() and 0xFFFF) != 51998) {
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_next() and 0xFFFF) != 46186) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_next_target() and 0xFFFF) != 57950) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_open_profile() and 0xFFFF) != 52351) {
@@ -1215,7 +1242,13 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_encore_core_checksum_method_encorecore_playback_ended() and 0xFFFF) != 15328) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_playback_interrupted() and 0xFFFF) != 12763) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_playback_progress() and 0xFFFF) != 25231) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_playback_seeked() and 0xFFFF) != 56238) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_playback_started() and 0xFFFF) != 36347) {
@@ -1230,7 +1263,10 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_encore_core_checksum_method_encorecore_playlists() and 0xFFFF) != 30414) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if ((lib.uniffi_encore_core_checksum_method_encorecore_previous() and 0xFFFF) != 56146) {
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_previous() and 0xFFFF) != 37808) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_previous_target() and 0xFFFF) != 5098) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_profiles() and 0xFFFF) != 37021) {
@@ -1294,6 +1330,12 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_sign_out() and 0xFFFF) != 43315) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_skip_next() and 0xFFFF) != 2646) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_skip_previous() and 0xFFFF) != 7898) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_song() and 0xFFFF) != 50851) {
@@ -2262,10 +2304,15 @@ public interface EncoreCoreInterface {
     fun `moveInQueue`(`uid`: kotlin.Long, `toIndex`: kotlin.UInt): QueueState
     
     /**
-     * Next (button, swipe, headset, lock screen). At the end of the queue the
-     * current song stays.
+     * Next from the button. The same as `skip_next(SkipOrigin::Button)`.
      */
     fun `next`(): QueueState
+    
+    /**
+     * What a swipe forward would show and land on, so the UI can draw the
+     * neighbour or the "End of queue" rubber band (board 42, rule 8).
+     */
+    fun `nextTarget`(): SkipTarget
     
     /**
      * Open a profile with the tokens the app read from its keychain. A play left
@@ -2287,10 +2334,22 @@ public interface EncoreCoreInterface {
     fun `playbackEnded`(`reason`: EndReason, `listenedMs`: kotlin.Long): QueueEntry?
     
     /**
+     * Headphones unplugged, the output switched, a call or an assistant. A skip in
+     * the next `interruptionWindowSeconds` (3 s) is not a skip (section 21).
+     */
+    fun `playbackInterrupted`(`kind`: InterruptionKind)
+    
+    /**
      * Progress from the player, about once a second. `listened_ms` counts only
      * time actually played (not seeks). Emits Preload 20 s before the end.
      */
     fun `playbackProgress`(`positionMs`: kotlin.Long, `listenedMs`: kotlin.Long)
+    
+    /**
+     * The listener dragged the progress bar. Counted on the play; never a skip.
+     * Seeking back before the preload point lets Preload come again.
+     */
+    fun `playbackSeeked`(`fromMs`: kotlin.Long, `toMs`: kotlin.Long)
     
     /**
      * The player started the current song (`uid` from the queue). Writes the play
@@ -2309,10 +2368,16 @@ public interface EncoreCoreInterface {
     fun `playlists`(`offset`: kotlin.UInt, `limit`: kotlin.UInt): List<PlaylistSummary>
     
     /**
-     * Previous. `position_ms` is where the current song is; the button restarts
-     * it after 3 s, the swipe (`from_swipe`) always goes back (board 42).
+     * Previous from the button (`from_swipe` false) or a swipe (true). The same
+     * as `skip_previous` with that origin.
      */
     fun `previous`(`positionMs`: kotlin.Long, `fromSwipe`: kotlin.Boolean): PreviousResult
+    
+    /**
+     * What a swipe back would show and land on (with Repeat All at the first
+     * song: the last one).
+     */
+    fun `previousTarget`(): SkipTarget
     
     /**
      * The profiles on this device.
@@ -2403,6 +2468,22 @@ public interface EncoreCoreInterface {
      * mirror stays, so songs stay listed until the user removes the server. Async.
      */
     suspend fun `signOut`(`sourceId`: kotlin.Long)
+    
+    /**
+     * Next from anywhere: the button, a swipe, a headset, a car, the lock screen
+     * or a key. Every origin runs this same code and teaches the same lesson
+     * (board 42, rule 15); the origin is stored on the play it ends. At the end of
+     * the queue the current song stays (`next_target` says so beforehand).
+     */
+    fun `skipNext`(`origin`: SkipOrigin): QueueState
+    
+    /**
+     * Previous from anywhere. `position_ms` is where the current song is. A swipe
+     * always goes back ("back means back"); every other origin restarts the song
+     * after `previousButtonRestartAfterSeconds` (3 s). At the first song it
+     * restarts, or wraps on Repeat All.
+     */
+    fun `skipPrevious`(`origin`: SkipOrigin, `positionMs`: kotlin.Long): PreviousResult
     
     fun `song`(`songId`: kotlin.Long): Song
     
@@ -2969,14 +3050,31 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
 
     
     /**
-     * Next (button, swipe, headset, lock screen). At the end of the queue the
-     * current song stays.
+     * Next from the button. The same as `skip_next(SkipOrigin::Button)`.
      */
     @Throws(EncoreException::class)override fun `next`(): QueueState {
             return FfiConverterTypeQueueState.lift(
     callWithHandle {
     uniffiRustCallWithError(EncoreException) { _status ->
     UniffiLib.uniffi_encore_core_fn_method_encorecore_next(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * What a swipe forward would show and land on, so the UI can draw the
+     * neighbour or the "End of queue" rubber band (board 42, rule 8).
+     */
+    @Throws(EncoreException::class)override fun `nextTarget`(): SkipTarget {
+            return FfiConverterTypeSkipTarget.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_next_target(
         it,
         _status)
 }
@@ -3062,6 +3160,24 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
 
     
     /**
+     * Headphones unplugged, the output switched, a call or an assistant. A skip in
+     * the next `interruptionWindowSeconds` (3 s) is not a skip (section 21).
+     */
+    @Throws(EncoreException::class)override fun `playbackInterrupted`(`kind`: InterruptionKind)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_playback_interrupted(
+        it,
+        
+        FfiConverterTypeInterruptionKind.lower(`kind`),_status)
+}
+    }
+    
+    
+
+    
+    /**
      * Progress from the player, about once a second. `listened_ms` counts only
      * time actually played (not seeks). Emits Preload 20 s before the end.
      */
@@ -3074,6 +3190,25 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
         
         FfiConverterLong.lower(`positionMs`),
         FfiConverterLong.lower(`listenedMs`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * The listener dragged the progress bar. Counted on the play; never a skip.
+     * Seeking back before the preload point lets Preload come again.
+     */
+    @Throws(EncoreException::class)override fun `playbackSeeked`(`fromMs`: kotlin.Long, `toMs`: kotlin.Long)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_playback_seeked(
+        it,
+        
+        FfiConverterLong.lower(`fromMs`),
+        FfiConverterLong.lower(`toMs`),_status)
 }
     }
     
@@ -3157,8 +3292,8 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
 
     
     /**
-     * Previous. `position_ms` is where the current song is; the button restarts
-     * it after 3 s, the swipe (`from_swipe`) always goes back (board 42).
+     * Previous from the button (`from_swipe` false) or a swipe (true). The same
+     * as `skip_previous` with that origin.
      */
     @Throws(EncoreException::class)override fun `previous`(`positionMs`: kotlin.Long, `fromSwipe`: kotlin.Boolean): PreviousResult {
             return FfiConverterTypePreviousResult.lift(
@@ -3169,6 +3304,24 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
         
         FfiConverterLong.lower(`positionMs`),
         FfiConverterBoolean.lower(`fromSwipe`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * What a swipe back would show and land on (with Repeat All at the first
+     * song: the last one).
+     */
+    @Throws(EncoreException::class)override fun `previousTarget`(): SkipTarget {
+            return FfiConverterTypeSkipTarget.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_previous_target(
+        it,
+        _status)
 }
     }
     )
@@ -3555,6 +3708,49 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
         EncoreException.ErrorHandler,
     )
     }
+
+    
+    /**
+     * Next from anywhere: the button, a swipe, a headset, a car, the lock screen
+     * or a key. Every origin runs this same code and teaches the same lesson
+     * (board 42, rule 15); the origin is stored on the play it ends. At the end of
+     * the queue the current song stays (`next_target` says so beforehand).
+     */
+    @Throws(EncoreException::class)override fun `skipNext`(`origin`: SkipOrigin): QueueState {
+            return FfiConverterTypeQueueState.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_skip_next(
+        it,
+        
+        FfiConverterTypeSkipOrigin.lower(`origin`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Previous from anywhere. `position_ms` is where the current song is. A swipe
+     * always goes back ("back means back"); every other origin restarts the song
+     * after `previousButtonRestartAfterSeconds` (3 s). At the first song it
+     * restarts, or wraps on Repeat All.
+     */
+    @Throws(EncoreException::class)override fun `skipPrevious`(`origin`: SkipOrigin, `positionMs`: kotlin.Long): PreviousResult {
+            return FfiConverterTypePreviousResult.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_skip_previous(
+        it,
+        
+        FfiConverterTypeSkipOrigin.lower(`origin`),
+        FfiConverterLong.lower(`positionMs`),_status)
+}
+    }
+    )
+    }
+    
 
     
     @Throws(EncoreException::class)override fun `song`(`songId`: kotlin.Long): Song {
@@ -5179,6 +5375,49 @@ public object FfiConverterTypeSinger: FfiConverterRustBuffer<Singer> {
 
 
 
+/**
+ * Where a swipe would land. `end_of_queue`: nothing there, so the content follows
+ * the finger at a third of the speed, stops after 40 pt and springs back with
+ * "End of queue" (board 42, rule 8).
+ */
+data class SkipTarget (
+    var `song`: QueueEntry?
+    , 
+    var `endOfQueue`: kotlin.Boolean
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSkipTarget: FfiConverterRustBuffer<SkipTarget> {
+    override fun read(buf: ByteBuffer): SkipTarget {
+        return SkipTarget(
+            FfiConverterOptionalTypeQueueEntry.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: SkipTarget) = (
+            FfiConverterOptionalTypeQueueEntry.allocationSize(value.`song`) +
+            FfiConverterBoolean.allocationSize(value.`endOfQueue`)
+    )
+
+    override fun write(value: SkipTarget, buf: ByteBuffer) {
+            FfiConverterOptionalTypeQueueEntry.write(value.`song`, buf)
+            FfiConverterBoolean.write(value.`endOfQueue`, buf)
+    }
+}
+
+
+
 data class Song (
     var `id`: kotlin.Long
     , 
@@ -6240,6 +6479,49 @@ public object FfiConverterTypeEventKind: FfiConverterRustBuffer<EventKind> {
 
 
 
+/**
+ * Things that stop or move the music without the listener choosing to skip
+ * (section 21, "Interruptions").
+ */
+
+enum class InterruptionKind {
+    
+    HEADPHONES_UNPLUGGED,
+    /**
+     * Bluetooth, AirPlay or another output switched.
+     */
+    OUTPUT_CHANGED,
+    CALL,
+    ASSISTANT;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeInterruptionKind: FfiConverterRustBuffer<InterruptionKind> {
+    override fun read(buf: ByteBuffer) = try {
+        InterruptionKind.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: InterruptionKind) = 4UL
+
+    override fun write(value: InterruptionKind, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
 
 enum class ListeningMode {
     
@@ -6655,6 +6937,51 @@ public object FfiConverterTypeSingerKind: FfiConverterRustBuffer<SingerKind> {
     override fun allocationSize(value: SingerKind) = 4UL
 
     override fun write(value: SingerKind, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+/**
+ * What moved on from a song (board 42). Every origin runs the same code; the
+ * origin is stored with the play.
+ */
+
+enum class SkipOrigin {
+    
+    BUTTON,
+    /**
+     * The mini player or Now Playing artwork. Back always goes back.
+     */
+    SWIPE,
+    HEADSET,
+    CAR,
+    LOCK_SCREEN,
+    KEYBOARD;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSkipOrigin: FfiConverterRustBuffer<SkipOrigin> {
+    override fun read(buf: ByteBuffer) = try {
+        SkipOrigin.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: SkipOrigin) = 4UL
+
+    override fun write(value: SkipOrigin, buf: ByteBuffer) {
         buf.putInt(value.ordinal + 1)
     }
 }

@@ -15,6 +15,7 @@ use encore_sync::{Hlc, HlcClock};
 use serde::{Deserialize, Serialize};
 
 use crate::queue::{ChosenBy, StartedFrom};
+use crate::signal::{Facts, Signal, SkipOrigin, classify};
 
 /// How a play ended. Only `Skipped` can become a negative signal later, and only
 /// when the smart-picks rules allow it (section 21).
@@ -110,6 +111,19 @@ pub struct PlayLog {
 struct OpenPlay {
     id: String,
     last_checkpoint_utc_ms: i64,
+    started_utc_ms: i64,
+    duration_ms: u64,
+    chosen_by: ChosenBy,
+    song_key: String,
+}
+
+/// What is known when a play closes, beyond how it ended.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct Close {
+    /// What moved on from it (None when nothing did, as when the app closes).
+    pub origin: Option<SkipOrigin>,
+    /// The last unplug, output switch, call or assistant, UTC milliseconds.
+    pub last_interruption_utc_ms: Option<i64>,
 }
 
 impl PlayLog {
@@ -160,6 +174,8 @@ impl PlayLog {
                 &e.id,
                 e.listened_ms,
                 EndReason::EndedBySystem.as_str(),
+                Some(Signal::System.as_str()),
+                None,
                 now_utc_ms,
             )?;
         }
@@ -168,19 +184,22 @@ impl PlayLog {
     }
 
     /// A song started. Returns the new play's ID, or None when nothing is recorded.
-    /// A play still open is closed as skipped first, with `previous_listened_ms`.
+    /// A play still open is closed as skipped first, with `previous_listened_ms`
+    /// and what moved on from it (`previous`).
     pub fn start(
         &mut self,
         store: &Store,
         s: &PlayStart,
         previous_listened_ms: u64,
+        previous: &Close,
     ) -> encore_store::Result<Option<String>> {
         if self.open.is_some() {
-            self.finish(
+            self.close(
                 store,
                 previous_listened_ms,
                 EndReason::Skipped,
                 s.started_utc_ms,
+                previous,
             )?;
         }
         if !self.mode.records() {
@@ -211,12 +230,27 @@ impl PlayLog {
             context_id: s.context_id.clone(),
             chosen_by: s.chosen_by.as_str().to_owned(),
             updated_utc_ms: s.started_utc_ms,
+            signal: None,
+            origin: None,
+            seeks: 0,
         })?;
         self.open = Some(OpenPlay {
             id: id.clone(),
             last_checkpoint_utc_ms: s.started_utc_ms,
+            started_utc_ms: s.started_utc_ms,
+            duration_ms: s.duration_ms,
+            chosen_by: s.chosen_by,
+            song_key: s.song_key.clone(),
         });
         Ok(Some(id))
+    }
+
+    /// The listener dragged the progress bar: counted on the play, never a skip.
+    pub fn seek(&mut self, store: &Store) -> encore_store::Result<()> {
+        if let Some(open) = &self.open {
+            store.add_seek(&open.id)?;
+        }
+        Ok(())
     }
 
     /// The player reports progress. A checkpoint is written at most every
@@ -237,7 +271,7 @@ impl PlayLog {
         store.checkpoint_play_event(&open.id, listened_ms, now_utc_ms)
     }
 
-    /// The current play ended.
+    /// The current play ended, with nothing known about what moved on from it.
     pub fn finish(
         &mut self,
         store: &Store,
@@ -245,10 +279,56 @@ impl PlayLog {
         reason: EndReason,
         now_utc_ms: i64,
     ) -> encore_store::Result<()> {
-        if let Some(open) = self.open.take() {
-            store.finish_play_event(&open.id, listened_ms, reason.as_str(), now_utc_ms)?;
+        self.close(store, listened_ms, reason, now_utc_ms, &Close::default())
+            .map(|_| ())
+    }
+
+    /// The current play ended: write how it ended and how it reads (section 21).
+    /// A play reached by a skip and skipped again within `coalesceMs` was only
+    /// passed over: it is removed, with no signal (board 42). Returns the signal,
+    /// or None when nothing was open or the play was removed.
+    pub fn close(
+        &mut self,
+        store: &Store,
+        listened_ms: u64,
+        reason: EndReason,
+        now_utc_ms: i64,
+        c: &Close,
+    ) -> encore_store::Result<Option<Signal>> {
+        let Some(open) = self.open.take() else {
+            return Ok(None);
+        };
+        let rules = crate::tokens::tokens().signal;
+        if reason == EndReason::Skipped && now_utc_ms - open.started_utc_ms < rules.coalesce_ms {
+            store.discard_play_event(&open.id)?;
+            return Ok(None);
         }
-        Ok(())
+        let heard_recently = store.heard_since(
+            &open.song_key,
+            open.started_utc_ms - rules.too_soon_ms,
+            rules.early_skip_ms,
+            &open.id,
+        )?;
+        let signal = classify(
+            &Facts {
+                end: reason,
+                listened_ms,
+                duration_ms: open.duration_ms,
+                chosen_by: open.chosen_by,
+                ms_since_interruption: c.last_interruption_utc_ms.map(|t| now_utc_ms - t),
+                heard_recently,
+            },
+            &rules,
+        );
+        store.finish_play_event(
+            &open.id,
+            listened_ms,
+            reason.as_str(),
+            Some(signal.as_str()),
+            c.origin.map(SkipOrigin::as_str),
+            now_utc_ms,
+        )?;
+        Ok(Some(signal))
     }
 
     /// A lyric line was tapped during the current play.
@@ -326,7 +406,10 @@ mod tests {
     fn a_play_stores_every_section_5_field() {
         let store = Store::open_in_memory().unwrap();
         let mut log = PlayLog::new(&store, "device-A", 10).unwrap();
-        let id = log.start(&store, &start_at(T0), 0).unwrap().unwrap();
+        let id = log
+            .start(&store, &start_at(T0), 0, &Close::default())
+            .unwrap()
+            .unwrap();
         log.finish(&store, 210_000, EndReason::Finished, T0 + 211_000)
             .unwrap();
         let e = store.play_event(&id).unwrap().unwrap();
@@ -351,7 +434,10 @@ mod tests {
     fn checkpoints_are_written_every_ten_seconds() {
         let store = Store::open_in_memory().unwrap();
         let mut log = PlayLog::new(&store, "d", 10).unwrap();
-        let id = log.start(&store, &start_at(T0), 0).unwrap().unwrap();
+        let id = log
+            .start(&store, &start_at(T0), 0, &Close::default())
+            .unwrap()
+            .unwrap();
         assert!(!log.progress(&store, 5_000, T0 + 5_000).unwrap());
         assert!(log.progress(&store, 10_000, T0 + 10_000).unwrap());
         assert!(!log.progress(&store, 15_000, T0 + 15_000).unwrap());
@@ -364,7 +450,10 @@ mod tests {
         let store = Store::open_in_memory().unwrap();
         let id = {
             let mut log = PlayLog::new(&store, "d", 10).unwrap();
-            let id = log.start(&store, &start_at(T0), 0).unwrap().unwrap();
+            let id = log
+                .start(&store, &start_at(T0), 0, &Close::default())
+                .unwrap()
+                .unwrap();
             log.progress(&store, 30_000, T0 + 30_000).unwrap();
             id
             // The app dies here: no finish.
@@ -383,9 +472,12 @@ mod tests {
     fn starting_a_new_song_closes_the_old_one_as_skipped() {
         let store = Store::open_in_memory().unwrap();
         let mut log = PlayLog::new(&store, "d", 10).unwrap();
-        let first = log.start(&store, &start_at(T0), 0).unwrap().unwrap();
+        let first = log
+            .start(&store, &start_at(T0), 0, &Close::default())
+            .unwrap()
+            .unwrap();
         let second = log
-            .start(&store, &start_at(T0 + 12_000), 12_000)
+            .start(&store, &start_at(T0 + 12_000), 12_000, &Close::default())
             .unwrap()
             .unwrap();
         let e = store.play_event(&first).unwrap().unwrap();
@@ -395,6 +487,148 @@ mod tests {
         let a = store.play_event(&first).unwrap().unwrap().hlc;
         let b = store.play_event(&second).unwrap().unwrap().hlc;
         assert!(a < b);
+    }
+
+    fn app_pick(ms: i64, key: &str) -> PlayStart {
+        PlayStart {
+            song_key: key.into(),
+            chosen_by: ChosenBy::App,
+            started_from: StartedFrom::Queue,
+            ..start_at(ms)
+        }
+    }
+
+    fn swipe() -> Close {
+        Close {
+            origin: Some(SkipOrigin::Swipe),
+            last_interruption_utc_ms: None,
+        }
+    }
+
+    /// Board 42: swiping past songs writes nothing for them; only the song you
+    /// land on, and the one you left, count.
+    #[test]
+    fn songs_passed_over_by_quick_swipes_leave_no_trace() {
+        let store = Store::open_in_memory().unwrap();
+        let mut log = PlayLog::new(&store, "d", 10).unwrap();
+        let left = log
+            .start(&store, &app_pick(T0, "a"), 0, &swipe())
+            .unwrap()
+            .unwrap();
+        // 20 s in, swipe: song b starts, and is swiped away 300 ms later.
+        let passed = log
+            .start(&store, &app_pick(T0 + 20_000, "b"), 20_000, &swipe())
+            .unwrap()
+            .unwrap();
+        let landed = log
+            .start(&store, &app_pick(T0 + 20_300, "c"), 300, &swipe())
+            .unwrap()
+            .unwrap();
+        assert!(
+            store.play_event(&passed).unwrap().is_none(),
+            "b was only passed over"
+        );
+        let a = store.play_event(&left).unwrap().unwrap();
+        assert_eq!(
+            (
+                a.end_reason.as_str(),
+                a.signal.as_deref(),
+                a.origin.as_deref()
+            ),
+            ("skipped", Some("skippedEarly"), Some("swipe"))
+        );
+        assert_eq!(log.current_play_id(), Some(landed.as_str()));
+        // Exactly at the window it is a real (if short) play: an accident.
+        let next = log
+            .start(&store, &app_pick(T0 + 20_900, "d"), 600, &swipe())
+            .unwrap()
+            .unwrap();
+        let c = store.play_event(&landed).unwrap().unwrap();
+        assert_eq!(c.signal.as_deref(), Some("accident"));
+        assert_ne!(next, landed);
+    }
+
+    #[test]
+    fn signals_too_soon_interruptions_and_seeks() {
+        let store = Store::open_in_memory().unwrap();
+        let mut log = PlayLog::new(&store, "d", 10).unwrap();
+        // Heard song "x" fully, then 30 minutes later it comes back and is skipped
+        // early: "too soon", not dislike.
+        log.start(&store, &app_pick(T0, "x"), 0, &Close::default())
+            .unwrap();
+        log.close(
+            &store,
+            222_400,
+            EndReason::Finished,
+            T0 + 222_400,
+            &Close::default(),
+        )
+        .unwrap();
+        let again = log
+            .start(&store, &app_pick(T0 + 1_800_000, "x"), 0, &Close::default())
+            .unwrap()
+            .unwrap();
+        log.seek(&store).unwrap();
+        let signal = log
+            .close(&store, 8_000, EndReason::Skipped, T0 + 1_808_000, &swipe())
+            .unwrap();
+        assert_eq!(signal, Some(Signal::TooSoon));
+        let e = store.play_event(&again).unwrap().unwrap();
+        assert_eq!((e.signal.as_deref(), e.seeks), (Some("tooSoon"), 1));
+
+        // Three hours later the same skip is a real early skip.
+        log.start(
+            &store,
+            &app_pick(T0 + 12_600_000, "x"),
+            0,
+            &Close::default(),
+        )
+        .unwrap();
+        assert_eq!(
+            log.close(&store, 8_000, EndReason::Skipped, T0 + 12_608_000, &swipe())
+                .unwrap(),
+            Some(Signal::SkippedEarly)
+        );
+
+        // A headset skip 2 s after the headphones came out: an interruption.
+        log.start(
+            &store,
+            &app_pick(T0 + 13_000_000, "y"),
+            0,
+            &Close::default(),
+        )
+        .unwrap();
+        let unplugged = Close {
+            origin: Some(SkipOrigin::Headset),
+            last_interruption_utc_ms: Some(T0 + 13_010_000),
+        };
+        assert_eq!(
+            log.close(
+                &store,
+                12_000,
+                EndReason::Skipped,
+                T0 + 13_012_000,
+                &unplugged
+            )
+            .unwrap(),
+            Some(Signal::Interruption)
+        );
+        // After a crash, plays read as system ends.
+        let id = log
+            .start(
+                &store,
+                &app_pick(T0 + 14_000_000, "z"),
+                0,
+                &Close::default(),
+            )
+            .unwrap()
+            .unwrap();
+        let mut relaunched = PlayLog::new(&store, "d", 10).unwrap();
+        relaunched.recover(&store, T0 + 14_100_000).unwrap();
+        assert_eq!(
+            store.play_event(&id).unwrap().unwrap().signal.as_deref(),
+            Some("system")
+        );
     }
 
     #[test]
@@ -407,7 +641,11 @@ mod tests {
             let store = Store::open_in_memory().unwrap();
             let mut log = PlayLog::new(&store, "d", 10).unwrap();
             log.set_mode(&store, mode, 0, T0).unwrap();
-            assert_eq!(log.start(&store, &start_at(T0), 0).unwrap(), None);
+            assert_eq!(
+                log.start(&store, &start_at(T0), 0, &Close::default())
+                    .unwrap(),
+                None
+            );
             assert!(!log.progress(&store, 20_000, T0 + 20_000).unwrap());
             assert!(!log.lyric_jump(&store, 3, 1_000, T0 + 21_000).unwrap());
             log.finish(&store, 30_000, EndReason::Finished, T0 + 30_000)
@@ -420,7 +658,10 @@ mod tests {
     fn switching_to_private_mid_song_closes_the_play_and_stops_recording() {
         let store = Store::open_in_memory().unwrap();
         let mut log = PlayLog::new(&store, "d", 10).unwrap();
-        let id = log.start(&store, &start_at(T0), 0).unwrap().unwrap();
+        let id = log
+            .start(&store, &start_at(T0), 0, &Close::default())
+            .unwrap()
+            .unwrap();
         log.set_mode(&store, ListeningMode::Private, 40_000, T0 + 40_000)
             .unwrap();
         let e = store.play_event(&id).unwrap().unwrap();
@@ -428,7 +669,11 @@ mod tests {
             (e.end_reason.as_str(), e.listened_ms),
             ("endedBySystem", 40_000)
         );
-        assert_eq!(log.start(&store, &start_at(T0 + 50_000), 0).unwrap(), None);
+        assert_eq!(
+            log.start(&store, &start_at(T0 + 50_000), 0, &Close::default())
+                .unwrap(),
+            None
+        );
         assert_eq!(store.listening_row_counts().unwrap(), (1, 0));
     }
 
@@ -437,7 +682,10 @@ mod tests {
         let store = Store::open_in_memory().unwrap();
         let mut log = PlayLog::new(&store, "d", 10).unwrap();
         assert!(!log.lyric_jump(&store, 1, 0, T0).unwrap()); // nothing playing
-        let id = log.start(&store, &start_at(T0), 0).unwrap().unwrap();
+        let id = log
+            .start(&store, &start_at(T0), 0, &Close::default())
+            .unwrap()
+            .unwrap();
         assert!(log.lyric_jump(&store, 12, 61_500, T0 + 30_000).unwrap());
         let jumps = store.lyric_jumps(&id).unwrap();
         assert_eq!((jumps[0].line_index, jumps[0].line_start_ms), (12, 61_500));
@@ -448,14 +696,17 @@ mod tests {
         let store = Store::open_in_memory().unwrap();
         let first = {
             let mut log = PlayLog::new(&store, "d", 10).unwrap();
-            let id = log.start(&store, &start_at(T0), 0).unwrap().unwrap();
+            let id = log
+                .start(&store, &start_at(T0), 0, &Close::default())
+                .unwrap()
+                .unwrap();
             log.finish(&store, 1, EndReason::Finished, T0).unwrap();
             id
         };
         // The device clock is now behind the stored history.
         let mut log = PlayLog::new(&store, "d", 10).unwrap();
         let second = log
-            .start(&store, &start_at(T0 - 60_000), 0)
+            .start(&store, &start_at(T0 - 60_000), 0, &Close::default())
             .unwrap()
             .unwrap();
         let a = store.play_event(&first).unwrap().unwrap().hlc;

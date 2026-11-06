@@ -550,6 +550,101 @@ fn album_palettes_are_made_once_and_shown_offline() {
     ));
 }
 
+/// Board 42 through the API, with the real clock (so the waits are real).
+#[test]
+fn swipes_headsets_and_interruptions_through_the_api() {
+    let dir = temp_dir("signal");
+    let (core, _) = core_on_recording(&dir);
+    signed_in(&core);
+    block(core.sync_library()).unwrap();
+    let ids: Vec<i64> = core
+        .songs(SongSort::Title, 0, 4)
+        .unwrap()
+        .iter()
+        .map(|x| x.id)
+        .collect();
+    let state = core.play(ids.clone(), 0, StartedFrom::Songs, None).unwrap();
+    let wait = || std::thread::sleep(Duration::from_millis(700));
+    let uid = |c: &EncoreCore| c.queue().unwrap().current.unwrap().uid;
+
+    // Song 1 plays 5 s (reported), then a swipe.
+    core.playback_started(state.current.unwrap().uid, 0)
+        .unwrap();
+    wait();
+    core.playback_seeked(1_000, 60_000).unwrap();
+    core.playback_progress(5_000, 5_000).unwrap();
+    assert_eq!(core.next_target().unwrap().song.unwrap().song.id, ids[1]);
+    core.skip_next(SkipOrigin::Swipe).unwrap();
+    // Song 2 is swiped past at once: it leaves no trace.
+    core.playback_started(uid(&core), 0).unwrap();
+    core.skip_next(SkipOrigin::Swipe).unwrap();
+    // Song 3: the headphones come out, and the headset's Next 0 s later.
+    core.playback_started(uid(&core), 0).unwrap();
+    wait();
+    core.playback_progress(9_000, 9_000).unwrap();
+    core.playback_interrupted(InterruptionKind::HeadphonesUnplugged)
+        .unwrap();
+    core.skip_next(SkipOrigin::Headset).unwrap();
+    // Song 4, the last: plays to the end. No autoplay: the end of the queue.
+    core.playback_started(uid(&core), 0).unwrap();
+    let last = core.next_target().unwrap();
+    assert!(last.end_of_queue && last.song.is_none());
+    core.playback_ended(EndReason::Finished, 200_000).unwrap();
+
+    let p = core.inner.profile().unwrap();
+    let mut log = p.store.lock().unwrap().recent_play_events(10).unwrap();
+    log.reverse();
+    let rows: Vec<(String, Option<String>, Option<String>, u32)> = log
+        .iter()
+        .map(|e| {
+            (
+                e.end_reason.clone(),
+                e.signal.clone(),
+                e.origin.clone(),
+                e.seeks,
+            )
+        })
+        .collect();
+    assert_eq!(
+        rows,
+        [
+            (
+                "skipped".into(),
+                Some("skippedUserPick".into()),
+                Some("swipe".into()),
+                1
+            ),
+            (
+                "skipped".into(),
+                Some("interruption".into()),
+                Some("headset".into()),
+                0
+            ),
+            (
+                "finished".into(),
+                Some("finished".into()),
+                Some("auto".into()),
+                0
+            ),
+        ],
+        "song 2 was passed over and is not there"
+    );
+
+    // Back means back: the swipe goes to song 3, the button restarts after 3 s.
+    assert_eq!(
+        core.skip_previous(SkipOrigin::Button, 10_000).unwrap(),
+        PreviousResult::Restarted
+    );
+    assert_eq!(
+        core.previous_target().unwrap().song.unwrap().song.id,
+        ids[2]
+    );
+    assert_eq!(
+        core.skip_previous(SkipOrigin::Swipe, 10_000).unwrap(),
+        PreviousResult::Moved
+    );
+}
+
 #[test]
 fn a_profile_reopens_with_the_token_from_the_keychain() {
     let dir = temp_dir("reopen");

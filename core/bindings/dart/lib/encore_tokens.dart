@@ -1745,6 +1745,7 @@ final class EncoreTokensSmartPicks {
   const EncoreTokensSmartPicks._();
 
   final int earlySkipBoundarySeconds = 30;
+  final int lateSkipPercent = 80;
   final EncoreTokensSmartPicksExplorationPercent explorationPercent = const EncoreTokensSmartPicksExplorationPercent._();
   final double diversityLambda = 0.7;
   final int candidates = 500;

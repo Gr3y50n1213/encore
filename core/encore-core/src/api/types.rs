@@ -435,6 +435,57 @@ impl std::fmt::Debug for ArtworkRequest {
     }
 }
 
+// ---------------------------------------------------------------- skips
+
+/// What moved on from a song (board 42). Every origin runs the same code; the
+/// origin is stored with the play.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum SkipOrigin {
+    Button,
+    /// The mini player or Now Playing artwork. Back always goes back.
+    Swipe,
+    Headset,
+    Car,
+    LockScreen,
+    Keyboard,
+}
+
+impl From<SkipOrigin> for crate::signal::SkipOrigin {
+    fn from(o: SkipOrigin) -> Self {
+        match o {
+            SkipOrigin::Button => crate::signal::SkipOrigin::Button,
+            SkipOrigin::Swipe => crate::signal::SkipOrigin::Swipe,
+            SkipOrigin::Headset => crate::signal::SkipOrigin::Headset,
+            SkipOrigin::Car => crate::signal::SkipOrigin::Car,
+            SkipOrigin::LockScreen => crate::signal::SkipOrigin::LockScreen,
+            SkipOrigin::Keyboard => crate::signal::SkipOrigin::Keyboard,
+        }
+    }
+}
+
+/// Things that stop or move the music without the listener choosing to skip
+/// (section 21, "Interruptions").
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum InterruptionKind {
+    HeadphonesUnplugged,
+    /// Bluetooth, AirPlay or another output switched.
+    OutputChanged,
+    Call,
+    Assistant,
+}
+
+/// Where a swipe would land. `end_of_queue`: nothing there, so the content follows
+/// the finger at a third of the speed, stops after 40 pt and springs back with
+/// "End of queue" (board 42, rule 8).
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct SkipTarget {
+    pub song: Option<QueueEntry>,
+    pub end_of_queue: bool,
+}
+
 // ---------------------------------------------------------------- lyrics
 
 /// How finely a song's lyrics are timed (board 10's three states).

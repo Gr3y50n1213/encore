@@ -924,10 +924,15 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     func moveInQueue(uid: Int64, toIndex: UInt32) throws  -> QueueState
     
     /**
-     * Next (button, swipe, headset, lock screen). At the end of the queue the
-     * current song stays.
+     * Next from the button. The same as `skip_next(SkipOrigin::Button)`.
      */
     func next() throws  -> QueueState
+    
+    /**
+     * What a swipe forward would show and land on, so the UI can draw the
+     * neighbour or the "End of queue" rubber band (board 42, rule 8).
+     */
+    func nextTarget() throws  -> SkipTarget
     
     /**
      * Open a profile with the tokens the app read from its keychain. A play left
@@ -949,10 +954,22 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     func playbackEnded(reason: EndReason, listenedMs: Int64) throws  -> QueueEntry?
     
     /**
+     * Headphones unplugged, the output switched, a call or an assistant. A skip in
+     * the next `interruptionWindowSeconds` (3 s) is not a skip (section 21).
+     */
+    func playbackInterrupted(kind: InterruptionKind) throws 
+    
+    /**
      * Progress from the player, about once a second. `listened_ms` counts only
      * time actually played (not seeks). Emits Preload 20 s before the end.
      */
     func playbackProgress(positionMs: Int64, listenedMs: Int64) throws 
+    
+    /**
+     * The listener dragged the progress bar. Counted on the play; never a skip.
+     * Seeking back before the preload point lets Preload come again.
+     */
+    func playbackSeeked(fromMs: Int64, toMs: Int64) throws 
     
     /**
      * The player started the current song (`uid` from the queue). Writes the play
@@ -971,10 +988,16 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     func playlists(offset: UInt32, limit: UInt32) throws  -> [PlaylistSummary]
     
     /**
-     * Previous. `position_ms` is where the current song is; the button restarts
-     * it after 3 s, the swipe (`from_swipe`) always goes back (board 42).
+     * Previous from the button (`from_swipe` false) or a swipe (true). The same
+     * as `skip_previous` with that origin.
      */
     func previous(positionMs: Int64, fromSwipe: Bool) throws  -> PreviousResult
+    
+    /**
+     * What a swipe back would show and land on (with Repeat All at the first
+     * song: the last one).
+     */
+    func previousTarget() throws  -> SkipTarget
     
     /**
      * The profiles on this device.
@@ -1065,6 +1088,22 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
      * mirror stays, so songs stay listed until the user removes the server. Async.
      */
     func signOut(sourceId: Int64) async throws 
+    
+    /**
+     * Next from anywhere: the button, a swipe, a headset, a car, the lock screen
+     * or a key. Every origin runs this same code and teaches the same lesson
+     * (board 42, rule 15); the origin is stored on the play it ends. At the end of
+     * the queue the current song stays (`next_target` says so beforehand).
+     */
+    func skipNext(origin: SkipOrigin) throws  -> QueueState
+    
+    /**
+     * Previous from anywhere. `position_ms` is where the current song is. A swipe
+     * always goes back ("back means back"); every other origin restarts the song
+     * after `previousButtonRestartAfterSeconds` (3 s). At the first song it
+     * restarts, or wraps on Repeat All.
+     */
+    func skipPrevious(origin: SkipOrigin, positionMs: Int64) throws  -> PreviousResult
     
     func song(songId: Int64) throws  -> Song
     
@@ -1463,13 +1502,25 @@ open func moveInQueue(uid: Int64, toIndex: UInt32)throws  -> QueueState  {
 }
     
     /**
-     * Next (button, swipe, headset, lock screen). At the end of the queue the
-     * current song stays.
+     * Next from the button. The same as `skip_next(SkipOrigin::Button)`.
      */
 open func next()throws  -> QueueState  {
     return try  FfiConverterTypeQueueState_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
         uniffiCallStatus in
     uniffi_encore_core_fn_method_encorecore_next(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * What a swipe forward would show and land on, so the UI can draw the
+     * neighbour or the "End of queue" rubber band (board 42, rule 8).
+     */
+open func nextTarget()throws  -> SkipTarget  {
+    return try  FfiConverterTypeSkipTarget_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_next_target(
             self.uniffiCloneHandle(),uniffiCallStatus
     )
 })
@@ -1531,6 +1582,19 @@ open func playbackEnded(reason: EndReason, listenedMs: Int64)throws  -> QueueEnt
 }
     
     /**
+     * Headphones unplugged, the output switched, a call or an assistant. A skip in
+     * the next `interruptionWindowSeconds` (3 s) is not a skip (section 21).
+     */
+open func playbackInterrupted(kind: InterruptionKind)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_playback_interrupted(
+            self.uniffiCloneHandle(),
+        FfiConverterTypeInterruptionKind_lower(kind),uniffiCallStatus
+    )
+}
+}
+    
+    /**
      * Progress from the player, about once a second. `listened_ms` counts only
      * time actually played (not seeks). Emits Preload 20 s before the end.
      */
@@ -1540,6 +1604,20 @@ open func playbackProgress(positionMs: Int64, listenedMs: Int64)throws   {try ru
             self.uniffiCloneHandle(),
         FfiConverterInt64.lower(positionMs),
         FfiConverterInt64.lower(listenedMs),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * The listener dragged the progress bar. Counted on the play; never a skip.
+     * Seeking back before the preload point lets Preload come again.
+     */
+open func playbackSeeked(fromMs: Int64, toMs: Int64)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_playback_seeked(
+            self.uniffiCloneHandle(),
+        FfiConverterInt64.lower(fromMs),
+        FfiConverterInt64.lower(toMs),uniffiCallStatus
     )
 }
 }
@@ -1600,8 +1678,8 @@ open func playlists(offset: UInt32, limit: UInt32)throws  -> [PlaylistSummary]  
 }
     
     /**
-     * Previous. `position_ms` is where the current song is; the button restarts
-     * it after 3 s, the swipe (`from_swipe`) always goes back (board 42).
+     * Previous from the button (`from_swipe` false) or a swipe (true). The same
+     * as `skip_previous` with that origin.
      */
 open func previous(positionMs: Int64, fromSwipe: Bool)throws  -> PreviousResult  {
     return try  FfiConverterTypePreviousResult_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
@@ -1610,6 +1688,19 @@ open func previous(positionMs: Int64, fromSwipe: Bool)throws  -> PreviousResult 
             self.uniffiCloneHandle(),
         FfiConverterInt64.lower(positionMs),
         FfiConverterBool.lower(fromSwipe),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * What a swipe back would show and land on (with Repeat All at the first
+     * song: the last one).
+     */
+open func previousTarget()throws  -> SkipTarget  {
+    return try  FfiConverterTypeSkipTarget_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_previous_target(
+            self.uniffiCloneHandle(),uniffiCallStatus
     )
 })
 }
@@ -1884,6 +1975,39 @@ open func signOut(sourceId: Int64)async throws   {
             liftFunc: { $0 },
             errorHandler: FfiConverterTypeEncoreError_lift
         )
+}
+    
+    /**
+     * Next from anywhere: the button, a swipe, a headset, a car, the lock screen
+     * or a key. Every origin runs this same code and teaches the same lesson
+     * (board 42, rule 15); the origin is stored on the play it ends. At the end of
+     * the queue the current song stays (`next_target` says so beforehand).
+     */
+open func skipNext(origin: SkipOrigin)throws  -> QueueState  {
+    return try  FfiConverterTypeQueueState_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_skip_next(
+            self.uniffiCloneHandle(),
+        FfiConverterTypeSkipOrigin_lower(origin),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Previous from anywhere. `position_ms` is where the current song is. A swipe
+     * always goes back ("back means back"); every other origin restarts the song
+     * after `previousButtonRestartAfterSeconds` (3 s). At the first song it
+     * restarts, or wraps on Repeat All.
+     */
+open func skipPrevious(origin: SkipOrigin, positionMs: Int64)throws  -> PreviousResult  {
+    return try  FfiConverterTypePreviousResult_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_skip_previous(
+            self.uniffiCloneHandle(),
+        FfiConverterTypeSkipOrigin_lower(origin),
+        FfiConverterInt64.lower(positionMs),uniffiCallStatus
+    )
+})
 }
     
 open func song(songId: Int64)throws  -> Song  {
@@ -3941,6 +4065,65 @@ public func FfiConverterTypeSinger_lower(_ value: Singer) -> RustBuffer {
 }
 
 
+/**
+ * Where a swipe would land. `end_of_queue`: nothing there, so the content follows
+ * the finger at a third of the speed, stops after 40 pt and springs back with
+ * "End of queue" (board 42, rule 8).
+ */
+public struct SkipTarget: Equatable, Hashable {
+    public var song: QueueEntry?
+    public var endOfQueue: Bool
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(song: QueueEntry?, endOfQueue: Bool) {
+        self.song = song
+        self.endOfQueue = endOfQueue
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension SkipTarget: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSkipTarget: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SkipTarget {
+        return
+            try SkipTarget(
+                song: FfiConverterOptionTypeQueueEntry.read(from: &buf), 
+                endOfQueue: FfiConverterBool.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: SkipTarget, into buf: inout [UInt8]) {
+        FfiConverterOptionTypeQueueEntry.write(value.song, into: &buf)
+        FfiConverterBool.write(value.endOfQueue, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSkipTarget_lift(_ buf: RustBuffer) throws -> SkipTarget {
+    return try FfiConverterTypeSkipTarget.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSkipTarget_lower(_ value: SkipTarget) -> RustBuffer {
+    return FfiConverterTypeSkipTarget.lower(value)
+}
+
+
 public struct Song: Equatable, Hashable {
     public var id: Int64
     public var sourceId: Int64
@@ -5239,6 +5422,93 @@ public func FfiConverterTypeEventKind_lower(_ value: EventKind) -> RustBuffer {
 
 
 
+/**
+ * Things that stop or move the music without the listener choosing to skip
+ * (section 21, "Interruptions").
+ */
+
+public enum InterruptionKind: Equatable, Hashable {
+    
+    case headphonesUnplugged
+    /**
+     * Bluetooth, AirPlay or another output switched.
+     */
+    case outputChanged
+    case call
+    case assistant
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension InterruptionKind: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeInterruptionKind: FfiConverterRustBuffer {
+    typealias SwiftType = InterruptionKind
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> InterruptionKind {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .headphonesUnplugged
+        
+        case 2: return .outputChanged
+        
+        case 3: return .call
+        
+        case 4: return .assistant
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: InterruptionKind, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .headphonesUnplugged:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .outputChanged:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .call:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .assistant:
+            writeInt(&buf, Int32(4))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeInterruptionKind_lift(_ buf: RustBuffer) throws -> InterruptionKind {
+    return try FfiConverterTypeInterruptionKind.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeInterruptionKind_lower(_ value: InterruptionKind) -> RustBuffer {
+    return FfiConverterTypeInterruptionKind.lower(value)
+}
+
+
+
 
 public enum ListeningMode: Equatable, Hashable {
     
@@ -6088,6 +6358,107 @@ public func FfiConverterTypeSingerKind_lift(_ buf: RustBuffer) throws -> SingerK
 #endif
 public func FfiConverterTypeSingerKind_lower(_ value: SingerKind) -> RustBuffer {
     return FfiConverterTypeSingerKind.lower(value)
+}
+
+
+
+/**
+ * What moved on from a song (board 42). Every origin runs the same code; the
+ * origin is stored with the play.
+ */
+
+public enum SkipOrigin: Equatable, Hashable {
+    
+    case button
+    /**
+     * The mini player or Now Playing artwork. Back always goes back.
+     */
+    case swipe
+    case headset
+    case car
+    case lockScreen
+    case keyboard
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension SkipOrigin: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSkipOrigin: FfiConverterRustBuffer {
+    typealias SwiftType = SkipOrigin
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SkipOrigin {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .button
+        
+        case 2: return .swipe
+        
+        case 3: return .headset
+        
+        case 4: return .car
+        
+        case 5: return .lockScreen
+        
+        case 6: return .keyboard
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: SkipOrigin, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .button:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .swipe:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .headset:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .car:
+            writeInt(&buf, Int32(4))
+        
+        
+        case .lockScreen:
+            writeInt(&buf, Int32(5))
+        
+        
+        case .keyboard:
+            writeInt(&buf, Int32(6))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSkipOrigin_lift(_ buf: RustBuffer) throws -> SkipOrigin {
+    return try FfiConverterTypeSkipOrigin.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSkipOrigin_lower(_ value: SkipOrigin) -> RustBuffer {
+    return FfiConverterTypeSkipOrigin.lower(value)
 }
 
 
@@ -7483,7 +7854,10 @@ private let initializationResult: InitializationResult = {
     if (uniffi_encore_core_checksum_method_encorecore_move_in_queue() != 44822) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_encore_core_checksum_method_encorecore_next() != 51998) {
+    if (uniffi_encore_core_checksum_method_encorecore_next() != 46186) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_next_target() != 57950) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_open_profile() != 52351) {
@@ -7498,7 +7872,13 @@ private let initializationResult: InitializationResult = {
     if (uniffi_encore_core_checksum_method_encorecore_playback_ended() != 15328) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_encore_core_checksum_method_encorecore_playback_interrupted() != 12763) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_encore_core_checksum_method_encorecore_playback_progress() != 25231) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_playback_seeked() != 56238) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_playback_started() != 36347) {
@@ -7513,7 +7893,10 @@ private let initializationResult: InitializationResult = {
     if (uniffi_encore_core_checksum_method_encorecore_playlists() != 30414) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_encore_core_checksum_method_encorecore_previous() != 56146) {
+    if (uniffi_encore_core_checksum_method_encorecore_previous() != 37808) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_previous_target() != 5098) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_profiles() != 37021) {
@@ -7577,6 +7960,12 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_sign_out() != 43315) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_skip_next() != 2646) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_skip_previous() != 7898) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_song() != 50851) {

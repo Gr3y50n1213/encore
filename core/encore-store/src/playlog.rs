@@ -28,6 +28,14 @@ pub struct PlayEventRecord {
     pub context_id: Option<String>,
     pub chosen_by: String,
     pub updated_utc_ms: i64,
+    /// How the play reads for smart picks (plan section 21), set when it ends;
+    /// None while it plays and for plays logged before Phase 3.
+    pub signal: Option<String>,
+    /// What moved on from it: button, swipe, headset, car, lockScreen, keyboard
+    /// or auto (the song ended).
+    pub origin: Option<String>,
+    /// Times the listener dragged the progress bar during it.
+    pub seeks: u32,
 }
 
 /// A tap on a lyric line (plan section 5).
@@ -48,7 +56,7 @@ pub const IN_PROGRESS: &str = "inProgress";
 const COLS: &str =
     "id, device_id, hlc, song_key, source_kind, source_item_id, title, artist, album,
      duration_ms, started_utc_ms, utc_offset_minutes, local_hour, local_weekday, listened_ms,
-     end_reason, started_from, context_id, chosen_by, updated_utc_ms";
+     end_reason, started_from, context_id, chosen_by, updated_utc_ms, signal, origin, seeks";
 
 fn row(r: &Row<'_>) -> rusqlite::Result<PlayEventRecord> {
     Ok(PlayEventRecord {
@@ -72,13 +80,16 @@ fn row(r: &Row<'_>) -> rusqlite::Result<PlayEventRecord> {
         context_id: r.get(17)?,
         chosen_by: r.get(18)?,
         updated_utc_ms: r.get(19)?,
+        signal: r.get(20)?,
+        origin: r.get(21)?,
+        seeks: r.get(22)?,
     })
 }
 
 impl Store {
     pub fn insert_play_event(&self, e: &PlayEventRecord) -> Result<()> {
         self.conn.execute(
-            &format!("INSERT INTO play_events ({COLS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)"),
+            &format!("INSERT INTO play_events ({COLS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23)"),
             params![
                 e.id,
                 e.device_id,
@@ -99,7 +110,10 @@ impl Store {
                 e.started_from,
                 e.context_id,
                 e.chosen_by,
-                e.updated_utc_ms
+                e.updated_utc_ms,
+                e.signal,
+                e.origin,
+                e.seeks
             ],
         )?;
         Ok(())
@@ -120,20 +134,71 @@ impl Store {
         Ok(n == 1)
     }
 
-    /// Close a play. Only a play that is still in progress can be closed.
+    /// Close a play, with how it reads and what moved on from it. Only a play that
+    /// is still in progress can be closed.
     pub fn finish_play_event(
         &self,
         id: &str,
         listened_ms: u64,
         end_reason: &str,
+        signal: Option<&str>,
+        origin: Option<&str>,
         at_utc_ms: i64,
     ) -> Result<bool> {
         let n = self.conn.execute(
-            "UPDATE play_events SET listened_ms = ?2, end_reason = ?3, updated_utc_ms = ?4
-             WHERE id = ?1 AND end_reason = ?5",
-            params![id, listened_ms as i64, end_reason, at_utc_ms, IN_PROGRESS],
+            "UPDATE play_events SET listened_ms = ?2, end_reason = ?3, signal = ?4, origin = ?5,
+                 updated_utc_ms = ?6
+             WHERE id = ?1 AND end_reason = ?7",
+            params![
+                id,
+                listened_ms as i64,
+                end_reason,
+                signal,
+                origin,
+                at_utc_ms,
+                IN_PROGRESS
+            ],
         )?;
         Ok(n == 1)
+    }
+
+    /// The listener dragged the progress bar: counted, never a skip.
+    pub fn add_seek(&self, id: &str) -> Result<bool> {
+        let n = self.conn.execute(
+            "UPDATE play_events SET seeks = seeks + 1 WHERE id = ?1 AND end_reason = ?2",
+            params![id, IN_PROGRESS],
+        )?;
+        Ok(n == 1)
+    }
+
+    /// Remove a play still in progress, and its lyric jumps: a song passed over by
+    /// quick skips was never really played (board 42).
+    pub fn discard_play_event(&self, id: &str) -> Result<bool> {
+        let tx = self.conn.unchecked_transaction()?;
+        tx.execute("DELETE FROM lyric_jumps WHERE play_event_id = ?1", [id])?;
+        let n = tx.execute(
+            "DELETE FROM play_events WHERE id = ?1 AND end_reason = ?2",
+            params![id, IN_PROGRESS],
+        )?;
+        tx.commit()?;
+        Ok(n == 1)
+    }
+
+    /// Whether the song was heard (at least `min_listened_ms`) in a play that
+    /// started at or after `since_utc_ms`, other than `except_id`.
+    pub fn heard_since(
+        &self,
+        song_key: &str,
+        since_utc_ms: i64,
+        min_listened_ms: u64,
+        except_id: &str,
+    ) -> Result<bool> {
+        Ok(self.conn.query_row(
+            "SELECT EXISTS (SELECT 1 FROM play_events WHERE song_key = ?1 AND started_utc_ms >= ?2
+                 AND listened_ms >= ?3 AND id <> ?4)",
+            params![song_key, since_utc_ms, min_listened_ms as i64, except_id],
+            |r| r.get(0),
+        )?)
     }
 
     pub fn play_event(&self, id: &str) -> Result<Option<PlayEventRecord>> {
@@ -241,6 +306,9 @@ mod tests {
             context_id: Some("al1".into()),
             chosen_by: "user".into(),
             updated_utc_ms: 1_762_400_000_000,
+            signal: None,
+            origin: None,
+            seeks: 0,
         }
     }
 
@@ -259,15 +327,81 @@ mod tests {
         s.insert_play_event(&e).unwrap();
         assert!(s.checkpoint_play_event("A", 10_000, 2).unwrap());
         assert_eq!(s.open_play_events().unwrap().len(), 1);
-        assert!(s.finish_play_event("A", 12_000, "skipped", 3).unwrap());
+        assert!(s.add_seek("A").unwrap());
+        assert!(s.add_seek("A").unwrap());
+        assert!(
+            s.finish_play_event(
+                "A",
+                12_000,
+                "skipped",
+                Some("skippedEarly"),
+                Some("swipe"),
+                3
+            )
+            .unwrap()
+        );
         assert!(!s.checkpoint_play_event("A", 99_000, 4).unwrap());
-        assert!(!s.finish_play_event("A", 99_000, "finished", 5).unwrap());
+        assert!(
+            !s.add_seek("A").unwrap(),
+            "a closed play takes no more seeks"
+        );
+        assert!(
+            !s.finish_play_event("A", 99_000, "finished", None, None, 5)
+                .unwrap()
+        );
         let got = s.play_event("A").unwrap().unwrap();
         assert_eq!(
             (got.listened_ms, got.end_reason.as_str(), got.updated_utc_ms),
             (12_000, "skipped", 3)
         );
+        assert_eq!(
+            (got.signal.as_deref(), got.origin.as_deref(), got.seeks),
+            (Some("skippedEarly"), Some("swipe"), 2)
+        );
         assert!(s.open_play_events().unwrap().is_empty());
+    }
+
+    #[test]
+    fn a_passed_over_play_is_removed_with_its_jumps_and_heard_since_looks_back() {
+        let s = Store::open_in_memory().unwrap();
+        let mut e = event("A", "1762400000000-00000");
+        s.insert_play_event(&e).unwrap();
+        s.insert_lyric_jump(&LyricJumpRecord {
+            id: "J".into(),
+            play_event_id: "A".into(),
+            device_id: "dev-1".into(),
+            hlc: "1762400000001-00000".into(),
+            line_index: 1,
+            line_start_ms: 500,
+            at_utc_ms: 1,
+        })
+        .unwrap();
+        assert!(s.discard_play_event("A").unwrap());
+        assert_eq!(s.listening_row_counts().unwrap(), (0, 0));
+
+        // heard_since: only plays heard long enough, in the window, other than itself.
+        e.id = "B".into();
+        e.listened_ms = 40_000;
+        s.insert_play_event(&e).unwrap();
+        let at = e.started_utc_ms;
+        assert!(s.heard_since(&e.song_key, at - 1, 30_000, "C").unwrap());
+        assert!(
+            !s.heard_since(&e.song_key, at + 1, 30_000, "C").unwrap(),
+            "too long ago"
+        );
+        assert!(
+            !s.heard_since(&e.song_key, at - 1, 50_000, "C").unwrap(),
+            "not heard long enough"
+        );
+        assert!(
+            !s.heard_since(&e.song_key, at - 1, 30_000, "B").unwrap(),
+            "itself"
+        );
+        assert!(!s.heard_since("other", at - 1, 30_000, "C").unwrap());
+        // A finished play can't be removed.
+        s.finish_play_event("B", 40_000, "finished", Some("finished"), None, 2)
+            .unwrap();
+        assert!(!s.discard_play_event("B").unwrap());
     }
 
     #[test]

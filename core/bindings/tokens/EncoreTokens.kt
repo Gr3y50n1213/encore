@@ -1335,6 +1335,7 @@ object EncoreTokens {
      */
     object SmartPicks {
         const val earlySkipBoundarySeconds: Int = 30
+        const val lateSkipPercent: Int = 80
 
         object ExplorationPercent {
             const val familiar: Int = 5

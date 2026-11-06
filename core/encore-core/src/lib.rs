@@ -16,6 +16,7 @@ pub mod library;
 pub mod palette;
 pub mod playlog;
 pub mod queue;
+pub mod signal;
 pub mod tokens;
 
 #[cfg(feature = "uniffi")]

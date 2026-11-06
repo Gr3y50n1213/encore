@@ -24,8 +24,9 @@ use sha2::{Digest, Sha256};
 
 use super::types::*;
 use crate::brand::APP_NAME;
-use crate::playlog::{PlayLog, PlayStart};
+use crate::playlog::{Close, PlayLog, PlayStart};
 use crate::queue::{Advance, NewItem, PreviousOutcome, Queue, QueueItem};
+use crate::signal::SkipOrigin as Moved;
 use crate::tokens::tokens;
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(20);
@@ -97,6 +98,20 @@ struct Playback {
     playing_uid: Option<u64>,
     last_listened_ms: u64,
     preloaded_for: Option<u64>,
+    /// What moved on from the current song, until its play closes.
+    pending_origin: Option<Moved>,
+    /// The last unplug, output switch, call or assistant (UTC milliseconds).
+    last_interruption_utc_ms: Option<i64>,
+}
+
+impl Playback {
+    /// What is known about the play that is closing.
+    fn closing(&mut self) -> Close {
+        Close {
+            origin: self.pending_origin.take(),
+            last_interruption_utc_ms: self.last_interruption_utc_ms,
+        }
+    }
 }
 
 struct Profile {
@@ -324,6 +339,8 @@ impl Inner {
                 playing_uid: None,
                 last_listened_ms: 0,
                 preloaded_for: None,
+                pending_origin: None,
+                last_interruption_utc_ms: None,
             }),
         };
         *lock(&self.profile)? = Some(Arc::new(profile));
@@ -1155,33 +1172,123 @@ impl EncoreCore {
             .1)
     }
 
-    /// Next (button, swipe, headset, lock screen). At the end of the queue the
-    /// current song stays.
+    /// Next from the button. The same as `skip_next(SkipOrigin::Button)`.
     pub fn next(&self) -> Result<QueueState, EncoreError> {
+        self.skip_next(SkipOrigin::Button)
+    }
+
+    /// Next from anywhere: the button, a swipe, a headset, a car, the lock screen
+    /// or a key. Every origin runs this same code and teaches the same lesson
+    /// (board 42, rule 15); the origin is stored on the play it ends. At the end of
+    /// the queue the current song stays (`next_target` says so beforehand).
+    pub fn skip_next(&self, origin: SkipOrigin) -> Result<QueueState, EncoreError> {
         Ok(self
             .inner
             .with_queue(|pb, _| {
+                if pb.queue.peek_skip().is_some() {
+                    pb.pending_origin = Some(origin.into());
+                }
                 pb.queue.advance(Advance::Skip);
             })?
             .1)
     }
 
-    /// Previous. `position_ms` is where the current song is; the button restarts
-    /// it after 3 s, the swipe (`from_swipe`) always goes back (board 42).
+    /// Previous from the button (`from_swipe` false) or a swipe (true). The same
+    /// as `skip_previous` with that origin.
     pub fn previous(
         &self,
         position_ms: i64,
         from_swipe: bool,
     ) -> Result<PreviousResult, EncoreError> {
+        let origin = if from_swipe {
+            SkipOrigin::Swipe
+        } else {
+            SkipOrigin::Button
+        };
+        self.skip_previous(origin, position_ms)
+    }
+
+    /// Previous from anywhere. `position_ms` is where the current song is. A swipe
+    /// always goes back ("back means back"); every other origin restarts the song
+    /// after `previousButtonRestartAfterSeconds` (3 s). At the first song it
+    /// restarts, or wraps on Repeat All.
+    pub fn skip_previous(
+        &self,
+        origin: SkipOrigin,
+        position_ms: i64,
+    ) -> Result<PreviousResult, EncoreError> {
         let restart_after = tokens().previous_restart_after_ms;
+        let always_back = origin == SkipOrigin::Swipe;
         let (outcome, _) = self.inner.with_queue(|pb, _| {
-            pb.queue
-                .previous(position_ms.max(0) as u64, restart_after, from_swipe)
+            let outcome = pb
+                .queue
+                .previous(position_ms.max(0) as u64, restart_after, always_back);
+            if outcome == PreviousOutcome::Moved {
+                pb.pending_origin = Some(origin.into());
+            }
+            outcome
         })?;
         Ok(match outcome {
             PreviousOutcome::Restart => PreviousResult::Restarted,
             PreviousOutcome::Moved => PreviousResult::Moved,
         })
+    }
+
+    /// What a swipe forward would show and land on, so the UI can draw the
+    /// neighbour or the "End of queue" rubber band (board 42, rule 8).
+    pub fn next_target(&self) -> Result<SkipTarget, EncoreError> {
+        let p = self.inner.profile()?;
+        let pb = lock(&p.playback)?;
+        let store = lock(&p.store)?;
+        let song = pb.queue.peek_skip().and_then(|i| Inner::entry(&store, i));
+        Ok(SkipTarget {
+            end_of_queue: song.is_none(),
+            song,
+        })
+    }
+
+    /// What a swipe back would show and land on (with Repeat All at the first
+    /// song: the last one).
+    pub fn previous_target(&self) -> Result<SkipTarget, EncoreError> {
+        let p = self.inner.profile()?;
+        let pb = lock(&p.playback)?;
+        let store = lock(&p.store)?;
+        let song = pb
+            .queue
+            .peek_previous()
+            .and_then(|i| Inner::entry(&store, i));
+        Ok(SkipTarget {
+            end_of_queue: song.is_none(),
+            song,
+        })
+    }
+
+    /// Headphones unplugged, the output switched, a call or an assistant. A skip in
+    /// the next `interruptionWindowSeconds` (3 s) is not a skip (section 21).
+    pub fn playback_interrupted(&self, kind: InterruptionKind) -> Result<(), EncoreError> {
+        let _ = kind; // every kind counts the same today; kept for later rules
+        let p = self.inner.profile()?;
+        lock(&p.playback)?.last_interruption_utc_ms = Some(now_ms());
+        Ok(())
+    }
+
+    /// The listener dragged the progress bar. Counted on the play; never a skip.
+    /// Seeking back before the preload point lets Preload come again.
+    pub fn playback_seeked(&self, from_ms: i64, to_ms: i64) -> Result<(), EncoreError> {
+        let _ = from_ms;
+        let p = self.inner.profile()?;
+        let mut pb = lock(&p.playback)?;
+        let store = lock(&p.store)?;
+        pb.log.seek(&store)?;
+        if let Some(uid) = pb.playing_uid
+            && let Some(current) = pb.queue.current().filter(|i| i.uid == uid)
+        {
+            let duration = store.track(current.track_id)?.duration_ms as i64;
+            if duration - to_ms > tokens().preload_before_end_ms as i64 {
+                pb.preloaded_for = None;
+            }
+        }
+        Ok(())
     }
 
     pub fn jump_to(&self, uid: i64) -> Result<QueueState, EncoreError> {
@@ -1267,7 +1374,8 @@ impl EncoreCore {
             utc_offset_minutes,
         };
         let previous = pb.last_listened_ms;
-        pb.log.start(&store, &start, previous)?;
+        let closing = pb.closing();
+        pb.log.start(&store, &start, previous, &closing)?;
         pb.playing_uid = Some(item.uid);
         pb.last_listened_ms = 0;
         pb.preloaded_for = None;
@@ -1321,8 +1429,18 @@ impl EncoreCore {
             let p = self.inner.profile()?;
             let mut pb = lock(&p.playback)?;
             let store = lock(&p.store)?;
-            pb.log
-                .finish(&store, listened_ms.max(0) as u64, reason.into(), now_ms())?;
+            if matches!(reason, EndReason::Finished | EndReason::Error) {
+                // The app moves on by itself.
+                pb.pending_origin = Some(Moved::Auto);
+            }
+            let closing = pb.closing();
+            pb.log.close(
+                &store,
+                listened_ms.max(0) as u64,
+                reason.into(),
+                now_ms(),
+                &closing,
+            )?;
             pb.playing_uid = None;
             pb.last_listened_ms = 0;
         }

@@ -394,6 +394,11 @@ RustBuffer uniffi_encore_core_fn_method_encorecore_move_in_queue(uint64_t ptr, i
 RustBuffer uniffi_encore_core_fn_method_encorecore_next(uint64_t ptr, RustCallStatus *_Nonnull out_status
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_NEXT_TARGET
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_NEXT_TARGET
+RustBuffer uniffi_encore_core_fn_method_encorecore_next_target(uint64_t ptr, RustCallStatus *_Nonnull out_status
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_OPEN_PROFILE
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_OPEN_PROFILE
 void uniffi_encore_core_fn_method_encorecore_open_profile(uint64_t ptr, RustBuffer profile_id, RustBuffer tokens, RustCallStatus *_Nonnull out_status
@@ -414,9 +419,19 @@ RustBuffer uniffi_encore_core_fn_method_encorecore_play_next(uint64_t ptr, RustB
 RustBuffer uniffi_encore_core_fn_method_encorecore_playback_ended(uint64_t ptr, RustBuffer reason, int64_t listened_ms, RustCallStatus *_Nonnull out_status
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_PLAYBACK_INTERRUPTED
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_PLAYBACK_INTERRUPTED
+void uniffi_encore_core_fn_method_encorecore_playback_interrupted(uint64_t ptr, RustBuffer kind, RustCallStatus *_Nonnull out_status
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_PLAYBACK_PROGRESS
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_PLAYBACK_PROGRESS
 void uniffi_encore_core_fn_method_encorecore_playback_progress(uint64_t ptr, int64_t position_ms, int64_t listened_ms, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_PLAYBACK_SEEKED
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_PLAYBACK_SEEKED
+void uniffi_encore_core_fn_method_encorecore_playback_seeked(uint64_t ptr, int64_t from_ms, int64_t to_ms, RustCallStatus *_Nonnull out_status
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_PLAYBACK_STARTED
@@ -442,6 +457,11 @@ RustBuffer uniffi_encore_core_fn_method_encorecore_playlists(uint64_t ptr, uint3
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_PREVIOUS
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_PREVIOUS
 RustBuffer uniffi_encore_core_fn_method_encorecore_previous(uint64_t ptr, int64_t position_ms, int8_t from_swipe, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_PREVIOUS_TARGET
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_PREVIOUS_TARGET
+RustBuffer uniffi_encore_core_fn_method_encorecore_previous_target(uint64_t ptr, RustCallStatus *_Nonnull out_status
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_PROFILES
@@ -547,6 +567,16 @@ uint64_t uniffi_encore_core_fn_method_encorecore_sign_in(uint64_t ptr, RustBuffe
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_SIGN_OUT
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_SIGN_OUT
 uint64_t uniffi_encore_core_fn_method_encorecore_sign_out(uint64_t ptr, int64_t source_id
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_SKIP_NEXT
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_SKIP_NEXT
+RustBuffer uniffi_encore_core_fn_method_encorecore_skip_next(uint64_t ptr, RustBuffer origin, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_SKIP_PREVIOUS
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_SKIP_PREVIOUS
+RustBuffer uniffi_encore_core_fn_method_encorecore_skip_previous(uint64_t ptr, RustBuffer origin, int64_t position_ms, RustCallStatus *_Nonnull out_status
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_SONG
@@ -1043,6 +1073,12 @@ uint16_t uniffi_encore_core_checksum_method_encorecore_next(void
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_NEXT_TARGET
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_NEXT_TARGET
+uint16_t uniffi_encore_core_checksum_method_encorecore_next_target(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_OPEN_PROFILE
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_OPEN_PROFILE
 uint16_t uniffi_encore_core_checksum_method_encorecore_open_profile(void
@@ -1067,9 +1103,21 @@ uint16_t uniffi_encore_core_checksum_method_encorecore_playback_ended(void
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_PLAYBACK_INTERRUPTED
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_PLAYBACK_INTERRUPTED
+uint16_t uniffi_encore_core_checksum_method_encorecore_playback_interrupted(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_PLAYBACK_PROGRESS
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_PLAYBACK_PROGRESS
 uint16_t uniffi_encore_core_checksum_method_encorecore_playback_progress(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_PLAYBACK_SEEKED
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_PLAYBACK_SEEKED
+uint16_t uniffi_encore_core_checksum_method_encorecore_playback_seeked(void
     
 );
 #endif
@@ -1100,6 +1148,12 @@ uint16_t uniffi_encore_core_checksum_method_encorecore_playlists(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_PREVIOUS
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_PREVIOUS
 uint16_t uniffi_encore_core_checksum_method_encorecore_previous(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_PREVIOUS_TARGET
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_PREVIOUS_TARGET
+uint16_t uniffi_encore_core_checksum_method_encorecore_previous_target(void
     
 );
 #endif
@@ -1226,6 +1280,18 @@ uint16_t uniffi_encore_core_checksum_method_encorecore_sign_in(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_SIGN_OUT
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_SIGN_OUT
 uint16_t uniffi_encore_core_checksum_method_encorecore_sign_out(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_SKIP_NEXT
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_SKIP_NEXT
+uint16_t uniffi_encore_core_checksum_method_encorecore_skip_next(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_SKIP_PREVIOUS
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_SKIP_PREVIOUS
+uint16_t uniffi_encore_core_checksum_method_encorecore_skip_previous(void
     
 );
 #endif

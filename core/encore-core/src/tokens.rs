@@ -33,6 +33,7 @@ pub struct Tokens {
     pub lyrics_last_line_ms: i64,
     pub lyrics_refresh_after_ms: i64,
     pub palette: crate::palette::Settings,
+    pub signal: crate::signal::Rules,
 }
 
 fn at<'a>(v: &'a Value, path: &str) -> &'a Value {
@@ -111,6 +112,14 @@ fn parse() -> Tokens {
             text_contrast_min: real(&v, "albumGradient.textContrastMin"),
             light_art_text_contrast_min: real(&v, "albumGradient.lightArtTextContrastMin"),
             lightness_step: real(&v, "albumGradient.contrastLightnessStep"),
+        },
+        signal: crate::signal::Rules {
+            early_skip_ms: num(&v, "smartPicks.earlySkipBoundarySeconds") * 1000,
+            late_skip_percent: num(&v, "smartPicks.lateSkipPercent"),
+            accident_ms: num(&v, "smartPicks.accidentSeconds") * 1000,
+            interruption_window_ms: num(&v, "smartPicks.interruptionWindowSeconds") as i64 * 1000,
+            too_soon_ms: num(&v, "smartPicks.tooSoonHours") as i64 * 3_600_000,
+            coalesce_ms: num(&v, "gestures.playerSwipe.coalesceMs") as i64,
         },
     }
 }
