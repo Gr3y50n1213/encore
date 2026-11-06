@@ -23,3 +23,7 @@ Plan section 6 gives every profile its own database: "A profile is a folder: its
 - Each new schema change is a new migration plus a forward-migration test.
 - Backing up a profile is copying a folder; deleting one is removing it.
 - Undoing this would mean exporting and reimporting every profile, so the format should stay.
+
+## Migrations so far
+- **1:** the Phase 2 schema.
+- **2 (6 November 2026):** an index for each browse order: albums by artist and by year, songs by artist and by album. Before it, the last page of songs by artist took about 3.8 s on 50,000 songs on the owner's PC. After it, every browse page is under 50 ms (`browse_pages_stay_under_budget_on_50000_songs`). Tested from a version 1 database that holds data (`a_version_1_database_upgrades_with_its_data`).

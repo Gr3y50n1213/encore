@@ -372,9 +372,11 @@ impl Store {
 
     pub fn genre_tracks(&self, genre: &str, page: Page) -> Result<Vec<TrackRow>> {
         let mut st = self.conn.prepare_cached(&format!(
+            // EXISTS, not IN: SQLite then walks tracks_by_artist in order and checks
+            // each song's genres by primary key, instead of sorting the whole genre.
             "SELECT {TRACK_COLS} FROM tracks t
-             WHERE t.id IN (SELECT track_id FROM track_genres WHERE name = ?1 COLLATE NOCASE)
-             ORDER BY t.artist_display COLLATE NOCASE, t.album_title COLLATE NOCASE, t.disc_number, t.track_number
+             WHERE EXISTS (SELECT 1 FROM track_genres g WHERE g.track_id = t.id AND g.name = ?1 COLLATE NOCASE)
+             ORDER BY t.artist_display COLLATE NOCASE, t.album_title COLLATE NOCASE, t.disc_number, t.track_number, t.id
              LIMIT ?2 OFFSET ?3"
         ))?;
         let rows = st.query_map(params![genre, page.limit, page.offset], track_row)?;

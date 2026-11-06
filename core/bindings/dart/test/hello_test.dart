@@ -3,7 +3,6 @@
 // (core/target/debug/libencore_dart.so on Linux, encore_dart.dll on Windows).
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:encore_core/encore_core.dart';
 import 'package:encore_core/encore_tokens.dart';

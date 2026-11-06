@@ -199,7 +199,19 @@ CREATE TABLE settings (
 "#;
 
 /// Every migration, oldest first. Append only.
-pub(crate) const MIGRATIONS: &[&str] = &[V1];
+/// Migration 2: an index for every browse order, so a deep page of a large library
+/// is read in index order instead of sorting all of it (measured in
+/// tests/search_budget.rs: songs by artist took seconds on 50,000 songs). Each
+/// index matches its ORDER BY in browse.rs column for column, collation included;
+/// the row id ends every index, which is the `id` tie-break.
+const V2: &str = r#"
+CREATE INDEX albums_by_artist ON albums (artist_display COLLATE NOCASE, year, sort_title COLLATE NOCASE);
+CREATE INDEX albums_by_year ON albums (year DESC, sort_title COLLATE NOCASE);
+CREATE INDEX tracks_by_artist ON tracks (artist_display COLLATE NOCASE, album_title COLLATE NOCASE, disc_number, track_number);
+CREATE INDEX tracks_by_album ON tracks (album_title COLLATE NOCASE, disc_number, track_number);
+"#;
+
+pub(crate) const MIGRATIONS: &[&str] = &[V1, V2];
 
 /// Bring the database up to the newest schema. Returns the version it ended at.
 pub(crate) fn migrate(conn: &mut Connection) -> Result<u32> {

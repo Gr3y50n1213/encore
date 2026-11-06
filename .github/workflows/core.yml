@@ -203,9 +203,10 @@ jobs:
           python3 -I -B tools/ci/check_licences.py --self-test
           python3 -I -B tools/ci/check_licences.py tools/ci/licences.json core server tools
 
-      # Board 07: search answers in under search.budgetMs (50 ms). 50,000 songs,
-      # release build; the timings are printed here. A runner is not a phone.
-      - name: Search budget on 50,000 songs
+      # Board 07: search answers in under search.budgetMs (50 ms); every browse page
+      # (first and last, every sort) is held to the same. 50,000 songs, release
+      # build; the timings are printed here. A runner is not a phone.
+      - name: Search and browse budgets on 50,000 songs
         working-directory: core
         run: cargo test --locked -p encore-store --release --test search_budget -- --ignored --nocapture
 

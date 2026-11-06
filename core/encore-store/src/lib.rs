@@ -274,6 +274,41 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
+    /// A profile created by a build that knew only migration 1 keeps its data and
+    /// gains the browse indexes of migration 2 when a newer build opens it.
+    #[test]
+    fn a_version_1_database_upgrades_with_its_data() {
+        let dir = std::env::temp_dir().join(format!("encore-store-v1-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("profile.sqlite");
+        let _ = std::fs::remove_file(&path);
+        {
+            let conn = Connection::open(&path).unwrap();
+            conn.execute_batch(schema::MIGRATIONS[0]).unwrap();
+            conn.pragma_update(None, "user_version", 1).unwrap();
+            conn.execute(
+                "INSERT INTO settings (key, value) VALUES ('kept', 'yes')",
+                [],
+            )
+            .unwrap();
+        }
+        let s = Store::open(&path).unwrap();
+        assert_eq!(s.schema_version().unwrap(), 2);
+        assert_eq!(s.setting("kept").unwrap().as_deref(), Some("yes"));
+        let indexes: i64 = s
+            .conn
+            .query_row(
+                "SELECT count(*) FROM sqlite_master WHERE type = 'index' AND name IN
+                 ('albums_by_artist', 'albums_by_year', 'tracks_by_artist', 'tracks_by_album')",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(indexes, 4);
+        drop(s);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     #[test]
     fn a_newer_schema_is_refused_rather_than_damaged() {
         let mut conn = Connection::open_in_memory().unwrap();
