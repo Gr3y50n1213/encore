@@ -33,6 +33,7 @@ flutter_rust_bridge = "=2.13.0"
 encore-core = { path = "encore-core", default-features = false }
 encore-sources = { path = "encore-sources" }
 encore-store = { path = "encore-store" }
+encore-sync = { path = "encore-sync" }
 
 # Phase 2, approved by the owner on 6 Nov 2026. Versions from crates.io that day;
 # licences read and listed in THIRD_PARTY_LICENSES.md.

@@ -20,6 +20,11 @@ uniffi = ["dep:uniffi"]
 
 [dependencies]
 uniffi = { workspace = true, optional = true }
+encore-sources.workspace = true
+encore-store.workspace = true
+encore-sync.workspace = true
+serde.workspace = true
+ulid.workspace = true
 
 [lints]
 workspace = true
