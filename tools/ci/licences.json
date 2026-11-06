@@ -1,0 +1,20 @@
+{
+  "_about": "Licences reviewed for the core track (core/THIRD_PARTY_LICENSES.md). tools/ci/check_licences.py fails CI when a dependency's licence cannot be met from this list. Add an identifier only after reading its text and checking it against the rule: nothing linked into the apps stronger than MPL-2.0; the server may use AGPL-compatible licences.",
+  "apps": {
+    "Apache-2.0": "permissive",
+    "BSD-3-Clause": "permissive",
+    "CDLA-Permissive-2.0": "permissive, data (webpki-root-certs)",
+    "ISC": "permissive",
+    "MIT": "permissive",
+    "MPL-2.0": "file-level copyleft, the ceiling for the apps (UniFFI runtime)",
+    "Unicode-3.0": "permissive, Unicode data",
+    "Zlib": "permissive"
+  },
+  "serverOnly": {},
+  "undeclared": {
+    "allo-isolate": {
+      "licence": "Apache-2.0",
+      "why": "its Cargo.toml declares none; its LICENSE file is Apache-2.0 (read 6 November 2026)"
+    }
+  }
+}

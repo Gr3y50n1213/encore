@@ -197,6 +197,12 @@ jobs:
       - name: Colour schemes in tokens.json match tools/palette
         run: python3 -I -B tools/palette/palette.py check design/tokens.json
 
+      # Section 24: fails on a dependency licence nobody has reviewed (tools/ci/licences.json).
+      - name: Every dependency licence is reviewed (core, server, tools)
+        run: |
+          python3 -I -B tools/ci/check_licences.py --self-test
+          python3 -I -B tools/ci/check_licences.py tools/ci/licences.json core server tools
+
       # Board 07: search answers in under search.budgetMs (50 ms). 50,000 songs,
       # release build; the timings are printed here. A runner is not a phone.
       - name: Search budget on 50,000 songs
@@ -223,6 +229,16 @@ jobs:
         working-directory: core
         run: cargo build --locked -p encore-core -p encore-dart
 
+      # The smoke steps below sign in, sync, browse, play and search over real HTTP
+      # against the real Jellyfin recording, served on 127.0.0.1 by
+      # tools/ci/replay_jellyfin.py (one fresh server per step). This step runs the
+      # same flow in Rust with the production settings first.
+      - name: The production path over HTTP (Rust, on the Jellyfin replay)
+        working-directory: core
+        run: |
+          source ../tools/ci/replay.sh && start_replay
+          cargo test --locked -p encore-core library_flow_over_http -- --ignored
+
       - name: Swift (Swift 6 mode)
         working-directory: core
         run: |
@@ -232,7 +248,10 @@ jobs:
             -L target/debug -lencore_core \
             bindings/swift/EncoreCore.swift bindings/tokens/EncoreTokens.swift smoke/swift/main.swift \
             -o target/smoke-swift
-          LD_LIBRARY_PATH=target/debug target/smoke-swift
+          source ../tools/ci/replay.sh && start_replay
+          out="$(LD_LIBRARY_PATH=target/debug target/smoke-swift)"
+          echo "$out"
+          grep -qF 'library flow OK' <<<"$out"
 
       - name: Kotlin (JVM with JNA)
         working-directory: core
@@ -246,14 +265,19 @@ jobs:
           echo "$COROUTINES_SHA256  target/coroutines.jar" | sha256sum -c -
           kotlinc -cp target/jna.jar:target/coroutines.jar -include-runtime -d target/smoke-kotlin.jar \
             bindings/kotlin/uk/gcartee/encore/core/encore_core.kt bindings/tokens/EncoreTokens.kt smoke/kotlin/Main.kt
-          java -Djna.library.path=target/debug -cp target/smoke-kotlin.jar:target/jna.jar:target/coroutines.jar MainKt
+          source ../tools/ci/replay.sh && start_replay
+          out="$(java -Djna.library.path=target/debug -cp target/smoke-kotlin.jar:target/jna.jar:target/coroutines.jar MainKt)"
+          echo "$out"
+          grep -qF 'library flow OK' <<<"$out"
 
       - name: Dart
         working-directory: core/bindings/dart
         run: |
           dart --version
           dart analyze
-          ENCORE_DART_LIB="$GITHUB_WORKSPACE/core/target/debug/libencore_dart.so" dart test
+          source ../../../tools/ci/replay.sh && start_replay
+          # --run-skipped: the library-flow test fails if the replay URL is missing.
+          ENCORE_DART_LIB="$GITHUB_WORKSPACE/core/target/debug/libencore_dart.so" dart test --run-skipped
 
   apple:
     # A real iPhone or iPad can't be reached from CI, so the iOS device slice is built
@@ -341,9 +365,11 @@ jobs:
             arm64) bin=target/smoke/aarch64-apple-darwin ;;
             *)     bin=target/smoke/x86_64-apple-darwin ;;
           esac
+          source ../tools/ci/replay.sh && start_replay
           out="$("$bin")"
           echo "$out"
           grep -qF 'Hello, CI, from the Encore core.' <<<"$out"
+          grep -qF 'library flow OK' <<<"$out"
 
       - name: Run in an iOS Simulator
         run: |
@@ -360,12 +386,16 @@ jobs:
           xcrun simctl list devices available | grep "$udid"
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b
+          # The simulator shares the Mac's network, so 127.0.0.1 reaches the replay;
+          # simctl passes SIMCTL_CHILD_* variables to the spawned program.
+          source ../tools/ci/replay.sh && start_replay
           status=0
-          out="$(xcrun simctl spawn "$udid" "$bin")" || status=$?
+          out="$(SIMCTL_CHILD_ENCORE_REPLAY_URL="$ENCORE_REPLAY_URL" xcrun simctl spawn "$udid" "$bin")" || status=$?
           xcrun simctl shutdown "$udid" || true
           echo "$out"
           test "$status" -eq 0
           grep -qF 'Hello, CI, from the Encore core.' <<<"$out"
+          grep -qF 'library flow OK' <<<"$out"
 
       - name: Package an XCFramework
         run: |
@@ -526,6 +556,12 @@ jobs:
           (cd core && cargo test --workspace --locked)
           (cd server && cargo test --locked)
 
+      - name: The production path over HTTP (Rust, on the Jellyfin replay)
+        working-directory: core
+        run: |
+          source ../tools/ci/replay.sh && start_replay
+          cargo test --locked -p encore-core library_flow_over_http -- --ignored
+
       - name: Build the Dart library
         if: ${{ needs.linux.outputs.apps == 'true' }}
         working-directory: core
@@ -542,4 +578,6 @@ jobs:
         run: |
           dart --version
           dart pub get
-          ENCORE_DART_LIB="$GITHUB_WORKSPACE/core/target/debug/encore_dart.dll" dart test
+          source ../../../tools/ci/replay.sh && start_replay
+          # --run-skipped: the library-flow test fails if the replay URL is missing.
+          ENCORE_DART_LIB="$GITHUB_WORKSPACE/core/target/debug/encore_dart.dll" dart test --run-skipped

@@ -3,6 +3,7 @@
 // (core/target/debug/libencore_dart.so on Linux, encore_dart.dll on Windows).
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:encore_core/encore_core.dart';
 import 'package:encore_core/encore_tokens.dart';
@@ -28,10 +29,9 @@ void main() {
     expect(appName(), 'Encore');
   });
 
-  // No network: signing in, syncing and playing are tested in Rust on a real
-  // Jellyfin recording. These prove the Encore handle, async calls, errors and
-  // events, one step per test so a failure names its step.
-  group('the Encore handle, without a server', () {
+  // The Encore handle: sync and async calls, errors, events and the library flow,
+  // one step per test so a failure names its step.
+  group('the Encore handle', () {
     late Directory dir;
     late Encore core;
     setUp(() {
@@ -63,6 +63,44 @@ void main() {
             .having((e) => e.message, 'message', contains('https'))),
       );
     }, timeout: const Timeout(Duration(seconds: 20)));
+
+    // Over real HTTP against the real Jellyfin recording, which
+    // tools/ci/replay_jellyfin.py serves on 127.0.0.1 (see tools/ci/replay.sh).
+    // CI runs with --run-skipped, so a missing ENCORE_REPLAY_URL fails there.
+    final replay = Platform.environment['ENCORE_REPLAY_URL'];
+    test('sign in, sync, browse, play and search', () async {
+      if (replay == null) fail('set ENCORE_REPLAY_URL (tools/ci/replay.sh)');
+      final server = await core.checkAddress(address: replay);
+      expect(server.version, '12.0.0');
+      expect(server.plainHttpOnLocalNetwork, isTrue);
+      final start = await core.quickConnectStart(baseUrl: server.baseUrl);
+      expect(start.code.length, 6);
+      final signedIn = await core.quickConnectWait();
+      expect(signedIn.profileId, startsWith('jf-'));
+      expect(core.currentProfile(), signedIn.profileId);
+      final synced = await core.syncLibrary();
+      expect(synced.single.songs, 150);
+      final album = core
+          .albums(sort: AlbumSort.title, offset: 0, limit: 100)
+          .firstWhere((a) => a.songCount >= 2);
+      final songs = core.album(albumId: album.id).songs;
+      final state = core.play(
+          songIds: Int64List.fromList([for (final s in songs) s.id]),
+          startIndex: 0,
+          startedFrom: StartedFrom.album,
+          contextId: 'smoke');
+      final current = state.current!;
+      expect(current.song.id, songs[0].id);
+      expect(state.upNext.length, songs.length - 1);
+      core.playbackStarted(uid: current.uid, utcOffsetMinutes: 0);
+      final next = core.playbackEnded(
+          reason: EndReason.finished, listenedMs: current.song.durationMs);
+      expect(next?.song.id, songs[1].id);
+      final found = core.search(query: songs[0].title);
+      expect(found.songs.map((s) => s.title), contains(songs[0].title));
+    },
+        skip: replay == null ? 'set ENCORE_REPLAY_URL (tools/ci/replay.sh)' : false,
+        timeout: const Timeout(Duration(seconds: 60)));
 
     test('the events stream opens and stopEvents closes it', () async {
       final closed = Completer<void>();

@@ -80,6 +80,38 @@ fn signed_in(core: &EncoreCore) -> SignedIn {
     block(core.quick_connect_wait()).unwrap()
 }
 
+/// The production path (`EncoreCore::new`: real HTTP, the real page size and poll
+/// interval) against tools/ci/replay_jellyfin.py. Ignored because it needs that
+/// server: CI starts it and runs this with `--ignored` (tools/ci/replay.sh).
+#[test]
+#[ignore = "needs ENCORE_REPLAY_URL: tools/ci/replay.sh"]
+fn library_flow_over_http_against_the_replay_server() {
+    let url = std::env::var("ENCORE_REPLAY_URL").expect("set ENCORE_REPLAY_URL");
+    let dir = temp_dir("http");
+    let core = EncoreCore::new(CoreConfig {
+        data_dir: dir.0.to_string_lossy().into_owned(),
+        device_id: "device-test".into(),
+        device_name: "Test".into(),
+        platform: "test".into(),
+    })
+    .unwrap();
+    let check = block(core.check_address(url)).unwrap();
+    assert_eq!(check.version, "12.0.0");
+    assert!(check.plain_http_on_local_network);
+    block(core.quick_connect_start(check.base_url)).unwrap();
+    let signed_in = block(core.quick_connect_wait()).unwrap();
+    assert_eq!(core.current_profile(), Some(signed_in.profile_id));
+    let synced = block(core.sync_library()).unwrap();
+    assert_eq!(
+        (synced[0].artists, synced[0].albums, synced[0].songs),
+        (26, 38, 150)
+    );
+    // A second sync is a delta, cursored by the replayed Date header.
+    let again = block(core.sync_library()).unwrap();
+    assert_eq!(again[0].removed, 0);
+    assert_eq!(core.songs(SongSort::Title, 0, 1000).unwrap().len(), 150);
+}
+
 /// Dart can release the last reference on another runtime's worker; dropping a
 /// tokio runtime there panics unless it is shut down in the background.
 #[test]

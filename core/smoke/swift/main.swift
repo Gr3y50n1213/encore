@@ -4,8 +4,7 @@
 // iOS Simulator, and the iOS device build is linked but not run. The Apple track proves the
 // bindings on real iPhones, iPads and Macs.
 //
-// No network: the API calls here fail or succeed without reaching a server. Signing in,
-// syncing, browsing and playing are tested in Rust on a real Jellyfin recording.
+// The only network is 127.0.0.1: a replay of the real Jellyfin recording (see the end).
 
 import Foundation
 
@@ -48,5 +47,34 @@ do {
     precondition(reason.contains("https"), reason)
 }
 
-print("Swift -> Rust: \(greeting) (core \(coreVersion())); EncoreCore async and errors OK")
+// The library flow over real HTTP: sign in, sync, browse, play and search against the
+// real Jellyfin recording, which tools/ci/replay_jellyfin.py serves on this machine.
+var flow = "library flow skipped (set ENCORE_REPLAY_URL, see tools/ci/replay.sh)"
+if let replay = ProcessInfo.processInfo.environment["ENCORE_REPLAY_URL"] {
+    let check = try await core.checkAddress(address: replay)
+    precondition(check.version == "12.0.0", check.version)
+    precondition(check.plainHttpOnLocalNetwork)
+    let start = try await core.quickConnectStart(baseUrl: check.baseUrl)
+    precondition(start.code.count == 6)
+    let signedIn = try await core.quickConnectWait()
+    precondition(signedIn.profileId.hasPrefix("jf-"))
+    precondition(core.currentProfile() == signedIn.profileId)
+    let synced = try await core.syncLibrary()
+    precondition(synced.count == 1 && synced[0].songs == 150, "\(synced)")
+    guard let album = try core.albums(sort: .title, offset: 0, limit: 100).first(where: { $0.songCount >= 2 })
+    else { preconditionFailure("no album with two songs") }
+    let songs = try core.album(albumId: album.id).songs
+    let state = try core.play(
+        songIds: songs.map { $0.id }, startIndex: 0, startedFrom: .album, contextId: "smoke")
+    guard let current = state.current else { preconditionFailure("nothing playing") }
+    precondition(current.song.id == songs[0].id && state.upNext.count == songs.count - 1)
+    try core.playbackStarted(uid: current.uid, utcOffsetMinutes: 0)
+    let next = try core.playbackEnded(reason: .finished, listenedMs: current.song.durationMs)
+    precondition(next?.song.id == songs[1].id)
+    let found = try core.search(query: songs[0].title)
+    precondition(found.songs.contains { $0.title == songs[0].title })
+    flow = "library flow OK (signed in, synced \(synced[0].songs) songs, played an album, searched)"
+}
+
+print("Swift -> Rust: \(greeting) (core \(coreVersion())); EncoreCore async and errors OK; \(flow)")
 try? FileManager.default.removeItem(at: dir)
