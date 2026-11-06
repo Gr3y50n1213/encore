@@ -1,0 +1,13 @@
+# Build tools for the core track (codegen, fixtures). Not shipped in any app.
+[workspace]
+resolver = "3"
+members = ["encore-tokens"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+publish = false
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
