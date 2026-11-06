@@ -458,6 +458,39 @@ impl JellyfinClient {
         })
     }
 
+    /// The primary image as PNG, at most `size_px` on its longer side, for colour
+    /// sampling (board 04). PNG because it is lossless: every device decodes the
+    /// same pixels, so every device makes the same palette. `tag` (the image tag)
+    /// lets the server and caches tell covers apart. None when there is no cover.
+    pub async fn cover_png(
+        &self,
+        item_id: &str,
+        size_px: u32,
+        tag: Option<&str>,
+    ) -> Result<Option<Vec<u8>>> {
+        let px = size_px.clamp(8, 1024).to_string();
+        let mut q = vec![
+            ("maxWidth", px.as_str()),
+            ("maxHeight", px.as_str()),
+            ("format", "Png"),
+        ];
+        if let Some(t) = tag {
+            q.push(("tag", t));
+        }
+        let resp = self
+            .send(
+                Method::Get,
+                self.url(&format!("/Items/{item_id}/Images/Primary"), &q)?,
+                None,
+            )
+            .await?;
+        match Self::check(resp, SourceError::SessionExpired) {
+            Ok(r) => Ok(Some(r.body)),
+            Err(SourceError::NotFound) => Ok(None),
+            Err(e) => Err(e),
+        }
+    }
+
     /// The primary image at exactly `size_px` square (plan section 4).
     pub fn artwork(&self, item_id: &str, size_px: u32) -> Result<ArtworkInfo> {
         let px = size_px.clamp(16, 4096).to_string();

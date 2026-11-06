@@ -329,6 +329,17 @@ public enum EncoreTokens {
         public static let clusterSpace: String = "OKLab k-means"
         public static let stops: Int = 4
         public static let plusDarkBase: Bool = true
+        public static let rankChromaWeight: Int = 2
+        public static let duplicateDistance: Double = 0.08
+        public static let lightArtMinLightness: Double = 0.75
+        public static let darkBaseLightness: Double = 0.22
+        public static let darkBaseMaxChroma: Double = 0.1
+        public static let lightBaseLightness: Double = 0.93
+        public static let lightBaseMaxChroma: Double = 0.02
+        public static let lightFieldMinLightness: Double = 0.85
+        public static let lightFieldMaxChroma: Double = 0.08
+        public static let kmeansMaxIterations: Int = 24
+        public static let contrastLightnessStep: Double = 0.005
         public static let textContrastMin: Double = 4.5
         public static let lightArtTextContrastMin: Int = 7
         public static let lightArtRule: String = "Light art flips to a light field with dark text."

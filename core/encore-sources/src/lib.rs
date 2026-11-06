@@ -20,4 +20,4 @@ pub mod transport;
 pub use error::{Result, SourceError, Unreachable};
 pub use model::*;
 pub use source::{JellyfinSource, MediaSource};
-pub use transport::{FixtureTransport, Transport};
+pub use transport::{FixtureExchange, FixtureTransport, Transport};

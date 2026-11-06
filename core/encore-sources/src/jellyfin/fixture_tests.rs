@@ -40,6 +40,7 @@ fn x(method: &str, path: &str, query: &[(&str, &str)], body: serde_json::Value) 
         status: 200,
         body: Some(body),
         body_text: None,
+        body_hex: None,
         error: None,
         date: None,
     }
@@ -69,6 +70,7 @@ fn fails(origin: &str, path: &str, error: &str) -> FixtureExchange {
         status: 0,
         body: None,
         body_text: None,
+        body_hex: None,
         error: Some(error.into()),
         date: None,
     }

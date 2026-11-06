@@ -289,6 +289,11 @@ RustBuffer uniffi_encore_core_fn_method_encorecore_add_to_up_next(uint64_t ptr, 
 RustBuffer uniffi_encore_core_fn_method_encorecore_album(uint64_t ptr, int64_t album_id, RustCallStatus *_Nonnull out_status
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_ALBUM_PALETTE
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_ALBUM_PALETTE
+uint64_t uniffi_encore_core_fn_method_encorecore_album_palette(uint64_t ptr, int64_t album_id
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_ALBUMS
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_ALBUMS
 RustBuffer uniffi_encore_core_fn_method_encorecore_albums(uint64_t ptr, RustBuffer sort, uint32_t offset, uint32_t limit, RustCallStatus *_Nonnull out_status
@@ -422,6 +427,11 @@ void uniffi_encore_core_fn_method_encorecore_playback_started(uint64_t ptr, int6
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_PLAYLIST
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_PLAYLIST
 RustBuffer uniffi_encore_core_fn_method_encorecore_playlist(uint64_t ptr, int64_t playlist_id, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_PLAYLIST_PALETTE
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_PLAYLIST_PALETTE
+uint64_t uniffi_encore_core_fn_method_encorecore_playlist_palette(uint64_t ptr, int64_t playlist_id
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_PLAYLISTS
@@ -907,6 +917,12 @@ uint16_t uniffi_encore_core_checksum_method_encorecore_album(void
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_ALBUM_PALETTE
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_ALBUM_PALETTE
+uint16_t uniffi_encore_core_checksum_method_encorecore_album_palette(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_ALBUMS
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_ALBUMS
 uint16_t uniffi_encore_core_checksum_method_encorecore_albums(void
@@ -1066,6 +1082,12 @@ uint16_t uniffi_encore_core_checksum_method_encorecore_playback_started(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_PLAYLIST
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_PLAYLIST
 uint16_t uniffi_encore_core_checksum_method_encorecore_playlist(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_PLAYLIST_PALETTE
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_PLAYLIST_PALETTE
+uint16_t uniffi_encore_core_checksum_method_encorecore_playlist_palette(void
     
 );
 #endif

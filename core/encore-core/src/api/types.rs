@@ -565,6 +565,65 @@ pub struct SongLyrics {
     pub fetched_utc_ms: i64,
 }
 
+// ---------------------------------------------------------------- palettes
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum PaletteScheme {
+    /// A dark field with white text.
+    Dark,
+    /// Light art: a light field with dark text.
+    Light,
+}
+
+/// One colour sampled from the cover and its share of it (0 to 1).
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct PaletteSwatch {
+    pub colour: String,
+    pub share: f64,
+}
+
+/// The colours of an album's or playlist's gradient (board 04). Colours are
+/// `RRGGBB` hex. Every colour reaches `lowest_contrast` against `text` or better.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct ArtworkPalette {
+    pub scheme: PaletteScheme,
+    /// The field's base, tinted with the leading hue.
+    pub base: String,
+    /// Four stops for the moving field, leading colour first; the mini player and
+    /// album pages take their tint from the first.
+    pub stops: Vec<String>,
+    pub text: String,
+    pub lowest_contrast: f64,
+    /// The five clusters as sampled, largest first.
+    pub sampled: Vec<PaletteSwatch>,
+}
+
+impl From<crate::palette::Palette> for ArtworkPalette {
+    fn from(p: crate::palette::Palette) -> Self {
+        ArtworkPalette {
+            scheme: match p.scheme {
+                crate::palette::Scheme::Dark => PaletteScheme::Dark,
+                crate::palette::Scheme::Light => PaletteScheme::Light,
+            },
+            base: p.base,
+            stops: p.stops,
+            text: p.text,
+            lowest_contrast: p.lowest_contrast,
+            sampled: p
+                .sampled
+                .into_iter()
+                .map(|s| PaletteSwatch {
+                    colour: s.colour,
+                    share: s.share,
+                })
+                .collect(),
+        }
+    }
+}
+
 // ---------------------------------------------------------------- events
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

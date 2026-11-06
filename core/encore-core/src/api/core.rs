@@ -17,7 +17,8 @@ use encore_sources::jellyfin::{
 };
 use encore_sources::{JellyfinSource, MediaSource, Transport};
 use encore_store::{
-    CachedLyrics, NewSource, Page, SearchLimits, SourceRecord, Store, TopResult as StoreTop,
+    CachedLyrics, CachedPalette, NewSource, Page, SearchLimits, SourceRecord, Store,
+    TopResult as StoreTop,
 };
 use sha2::{Digest, Sha256};
 
@@ -448,6 +449,77 @@ impl Inner {
 }
 
 impl EncoreCore {
+    /// Make, or read back, the palette of an album's or playlist's cover.
+    async fn palette_for(
+        &self,
+        kind: &'static str,
+        id: i64,
+    ) -> Result<Option<ArtworkPalette>, EncoreError> {
+        let inner = self.inner.clone();
+        self.spawn(async move {
+            let p = inner.profile()?;
+            let settings = &tokens().palette;
+            let (found, cached) = {
+                let store = lock(&p.store)?;
+                (
+                    store.artwork_tag(kind, id)?,
+                    store.cached_palette(kind, id)?,
+                )
+            };
+            let Some((source_id, item, tag)) = found else {
+                return Err(EncoreError::NotFound {
+                    reason: format!("That {kind} isn't in your library"),
+                });
+            };
+            let read = |c: &CachedPalette| -> Result<Option<ArtworkPalette>, EncoreError> {
+                let Some(json) = &c.palette_json else {
+                    return Ok(None);
+                };
+                let palette: crate::palette::Palette =
+                    serde_json::from_str(json).map_err(EncoreError::internal)?;
+                Ok(Some(palette.into()))
+            };
+            if let Some(c) = &cached
+                && c.artwork_tag == tag
+            {
+                return read(c);
+            }
+            let fetched = match (&tag, inner.source(&p, source_id)) {
+                // No cover: nothing to fetch.
+                (None, _) => Ok(None),
+                (Some(t), Ok(source)) => source
+                    .cover_png(&item, settings.sample_size_px, Some(t))
+                    .await
+                    .map_err(EncoreError::from),
+                (Some(_), Err(e)) => Err(e),
+            };
+            let bytes = match (fetched, &cached) {
+                (Ok(b), _) => b,
+                // Offline or signed out: the last palette, even of an older cover.
+                (Err(_), Some(c)) => return read(c),
+                (Err(e), None) => return Err(e),
+            };
+            // A cover that can't be read counts as no cover: the profile accent.
+            let palette =
+                bytes.and_then(|b| crate::palette::palette_of_png(&b, settings).ok().flatten());
+            let palette_json = match &palette {
+                Some(pal) => Some(serde_json::to_string(pal).map_err(EncoreError::internal)?),
+                None => None,
+            };
+            lock(&p.store)?.save_palette(
+                kind,
+                id,
+                &CachedPalette {
+                    artwork_tag: tag,
+                    palette_json,
+                    made_utc_ms: now_ms(),
+                },
+            )?;
+            Ok(palette.map(Into::into))
+        })
+        .await
+    }
+
     /// Run on the core's runtime, so callers on any executor (Swift, Kotlin, Dart)
     /// get the same behaviour; reqwest needs tokio underneath.
     async fn spawn<T: Send + 'static>(
@@ -1512,6 +1584,25 @@ impl EncoreCore {
             Ok(parsed.map(|l| SongLyrics::from_model(song_id, l, now)))
         })
         .await
+    }
+
+    /// The colours for an album's gradient (board 04); None when it has no cover
+    /// (use the profile accent). Made once per cover from a small PNG of it, the same
+    /// on every device; made again when the cover changes. Works offline once made;
+    /// when the server can't be reached the last palette is used. Async.
+    pub async fn album_palette(
+        &self,
+        album_id: i64,
+    ) -> Result<Option<ArtworkPalette>, EncoreError> {
+        self.palette_for("album", album_id).await
+    }
+
+    /// The same for a playlist's cover. Async.
+    pub async fn playlist_palette(
+        &self,
+        playlist_id: i64,
+    ) -> Result<Option<ArtworkPalette>, EncoreError> {
+        self.palette_for("playlist", playlist_id).await
     }
 
     /// The song's lyrics exactly as the server sent them (Jellyfin's JSON); None

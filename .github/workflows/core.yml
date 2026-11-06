@@ -318,6 +318,14 @@ jobs:
           key: core-apple-${{ hashFiles('core/Cargo.lock') }}
           restore-keys: core-apple-
 
+      # Album palettes must be the same bytes on every device (board 04, ADR
+      # core-0007). Linux and Windows check the golden values on x86_64; this runs
+      # the same tests on Apple silicon (arm64).
+      - name: Palettes are the same bytes on Apple silicon
+        run: |
+          uname -m
+          cargo test --locked -p encore-core palette
+
       - name: Build libencore_core.a for each Apple target
         env:
           # Plain text, so the line with the system libraries can be read back.

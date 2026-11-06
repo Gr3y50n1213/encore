@@ -30,6 +30,14 @@ pub trait MediaSource: Send + Sync + fmt::Debug {
     fn stream_info(&self, item_id: &str, req: &StreamRequest) -> Result<StreamInfo>;
     fn artwork(&self, item_id: &str, size_px: u32) -> Result<ArtworkInfo>;
     fn lyrics<'a>(&'a self, item_id: &'a str) -> BoxFuture<'a, Result<Option<RawLyrics>>>;
+    /// The cover as PNG for colour sampling, at most size_px on its longer side;
+    /// None when there is no cover.
+    fn cover_png<'a>(
+        &'a self,
+        item_id: &'a str,
+        size_px: u32,
+        tag: Option<&'a str>,
+    ) -> BoxFuture<'a, Result<Option<Vec<u8>>>>;
 }
 
 /// A signed-in Jellyfin account.
@@ -74,5 +82,14 @@ impl MediaSource for JellyfinSource {
 
     fn lyrics<'a>(&'a self, item_id: &'a str) -> BoxFuture<'a, Result<Option<RawLyrics>>> {
         Box::pin(self.client.lyrics(item_id))
+    }
+
+    fn cover_png<'a>(
+        &'a self,
+        item_id: &'a str,
+        size_px: u32,
+        tag: Option<&'a str>,
+    ) -> BoxFuture<'a, Result<Option<Vec<u8>>>> {
+        Box::pin(self.client.cover_png(item_id, size_px, tag))
     }
 }

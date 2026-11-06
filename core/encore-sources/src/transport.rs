@@ -99,6 +99,9 @@ pub struct FixtureExchange {
     /// Or as plain text.
     #[serde(default)]
     pub body_text: Option<String>,
+    /// Or as bytes, in hex (an image).
+    #[serde(default)]
+    pub body_hex: Option<String>,
     /// Or a failure instead of a reply: "nameNotFound", "refused", "timedOut",
     /// "certificateUntrusted:<sha256>".
     #[serde(default)]
@@ -196,10 +199,13 @@ impl Transport for FixtureTransport {
                     },
                 });
             }
-            let body = match (x.body, x.body_text) {
-                (Some(v), _) => serde_json::to_vec(&v).unwrap_or_default(),
-                (None, Some(t)) => t.into_bytes(),
-                (None, None) => Vec::new(),
+            let body = match (x.body, x.body_text, x.body_hex) {
+                (Some(v), _, _) => serde_json::to_vec(&v).unwrap_or_default(),
+                (None, Some(t), _) => t.into_bytes(),
+                (None, None, Some(h)) => from_hex(&h).ok_or_else(|| {
+                    SourceError::Protocol(format!("fixture: bad bodyHex for {path}"))
+                })?,
+                (None, None, None) => Vec::new(),
             };
             Ok(Response {
                 status: if x.status == 0 { 200 } else { x.status },
@@ -211,4 +217,16 @@ impl Transport for FixtureTransport {
             })
         })
     }
+}
+
+/// Lower- or upper-case hex to bytes; None if it isn't hex.
+pub fn from_hex(h: &str) -> Option<Vec<u8>> {
+    let h = h.trim();
+    if !h.len().is_multiple_of(2) {
+        return None;
+    }
+    (0..h.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(h.get(i..i + 2)?, 16).ok())
+        .collect()
 }

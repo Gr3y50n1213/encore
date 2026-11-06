@@ -121,6 +121,9 @@ def handler(replay):
             elif x.get("bodyText") is not None:
                 body = x["bodyText"].encode()
                 kind = "text/plain; charset=utf-8"
+            elif x.get("bodyHex") is not None:
+                body = bytes.fromhex(x["bodyHex"])
+                kind = x.get("contentType") or "application/octet-stream"
             else:
                 body, kind = b"", None
             self.send_response(status)

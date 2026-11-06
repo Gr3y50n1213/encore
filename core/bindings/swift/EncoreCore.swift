@@ -841,6 +841,14 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     
     func album(albumId: Int64) throws  -> AlbumDetail
     
+    /**
+     * The colours for an album's gradient (board 04); None when it has no cover
+     * (use the profile accent). Made once per cover from a small PNG of it, the same
+     * on every device; made again when the cover changes. Works offline once made;
+     * when the server can't be reached the last palette is used. Async.
+     */
+    func albumPalette(albumId: Int64) async throws  -> ArtworkPalette?
+    
     func albums(sort: AlbumSort, offset: UInt32, limit: UInt32) throws  -> [AlbumSummary]
     
     func artist(artistId: Int64) throws  -> ArtistDetail
@@ -954,6 +962,11 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     func playbackStarted(uid: Int64, utcOffsetMinutes: Int32) throws 
     
     func playlist(playlistId: Int64) throws  -> PlaylistDetail
+    
+    /**
+     * The same for a playlist's cover. Async.
+     */
+    func playlistPalette(playlistId: Int64) async throws  -> ArtworkPalette?
     
     func playlists(offset: UInt32, limit: UInt32) throws  -> [PlaylistSummary]
     
@@ -1180,6 +1193,28 @@ open func album(albumId: Int64)throws  -> AlbumDetail  {
         FfiConverterInt64.lower(albumId),uniffiCallStatus
     )
 })
+}
+    
+    /**
+     * The colours for an album's gradient (board 04); None when it has no cover
+     * (use the profile accent). Made once per cover from a small PNG of it, the same
+     * on every device; made again when the cover changes. Works offline once made;
+     * when the server can't be reached the last palette is used. Async.
+     */
+open func albumPalette(albumId: Int64)async throws  -> ArtworkPalette?  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_album_palette(
+                        self.uniffiCloneHandle(),FfiConverterInt64.lower(albumId)
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_rust_buffer,
+            completeFunc: ffi_encore_core_rust_future_complete_rust_buffer,
+            freeFunc: ffi_encore_core_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterOptionTypeArtworkPalette.lift,
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
 }
     
 open func albums(sort: AlbumSort, offset: UInt32, limit: UInt32)throws  -> [AlbumSummary]  {
@@ -1532,6 +1567,25 @@ open func playlist(playlistId: Int64)throws  -> PlaylistDetail  {
         FfiConverterInt64.lower(playlistId),uniffiCallStatus
     )
 })
+}
+    
+    /**
+     * The same for a playlist's cover. Async.
+     */
+open func playlistPalette(playlistId: Int64)async throws  -> ArtworkPalette?  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_playlist_palette(
+                        self.uniffiCloneHandle(),FfiConverterInt64.lower(playlistId)
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_rust_buffer,
+            completeFunc: ffi_encore_core_rust_future_complete_rust_buffer,
+            freeFunc: ffi_encore_core_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterOptionTypeArtworkPalette.lift,
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
 }
     
 open func playlists(offset: UInt32, limit: UInt32)throws  -> [PlaylistSummary]  {
@@ -2228,6 +2282,100 @@ public func FfiConverterTypeArtistSummary_lower(_ value: ArtistSummary) -> RustB
 }
 
 
+/**
+ * The colours of an album's or playlist's gradient (board 04). Colours are
+ * `RRGGBB` hex. Every colour reaches `lowest_contrast` against `text` or better.
+ */
+public struct ArtworkPalette: Equatable, Hashable {
+    public var scheme: PaletteScheme
+    /**
+     * The field's base, tinted with the leading hue.
+     */
+    public var base: String
+    /**
+     * Four stops for the moving field, leading colour first; the mini player and
+     * album pages take their tint from the first.
+     */
+    public var stops: [String]
+    public var text: String
+    public var lowestContrast: Double
+    /**
+     * The five clusters as sampled, largest first.
+     */
+    public var sampled: [PaletteSwatch]
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(scheme: PaletteScheme, 
+        /**
+         * The field's base, tinted with the leading hue.
+         */base: String, 
+        /**
+         * Four stops for the moving field, leading colour first; the mini player and
+         * album pages take their tint from the first.
+         */stops: [String], text: String, lowestContrast: Double, 
+        /**
+         * The five clusters as sampled, largest first.
+         */sampled: [PaletteSwatch]) {
+        self.scheme = scheme
+        self.base = base
+        self.stops = stops
+        self.text = text
+        self.lowestContrast = lowestContrast
+        self.sampled = sampled
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension ArtworkPalette: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeArtworkPalette: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ArtworkPalette {
+        return
+            try ArtworkPalette(
+                scheme: FfiConverterTypePaletteScheme.read(from: &buf), 
+                base: FfiConverterString.read(from: &buf), 
+                stops: FfiConverterSequenceString.read(from: &buf), 
+                text: FfiConverterString.read(from: &buf), 
+                lowestContrast: FfiConverterDouble.read(from: &buf), 
+                sampled: FfiConverterSequenceTypePaletteSwatch.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: ArtworkPalette, into buf: inout [UInt8]) {
+        FfiConverterTypePaletteScheme.write(value.scheme, into: &buf)
+        FfiConverterString.write(value.base, into: &buf)
+        FfiConverterSequenceString.write(value.stops, into: &buf)
+        FfiConverterString.write(value.text, into: &buf)
+        FfiConverterDouble.write(value.lowestContrast, into: &buf)
+        FfiConverterSequenceTypePaletteSwatch.write(value.sampled, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeArtworkPalette_lift(_ buf: RustBuffer) throws -> ArtworkPalette {
+    return try FfiConverterTypeArtworkPalette.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeArtworkPalette_lower(_ value: ArtworkPalette) -> RustBuffer {
+    return FfiConverterTypeArtworkPalette.lower(value)
+}
+
+
 public struct ArtworkRequest: Equatable, Hashable {
     public var url: String
     public var headers: [HttpHeader]
@@ -2918,6 +3066,63 @@ public func FfiConverterTypeLyricWord_lift(_ buf: RustBuffer) throws -> LyricWor
 #endif
 public func FfiConverterTypeLyricWord_lower(_ value: LyricWord) -> RustBuffer {
     return FfiConverterTypeLyricWord.lower(value)
+}
+
+
+/**
+ * One colour sampled from the cover and its share of it (0 to 1).
+ */
+public struct PaletteSwatch: Equatable, Hashable {
+    public var colour: String
+    public var share: Double
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(colour: String, share: Double) {
+        self.colour = colour
+        self.share = share
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension PaletteSwatch: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypePaletteSwatch: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> PaletteSwatch {
+        return
+            try PaletteSwatch(
+                colour: FfiConverterString.read(from: &buf), 
+                share: FfiConverterDouble.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: PaletteSwatch, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.colour, into: &buf)
+        FfiConverterDouble.write(value.share, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypePaletteSwatch_lift(_ buf: RustBuffer) throws -> PaletteSwatch {
+    return try FfiConverterTypePaletteSwatch.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypePaletteSwatch_lower(_ value: PaletteSwatch) -> RustBuffer {
+    return FfiConverterTypePaletteSwatch.lower(value)
 }
 
 
@@ -5515,6 +5720,78 @@ public func FfiConverterTypeNetwork_lower(_ value: Network) -> RustBuffer {
 
 
 
+public enum PaletteScheme: Equatable, Hashable {
+    
+    /**
+     * A dark field with white text.
+     */
+    case dark
+    /**
+     * Light art: a light field with dark text.
+     */
+    case light
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension PaletteScheme: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypePaletteScheme: FfiConverterRustBuffer {
+    typealias SwiftType = PaletteScheme
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> PaletteScheme {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .dark
+        
+        case 2: return .light
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: PaletteScheme, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .dark:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .light:
+            writeInt(&buf, Int32(2))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypePaletteScheme_lift(_ buf: RustBuffer) throws -> PaletteScheme {
+    return try FfiConverterTypePaletteScheme.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypePaletteScheme_lower(_ value: PaletteScheme) -> RustBuffer {
+    return FfiConverterTypePaletteScheme.lower(value)
+}
+
+
+
+
 public enum PreviousResult: Equatable, Hashable {
     
     /**
@@ -6340,6 +6617,30 @@ fileprivate struct FfiConverterOptionTypeArtistSummary: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterOptionTypeArtworkPalette: FfiConverterRustBuffer {
+    typealias SwiftType = ArtworkPalette?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeArtworkPalette.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeArtworkPalette.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterOptionTypePlaylistSummary: FfiConverterRustBuffer {
     typealias SwiftType = PlaylistSummary?
 
@@ -6759,6 +7060,31 @@ fileprivate struct FfiConverterSequenceTypeLyricWord: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterSequenceTypePaletteSwatch: FfiConverterRustBuffer {
+    typealias SwiftType = [PaletteSwatch]
+
+    public static func write(_ value: [PaletteSwatch], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypePaletteSwatch.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [PaletteSwatch] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [PaletteSwatch]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypePaletteSwatch.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterSequenceTypePlaylistEntry: FfiConverterRustBuffer {
     typealias SwiftType = [PlaylistEntry]
 
@@ -7097,6 +7423,9 @@ private let initializationResult: InitializationResult = {
     if (uniffi_encore_core_checksum_method_encorecore_album() != 41546) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_encore_core_checksum_method_encorecore_album_palette() != 234) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_encore_core_checksum_method_encorecore_albums() != 40763) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -7176,6 +7505,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_playlist() != 45960) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_playlist_palette() != 44263) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_playlists() != 30414) {

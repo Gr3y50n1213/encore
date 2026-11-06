@@ -24,6 +24,7 @@ encore-lyrics.workspace = true
 encore-sources.workspace = true
 encore-store.workspace = true
 encore-sync.workspace = true
+png.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true

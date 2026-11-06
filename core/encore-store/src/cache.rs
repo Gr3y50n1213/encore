@@ -89,13 +89,13 @@ impl Store {
         Ok(())
     }
 
-    /// The current artwork tag of an album or playlist (None: no artwork, or not
-    /// mirrored), and whether the item exists.
+    /// An album's or playlist's source, its ID there and its current artwork tag
+    /// (None: no artwork). None when there is no such item.
     pub fn artwork_tag(
         &self,
         kind: &str,
         item_id: i64,
-    ) -> Result<Option<(String, Option<String>)>> {
+    ) -> Result<Option<(i64, String, Option<String>)>> {
         let table = match kind {
             "album" => "albums",
             "playlist" => "playlists",
@@ -104,9 +104,9 @@ impl Store {
         Ok(self
             .conn
             .prepare_cached(&format!(
-                "SELECT source_item_id, artwork_tag FROM {table} WHERE id = ?1"
+                "SELECT source_id, source_item_id, artwork_tag FROM {table} WHERE id = ?1"
             ))?
-            .query_row([item_id], |r| Ok((r.get(0)?, r.get(1)?)))
+            .query_row([item_id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))
             .optional()?)
     }
 }
@@ -145,7 +145,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             store.artwork_tag("album", album).unwrap(),
-            Some(("al1".into(), Some("al-cover-1".into())))
+            Some((src, "al1".into(), Some("al-cover-1".into())))
         );
         assert_eq!(store.artwork_tag("song", album).unwrap(), None);
         let p = CachedPalette {

@@ -32,6 +32,7 @@ pub struct Tokens {
     pub lyrics_gap_ms: i64,
     pub lyrics_last_line_ms: i64,
     pub lyrics_refresh_after_ms: i64,
+    pub palette: crate::palette::Settings,
 }
 
 fn at<'a>(v: &'a Value, path: &str) -> &'a Value {
@@ -44,6 +45,12 @@ fn num(v: &Value, path: &str) -> u64 {
     at(v, path)
         .as_f64()
         .unwrap_or_else(|| panic!("{path} is not a number")) as u64
+}
+
+fn real(v: &Value, path: &str) -> f64 {
+    at(v, path)
+        .as_f64()
+        .unwrap_or_else(|| panic!("{path} is not a number"))
 }
 
 fn text(v: &Value, path: &str) -> String {
@@ -87,6 +94,24 @@ fn parse() -> Tokens {
         lyrics_gap_ms: num(&v, "lyrics.instrumentalGapSeconds") as i64 * 1000,
         lyrics_last_line_ms: num(&v, "lyrics.lastLineSeconds") as i64 * 1000,
         lyrics_refresh_after_ms: num(&v, "lyrics.refreshAfterDays") as i64 * 86_400_000,
+        palette: crate::palette::Settings {
+            sample_size_px: num(&v, "albumGradient.sampleSizePx") as u32,
+            clusters: num(&v, "albumGradient.clusters") as usize,
+            stops: num(&v, "albumGradient.stops") as usize,
+            rank_chroma_weight: real(&v, "albumGradient.rankChromaWeight"),
+            duplicate_distance: real(&v, "albumGradient.duplicateDistance"),
+            light_art_min_lightness: real(&v, "albumGradient.lightArtMinLightness"),
+            dark_base_lightness: real(&v, "albumGradient.darkBaseLightness"),
+            dark_base_max_chroma: real(&v, "albumGradient.darkBaseMaxChroma"),
+            light_base_lightness: real(&v, "albumGradient.lightBaseLightness"),
+            light_base_max_chroma: real(&v, "albumGradient.lightBaseMaxChroma"),
+            light_field_min_lightness: real(&v, "albumGradient.lightFieldMinLightness"),
+            light_field_max_chroma: real(&v, "albumGradient.lightFieldMaxChroma"),
+            max_iterations: num(&v, "albumGradient.kmeansMaxIterations") as usize,
+            text_contrast_min: real(&v, "albumGradient.textContrastMin"),
+            light_art_text_contrast_min: real(&v, "albumGradient.lightArtTextContrastMin"),
+            lightness_step: real(&v, "albumGradient.contrastLightnessStep"),
+        },
     }
 }
 

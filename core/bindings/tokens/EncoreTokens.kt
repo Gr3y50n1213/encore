@@ -337,6 +337,17 @@ object EncoreTokens {
         const val clusterSpace: String = "OKLab k-means"
         const val stops: Int = 4
         const val plusDarkBase: Boolean = true
+        const val rankChromaWeight: Int = 2
+        const val duplicateDistance: Double = 0.08
+        const val lightArtMinLightness: Double = 0.75
+        const val darkBaseLightness: Double = 0.22
+        const val darkBaseMaxChroma: Double = 0.1
+        const val lightBaseLightness: Double = 0.93
+        const val lightBaseMaxChroma: Double = 0.02
+        const val lightFieldMinLightness: Double = 0.85
+        const val lightFieldMaxChroma: Double = 0.08
+        const val kmeansMaxIterations: Int = 24
+        const val contrastLightnessStep: Double = 0.005
         const val textContrastMin: Double = 4.5
         const val lightArtTextContrastMin: Int = 7
         const val lightArtRule: String = "Light art flips to a light field with dark text."

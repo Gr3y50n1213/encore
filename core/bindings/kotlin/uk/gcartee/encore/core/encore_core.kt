@@ -716,6 +716,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_album(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_album_palette(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_albums(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_artist(
@@ -769,6 +771,8 @@ internal object IntegrityCheckingUniffiLib {
     external fun uniffi_encore_core_checksum_method_encorecore_playback_started(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_playlist(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_playlist_palette(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_playlists(
     ): Int
@@ -867,6 +871,8 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_album(`ptr`: Long,`albumId`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_album_palette(`ptr`: Long,`albumId`: Long,
+    ): Long
     external fun uniffi_encore_core_fn_method_encorecore_albums(`ptr`: Long,`sort`: RustBuffer.ByValue,`offset`: Int,`limit`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_artist(`ptr`: Long,`artistId`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -921,6 +927,8 @@ internal object UniffiLib {
     ): Unit
     external fun uniffi_encore_core_fn_method_encorecore_playlist(`ptr`: Long,`playlistId`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_playlist_palette(`ptr`: Long,`playlistId`: Long,
+    ): Long
     external fun uniffi_encore_core_fn_method_encorecore_playlists(`ptr`: Long,`offset`: Int,`limit`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_previous(`ptr`: Long,`positionMs`: Long,`fromSwipe`: Byte,uniffi_out_err: UniffiRustCallStatus, 
@@ -1132,6 +1140,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_encore_core_checksum_method_encorecore_album() and 0xFFFF) != 41546) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_album_palette() and 0xFFFF) != 234) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_albums() and 0xFFFF) != 40763) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1211,6 +1222,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_playlist() and 0xFFFF) != 45960) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_playlist_palette() and 0xFFFF) != 44263) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_playlists() and 0xFFFF) != 30414) {
@@ -2165,6 +2179,14 @@ public interface EncoreCoreInterface {
     
     fun `album`(`albumId`: kotlin.Long): AlbumDetail
     
+    /**
+     * The colours for an album's gradient (board 04); None when it has no cover
+     * (use the profile accent). Made once per cover from a small PNG of it, the same
+     * on every device; made again when the cover changes. Works offline once made;
+     * when the server can't be reached the last palette is used. Async.
+     */
+    suspend fun `albumPalette`(`albumId`: kotlin.Long): ArtworkPalette?
+    
     fun `albums`(`sort`: AlbumSort, `offset`: kotlin.UInt, `limit`: kotlin.UInt): List<AlbumSummary>
     
     fun `artist`(`artistId`: kotlin.Long): ArtistDetail
@@ -2278,6 +2300,11 @@ public interface EncoreCoreInterface {
     fun `playbackStarted`(`uid`: kotlin.Long, `utcOffsetMinutes`: kotlin.Int)
     
     fun `playlist`(`playlistId`: kotlin.Long): PlaylistDetail
+    
+    /**
+     * The same for a playlist's cover. Async.
+     */
+    suspend fun `playlistPalette`(`playlistId`: kotlin.Long): ArtworkPalette?
     
     fun `playlists`(`offset`: kotlin.UInt, `limit`: kotlin.UInt): List<PlaylistSummary>
     
@@ -2570,6 +2597,34 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
     )
     }
     
+
+    
+    /**
+     * The colours for an album's gradient (board 04); None when it has no cover
+     * (use the profile accent). Made once per cover from a small PNG of it, the same
+     * on every device; made again when the cover changes. Works offline once made;
+     * when the server can't be reached the last palette is used. Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `albumPalette`(`albumId`: kotlin.Long) : ArtworkPalette? {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_album_palette(
+                uniffiHandle,
+                
+        FfiConverterLong.lower(`albumId`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterOptionalTypeArtworkPalette.lift(it) },
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
 
     
     @Throws(EncoreException::class)override fun `albums`(`sort`: AlbumSort, `offset`: kotlin.UInt, `limit`: kotlin.UInt): List<AlbumSummary> {
@@ -3058,6 +3113,31 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
     )
     }
     
+
+    
+    /**
+     * The same for a playlist's cover. Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `playlistPalette`(`playlistId`: kotlin.Long) : ArtworkPalette? {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_playlist_palette(
+                uniffiHandle,
+                
+        FfiConverterLong.lower(`playlistId`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterOptionalTypeArtworkPalette.lift(it) },
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
 
     
     @Throws(EncoreException::class)override fun `playlists`(`offset`: kotlin.UInt, `limit`: kotlin.UInt): List<PlaylistSummary> {
@@ -3835,6 +3915,78 @@ public object FfiConverterTypeArtistSummary: FfiConverterRustBuffer<ArtistSummar
 
 
 
+/**
+ * The colours of an album's or playlist's gradient (board 04). Colours are
+ * `RRGGBB` hex. Every colour reaches `lowest_contrast` against `text` or better.
+ */
+data class ArtworkPalette (
+    var `scheme`: PaletteScheme
+    , 
+    /**
+     * The field's base, tinted with the leading hue.
+     */
+    var `base`: kotlin.String
+    , 
+    /**
+     * Four stops for the moving field, leading colour first; the mini player and
+     * album pages take their tint from the first.
+     */
+    var `stops`: List<kotlin.String>
+    , 
+    var `text`: kotlin.String
+    , 
+    var `lowestContrast`: kotlin.Double
+    , 
+    /**
+     * The five clusters as sampled, largest first.
+     */
+    var `sampled`: List<PaletteSwatch>
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeArtworkPalette: FfiConverterRustBuffer<ArtworkPalette> {
+    override fun read(buf: ByteBuffer): ArtworkPalette {
+        return ArtworkPalette(
+            FfiConverterTypePaletteScheme.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterSequenceString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterDouble.read(buf),
+            FfiConverterSequenceTypePaletteSwatch.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: ArtworkPalette) = (
+            FfiConverterTypePaletteScheme.allocationSize(value.`scheme`) +
+            FfiConverterString.allocationSize(value.`base`) +
+            FfiConverterSequenceString.allocationSize(value.`stops`) +
+            FfiConverterString.allocationSize(value.`text`) +
+            FfiConverterDouble.allocationSize(value.`lowestContrast`) +
+            FfiConverterSequenceTypePaletteSwatch.allocationSize(value.`sampled`)
+    )
+
+    override fun write(value: ArtworkPalette, buf: ByteBuffer) {
+            FfiConverterTypePaletteScheme.write(value.`scheme`, buf)
+            FfiConverterString.write(value.`base`, buf)
+            FfiConverterSequenceString.write(value.`stops`, buf)
+            FfiConverterString.write(value.`text`, buf)
+            FfiConverterDouble.write(value.`lowestContrast`, buf)
+            FfiConverterSequenceTypePaletteSwatch.write(value.`sampled`, buf)
+    }
+}
+
+
+
 data class ArtworkRequest (
     var `url`: kotlin.String
     , 
@@ -4355,6 +4507,47 @@ public object FfiConverterTypeLyricWord: FfiConverterRustBuffer<LyricWord> {
             FfiConverterLong.write(value.`startMs`, buf)
             FfiConverterLong.write(value.`endMs`, buf)
             FfiConverterBoolean.write(value.`spaceAfter`, buf)
+    }
+}
+
+
+
+/**
+ * One colour sampled from the cover and its share of it (0 to 1).
+ */
+data class PaletteSwatch (
+    var `colour`: kotlin.String
+    , 
+    var `share`: kotlin.Double
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypePaletteSwatch: FfiConverterRustBuffer<PaletteSwatch> {
+    override fun read(buf: ByteBuffer): PaletteSwatch {
+        return PaletteSwatch(
+            FfiConverterString.read(buf),
+            FfiConverterDouble.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: PaletteSwatch) = (
+            FfiConverterString.allocationSize(value.`colour`) +
+            FfiConverterDouble.allocationSize(value.`share`)
+    )
+
+    override fun write(value: PaletteSwatch, buf: ByteBuffer) {
+            FfiConverterString.write(value.`colour`, buf)
+            FfiConverterDouble.write(value.`share`, buf)
     }
 }
 
@@ -6282,6 +6475,46 @@ public object FfiConverterTypeNetwork: FfiConverterRustBuffer<Network> {
 
 
 
+enum class PaletteScheme {
+    
+    /**
+     * A dark field with white text.
+     */
+    DARK,
+    /**
+     * Light art: a light field with dark text.
+     */
+    LIGHT;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypePaletteScheme: FfiConverterRustBuffer<PaletteScheme> {
+    override fun read(buf: ByteBuffer) = try {
+        PaletteScheme.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: PaletteScheme) = 4UL
+
+    override fun write(value: PaletteScheme, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+
 enum class PreviousResult {
     
     /**
@@ -6807,6 +7040,38 @@ public object FfiConverterOptionalTypeArtistSummary: FfiConverterRustBuffer<Arti
 /**
  * @suppress
  */
+public object FfiConverterOptionalTypeArtworkPalette: FfiConverterRustBuffer<ArtworkPalette?> {
+    override fun read(buf: ByteBuffer): ArtworkPalette? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeArtworkPalette.read(buf)
+    }
+
+    override fun allocationSize(value: ArtworkPalette?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeArtworkPalette.allocationSize(value)
+        }
+    }
+
+    override fun write(value: ArtworkPalette?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeArtworkPalette.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalTypePlaylistSummary: FfiConverterRustBuffer<PlaylistSummary?> {
     override fun read(buf: ByteBuffer): PlaylistSummary? {
         if (buf.get().toInt() == 0) {
@@ -7297,6 +7562,34 @@ public object FfiConverterSequenceTypeLyricWord: FfiConverterRustBuffer<List<Lyr
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeLyricWord.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypePaletteSwatch: FfiConverterRustBuffer<List<PaletteSwatch>> {
+    override fun read(buf: ByteBuffer): List<PaletteSwatch> {
+        val len = buf.getInt()
+        return List<PaletteSwatch>(len) {
+            FfiConverterTypePaletteSwatch.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<PaletteSwatch>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypePaletteSwatch.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<PaletteSwatch>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypePaletteSwatch.write(it, buf)
         }
     }
 }

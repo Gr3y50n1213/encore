@@ -461,6 +461,95 @@ fn lyrics_are_read_cached_and_shown_offline() {
     ));
 }
 
+/// The recording, plus every album cover answered with the board's Golden Hour
+/// Static cover as PNG.
+fn core_with_covers(dir: &TempDir) -> (Arc<EncoreCore>, Arc<FixtureTransport>) {
+    use encore_sources::FixtureExchange;
+    let mut exchanges: Vec<FixtureExchange> = serde_json::from_str(RECORDED).unwrap();
+    let png = include_bytes!("../../../../../tools/fixtures/artwork/golden-hour-static.png");
+    let hex: String = png.iter().map(|b| format!("{b:02x}")).collect();
+    let recording: serde_json::Value = serde_json::from_str(RECORDED).unwrap();
+    for x in recording.as_array().unwrap() {
+        for item in x["body"]["Items"].as_array().into_iter().flatten() {
+            if item["Type"] == "MusicAlbum" && item["ImageTags"]["Primary"].is_string() {
+                exchanges.push(FixtureExchange {
+                    origin: None,
+                    method: "GET".into(),
+                    path: format!("/Items/{}/Images/Primary", item["Id"].as_str().unwrap()),
+                    query: [("format".to_owned(), "Png".to_owned())].into(),
+                    status: 200,
+                    body: None,
+                    body_text: None,
+                    body_hex: Some(hex.clone()),
+                    error: None,
+                    date: None,
+                });
+            }
+        }
+    }
+    let t = Arc::new(FixtureTransport::new(exchanges));
+    let config = CoreConfig {
+        data_dir: dir.0.to_string_lossy().into_owned(),
+        device_id: "device-test".into(),
+        device_name: "Test".into(),
+        platform: "test".into(),
+    };
+    let core = EncoreCore::build(config, Duration::ZERO, 50, Some(t.clone())).unwrap();
+    (core, t)
+}
+
+#[test]
+fn album_palettes_are_made_once_and_shown_offline() {
+    let dir = temp_dir("palette");
+    let (core, transport) = core_with_covers(&dir);
+    let s = signed_in(&core);
+    block(core.sync_library()).unwrap();
+    let albums = core.albums(AlbumSort::Title, 0, 100).unwrap();
+    let with_art = albums.iter().find(|a| a.has_artwork).unwrap().id;
+    let image_requests = || {
+        transport
+            .sent()
+            .iter()
+            .filter(|r| r.url.path().contains("/Images/"))
+            .count()
+    };
+
+    let p = block(core.album_palette(with_art)).unwrap().unwrap();
+    // The same cover gives the same palette as the pure function (palette tests).
+    assert_eq!(p.scheme, PaletteScheme::Dark);
+    assert_eq!(p.base, "3D0000");
+    assert_eq!(p.stops, ["CF4630", "1B1030", "C02D56", "986E00"]);
+    assert_eq!(p.text, "FFFFFF");
+    assert!(p.lowest_contrast >= 4.5);
+    assert_eq!(image_requests(), 1);
+    let sent = transport.sent();
+    let request = sent
+        .iter()
+        .find(|r| r.url.path().contains("/Images/"))
+        .unwrap();
+    let query: String = request.url.query().unwrap_or_default().to_owned();
+    assert!(
+        query.contains("format=Png") && query.contains("maxWidth=64"),
+        "{query}"
+    );
+
+    // Made once: the second call reads it back.
+    assert_eq!(
+        block(core.album_palette(with_art)).unwrap(),
+        Some(p.clone())
+    );
+    assert_eq!(image_requests(), 1);
+
+    // Offline: still there.
+    core.close_profile().unwrap();
+    core.open_profile(s.profile_id, vec![]).unwrap();
+    assert_eq!(block(core.album_palette(with_art)).unwrap(), Some(p));
+    assert!(matches!(
+        block(core.album_palette(999_999)),
+        Err(EncoreError::NotFound { .. })
+    ));
+}
+
 #[test]
 fn a_profile_reopens_with_the_token_from_the_keychain() {
     let dir = temp_dir("reopen");

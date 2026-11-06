@@ -510,6 +510,17 @@ final class EncoreTokensAlbumGradient {
   final String clusterSpace = 'OKLab k-means';
   final int stops = 4;
   final bool plusDarkBase = true;
+  final int rankChromaWeight = 2;
+  final double duplicateDistance = 0.08;
+  final double lightArtMinLightness = 0.75;
+  final double darkBaseLightness = 0.22;
+  final double darkBaseMaxChroma = 0.1;
+  final double lightBaseLightness = 0.93;
+  final double lightBaseMaxChroma = 0.02;
+  final double lightFieldMinLightness = 0.85;
+  final double lightFieldMaxChroma = 0.08;
+  final int kmeansMaxIterations = 24;
+  final double contrastLightnessStep = 0.005;
   final double textContrastMin = 4.5;
   final int lightArtTextContrastMin = 7;
   final String lightArtRule = 'Light art flips to a light field with dark text.';

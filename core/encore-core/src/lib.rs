@@ -13,6 +13,7 @@ mod android;
 pub mod api;
 pub mod brand;
 pub mod library;
+pub mod palette;
 pub mod playlog;
 pub mod queue;
 pub mod tokens;
