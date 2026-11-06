@@ -14,7 +14,7 @@ start_replay() {
     2> "$url_file.log" &
   REPLAY_PID=$!
   trap 'kill "$REPLAY_PID" 2>/dev/null || true' EXIT
-  for _ in $(seq 100); do
+  for _ in $(seq 300); do # up to 30 s: a busy runner can be slow to start Python
     test -s "$url_file" && break
     sleep 0.1
   done

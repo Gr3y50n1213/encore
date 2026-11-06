@@ -385,11 +385,12 @@ jobs:
             | reverse | map(.value[] | select(.name | startswith("iPhone"))) | first | .udid // empty')"
           test -n "$udid" || { echo "no available iPhone simulator"; xcrun simctl list runtimes; exit 1; }
           xcrun simctl list devices available | grep "$udid"
+          # The simulator shares the Mac's network, so 127.0.0.1 reaches the replay;
+          # simctl passes SIMCTL_CHILD_* variables to the spawned program. Started
+          # before the boot, which keeps the Mac busy for a while.
+          source ../tools/ci/replay.sh && start_replay
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b
-          # The simulator shares the Mac's network, so 127.0.0.1 reaches the replay;
-          # simctl passes SIMCTL_CHILD_* variables to the spawned program.
-          source ../tools/ci/replay.sh && start_replay
           status=0
           out="$(SIMCTL_CHILD_ENCORE_REPLAY_URL="$ENCORE_REPLAY_URL" xcrun simctl spawn "$udid" "$bin")" || status=$?
           xcrun simctl shutdown "$udid" || true

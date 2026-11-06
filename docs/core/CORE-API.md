@@ -10,6 +10,7 @@ This file is the only thing the platform tracks may rely on. Every public call, 
 | --- | --- | --- |
 | 0 | 1 | First version: `hello`, `core_version`, `app_name`; token constants |
 | 1 | 2 | `EncoreCore`: connect and sign in to Jellyfin (password or Quick Connect), profiles, library sync, browse, search, the queue, playback reporting with the play log, streams, artwork, raw lyrics, events. Nothing from API 0 changed. Kotlin now also needs kotlinx-coroutines (async calls are suspend functions). |
+| 1, revised | 2 | Same day, after CI ran the bindings. Each error case carries its sentence as `reason`, no longer `message`, because the Kotlin exceptions clashed with `Throwable.message`. New calls: `clear_listener` (Swift, Kotlin) and `stopEvents` (Dart), which end the events. A platform that copied the first version renames `message` to `reason` in its error handling; nothing else changes. |
 
 ## How every platform gets the core
 
@@ -274,11 +275,43 @@ Types: whole numbers are `Int` (Swift and Kotlin; `Long` in Kotlin above 32 bits
 
 | Job | Runner | What it proves |
 | --- | --- | --- |
-| `linux` | Ubuntu | `make check-core`: fmt, clippy and tests for `core/`, `tools/` and `server/`, plus proof that the committed bindings and token constants match what the generators produce. The search budget on 50,000 songs, with the timings in the log. Then it calls the core from Swift (Swift 6 mode), from Kotlin on a JVM with JNA and coroutines, and from Dart: constructing `EncoreCore`, an async call returning a typed error, and a call needing a profile. |
-| `apple` | macOS | Builds `libencore_core.a` for iOS (arm64), the iOS Simulator (arm64, x86_64) and macOS (arm64, x86_64) with the plan's minimums (iOS 17, macOS 14). Links the Swift bindings for all five in Swift 6 mode and runs them on macOS and in an iOS Simulator. The iOS device build is linked but not run, because CI has no iPhone. Packages an XCFramework of the three platforms. |
+| `linux` | Ubuntu | `make check-core`: fmt, clippy and tests for `core/`, `tools/` and `server/`, plus proof that the committed bindings and token constants match what the generators produce. The licence scan of every dependency. The search and browse budgets on 50,000 songs, with the timings in the log. Then it runs the library flow over real HTTP against the Jellyfin replay: first in Rust through `EncoreCore::new` (production page size and poll interval, plus a delta sync), then from Swift (Swift 6 mode), from Kotlin on a JVM with JNA and coroutines, and from Dart. The flow is check the address, sign in with Quick Connect, sync, open an album, play it, finish a song, get the next one, and search. Each language also checks typed errors, and Dart checks the events stream. |
+| `apple` | macOS | Builds `libencore_core.a` for iOS (arm64), the iOS Simulator (arm64, x86_64) and macOS (arm64, x86_64) with the plan's minimums (iOS 17, macOS 14). Links the Swift bindings for all five in Swift 6 mode and runs them, library flow included, on macOS and in an iOS Simulator. The iOS device build is linked but not run, because CI has no iPhone. Packages an XCFramework of the three platforms. |
 | `android` | Ubuntu | Builds `libencore_core.so` for arm64-v8a, armeabi-v7a, x86_64 and x86 at API 28 (Android 9). Checks that every one is 16 KB page aligned, as Google Play will require for app updates from 1 February 2027 ([Android docs](https://developer.android.com/guide/practices/page-sizes)), and that it exports every symbol the Kotlin bindings call. Nothing runs, because that needs an emulator or a phone. |
-| `windows` | Windows | Core and server tests, then calls the core from Dart through `encore_dart.dll`. |
+| `windows` | Windows | Core and server tests, the Rust library flow over HTTP, then the Dart tests (library flow included) through `encore_dart.dll`. |
 
 A run started by hand (Actions, `core`, "Run workflow") also uploads the XCFramework (`encore-core-apple`) and the Android `jniLibs` folder (`encore-core-android`) for 7 days. A platform track can try them before its own build is set up. `apple` and `android` are skipped when a change touches only `server/`.
 
+The Jellyfin replay is `tools/ci/replay_jellyfin.py`, standard library only. It serves the recording on 127.0.0.1, so a platform track can run its own app against it with no server: `source tools/ci/replay.sh && start_replay` prints the address to type in, then approve any Quick Connect code. Its two differences from a real server are in the file's header.
+
 Not proven by the core track: signing in on a device, gapless playback, the lock screen and media keys. The platform tracks prove those with their players.
+
+## What the platform tracks can build now (Phase 2)
+
+Everything below is in API version 1 and runs on a real Jellyfin 12.0.0 recording in CI.
+
+- **Connect and sign in (boards 18 and 21).**
+  - The address field with its rules: `check_address` adds the scheme and ports, gives the plain-http warning on the local network, refuses plain http elsewhere, and returns an untrusted certificate with its fingerprint for "trust this certificate".
+  - Password sign-in and Quick Connect with its code and expiry.
+  - Error messages are ready to show: each error carries `reason`.
+- **Keychain or keystore.** `SignedIn` hands the app the token and the `credential_key` to store it under. `open_profile` takes it back at launch. The core never writes it to disk.
+- **Library sync screen.** `sync_library` with `SyncProgress` events ("Indexing 3,200 of 12,480"), and the server row (`servers`) with its song count and last sync.
+- **Offline browse.** These all answer straight from the mirror, synchronously and paged, under 50 ms per page on 50,000 songs:
+  - albums (four sorts), songs (four sorts), artists;
+  - an artist's page (`artist`, with their albums) and `artist_songs`, an album's songs in disc and track order;
+  - playlists with missing songs marked;
+  - genres, and recently added.
+- **Search (board 07).** Top result, songs, albums, artists, playlists; accent-insensitive and typo-tolerant; recent searches.
+- **Queue (boards 11 and 42).**
+  - play, play next, add to Up Next, move, remove, clear, undo;
+  - shuffle and repeat;
+  - previous: it restarts the song after 3 s.
+  - The app redraws on `QueueChanged` and `NowPlaying`.
+- **Playback.**
+  - `stream_for` gives a URL and header for the quality set with `set_stream_quality` (with an `ApiKey` URL for players that can't send headers).
+  - The `Preload` event comes 20 s before the end, for gapless playback.
+  - The player reports with `playback_started`, `playback_progress` and `playback_ended`, and `lyric_line_tapped` for lyric jumps. The core writes the play log.
+- **Private listening and Guest.** `set_listening_mode`: nothing is written while it is on.
+- **Artwork and lyrics.** `artwork` URLs at an exact size; `lyrics_raw` text (parsing is Phase 3).
+
+Not available yet: anything from Phase 3 on (parsed lyrics, artwork cache and colours, sync between devices, smart picks, recaps).
