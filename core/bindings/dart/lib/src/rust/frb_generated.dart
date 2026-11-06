@@ -3,6 +3,7 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
+import 'api/core.dart';
 import 'api/hello.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -68,7 +69,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
                   String get codegenVersion => '2.13.0';
 
                   @override
-                  int get rustContentHash => 1916120790;
+                  int get rustContentHash => -1055968928;
 
                   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
                     stem: 'encore_dart',
@@ -80,11 +81,131 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
                 
 
                 abstract class RustLibApi extends BaseApi {
-                  String crateApiHelloAppName();
+                  void crateApiCoreEncoreAddRecentSearch({required Encore that , required String query });
+
+QueueState crateApiCoreEncoreAddToUpNext({required Encore that , required Int64List songIds });
+
+AlbumDetail crateApiCoreEncoreAlbum({required Encore that , required PlatformInt64 albumId });
+
+List<AlbumSummary> crateApiCoreEncoreAlbums({required Encore that , required AlbumSort sort , required int offset , required int limit });
+
+ArtistDetail crateApiCoreEncoreArtist({required Encore that , required PlatformInt64 artistId });
+
+List<Song> crateApiCoreEncoreArtistSongs({required Encore that , required PlatformInt64 artistId , required int offset , required int limit });
+
+List<ArtistSummary> crateApiCoreEncoreArtists({required Encore that , required int offset , required int limit });
+
+ArtworkRequest crateApiCoreEncoreArtwork({required Encore that , required ArtworkOf of , required PlatformInt64 id , required int sizePx });
+
+Future<ServerCheck> crateApiCoreEncoreCheckAddress({required Encore that , required String address });
+
+void crateApiCoreEncoreClearRecentSearches({required Encore that });
+
+QueueState crateApiCoreEncoreClearUpNext({required Encore that });
+
+void crateApiCoreEncoreCloseProfile({required Encore that });
+
+Encore crateApiCoreEncoreCreate({required CoreConfig config });
+
+String? crateApiCoreEncoreCurrentProfile({required Encore that });
+
+Stream<CoreEvent> crateApiCoreEncoreEvents({required Encore that });
+
+List<Song> crateApiCoreEncoreGenreSongs({required Encore that , required String genre , required int offset , required int limit });
+
+List<GenreSummary> crateApiCoreEncoreGenres({required Encore that });
+
+QueueState crateApiCoreEncoreJumpTo({required Encore that , required PlatformInt64 uid });
+
+void crateApiCoreEncoreLyricLineTapped({required Encore that , required int lineIndex , required PlatformInt64 lineStartMs });
+
+Future<String?> crateApiCoreEncoreLyricsRaw({required Encore that , required PlatformInt64 songId });
+
+QueueState crateApiCoreEncoreMoveInQueue({required Encore that , required PlatformInt64 uid , required int toIndex });
+
+QueueState crateApiCoreEncoreNext({required Encore that });
+
+void crateApiCoreEncoreOpenProfile({required Encore that , required String profileId , required List<SourceToken> tokens });
+
+QueueState crateApiCoreEncorePlay({required Encore that , required Int64List songIds , required int startIndex , required StartedFrom startedFrom , String? contextId });
+
+QueueState crateApiCoreEncorePlayNext({required Encore that , required Int64List songIds });
+
+QueueEntry? crateApiCoreEncorePlaybackEnded({required Encore that , required EndReason reason , required PlatformInt64 listenedMs });
+
+void crateApiCoreEncorePlaybackProgress({required Encore that , required PlatformInt64 positionMs , required PlatformInt64 listenedMs });
+
+void crateApiCoreEncorePlaybackStarted({required Encore that , required PlatformInt64 uid , required int utcOffsetMinutes });
+
+PlaylistDetail crateApiCoreEncorePlaylist({required Encore that , required PlatformInt64 playlistId });
+
+List<PlaylistSummary> crateApiCoreEncorePlaylists({required Encore that , required int offset , required int limit });
+
+PreviousResult crateApiCoreEncorePrevious({required Encore that , required PlatformInt64 positionMs , required bool fromSwipe });
+
+List<ProfileSummary> crateApiCoreEncoreProfiles({required Encore that });
+
+QueueState crateApiCoreEncoreQueue({required Encore that });
+
+void crateApiCoreEncoreQuickConnectCancel({required Encore that });
+
+Future<QuickConnectStart> crateApiCoreEncoreQuickConnectStart({required Encore that , required String baseUrl });
+
+Future<SignedIn> crateApiCoreEncoreQuickConnectWait({required Encore that });
+
+List<String> crateApiCoreEncoreRecentSearches({required Encore that });
+
+QueueState crateApiCoreEncoreRemoveFromQueue({required Encore that , required PlatformInt64 uid });
+
+void crateApiCoreEncoreRemoveRecentSearch({required Encore that , required String query });
+
+void crateApiCoreEncoreRemoveServer({required Encore that , required PlatformInt64 sourceId });
+
+QueueState crateApiCoreEncoreReplayFromHistory({required Encore that , required PlatformInt64 uid });
+
+SearchResults crateApiCoreEncoreSearch({required Encore that , required String query });
+
+List<ServerRow> crateApiCoreEncoreServers({required Encore that });
+
+void crateApiCoreEncoreSetListeningMode({required Encore that , required ListeningMode mode });
+
+void crateApiCoreEncoreSetPlaybackCapabilities({required Encore that , required List<String> directPlayContainers , required TranscodeCodec transcodeCodec });
+
+QueueState crateApiCoreEncoreSetRepeat({required Encore that , required RepeatMode mode });
+
+QueueState crateApiCoreEncoreSetShuffle({required Encore that , required bool on_ });
+
+void crateApiCoreEncoreSetStreamQuality({required Encore that , required Network network , required StreamQuality quality });
+
+Future<SignedIn> crateApiCoreEncoreSignIn({required Encore that , required String baseUrl , required String username , required String password });
+
+Future<void> crateApiCoreEncoreSignOut({required Encore that , required PlatformInt64 sourceId });
+
+Song crateApiCoreEncoreSong({required Encore that , required PlatformInt64 songId });
+
+List<Song> crateApiCoreEncoreSongs({required Encore that , required SongSort sort , required int offset , required int limit });
+
+StreamInfo crateApiCoreEncoreStreamFor({required Encore that , required PlatformInt64 songId , required Network network });
+
+StreamQuality crateApiCoreEncoreStreamQuality({required Encore that , required Network network });
+
+Future<List<SyncResult>> crateApiCoreEncoreSyncLibrary({required Encore that });
+
+void crateApiCoreEncoreTrustCertificate({required Encore that , required String address , required String sha256 });
+
+QueueState crateApiCoreEncoreUndoQueue({required Encore that });
+
+String crateApiHelloAppName();
 
 String crateApiHelloCoreVersion();
 
 String crateApiHelloHello({required String name });
+
+RustArcIncrementStrongCountFnType get rust_arc_increment_strong_count_Encore;
+
+RustArcDecrementStrongCountFnType get rust_arc_decrement_strong_count_Encore;
+
+CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_EncorePtr;
 
 
                 }
@@ -98,11 +219,1510 @@ String crateApiHelloHello({required String name });
                     required super.portManager,
                   });
 
-                  @override String crateApiHelloAppName()  { return handler.executeSync(SyncTask(
+                  @override void crateApiCoreEncoreAddRecentSearch({required Encore that , required String query })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_String(query, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 1)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreAddRecentSearchConstMeta,
+            argValues: [that, query],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreAddRecentSearchConstMeta => const TaskConstMeta(
+            debugName: "Encore_add_recent_search",
+            argNames: ["that", "query"],
+        );
+        
+
+@override QueueState crateApiCoreEncoreAddToUpNext({required Encore that , required Int64List songIds })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_list_prim_i_64_strict(songIds, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 2)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_queue_state,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreAddToUpNextConstMeta,
+            argValues: [that, songIds],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreAddToUpNextConstMeta => const TaskConstMeta(
+            debugName: "Encore_add_to_up_next",
+            argNames: ["that", "songIds"],
+        );
+        
+
+@override AlbumDetail crateApiCoreEncoreAlbum({required Encore that , required PlatformInt64 albumId })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_i_64(albumId, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 3)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_album_detail,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreAlbumConstMeta,
+            argValues: [that, albumId],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreAlbumConstMeta => const TaskConstMeta(
+            debugName: "Encore_album",
+            argNames: ["that", "albumId"],
+        );
+        
+
+@override List<AlbumSummary> crateApiCoreEncoreAlbums({required Encore that , required AlbumSort sort , required int offset , required int limit })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_album_sort(sort, serializer);
+sse_encode_u_32(offset, serializer);
+sse_encode_u_32(limit, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 4)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_list_album_summary,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreAlbumsConstMeta,
+            argValues: [that, sort, offset, limit],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreAlbumsConstMeta => const TaskConstMeta(
+            debugName: "Encore_albums",
+            argNames: ["that", "sort", "offset", "limit"],
+        );
+        
+
+@override ArtistDetail crateApiCoreEncoreArtist({required Encore that , required PlatformInt64 artistId })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_i_64(artistId, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 5)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_artist_detail,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreArtistConstMeta,
+            argValues: [that, artistId],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreArtistConstMeta => const TaskConstMeta(
+            debugName: "Encore_artist",
+            argNames: ["that", "artistId"],
+        );
+        
+
+@override List<Song> crateApiCoreEncoreArtistSongs({required Encore that , required PlatformInt64 artistId , required int offset , required int limit })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_i_64(artistId, serializer);
+sse_encode_u_32(offset, serializer);
+sse_encode_u_32(limit, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 6)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_list_song,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreArtistSongsConstMeta,
+            argValues: [that, artistId, offset, limit],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreArtistSongsConstMeta => const TaskConstMeta(
+            debugName: "Encore_artist_songs",
+            argNames: ["that", "artistId", "offset", "limit"],
+        );
+        
+
+@override List<ArtistSummary> crateApiCoreEncoreArtists({required Encore that , required int offset , required int limit })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_u_32(offset, serializer);
+sse_encode_u_32(limit, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 7)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_list_artist_summary,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreArtistsConstMeta,
+            argValues: [that, offset, limit],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreArtistsConstMeta => const TaskConstMeta(
+            debugName: "Encore_artists",
+            argNames: ["that", "offset", "limit"],
+        );
+        
+
+@override ArtworkRequest crateApiCoreEncoreArtwork({required Encore that , required ArtworkOf of , required PlatformInt64 id , required int sizePx })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_artwork_of(of, serializer);
+sse_encode_i_64(id, serializer);
+sse_encode_u_32(sizePx, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 8)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_artwork_request,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreArtworkConstMeta,
+            argValues: [that, of, id, sizePx],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreArtworkConstMeta => const TaskConstMeta(
+            debugName: "Encore_artwork",
+            argNames: ["that", "of", "id", "sizePx"],
+        );
+        
+
+@override Future<ServerCheck> crateApiCoreEncoreCheckAddress({required Encore that , required String address })  { return handler.executeNormal(NormalTask(
+            callFfi: (port_) {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_String(address, serializer);
+            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 9, port: port_);
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_server_check,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreCheckAddressConstMeta,
+            argValues: [that, address],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreCheckAddressConstMeta => const TaskConstMeta(
+            debugName: "Encore_check_address",
+            argNames: ["that", "address"],
+        );
+        
+
+@override void crateApiCoreEncoreClearRecentSearches({required Encore that })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 10)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreClearRecentSearchesConstMeta,
+            argValues: [that],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreClearRecentSearchesConstMeta => const TaskConstMeta(
+            debugName: "Encore_clear_recent_searches",
+            argNames: ["that"],
+        );
+        
+
+@override QueueState crateApiCoreEncoreClearUpNext({required Encore that })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 11)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_queue_state,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreClearUpNextConstMeta,
+            argValues: [that],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreClearUpNextConstMeta => const TaskConstMeta(
+            debugName: "Encore_clear_up_next",
+            argNames: ["that"],
+        );
+        
+
+@override void crateApiCoreEncoreCloseProfile({required Encore that })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 12)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreCloseProfileConstMeta,
+            argValues: [that],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreCloseProfileConstMeta => const TaskConstMeta(
+            debugName: "Encore_close_profile",
+            argNames: ["that"],
+        );
+        
+
+@override Encore crateApiCoreEncoreCreate({required CoreConfig config })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_box_autoadd_core_config(config, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 13)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreCreateConstMeta,
+            argValues: [config],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreCreateConstMeta => const TaskConstMeta(
+            debugName: "Encore_create",
+            argNames: ["config"],
+        );
+        
+
+@override String? crateApiCoreEncoreCurrentProfile({required Encore that })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 14)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_opt_String,
+          decodeErrorData: null,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreCurrentProfileConstMeta,
+            argValues: [that],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreCurrentProfileConstMeta => const TaskConstMeta(
+            debugName: "Encore_current_profile",
+            argNames: ["that"],
+        );
+        
+
+@override Stream<CoreEvent> crateApiCoreEncoreEvents({required Encore that })  { 
+            final sink = RustStreamSink<CoreEvent>();
+            unawaited(handler.executeNormal(NormalTask(
+            callFfi: (port_) {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_StreamSink_core_event_Sse(sink, serializer);
+            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 15, port: port_);
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreEventsConstMeta,
+            argValues: [that, sink],
+            apiImpl: this,
+        )));
+            return sink.stream;
+             }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreEventsConstMeta => const TaskConstMeta(
+            debugName: "Encore_events",
+            argNames: ["that", "sink"],
+        );
+        
+
+@override List<Song> crateApiCoreEncoreGenreSongs({required Encore that , required String genre , required int offset , required int limit })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_String(genre, serializer);
+sse_encode_u_32(offset, serializer);
+sse_encode_u_32(limit, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 16)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_list_song,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreGenreSongsConstMeta,
+            argValues: [that, genre, offset, limit],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreGenreSongsConstMeta => const TaskConstMeta(
+            debugName: "Encore_genre_songs",
+            argNames: ["that", "genre", "offset", "limit"],
+        );
+        
+
+@override List<GenreSummary> crateApiCoreEncoreGenres({required Encore that })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 17)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_list_genre_summary,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreGenresConstMeta,
+            argValues: [that],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreGenresConstMeta => const TaskConstMeta(
+            debugName: "Encore_genres",
+            argNames: ["that"],
+        );
+        
+
+@override QueueState crateApiCoreEncoreJumpTo({required Encore that , required PlatformInt64 uid })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_i_64(uid, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 18)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_queue_state,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreJumpToConstMeta,
+            argValues: [that, uid],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreJumpToConstMeta => const TaskConstMeta(
+            debugName: "Encore_jump_to",
+            argNames: ["that", "uid"],
+        );
+        
+
+@override void crateApiCoreEncoreLyricLineTapped({required Encore that , required int lineIndex , required PlatformInt64 lineStartMs })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_u_32(lineIndex, serializer);
+sse_encode_i_64(lineStartMs, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 19)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreLyricLineTappedConstMeta,
+            argValues: [that, lineIndex, lineStartMs],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreLyricLineTappedConstMeta => const TaskConstMeta(
+            debugName: "Encore_lyric_line_tapped",
+            argNames: ["that", "lineIndex", "lineStartMs"],
+        );
+        
+
+@override Future<String?> crateApiCoreEncoreLyricsRaw({required Encore that , required PlatformInt64 songId })  { return handler.executeNormal(NormalTask(
+            callFfi: (port_) {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_i_64(songId, serializer);
+            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 20, port: port_);
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_opt_String,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreLyricsRawConstMeta,
+            argValues: [that, songId],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreLyricsRawConstMeta => const TaskConstMeta(
+            debugName: "Encore_lyrics_raw",
+            argNames: ["that", "songId"],
+        );
+        
+
+@override QueueState crateApiCoreEncoreMoveInQueue({required Encore that , required PlatformInt64 uid , required int toIndex })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_i_64(uid, serializer);
+sse_encode_u_32(toIndex, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 21)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_queue_state,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreMoveInQueueConstMeta,
+            argValues: [that, uid, toIndex],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreMoveInQueueConstMeta => const TaskConstMeta(
+            debugName: "Encore_move_in_queue",
+            argNames: ["that", "uid", "toIndex"],
+        );
+        
+
+@override QueueState crateApiCoreEncoreNext({required Encore that })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 22)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_queue_state,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreNextConstMeta,
+            argValues: [that],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreNextConstMeta => const TaskConstMeta(
+            debugName: "Encore_next",
+            argNames: ["that"],
+        );
+        
+
+@override void crateApiCoreEncoreOpenProfile({required Encore that , required String profileId , required List<SourceToken> tokens })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_String(profileId, serializer);
+sse_encode_list_source_token(tokens, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 23)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreOpenProfileConstMeta,
+            argValues: [that, profileId, tokens],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreOpenProfileConstMeta => const TaskConstMeta(
+            debugName: "Encore_open_profile",
+            argNames: ["that", "profileId", "tokens"],
+        );
+        
+
+@override QueueState crateApiCoreEncorePlay({required Encore that , required Int64List songIds , required int startIndex , required StartedFrom startedFrom , String? contextId })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_list_prim_i_64_strict(songIds, serializer);
+sse_encode_u_32(startIndex, serializer);
+sse_encode_started_from(startedFrom, serializer);
+sse_encode_opt_String(contextId, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 24)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_queue_state,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncorePlayConstMeta,
+            argValues: [that, songIds, startIndex, startedFrom, contextId],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncorePlayConstMeta => const TaskConstMeta(
+            debugName: "Encore_play",
+            argNames: ["that", "songIds", "startIndex", "startedFrom", "contextId"],
+        );
+        
+
+@override QueueState crateApiCoreEncorePlayNext({required Encore that , required Int64List songIds })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_list_prim_i_64_strict(songIds, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 25)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_queue_state,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncorePlayNextConstMeta,
+            argValues: [that, songIds],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncorePlayNextConstMeta => const TaskConstMeta(
+            debugName: "Encore_play_next",
+            argNames: ["that", "songIds"],
+        );
+        
+
+@override QueueEntry? crateApiCoreEncorePlaybackEnded({required Encore that , required EndReason reason , required PlatformInt64 listenedMs })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_end_reason(reason, serializer);
+sse_encode_i_64(listenedMs, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 26)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_queue_entry,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncorePlaybackEndedConstMeta,
+            argValues: [that, reason, listenedMs],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncorePlaybackEndedConstMeta => const TaskConstMeta(
+            debugName: "Encore_playback_ended",
+            argNames: ["that", "reason", "listenedMs"],
+        );
+        
+
+@override void crateApiCoreEncorePlaybackProgress({required Encore that , required PlatformInt64 positionMs , required PlatformInt64 listenedMs })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_i_64(positionMs, serializer);
+sse_encode_i_64(listenedMs, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 27)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncorePlaybackProgressConstMeta,
+            argValues: [that, positionMs, listenedMs],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncorePlaybackProgressConstMeta => const TaskConstMeta(
+            debugName: "Encore_playback_progress",
+            argNames: ["that", "positionMs", "listenedMs"],
+        );
+        
+
+@override void crateApiCoreEncorePlaybackStarted({required Encore that , required PlatformInt64 uid , required int utcOffsetMinutes })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_i_64(uid, serializer);
+sse_encode_i_32(utcOffsetMinutes, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 28)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncorePlaybackStartedConstMeta,
+            argValues: [that, uid, utcOffsetMinutes],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncorePlaybackStartedConstMeta => const TaskConstMeta(
+            debugName: "Encore_playback_started",
+            argNames: ["that", "uid", "utcOffsetMinutes"],
+        );
+        
+
+@override PlaylistDetail crateApiCoreEncorePlaylist({required Encore that , required PlatformInt64 playlistId })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_i_64(playlistId, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 29)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_playlist_detail,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncorePlaylistConstMeta,
+            argValues: [that, playlistId],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncorePlaylistConstMeta => const TaskConstMeta(
+            debugName: "Encore_playlist",
+            argNames: ["that", "playlistId"],
+        );
+        
+
+@override List<PlaylistSummary> crateApiCoreEncorePlaylists({required Encore that , required int offset , required int limit })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_u_32(offset, serializer);
+sse_encode_u_32(limit, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 30)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_list_playlist_summary,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncorePlaylistsConstMeta,
+            argValues: [that, offset, limit],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncorePlaylistsConstMeta => const TaskConstMeta(
+            debugName: "Encore_playlists",
+            argNames: ["that", "offset", "limit"],
+        );
+        
+
+@override PreviousResult crateApiCoreEncorePrevious({required Encore that , required PlatformInt64 positionMs , required bool fromSwipe })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_i_64(positionMs, serializer);
+sse_encode_bool(fromSwipe, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 31)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_previous_result,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncorePreviousConstMeta,
+            argValues: [that, positionMs, fromSwipe],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncorePreviousConstMeta => const TaskConstMeta(
+            debugName: "Encore_previous",
+            argNames: ["that", "positionMs", "fromSwipe"],
+        );
+        
+
+@override List<ProfileSummary> crateApiCoreEncoreProfiles({required Encore that })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 32)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_list_profile_summary,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreProfilesConstMeta,
+            argValues: [that],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreProfilesConstMeta => const TaskConstMeta(
+            debugName: "Encore_profiles",
+            argNames: ["that"],
+        );
+        
+
+@override QueueState crateApiCoreEncoreQueue({required Encore that })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 33)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_queue_state,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreQueueConstMeta,
+            argValues: [that],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreQueueConstMeta => const TaskConstMeta(
+            debugName: "Encore_queue",
+            argNames: ["that"],
+        );
+        
+
+@override void crateApiCoreEncoreQuickConnectCancel({required Encore that })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 34)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreQuickConnectCancelConstMeta,
+            argValues: [that],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreQuickConnectCancelConstMeta => const TaskConstMeta(
+            debugName: "Encore_quick_connect_cancel",
+            argNames: ["that"],
+        );
+        
+
+@override Future<QuickConnectStart> crateApiCoreEncoreQuickConnectStart({required Encore that , required String baseUrl })  { return handler.executeNormal(NormalTask(
+            callFfi: (port_) {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_String(baseUrl, serializer);
+            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 35, port: port_);
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_quick_connect_start,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreQuickConnectStartConstMeta,
+            argValues: [that, baseUrl],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreQuickConnectStartConstMeta => const TaskConstMeta(
+            debugName: "Encore_quick_connect_start",
+            argNames: ["that", "baseUrl"],
+        );
+        
+
+@override Future<SignedIn> crateApiCoreEncoreQuickConnectWait({required Encore that })  { return handler.executeNormal(NormalTask(
+            callFfi: (port_) {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 36, port: port_);
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_signed_in,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreQuickConnectWaitConstMeta,
+            argValues: [that],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreQuickConnectWaitConstMeta => const TaskConstMeta(
+            debugName: "Encore_quick_connect_wait",
+            argNames: ["that"],
+        );
+        
+
+@override List<String> crateApiCoreEncoreRecentSearches({required Encore that })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 37)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_list_String,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreRecentSearchesConstMeta,
+            argValues: [that],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreRecentSearchesConstMeta => const TaskConstMeta(
+            debugName: "Encore_recent_searches",
+            argNames: ["that"],
+        );
+        
+
+@override QueueState crateApiCoreEncoreRemoveFromQueue({required Encore that , required PlatformInt64 uid })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_i_64(uid, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 38)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_queue_state,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreRemoveFromQueueConstMeta,
+            argValues: [that, uid],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreRemoveFromQueueConstMeta => const TaskConstMeta(
+            debugName: "Encore_remove_from_queue",
+            argNames: ["that", "uid"],
+        );
+        
+
+@override void crateApiCoreEncoreRemoveRecentSearch({required Encore that , required String query })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_String(query, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 39)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreRemoveRecentSearchConstMeta,
+            argValues: [that, query],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreRemoveRecentSearchConstMeta => const TaskConstMeta(
+            debugName: "Encore_remove_recent_search",
+            argNames: ["that", "query"],
+        );
+        
+
+@override void crateApiCoreEncoreRemoveServer({required Encore that , required PlatformInt64 sourceId })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_i_64(sourceId, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 40)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreRemoveServerConstMeta,
+            argValues: [that, sourceId],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreRemoveServerConstMeta => const TaskConstMeta(
+            debugName: "Encore_remove_server",
+            argNames: ["that", "sourceId"],
+        );
+        
+
+@override QueueState crateApiCoreEncoreReplayFromHistory({required Encore that , required PlatformInt64 uid })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_i_64(uid, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 41)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_queue_state,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreReplayFromHistoryConstMeta,
+            argValues: [that, uid],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreReplayFromHistoryConstMeta => const TaskConstMeta(
+            debugName: "Encore_replay_from_history",
+            argNames: ["that", "uid"],
+        );
+        
+
+@override SearchResults crateApiCoreEncoreSearch({required Encore that , required String query })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_String(query, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 42)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_search_results,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreSearchConstMeta,
+            argValues: [that, query],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreSearchConstMeta => const TaskConstMeta(
+            debugName: "Encore_search",
+            argNames: ["that", "query"],
+        );
+        
+
+@override List<ServerRow> crateApiCoreEncoreServers({required Encore that })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 43)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_list_server_row,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreServersConstMeta,
+            argValues: [that],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreServersConstMeta => const TaskConstMeta(
+            debugName: "Encore_servers",
+            argNames: ["that"],
+        );
+        
+
+@override void crateApiCoreEncoreSetListeningMode({required Encore that , required ListeningMode mode })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_listening_mode(mode, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 44)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreSetListeningModeConstMeta,
+            argValues: [that, mode],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreSetListeningModeConstMeta => const TaskConstMeta(
+            debugName: "Encore_set_listening_mode",
+            argNames: ["that", "mode"],
+        );
+        
+
+@override void crateApiCoreEncoreSetPlaybackCapabilities({required Encore that , required List<String> directPlayContainers , required TranscodeCodec transcodeCodec })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_list_String(directPlayContainers, serializer);
+sse_encode_transcode_codec(transcodeCodec, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 45)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreSetPlaybackCapabilitiesConstMeta,
+            argValues: [that, directPlayContainers, transcodeCodec],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreSetPlaybackCapabilitiesConstMeta => const TaskConstMeta(
+            debugName: "Encore_set_playback_capabilities",
+            argNames: ["that", "directPlayContainers", "transcodeCodec"],
+        );
+        
+
+@override QueueState crateApiCoreEncoreSetRepeat({required Encore that , required RepeatMode mode })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_repeat_mode(mode, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 46)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_queue_state,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreSetRepeatConstMeta,
+            argValues: [that, mode],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreSetRepeatConstMeta => const TaskConstMeta(
+            debugName: "Encore_set_repeat",
+            argNames: ["that", "mode"],
+        );
+        
+
+@override QueueState crateApiCoreEncoreSetShuffle({required Encore that , required bool on_ })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_bool(on_, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 47)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_queue_state,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreSetShuffleConstMeta,
+            argValues: [that, on_],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreSetShuffleConstMeta => const TaskConstMeta(
+            debugName: "Encore_set_shuffle",
+            argNames: ["that", "on_"],
+        );
+        
+
+@override void crateApiCoreEncoreSetStreamQuality({required Encore that , required Network network , required StreamQuality quality })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_network(network, serializer);
+sse_encode_stream_quality(quality, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 48)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreSetStreamQualityConstMeta,
+            argValues: [that, network, quality],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreSetStreamQualityConstMeta => const TaskConstMeta(
+            debugName: "Encore_set_stream_quality",
+            argNames: ["that", "network", "quality"],
+        );
+        
+
+@override Future<SignedIn> crateApiCoreEncoreSignIn({required Encore that , required String baseUrl , required String username , required String password })  { return handler.executeNormal(NormalTask(
+            callFfi: (port_) {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_String(baseUrl, serializer);
+sse_encode_String(username, serializer);
+sse_encode_String(password, serializer);
+            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 49, port: port_);
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_signed_in,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreSignInConstMeta,
+            argValues: [that, baseUrl, username, password],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreSignInConstMeta => const TaskConstMeta(
+            debugName: "Encore_sign_in",
+            argNames: ["that", "baseUrl", "username", "password"],
+        );
+        
+
+@override Future<void> crateApiCoreEncoreSignOut({required Encore that , required PlatformInt64 sourceId })  { return handler.executeNormal(NormalTask(
+            callFfi: (port_) {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_i_64(sourceId, serializer);
+            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 50, port: port_);
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreSignOutConstMeta,
+            argValues: [that, sourceId],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreSignOutConstMeta => const TaskConstMeta(
+            debugName: "Encore_sign_out",
+            argNames: ["that", "sourceId"],
+        );
+        
+
+@override Song crateApiCoreEncoreSong({required Encore that , required PlatformInt64 songId })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_i_64(songId, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 51)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_song,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreSongConstMeta,
+            argValues: [that, songId],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreSongConstMeta => const TaskConstMeta(
+            debugName: "Encore_song",
+            argNames: ["that", "songId"],
+        );
+        
+
+@override List<Song> crateApiCoreEncoreSongs({required Encore that , required SongSort sort , required int offset , required int limit })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_song_sort(sort, serializer);
+sse_encode_u_32(offset, serializer);
+sse_encode_u_32(limit, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 52)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_list_song,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreSongsConstMeta,
+            argValues: [that, sort, offset, limit],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreSongsConstMeta => const TaskConstMeta(
+            debugName: "Encore_songs",
+            argNames: ["that", "sort", "offset", "limit"],
+        );
+        
+
+@override StreamInfo crateApiCoreEncoreStreamFor({required Encore that , required PlatformInt64 songId , required Network network })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_i_64(songId, serializer);
+sse_encode_network(network, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 53)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_stream_info,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreStreamForConstMeta,
+            argValues: [that, songId, network],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreStreamForConstMeta => const TaskConstMeta(
+            debugName: "Encore_stream_for",
+            argNames: ["that", "songId", "network"],
+        );
+        
+
+@override StreamQuality crateApiCoreEncoreStreamQuality({required Encore that , required Network network })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_network(network, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 54)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_stream_quality,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreStreamQualityConstMeta,
+            argValues: [that, network],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreStreamQualityConstMeta => const TaskConstMeta(
+            debugName: "Encore_stream_quality",
+            argNames: ["that", "network"],
+        );
+        
+
+@override Future<List<SyncResult>> crateApiCoreEncoreSyncLibrary({required Encore that })  { return handler.executeNormal(NormalTask(
+            callFfi: (port_) {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 55, port: port_);
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_list_sync_result,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreSyncLibraryConstMeta,
+            argValues: [that],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreSyncLibraryConstMeta => const TaskConstMeta(
+            debugName: "Encore_sync_library",
+            argNames: ["that"],
+        );
+        
+
+@override void crateApiCoreEncoreTrustCertificate({required Encore that , required String address , required String sha256 })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+sse_encode_String(address, serializer);
+sse_encode_String(sha256, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 56)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreTrustCertificateConstMeta,
+            argValues: [that, address, sha256],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreTrustCertificateConstMeta => const TaskConstMeta(
+            debugName: "Encore_trust_certificate",
+            argNames: ["that", "address", "sha256"],
+        );
+        
+
+@override QueueState crateApiCoreEncoreUndoQueue({required Encore that })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 57)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_queue_state,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreUndoQueueConstMeta,
+            argValues: [that],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreUndoQueueConstMeta => const TaskConstMeta(
+            debugName: "Encore_undo_queue",
+            argNames: ["that"],
+        );
+        
+
+@override String crateApiHelloAppName()  { return handler.executeSync(SyncTask(
             callFfi: () {
               
             final serializer = SseSerializer(generalizedFrbRustBinding);
-            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 1)!;
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 58)!;
             
             },
             codec: 
@@ -127,7 +1747,7 @@ String crateApiHelloHello({required String name });
             callFfi: () {
               
             final serializer = SseSerializer(generalizedFrbRustBinding);
-            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 2)!;
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 59)!;
             
             },
             codec: 
@@ -152,7 +1772,7 @@ String crateApiHelloHello({required String name });
             callFfi: () {
               
             final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_String(name, serializer);
-            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 3)!;
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 60)!;
             
             },
             codec: 
@@ -173,13 +1793,446 @@ String crateApiHelloHello({required String name });
         );
         
 
+RustArcIncrementStrongCountFnType get rust_arc_increment_strong_count_Encore => wire.rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore;
+
+RustArcDecrementStrongCountFnType get rust_arc_decrement_strong_count_Encore => wire.rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore;
 
 
-                  @protected String dco_decode_String(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+
+                  @protected AnyhowException dco_decode_AnyhowException(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return AnyhowException(raw as String); }
+
+@protected Encore dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return EncoreImpl.frbInternalDcoDecode(raw as List<dynamic>); }
+
+@protected Encore dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return EncoreImpl.frbInternalDcoDecode(raw as List<dynamic>); }
+
+@protected Encore dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return EncoreImpl.frbInternalDcoDecode(raw as List<dynamic>); }
+
+@protected RustStreamSink<CoreEvent> dco_decode_StreamSink_core_event_Sse(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+throw UnimplementedError(); }
+
+@protected String dco_decode_String(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
 return raw as String; }
+
+@protected AlbumDetail dco_decode_album_detail(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+                return AlbumDetail(album: dco_decode_album_summary(arr[0]),
+songs: dco_decode_list_song(arr[1]),); }
+
+@protected AlbumSort dco_decode_album_sort(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return AlbumSort.values[raw as int]; }
+
+@protected AlbumSummary dco_decode_album_summary(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 8) throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+                return AlbumSummary(id: dco_decode_i_64(arr[0]),
+title: dco_decode_String(arr[1]),
+artist: dco_decode_String(arr[2]),
+year: dco_decode_opt_box_autoadd_i_32(arr[3]),
+songCount: dco_decode_u_32(arr[4]),
+durationMs: dco_decode_i_64(arr[5]),
+dateAddedUtcMs: dco_decode_opt_box_autoadd_i_64(arr[6]),
+hasArtwork: dco_decode_bool(arr[7]),); }
+
+@protected ApiError dco_decode_api_error(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 5) throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+                return ApiError(kind: dco_decode_error_kind(arr[0]),
+message: dco_decode_String(arr[1]),
+sha256: dco_decode_opt_String(arr[2]),
+status: dco_decode_opt_box_autoadd_u_16(arr[3]),
+detail: dco_decode_opt_String(arr[4]),); }
+
+@protected ArtistDetail dco_decode_artist_detail(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+                return ArtistDetail(artist: dco_decode_artist_summary(arr[0]),
+albums: dco_decode_list_album_summary(arr[1]),); }
+
+@protected ArtistSummary dco_decode_artist_summary(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+                return ArtistSummary(id: dco_decode_i_64(arr[0]),
+name: dco_decode_String(arr[1]),
+albumCount: dco_decode_u_32(arr[2]),); }
+
+@protected ArtworkOf dco_decode_artwork_of(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return ArtworkOf.values[raw as int]; }
+
+@protected ArtworkRequest dco_decode_artwork_request(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+                return ArtworkRequest(url: dco_decode_String(arr[0]),
+headers: dco_decode_list_http_header(arr[1]),); }
+
+@protected bool dco_decode_bool(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw as bool; }
+
+@protected AlbumSummary dco_decode_box_autoadd_album_summary(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return dco_decode_album_summary(raw); }
+
+@protected ArtistSummary dco_decode_box_autoadd_artist_summary(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return dco_decode_artist_summary(raw); }
+
+@protected CoreConfig dco_decode_box_autoadd_core_config(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return dco_decode_core_config(raw); }
+
+@protected double dco_decode_box_autoadd_f_64(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw as double; }
+
+@protected int dco_decode_box_autoadd_i_32(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw as int; }
+
+@protected PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return dco_decode_i_64(raw); }
+
+@protected PlaylistSummary dco_decode_box_autoadd_playlist_summary(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return dco_decode_playlist_summary(raw); }
+
+@protected QueueEntry dco_decode_box_autoadd_queue_entry(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return dco_decode_queue_entry(raw); }
+
+@protected QueueState dco_decode_box_autoadd_queue_state(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return dco_decode_queue_state(raw); }
+
+@protected Song dco_decode_box_autoadd_song(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return dco_decode_song(raw); }
+
+@protected TopResult dco_decode_box_autoadd_top_result(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return dco_decode_top_result(raw); }
+
+@protected int dco_decode_box_autoadd_u_16(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw as int; }
+
+@protected int dco_decode_box_autoadd_u_32(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw as int; }
+
+@protected ChosenBy dco_decode_chosen_by(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return ChosenBy.values[raw as int]; }
+
+@protected CoreConfig dco_decode_core_config(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 4) throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+                return CoreConfig(dataDir: dco_decode_String(arr[0]),
+deviceId: dco_decode_String(arr[1]),
+deviceName: dco_decode_String(arr[2]),
+platform: dco_decode_String(arr[3]),); }
+
+@protected CoreEvent dco_decode_core_event(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 7) throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+                return CoreEvent(kind: dco_decode_event_kind(arr[0]),
+queue: dco_decode_opt_box_autoadd_queue_state(arr[1]),
+nowPlaying: dco_decode_opt_box_autoadd_queue_entry(arr[2]),
+preload: dco_decode_opt_box_autoadd_queue_entry(arr[3]),
+syncSourceId: dco_decode_opt_box_autoadd_i_64(arr[4]),
+syncDone: dco_decode_i_64(arr[5]),
+syncTotal: dco_decode_i_64(arr[6]),); }
+
+@protected CredentialKey dco_decode_credential_key(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+                return CredentialKey(sourceId: dco_decode_i_64(arr[0]),
+key: dco_decode_String(arr[1]),); }
+
+@protected EndReason dco_decode_end_reason(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return EndReason.values[raw as int]; }
+
+@protected ErrorKind dco_decode_error_kind(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return ErrorKind.values[raw as int]; }
+
+@protected EventKind dco_decode_event_kind(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return EventKind.values[raw as int]; }
+
+@protected double dco_decode_f_64(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw as double; }
+
+@protected GenreSummary dco_decode_genre_summary(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+                return GenreSummary(name: dco_decode_String(arr[0]),
+songCount: dco_decode_u_32(arr[1]),); }
+
+@protected HttpHeader dco_decode_http_header(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+                return HttpHeader(name: dco_decode_String(arr[0]),
+value: dco_decode_String(arr[1]),); }
+
+@protected int dco_decode_i_32(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw as int; }
+
+@protected PlatformInt64 dco_decode_i_64(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return dcoDecodeI64(raw); }
+
+@protected List<String> dco_decode_list_String(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return (raw as List<dynamic>).map(dco_decode_String).toList(); }
+
+@protected List<AlbumSummary> dco_decode_list_album_summary(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return (raw as List<dynamic>).map(dco_decode_album_summary).toList(); }
+
+@protected List<ArtistSummary> dco_decode_list_artist_summary(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return (raw as List<dynamic>).map(dco_decode_artist_summary).toList(); }
+
+@protected List<CredentialKey> dco_decode_list_credential_key(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return (raw as List<dynamic>).map(dco_decode_credential_key).toList(); }
+
+@protected List<GenreSummary> dco_decode_list_genre_summary(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return (raw as List<dynamic>).map(dco_decode_genre_summary).toList(); }
+
+@protected List<HttpHeader> dco_decode_list_http_header(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return (raw as List<dynamic>).map(dco_decode_http_header).toList(); }
+
+@protected List<PlaylistEntry> dco_decode_list_playlist_entry(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return (raw as List<dynamic>).map(dco_decode_playlist_entry).toList(); }
+
+@protected List<PlaylistSummary> dco_decode_list_playlist_summary(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return (raw as List<dynamic>).map(dco_decode_playlist_summary).toList(); }
+
+@protected Int64List dco_decode_list_prim_i_64_strict(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return dcoDecodeInt64List(raw); }
 
 @protected Uint8List dco_decode_list_prim_u_8_strict(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
 return raw as Uint8List; }
+
+@protected List<ProfileSummary> dco_decode_list_profile_summary(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return (raw as List<dynamic>).map(dco_decode_profile_summary).toList(); }
+
+@protected List<QueueEntry> dco_decode_list_queue_entry(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return (raw as List<dynamic>).map(dco_decode_queue_entry).toList(); }
+
+@protected List<ServerRow> dco_decode_list_server_row(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return (raw as List<dynamic>).map(dco_decode_server_row).toList(); }
+
+@protected List<Song> dco_decode_list_song(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return (raw as List<dynamic>).map(dco_decode_song).toList(); }
+
+@protected List<SourceToken> dco_decode_list_source_token(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return (raw as List<dynamic>).map(dco_decode_source_token).toList(); }
+
+@protected List<SyncResult> dco_decode_list_sync_result(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return (raw as List<dynamic>).map(dco_decode_sync_result).toList(); }
+
+@protected ListeningMode dco_decode_listening_mode(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return ListeningMode.values[raw as int]; }
+
+@protected Network dco_decode_network(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return Network.values[raw as int]; }
+
+@protected String? dco_decode_opt_String(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw == null ? null : dco_decode_String(raw); }
+
+@protected AlbumSummary? dco_decode_opt_box_autoadd_album_summary(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw == null ? null : dco_decode_box_autoadd_album_summary(raw); }
+
+@protected ArtistSummary? dco_decode_opt_box_autoadd_artist_summary(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw == null ? null : dco_decode_box_autoadd_artist_summary(raw); }
+
+@protected double? dco_decode_opt_box_autoadd_f_64(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw == null ? null : dco_decode_box_autoadd_f_64(raw); }
+
+@protected int? dco_decode_opt_box_autoadd_i_32(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw == null ? null : dco_decode_box_autoadd_i_32(raw); }
+
+@protected PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw == null ? null : dco_decode_box_autoadd_i_64(raw); }
+
+@protected PlaylistSummary? dco_decode_opt_box_autoadd_playlist_summary(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw == null ? null : dco_decode_box_autoadd_playlist_summary(raw); }
+
+@protected QueueEntry? dco_decode_opt_box_autoadd_queue_entry(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw == null ? null : dco_decode_box_autoadd_queue_entry(raw); }
+
+@protected QueueState? dco_decode_opt_box_autoadd_queue_state(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw == null ? null : dco_decode_box_autoadd_queue_state(raw); }
+
+@protected Song? dco_decode_opt_box_autoadd_song(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw == null ? null : dco_decode_box_autoadd_song(raw); }
+
+@protected TopResult? dco_decode_opt_box_autoadd_top_result(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw == null ? null : dco_decode_box_autoadd_top_result(raw); }
+
+@protected int? dco_decode_opt_box_autoadd_u_16(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw == null ? null : dco_decode_box_autoadd_u_16(raw); }
+
+@protected int? dco_decode_opt_box_autoadd_u_32(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw == null ? null : dco_decode_box_autoadd_u_32(raw); }
+
+@protected PlaylistDetail dco_decode_playlist_detail(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+                return PlaylistDetail(playlist: dco_decode_playlist_summary(arr[0]),
+entries: dco_decode_list_playlist_entry(arr[1]),); }
+
+@protected PlaylistEntry dco_decode_playlist_entry(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+                return PlaylistEntry(position: dco_decode_u_32(arr[0]),
+song: dco_decode_opt_box_autoadd_song(arr[1]),); }
+
+@protected PlaylistSummary dco_decode_playlist_summary(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 4) throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+                return PlaylistSummary(id: dco_decode_i_64(arr[0]),
+name: dco_decode_String(arr[1]),
+songCount: dco_decode_u_32(arr[2]),
+durationMs: dco_decode_i_64(arr[3]),); }
+
+@protected PreviousResult dco_decode_previous_result(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return PreviousResult.values[raw as int]; }
+
+@protected ProfileSummary dco_decode_profile_summary(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+                return ProfileSummary(profileId: dco_decode_String(arr[0]),
+displayName: dco_decode_String(arr[1]),
+credentials: dco_decode_list_credential_key(arr[2]),); }
+
+@protected QueueEntry dco_decode_queue_entry(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+                return QueueEntry(uid: dco_decode_i_64(arr[0]),
+song: dco_decode_song(arr[1]),
+chosenBy: dco_decode_chosen_by(arr[2]),); }
+
+@protected QueueState dco_decode_queue_state(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 8) throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+                return QueueState(history: dco_decode_list_queue_entry(arr[0]),
+current: dco_decode_opt_box_autoadd_queue_entry(arr[1]),
+upNext: dco_decode_list_queue_entry(arr[2]),
+autoplay: dco_decode_list_queue_entry(arr[3]),
+shuffle: dco_decode_bool(arr[4]),
+repeat: dco_decode_repeat_mode(arr[5]),
+autoplayEnabled: dco_decode_bool(arr[6]),
+canUndo: dco_decode_bool(arr[7]),); }
+
+@protected QuickConnectStart dco_decode_quick_connect_start(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+                return QuickConnectStart(code: dco_decode_String(arr[0]),
+expiresInSeconds: dco_decode_u_32(arr[1]),); }
+
+@protected RepeatMode dco_decode_repeat_mode(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return RepeatMode.values[raw as int]; }
+
+@protected ResultKind dco_decode_result_kind(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return ResultKind.values[raw as int]; }
+
+@protected SearchResults dco_decode_search_results(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 5) throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+                return SearchResults(top: dco_decode_opt_box_autoadd_top_result(arr[0]),
+songs: dco_decode_list_song(arr[1]),
+albums: dco_decode_list_album_summary(arr[2]),
+artists: dco_decode_list_artist_summary(arr[3]),
+playlists: dco_decode_list_playlist_summary(arr[4]),); }
+
+@protected ServerCheck dco_decode_server_check(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 5) throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+                return ServerCheck(baseUrl: dco_decode_String(arr[0]),
+name: dco_decode_String(arr[1]),
+version: dco_decode_String(arr[2]),
+serverId: dco_decode_String(arr[3]),
+plainHttpOnLocalNetwork: dco_decode_bool(arr[4]),); }
+
+@protected ServerRow dco_decode_server_row(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 9) throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+                return ServerRow(sourceId: dco_decode_i_64(arr[0]),
+kind: dco_decode_String(arr[1]),
+name: dco_decode_String(arr[2]),
+baseUrl: dco_decode_String(arr[3]),
+version: dco_decode_opt_String(arr[4]),
+userName: dco_decode_String(arr[5]),
+songCount: dco_decode_u_32(arr[6]),
+lastSyncUtcMs: dco_decode_opt_box_autoadd_i_64(arr[7]),
+signedIn: dco_decode_bool(arr[8]),); }
+
+@protected SignedIn dco_decode_signed_in(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 5) throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+                return SignedIn(profileId: dco_decode_String(arr[0]),
+sourceId: dco_decode_i_64(arr[1]),
+credentialKey: dco_decode_String(arr[2]),
+token: dco_decode_String(arr[3]),
+userName: dco_decode_String(arr[4]),); }
+
+@protected Song dco_decode_song(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 15) throw Exception('unexpected arr length: expect 15 but see ${arr.length}');
+                return Song(id: dco_decode_i_64(arr[0]),
+sourceId: dco_decode_i_64(arr[1]),
+title: dco_decode_String(arr[2]),
+artist: dco_decode_String(arr[3]),
+albumArtist: dco_decode_String(arr[4]),
+albumId: dco_decode_opt_box_autoadd_i_64(arr[5]),
+albumTitle: dco_decode_opt_String(arr[6]),
+discNumber: dco_decode_opt_box_autoadd_u_32(arr[7]),
+trackNumber: dco_decode_opt_box_autoadd_u_32(arr[8]),
+durationMs: dco_decode_i_64(arr[9]),
+year: dco_decode_opt_box_autoadd_i_32(arr[10]),
+container: dco_decode_opt_String(arr[11]),
+hasLyrics: dco_decode_bool(arr[12]),
+trackGainDb: dco_decode_opt_box_autoadd_f_64(arr[13]),
+albumGainDb: dco_decode_opt_box_autoadd_f_64(arr[14]),); }
+
+@protected SongSort dco_decode_song_sort(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return SongSort.values[raw as int]; }
+
+@protected SourceToken dco_decode_source_token(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+                return SourceToken(sourceId: dco_decode_i_64(arr[0]),
+token: dco_decode_String(arr[1]),); }
+
+@protected StartedFrom dco_decode_started_from(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return StartedFrom.values[raw as int]; }
+
+@protected StreamInfo dco_decode_stream_info(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 5) throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+                return StreamInfo(songId: dco_decode_i_64(arr[0]),
+url: dco_decode_String(arr[1]),
+urlWithApiKey: dco_decode_String(arr[2]),
+headers: dco_decode_list_http_header(arr[3]),
+mayTranscode: dco_decode_bool(arr[4]),); }
+
+@protected StreamQuality dco_decode_stream_quality(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return StreamQuality.values[raw as int]; }
+
+@protected SyncResult dco_decode_sync_result(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 6) throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+                return SyncResult(sourceId: dco_decode_i_64(arr[0]),
+artists: dco_decode_u_32(arr[1]),
+albums: dco_decode_u_32(arr[2]),
+songs: dco_decode_u_32(arr[3]),
+playlists: dco_decode_u_32(arr[4]),
+removed: dco_decode_u_32(arr[5]),); }
+
+@protected TopResult dco_decode_top_result(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 5) throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+                return TopResult(kind: dco_decode_result_kind(arr[0]),
+song: dco_decode_opt_box_autoadd_song(arr[1]),
+album: dco_decode_opt_box_autoadd_album_summary(arr[2]),
+artist: dco_decode_opt_box_autoadd_artist_summary(arr[3]),
+playlist: dco_decode_opt_box_autoadd_playlist_summary(arr[4]),); }
+
+@protected TranscodeCodec dco_decode_transcode_codec(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return TranscodeCodec.values[raw as int]; }
+
+@protected int dco_decode_u_16(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw as int; }
+
+@protected int dco_decode_u_32(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw as int; }
 
 @protected int dco_decode_u_8(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
 return raw as int; }
@@ -187,13 +2240,583 @@ return raw as int; }
 @protected void dco_decode_unit(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
 return; }
 
+@protected BigInt dco_decode_usize(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return dcoDecodeU64(raw); }
+
+@protected AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var inner = sse_decode_String(deserializer);
+        return AnyhowException(inner); }
+
+@protected Encore sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return EncoreImpl.frbInternalSseDecode(sse_decode_usize(deserializer), sse_decode_i_32(deserializer)); }
+
+@protected Encore sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return EncoreImpl.frbInternalSseDecode(sse_decode_usize(deserializer), sse_decode_i_32(deserializer)); }
+
+@protected Encore sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return EncoreImpl.frbInternalSseDecode(sse_decode_usize(deserializer), sse_decode_i_32(deserializer)); }
+
+@protected RustStreamSink<CoreEvent> sse_decode_StreamSink_core_event_Sse(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+throw UnimplementedError('Unreachable ()'); }
+
 @protected String sse_decode_String(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
 var inner = sse_decode_list_prim_u_8_strict(deserializer);
         return utf8.decoder.convert(inner); }
 
+@protected AlbumDetail sse_decode_album_detail(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_album = sse_decode_album_summary(deserializer);
+var var_songs = sse_decode_list_song(deserializer);
+return AlbumDetail(album: var_album, songs: var_songs); }
+
+@protected AlbumSort sse_decode_album_sort(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var inner = sse_decode_i_32(deserializer);
+        return AlbumSort.values[inner]; }
+
+@protected AlbumSummary sse_decode_album_summary(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_id = sse_decode_i_64(deserializer);
+var var_title = sse_decode_String(deserializer);
+var var_artist = sse_decode_String(deserializer);
+var var_year = sse_decode_opt_box_autoadd_i_32(deserializer);
+var var_songCount = sse_decode_u_32(deserializer);
+var var_durationMs = sse_decode_i_64(deserializer);
+var var_dateAddedUtcMs = sse_decode_opt_box_autoadd_i_64(deserializer);
+var var_hasArtwork = sse_decode_bool(deserializer);
+return AlbumSummary(id: var_id, title: var_title, artist: var_artist, year: var_year, songCount: var_songCount, durationMs: var_durationMs, dateAddedUtcMs: var_dateAddedUtcMs, hasArtwork: var_hasArtwork); }
+
+@protected ApiError sse_decode_api_error(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_kind = sse_decode_error_kind(deserializer);
+var var_message = sse_decode_String(deserializer);
+var var_sha256 = sse_decode_opt_String(deserializer);
+var var_status = sse_decode_opt_box_autoadd_u_16(deserializer);
+var var_detail = sse_decode_opt_String(deserializer);
+return ApiError(kind: var_kind, message: var_message, sha256: var_sha256, status: var_status, detail: var_detail); }
+
+@protected ArtistDetail sse_decode_artist_detail(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_artist = sse_decode_artist_summary(deserializer);
+var var_albums = sse_decode_list_album_summary(deserializer);
+return ArtistDetail(artist: var_artist, albums: var_albums); }
+
+@protected ArtistSummary sse_decode_artist_summary(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_id = sse_decode_i_64(deserializer);
+var var_name = sse_decode_String(deserializer);
+var var_albumCount = sse_decode_u_32(deserializer);
+return ArtistSummary(id: var_id, name: var_name, albumCount: var_albumCount); }
+
+@protected ArtworkOf sse_decode_artwork_of(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var inner = sse_decode_i_32(deserializer);
+        return ArtworkOf.values[inner]; }
+
+@protected ArtworkRequest sse_decode_artwork_request(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_url = sse_decode_String(deserializer);
+var var_headers = sse_decode_list_http_header(deserializer);
+return ArtworkRequest(url: var_url, headers: var_headers); }
+
+@protected bool sse_decode_bool(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return deserializer.buffer.getUint8() != 0; }
+
+@protected AlbumSummary sse_decode_box_autoadd_album_summary(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return (sse_decode_album_summary(deserializer)); }
+
+@protected ArtistSummary sse_decode_box_autoadd_artist_summary(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return (sse_decode_artist_summary(deserializer)); }
+
+@protected CoreConfig sse_decode_box_autoadd_core_config(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return (sse_decode_core_config(deserializer)); }
+
+@protected double sse_decode_box_autoadd_f_64(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return (sse_decode_f_64(deserializer)); }
+
+@protected int sse_decode_box_autoadd_i_32(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return (sse_decode_i_32(deserializer)); }
+
+@protected PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return (sse_decode_i_64(deserializer)); }
+
+@protected PlaylistSummary sse_decode_box_autoadd_playlist_summary(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return (sse_decode_playlist_summary(deserializer)); }
+
+@protected QueueEntry sse_decode_box_autoadd_queue_entry(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return (sse_decode_queue_entry(deserializer)); }
+
+@protected QueueState sse_decode_box_autoadd_queue_state(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return (sse_decode_queue_state(deserializer)); }
+
+@protected Song sse_decode_box_autoadd_song(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return (sse_decode_song(deserializer)); }
+
+@protected TopResult sse_decode_box_autoadd_top_result(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return (sse_decode_top_result(deserializer)); }
+
+@protected int sse_decode_box_autoadd_u_16(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return (sse_decode_u_16(deserializer)); }
+
+@protected int sse_decode_box_autoadd_u_32(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return (sse_decode_u_32(deserializer)); }
+
+@protected ChosenBy sse_decode_chosen_by(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var inner = sse_decode_i_32(deserializer);
+        return ChosenBy.values[inner]; }
+
+@protected CoreConfig sse_decode_core_config(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_dataDir = sse_decode_String(deserializer);
+var var_deviceId = sse_decode_String(deserializer);
+var var_deviceName = sse_decode_String(deserializer);
+var var_platform = sse_decode_String(deserializer);
+return CoreConfig(dataDir: var_dataDir, deviceId: var_deviceId, deviceName: var_deviceName, platform: var_platform); }
+
+@protected CoreEvent sse_decode_core_event(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_kind = sse_decode_event_kind(deserializer);
+var var_queue = sse_decode_opt_box_autoadd_queue_state(deserializer);
+var var_nowPlaying = sse_decode_opt_box_autoadd_queue_entry(deserializer);
+var var_preload = sse_decode_opt_box_autoadd_queue_entry(deserializer);
+var var_syncSourceId = sse_decode_opt_box_autoadd_i_64(deserializer);
+var var_syncDone = sse_decode_i_64(deserializer);
+var var_syncTotal = sse_decode_i_64(deserializer);
+return CoreEvent(kind: var_kind, queue: var_queue, nowPlaying: var_nowPlaying, preload: var_preload, syncSourceId: var_syncSourceId, syncDone: var_syncDone, syncTotal: var_syncTotal); }
+
+@protected CredentialKey sse_decode_credential_key(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_sourceId = sse_decode_i_64(deserializer);
+var var_key = sse_decode_String(deserializer);
+return CredentialKey(sourceId: var_sourceId, key: var_key); }
+
+@protected EndReason sse_decode_end_reason(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var inner = sse_decode_i_32(deserializer);
+        return EndReason.values[inner]; }
+
+@protected ErrorKind sse_decode_error_kind(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var inner = sse_decode_i_32(deserializer);
+        return ErrorKind.values[inner]; }
+
+@protected EventKind sse_decode_event_kind(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var inner = sse_decode_i_32(deserializer);
+        return EventKind.values[inner]; }
+
+@protected double sse_decode_f_64(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return deserializer.buffer.getFloat64(); }
+
+@protected GenreSummary sse_decode_genre_summary(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_name = sse_decode_String(deserializer);
+var var_songCount = sse_decode_u_32(deserializer);
+return GenreSummary(name: var_name, songCount: var_songCount); }
+
+@protected HttpHeader sse_decode_http_header(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_name = sse_decode_String(deserializer);
+var var_value = sse_decode_String(deserializer);
+return HttpHeader(name: var_name, value: var_value); }
+
+@protected int sse_decode_i_32(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return deserializer.buffer.getInt32(); }
+
+@protected PlatformInt64 sse_decode_i_64(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return deserializer.buffer.getPlatformInt64(); }
+
+@protected List<String> sse_decode_list_String(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+        var len_ = sse_decode_i_32(deserializer);
+        var ans_ = <String>[];
+        for (var idx_ = 0; idx_ < len_; ++idx_) { ans_.add(sse_decode_String(deserializer)); }
+        return ans_;
+         }
+
+@protected List<AlbumSummary> sse_decode_list_album_summary(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+        var len_ = sse_decode_i_32(deserializer);
+        var ans_ = <AlbumSummary>[];
+        for (var idx_ = 0; idx_ < len_; ++idx_) { ans_.add(sse_decode_album_summary(deserializer)); }
+        return ans_;
+         }
+
+@protected List<ArtistSummary> sse_decode_list_artist_summary(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+        var len_ = sse_decode_i_32(deserializer);
+        var ans_ = <ArtistSummary>[];
+        for (var idx_ = 0; idx_ < len_; ++idx_) { ans_.add(sse_decode_artist_summary(deserializer)); }
+        return ans_;
+         }
+
+@protected List<CredentialKey> sse_decode_list_credential_key(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+        var len_ = sse_decode_i_32(deserializer);
+        var ans_ = <CredentialKey>[];
+        for (var idx_ = 0; idx_ < len_; ++idx_) { ans_.add(sse_decode_credential_key(deserializer)); }
+        return ans_;
+         }
+
+@protected List<GenreSummary> sse_decode_list_genre_summary(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+        var len_ = sse_decode_i_32(deserializer);
+        var ans_ = <GenreSummary>[];
+        for (var idx_ = 0; idx_ < len_; ++idx_) { ans_.add(sse_decode_genre_summary(deserializer)); }
+        return ans_;
+         }
+
+@protected List<HttpHeader> sse_decode_list_http_header(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+        var len_ = sse_decode_i_32(deserializer);
+        var ans_ = <HttpHeader>[];
+        for (var idx_ = 0; idx_ < len_; ++idx_) { ans_.add(sse_decode_http_header(deserializer)); }
+        return ans_;
+         }
+
+@protected List<PlaylistEntry> sse_decode_list_playlist_entry(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+        var len_ = sse_decode_i_32(deserializer);
+        var ans_ = <PlaylistEntry>[];
+        for (var idx_ = 0; idx_ < len_; ++idx_) { ans_.add(sse_decode_playlist_entry(deserializer)); }
+        return ans_;
+         }
+
+@protected List<PlaylistSummary> sse_decode_list_playlist_summary(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+        var len_ = sse_decode_i_32(deserializer);
+        var ans_ = <PlaylistSummary>[];
+        for (var idx_ = 0; idx_ < len_; ++idx_) { ans_.add(sse_decode_playlist_summary(deserializer)); }
+        return ans_;
+         }
+
+@protected Int64List sse_decode_list_prim_i_64_strict(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var len_ = sse_decode_i_32(deserializer);
+                return deserializer.buffer.getInt64List(len_); }
+
 @protected Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
 var len_ = sse_decode_i_32(deserializer);
                 return deserializer.buffer.getUint8List(len_); }
+
+@protected List<ProfileSummary> sse_decode_list_profile_summary(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+        var len_ = sse_decode_i_32(deserializer);
+        var ans_ = <ProfileSummary>[];
+        for (var idx_ = 0; idx_ < len_; ++idx_) { ans_.add(sse_decode_profile_summary(deserializer)); }
+        return ans_;
+         }
+
+@protected List<QueueEntry> sse_decode_list_queue_entry(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+        var len_ = sse_decode_i_32(deserializer);
+        var ans_ = <QueueEntry>[];
+        for (var idx_ = 0; idx_ < len_; ++idx_) { ans_.add(sse_decode_queue_entry(deserializer)); }
+        return ans_;
+         }
+
+@protected List<ServerRow> sse_decode_list_server_row(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+        var len_ = sse_decode_i_32(deserializer);
+        var ans_ = <ServerRow>[];
+        for (var idx_ = 0; idx_ < len_; ++idx_) { ans_.add(sse_decode_server_row(deserializer)); }
+        return ans_;
+         }
+
+@protected List<Song> sse_decode_list_song(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+        var len_ = sse_decode_i_32(deserializer);
+        var ans_ = <Song>[];
+        for (var idx_ = 0; idx_ < len_; ++idx_) { ans_.add(sse_decode_song(deserializer)); }
+        return ans_;
+         }
+
+@protected List<SourceToken> sse_decode_list_source_token(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+        var len_ = sse_decode_i_32(deserializer);
+        var ans_ = <SourceToken>[];
+        for (var idx_ = 0; idx_ < len_; ++idx_) { ans_.add(sse_decode_source_token(deserializer)); }
+        return ans_;
+         }
+
+@protected List<SyncResult> sse_decode_list_sync_result(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+        var len_ = sse_decode_i_32(deserializer);
+        var ans_ = <SyncResult>[];
+        for (var idx_ = 0; idx_ < len_; ++idx_) { ans_.add(sse_decode_sync_result(deserializer)); }
+        return ans_;
+         }
+
+@protected ListeningMode sse_decode_listening_mode(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var inner = sse_decode_i_32(deserializer);
+        return ListeningMode.values[inner]; }
+
+@protected Network sse_decode_network(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var inner = sse_decode_i_32(deserializer);
+        return Network.values[inner]; }
+
+@protected String? sse_decode_opt_String(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+            if (sse_decode_bool(deserializer)) {
+                return (sse_decode_String(deserializer));
+            } else {
+                return null;
+            }
+             }
+
+@protected AlbumSummary? sse_decode_opt_box_autoadd_album_summary(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+            if (sse_decode_bool(deserializer)) {
+                return (sse_decode_box_autoadd_album_summary(deserializer));
+            } else {
+                return null;
+            }
+             }
+
+@protected ArtistSummary? sse_decode_opt_box_autoadd_artist_summary(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+            if (sse_decode_bool(deserializer)) {
+                return (sse_decode_box_autoadd_artist_summary(deserializer));
+            } else {
+                return null;
+            }
+             }
+
+@protected double? sse_decode_opt_box_autoadd_f_64(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+            if (sse_decode_bool(deserializer)) {
+                return (sse_decode_box_autoadd_f_64(deserializer));
+            } else {
+                return null;
+            }
+             }
+
+@protected int? sse_decode_opt_box_autoadd_i_32(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+            if (sse_decode_bool(deserializer)) {
+                return (sse_decode_box_autoadd_i_32(deserializer));
+            } else {
+                return null;
+            }
+             }
+
+@protected PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+            if (sse_decode_bool(deserializer)) {
+                return (sse_decode_box_autoadd_i_64(deserializer));
+            } else {
+                return null;
+            }
+             }
+
+@protected PlaylistSummary? sse_decode_opt_box_autoadd_playlist_summary(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+            if (sse_decode_bool(deserializer)) {
+                return (sse_decode_box_autoadd_playlist_summary(deserializer));
+            } else {
+                return null;
+            }
+             }
+
+@protected QueueEntry? sse_decode_opt_box_autoadd_queue_entry(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+            if (sse_decode_bool(deserializer)) {
+                return (sse_decode_box_autoadd_queue_entry(deserializer));
+            } else {
+                return null;
+            }
+             }
+
+@protected QueueState? sse_decode_opt_box_autoadd_queue_state(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+            if (sse_decode_bool(deserializer)) {
+                return (sse_decode_box_autoadd_queue_state(deserializer));
+            } else {
+                return null;
+            }
+             }
+
+@protected Song? sse_decode_opt_box_autoadd_song(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+            if (sse_decode_bool(deserializer)) {
+                return (sse_decode_box_autoadd_song(deserializer));
+            } else {
+                return null;
+            }
+             }
+
+@protected TopResult? sse_decode_opt_box_autoadd_top_result(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+            if (sse_decode_bool(deserializer)) {
+                return (sse_decode_box_autoadd_top_result(deserializer));
+            } else {
+                return null;
+            }
+             }
+
+@protected int? sse_decode_opt_box_autoadd_u_16(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+            if (sse_decode_bool(deserializer)) {
+                return (sse_decode_box_autoadd_u_16(deserializer));
+            } else {
+                return null;
+            }
+             }
+
+@protected int? sse_decode_opt_box_autoadd_u_32(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+            if (sse_decode_bool(deserializer)) {
+                return (sse_decode_box_autoadd_u_32(deserializer));
+            } else {
+                return null;
+            }
+             }
+
+@protected PlaylistDetail sse_decode_playlist_detail(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_playlist = sse_decode_playlist_summary(deserializer);
+var var_entries = sse_decode_list_playlist_entry(deserializer);
+return PlaylistDetail(playlist: var_playlist, entries: var_entries); }
+
+@protected PlaylistEntry sse_decode_playlist_entry(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_position = sse_decode_u_32(deserializer);
+var var_song = sse_decode_opt_box_autoadd_song(deserializer);
+return PlaylistEntry(position: var_position, song: var_song); }
+
+@protected PlaylistSummary sse_decode_playlist_summary(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_id = sse_decode_i_64(deserializer);
+var var_name = sse_decode_String(deserializer);
+var var_songCount = sse_decode_u_32(deserializer);
+var var_durationMs = sse_decode_i_64(deserializer);
+return PlaylistSummary(id: var_id, name: var_name, songCount: var_songCount, durationMs: var_durationMs); }
+
+@protected PreviousResult sse_decode_previous_result(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var inner = sse_decode_i_32(deserializer);
+        return PreviousResult.values[inner]; }
+
+@protected ProfileSummary sse_decode_profile_summary(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_profileId = sse_decode_String(deserializer);
+var var_displayName = sse_decode_String(deserializer);
+var var_credentials = sse_decode_list_credential_key(deserializer);
+return ProfileSummary(profileId: var_profileId, displayName: var_displayName, credentials: var_credentials); }
+
+@protected QueueEntry sse_decode_queue_entry(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_uid = sse_decode_i_64(deserializer);
+var var_song = sse_decode_song(deserializer);
+var var_chosenBy = sse_decode_chosen_by(deserializer);
+return QueueEntry(uid: var_uid, song: var_song, chosenBy: var_chosenBy); }
+
+@protected QueueState sse_decode_queue_state(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_history = sse_decode_list_queue_entry(deserializer);
+var var_current = sse_decode_opt_box_autoadd_queue_entry(deserializer);
+var var_upNext = sse_decode_list_queue_entry(deserializer);
+var var_autoplay = sse_decode_list_queue_entry(deserializer);
+var var_shuffle = sse_decode_bool(deserializer);
+var var_repeat = sse_decode_repeat_mode(deserializer);
+var var_autoplayEnabled = sse_decode_bool(deserializer);
+var var_canUndo = sse_decode_bool(deserializer);
+return QueueState(history: var_history, current: var_current, upNext: var_upNext, autoplay: var_autoplay, shuffle: var_shuffle, repeat: var_repeat, autoplayEnabled: var_autoplayEnabled, canUndo: var_canUndo); }
+
+@protected QuickConnectStart sse_decode_quick_connect_start(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_code = sse_decode_String(deserializer);
+var var_expiresInSeconds = sse_decode_u_32(deserializer);
+return QuickConnectStart(code: var_code, expiresInSeconds: var_expiresInSeconds); }
+
+@protected RepeatMode sse_decode_repeat_mode(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var inner = sse_decode_i_32(deserializer);
+        return RepeatMode.values[inner]; }
+
+@protected ResultKind sse_decode_result_kind(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var inner = sse_decode_i_32(deserializer);
+        return ResultKind.values[inner]; }
+
+@protected SearchResults sse_decode_search_results(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_top = sse_decode_opt_box_autoadd_top_result(deserializer);
+var var_songs = sse_decode_list_song(deserializer);
+var var_albums = sse_decode_list_album_summary(deserializer);
+var var_artists = sse_decode_list_artist_summary(deserializer);
+var var_playlists = sse_decode_list_playlist_summary(deserializer);
+return SearchResults(top: var_top, songs: var_songs, albums: var_albums, artists: var_artists, playlists: var_playlists); }
+
+@protected ServerCheck sse_decode_server_check(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_baseUrl = sse_decode_String(deserializer);
+var var_name = sse_decode_String(deserializer);
+var var_version = sse_decode_String(deserializer);
+var var_serverId = sse_decode_String(deserializer);
+var var_plainHttpOnLocalNetwork = sse_decode_bool(deserializer);
+return ServerCheck(baseUrl: var_baseUrl, name: var_name, version: var_version, serverId: var_serverId, plainHttpOnLocalNetwork: var_plainHttpOnLocalNetwork); }
+
+@protected ServerRow sse_decode_server_row(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_sourceId = sse_decode_i_64(deserializer);
+var var_kind = sse_decode_String(deserializer);
+var var_name = sse_decode_String(deserializer);
+var var_baseUrl = sse_decode_String(deserializer);
+var var_version = sse_decode_opt_String(deserializer);
+var var_userName = sse_decode_String(deserializer);
+var var_songCount = sse_decode_u_32(deserializer);
+var var_lastSyncUtcMs = sse_decode_opt_box_autoadd_i_64(deserializer);
+var var_signedIn = sse_decode_bool(deserializer);
+return ServerRow(sourceId: var_sourceId, kind: var_kind, name: var_name, baseUrl: var_baseUrl, version: var_version, userName: var_userName, songCount: var_songCount, lastSyncUtcMs: var_lastSyncUtcMs, signedIn: var_signedIn); }
+
+@protected SignedIn sse_decode_signed_in(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_profileId = sse_decode_String(deserializer);
+var var_sourceId = sse_decode_i_64(deserializer);
+var var_credentialKey = sse_decode_String(deserializer);
+var var_token = sse_decode_String(deserializer);
+var var_userName = sse_decode_String(deserializer);
+return SignedIn(profileId: var_profileId, sourceId: var_sourceId, credentialKey: var_credentialKey, token: var_token, userName: var_userName); }
+
+@protected Song sse_decode_song(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_id = sse_decode_i_64(deserializer);
+var var_sourceId = sse_decode_i_64(deserializer);
+var var_title = sse_decode_String(deserializer);
+var var_artist = sse_decode_String(deserializer);
+var var_albumArtist = sse_decode_String(deserializer);
+var var_albumId = sse_decode_opt_box_autoadd_i_64(deserializer);
+var var_albumTitle = sse_decode_opt_String(deserializer);
+var var_discNumber = sse_decode_opt_box_autoadd_u_32(deserializer);
+var var_trackNumber = sse_decode_opt_box_autoadd_u_32(deserializer);
+var var_durationMs = sse_decode_i_64(deserializer);
+var var_year = sse_decode_opt_box_autoadd_i_32(deserializer);
+var var_container = sse_decode_opt_String(deserializer);
+var var_hasLyrics = sse_decode_bool(deserializer);
+var var_trackGainDb = sse_decode_opt_box_autoadd_f_64(deserializer);
+var var_albumGainDb = sse_decode_opt_box_autoadd_f_64(deserializer);
+return Song(id: var_id, sourceId: var_sourceId, title: var_title, artist: var_artist, albumArtist: var_albumArtist, albumId: var_albumId, albumTitle: var_albumTitle, discNumber: var_discNumber, trackNumber: var_trackNumber, durationMs: var_durationMs, year: var_year, container: var_container, hasLyrics: var_hasLyrics, trackGainDb: var_trackGainDb, albumGainDb: var_albumGainDb); }
+
+@protected SongSort sse_decode_song_sort(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var inner = sse_decode_i_32(deserializer);
+        return SongSort.values[inner]; }
+
+@protected SourceToken sse_decode_source_token(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_sourceId = sse_decode_i_64(deserializer);
+var var_token = sse_decode_String(deserializer);
+return SourceToken(sourceId: var_sourceId, token: var_token); }
+
+@protected StartedFrom sse_decode_started_from(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var inner = sse_decode_i_32(deserializer);
+        return StartedFrom.values[inner]; }
+
+@protected StreamInfo sse_decode_stream_info(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_songId = sse_decode_i_64(deserializer);
+var var_url = sse_decode_String(deserializer);
+var var_urlWithApiKey = sse_decode_String(deserializer);
+var var_headers = sse_decode_list_http_header(deserializer);
+var var_mayTranscode = sse_decode_bool(deserializer);
+return StreamInfo(songId: var_songId, url: var_url, urlWithApiKey: var_urlWithApiKey, headers: var_headers, mayTranscode: var_mayTranscode); }
+
+@protected StreamQuality sse_decode_stream_quality(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var inner = sse_decode_i_32(deserializer);
+        return StreamQuality.values[inner]; }
+
+@protected SyncResult sse_decode_sync_result(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_sourceId = sse_decode_i_64(deserializer);
+var var_artists = sse_decode_u_32(deserializer);
+var var_albums = sse_decode_u_32(deserializer);
+var var_songs = sse_decode_u_32(deserializer);
+var var_playlists = sse_decode_u_32(deserializer);
+var var_removed = sse_decode_u_32(deserializer);
+return SyncResult(sourceId: var_sourceId, artists: var_artists, albums: var_albums, songs: var_songs, playlists: var_playlists, removed: var_removed); }
+
+@protected TopResult sse_decode_top_result(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_kind = sse_decode_result_kind(deserializer);
+var var_song = sse_decode_opt_box_autoadd_song(deserializer);
+var var_album = sse_decode_opt_box_autoadd_album_summary(deserializer);
+var var_artist = sse_decode_opt_box_autoadd_artist_summary(deserializer);
+var var_playlist = sse_decode_opt_box_autoadd_playlist_summary(deserializer);
+return TopResult(kind: var_kind, song: var_song, album: var_album, artist: var_artist, playlist: var_playlist); }
+
+@protected TranscodeCodec sse_decode_transcode_codec(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var inner = sse_decode_i_32(deserializer);
+        return TranscodeCodec.values[inner]; }
+
+@protected int sse_decode_u_16(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return deserializer.buffer.getUint16(); }
+
+@protected int sse_decode_u_32(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return deserializer.buffer.getUint32(); }
 
 @protected int sse_decode_u_8(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
 return deserializer.buffer.getUint8(); }
@@ -201,18 +2824,500 @@ return deserializer.buffer.getUint8(); }
 @protected void sse_decode_unit(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
  }
 
-@protected int sse_decode_i_32(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
-return deserializer.buffer.getInt32(); }
+@protected BigInt sse_decode_usize(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return deserializer.buffer.getBigUint64(); }
 
-@protected bool sse_decode_bool(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
-return deserializer.buffer.getUint8() != 0; }
+@protected void sse_encode_AnyhowException(AnyhowException self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_String(self.message, serializer); }
+
+@protected void sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(Encore self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_usize((self as EncoreImpl).frbInternalSseEncode(move: true), serializer); }
+
+@protected void sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(Encore self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_usize((self as EncoreImpl).frbInternalSseEncode(move: false), serializer); }
+
+@protected void sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(Encore self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_usize((self as EncoreImpl).frbInternalSseEncode(move: null), serializer); }
+
+@protected void sse_encode_StreamSink_core_event_Sse(RustStreamSink<CoreEvent> self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_String(self.setupAndSerialize(codec: SseCodec(
+            decodeSuccessData: sse_decode_core_event,
+            decodeErrorData: sse_decode_AnyhowException,
+        )), serializer); }
 
 @protected void sse_encode_String(String self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
 sse_encode_list_prim_u_8_strict(utf8.encoder.convert(self), serializer); }
 
+@protected void sse_encode_album_detail(AlbumDetail self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_album_summary(self.album, serializer);
+sse_encode_list_song(self.songs, serializer);
+ }
+
+@protected void sse_encode_album_sort(AlbumSort self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.index, serializer); }
+
+@protected void sse_encode_album_summary(AlbumSummary self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_64(self.id, serializer);
+sse_encode_String(self.title, serializer);
+sse_encode_String(self.artist, serializer);
+sse_encode_opt_box_autoadd_i_32(self.year, serializer);
+sse_encode_u_32(self.songCount, serializer);
+sse_encode_i_64(self.durationMs, serializer);
+sse_encode_opt_box_autoadd_i_64(self.dateAddedUtcMs, serializer);
+sse_encode_bool(self.hasArtwork, serializer);
+ }
+
+@protected void sse_encode_api_error(ApiError self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_error_kind(self.kind, serializer);
+sse_encode_String(self.message, serializer);
+sse_encode_opt_String(self.sha256, serializer);
+sse_encode_opt_box_autoadd_u_16(self.status, serializer);
+sse_encode_opt_String(self.detail, serializer);
+ }
+
+@protected void sse_encode_artist_detail(ArtistDetail self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_artist_summary(self.artist, serializer);
+sse_encode_list_album_summary(self.albums, serializer);
+ }
+
+@protected void sse_encode_artist_summary(ArtistSummary self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_64(self.id, serializer);
+sse_encode_String(self.name, serializer);
+sse_encode_u_32(self.albumCount, serializer);
+ }
+
+@protected void sse_encode_artwork_of(ArtworkOf self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.index, serializer); }
+
+@protected void sse_encode_artwork_request(ArtworkRequest self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_String(self.url, serializer);
+sse_encode_list_http_header(self.headers, serializer);
+ }
+
+@protected void sse_encode_bool(bool self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+serializer.buffer.putUint8(self ? 1 : 0); }
+
+@protected void sse_encode_box_autoadd_album_summary(AlbumSummary self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_album_summary(self, serializer); }
+
+@protected void sse_encode_box_autoadd_artist_summary(ArtistSummary self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_artist_summary(self, serializer); }
+
+@protected void sse_encode_box_autoadd_core_config(CoreConfig self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_core_config(self, serializer); }
+
+@protected void sse_encode_box_autoadd_f_64(double self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_f_64(self, serializer); }
+
+@protected void sse_encode_box_autoadd_i_32(int self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self, serializer); }
+
+@protected void sse_encode_box_autoadd_i_64(PlatformInt64 self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_64(self, serializer); }
+
+@protected void sse_encode_box_autoadd_playlist_summary(PlaylistSummary self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_playlist_summary(self, serializer); }
+
+@protected void sse_encode_box_autoadd_queue_entry(QueueEntry self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_queue_entry(self, serializer); }
+
+@protected void sse_encode_box_autoadd_queue_state(QueueState self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_queue_state(self, serializer); }
+
+@protected void sse_encode_box_autoadd_song(Song self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_song(self, serializer); }
+
+@protected void sse_encode_box_autoadd_top_result(TopResult self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_top_result(self, serializer); }
+
+@protected void sse_encode_box_autoadd_u_16(int self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_u_16(self, serializer); }
+
+@protected void sse_encode_box_autoadd_u_32(int self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_u_32(self, serializer); }
+
+@protected void sse_encode_chosen_by(ChosenBy self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.index, serializer); }
+
+@protected void sse_encode_core_config(CoreConfig self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_String(self.dataDir, serializer);
+sse_encode_String(self.deviceId, serializer);
+sse_encode_String(self.deviceName, serializer);
+sse_encode_String(self.platform, serializer);
+ }
+
+@protected void sse_encode_core_event(CoreEvent self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_event_kind(self.kind, serializer);
+sse_encode_opt_box_autoadd_queue_state(self.queue, serializer);
+sse_encode_opt_box_autoadd_queue_entry(self.nowPlaying, serializer);
+sse_encode_opt_box_autoadd_queue_entry(self.preload, serializer);
+sse_encode_opt_box_autoadd_i_64(self.syncSourceId, serializer);
+sse_encode_i_64(self.syncDone, serializer);
+sse_encode_i_64(self.syncTotal, serializer);
+ }
+
+@protected void sse_encode_credential_key(CredentialKey self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_64(self.sourceId, serializer);
+sse_encode_String(self.key, serializer);
+ }
+
+@protected void sse_encode_end_reason(EndReason self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.index, serializer); }
+
+@protected void sse_encode_error_kind(ErrorKind self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.index, serializer); }
+
+@protected void sse_encode_event_kind(EventKind self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.index, serializer); }
+
+@protected void sse_encode_f_64(double self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+serializer.buffer.putFloat64(self); }
+
+@protected void sse_encode_genre_summary(GenreSummary self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_String(self.name, serializer);
+sse_encode_u_32(self.songCount, serializer);
+ }
+
+@protected void sse_encode_http_header(HttpHeader self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_String(self.name, serializer);
+sse_encode_String(self.value, serializer);
+ }
+
+@protected void sse_encode_i_32(int self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+serializer.buffer.putInt32(self); }
+
+@protected void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+serializer.buffer.putPlatformInt64(self); }
+
+@protected void sse_encode_list_String(List<String> self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.length, serializer);
+        for (final item in self) { sse_encode_String(item, serializer); } }
+
+@protected void sse_encode_list_album_summary(List<AlbumSummary> self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.length, serializer);
+        for (final item in self) { sse_encode_album_summary(item, serializer); } }
+
+@protected void sse_encode_list_artist_summary(List<ArtistSummary> self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.length, serializer);
+        for (final item in self) { sse_encode_artist_summary(item, serializer); } }
+
+@protected void sse_encode_list_credential_key(List<CredentialKey> self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.length, serializer);
+        for (final item in self) { sse_encode_credential_key(item, serializer); } }
+
+@protected void sse_encode_list_genre_summary(List<GenreSummary> self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.length, serializer);
+        for (final item in self) { sse_encode_genre_summary(item, serializer); } }
+
+@protected void sse_encode_list_http_header(List<HttpHeader> self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.length, serializer);
+        for (final item in self) { sse_encode_http_header(item, serializer); } }
+
+@protected void sse_encode_list_playlist_entry(List<PlaylistEntry> self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.length, serializer);
+        for (final item in self) { sse_encode_playlist_entry(item, serializer); } }
+
+@protected void sse_encode_list_playlist_summary(List<PlaylistSummary> self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.length, serializer);
+        for (final item in self) { sse_encode_playlist_summary(item, serializer); } }
+
+@protected void sse_encode_list_prim_i_64_strict(Int64List self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.length, serializer);
+                    serializer.buffer.putInt64List(self); }
+
 @protected void sse_encode_list_prim_u_8_strict(Uint8List self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
 sse_encode_i_32(self.length, serializer);
                     serializer.buffer.putUint8List(self); }
+
+@protected void sse_encode_list_profile_summary(List<ProfileSummary> self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.length, serializer);
+        for (final item in self) { sse_encode_profile_summary(item, serializer); } }
+
+@protected void sse_encode_list_queue_entry(List<QueueEntry> self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.length, serializer);
+        for (final item in self) { sse_encode_queue_entry(item, serializer); } }
+
+@protected void sse_encode_list_server_row(List<ServerRow> self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.length, serializer);
+        for (final item in self) { sse_encode_server_row(item, serializer); } }
+
+@protected void sse_encode_list_song(List<Song> self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.length, serializer);
+        for (final item in self) { sse_encode_song(item, serializer); } }
+
+@protected void sse_encode_list_source_token(List<SourceToken> self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.length, serializer);
+        for (final item in self) { sse_encode_source_token(item, serializer); } }
+
+@protected void sse_encode_list_sync_result(List<SyncResult> self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.length, serializer);
+        for (final item in self) { sse_encode_sync_result(item, serializer); } }
+
+@protected void sse_encode_listening_mode(ListeningMode self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.index, serializer); }
+
+@protected void sse_encode_network(Network self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.index, serializer); }
+
+@protected void sse_encode_opt_String(String? self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+                sse_encode_bool(self != null, serializer);
+                if (self != null) {
+                    sse_encode_String(self, serializer);
+                }
+                 }
+
+@protected void sse_encode_opt_box_autoadd_album_summary(AlbumSummary? self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+                sse_encode_bool(self != null, serializer);
+                if (self != null) {
+                    sse_encode_box_autoadd_album_summary(self, serializer);
+                }
+                 }
+
+@protected void sse_encode_opt_box_autoadd_artist_summary(ArtistSummary? self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+                sse_encode_bool(self != null, serializer);
+                if (self != null) {
+                    sse_encode_box_autoadd_artist_summary(self, serializer);
+                }
+                 }
+
+@protected void sse_encode_opt_box_autoadd_f_64(double? self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+                sse_encode_bool(self != null, serializer);
+                if (self != null) {
+                    sse_encode_box_autoadd_f_64(self, serializer);
+                }
+                 }
+
+@protected void sse_encode_opt_box_autoadd_i_32(int? self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+                sse_encode_bool(self != null, serializer);
+                if (self != null) {
+                    sse_encode_box_autoadd_i_32(self, serializer);
+                }
+                 }
+
+@protected void sse_encode_opt_box_autoadd_i_64(PlatformInt64? self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+                sse_encode_bool(self != null, serializer);
+                if (self != null) {
+                    sse_encode_box_autoadd_i_64(self, serializer);
+                }
+                 }
+
+@protected void sse_encode_opt_box_autoadd_playlist_summary(PlaylistSummary? self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+                sse_encode_bool(self != null, serializer);
+                if (self != null) {
+                    sse_encode_box_autoadd_playlist_summary(self, serializer);
+                }
+                 }
+
+@protected void sse_encode_opt_box_autoadd_queue_entry(QueueEntry? self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+                sse_encode_bool(self != null, serializer);
+                if (self != null) {
+                    sse_encode_box_autoadd_queue_entry(self, serializer);
+                }
+                 }
+
+@protected void sse_encode_opt_box_autoadd_queue_state(QueueState? self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+                sse_encode_bool(self != null, serializer);
+                if (self != null) {
+                    sse_encode_box_autoadd_queue_state(self, serializer);
+                }
+                 }
+
+@protected void sse_encode_opt_box_autoadd_song(Song? self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+                sse_encode_bool(self != null, serializer);
+                if (self != null) {
+                    sse_encode_box_autoadd_song(self, serializer);
+                }
+                 }
+
+@protected void sse_encode_opt_box_autoadd_top_result(TopResult? self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+                sse_encode_bool(self != null, serializer);
+                if (self != null) {
+                    sse_encode_box_autoadd_top_result(self, serializer);
+                }
+                 }
+
+@protected void sse_encode_opt_box_autoadd_u_16(int? self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+                sse_encode_bool(self != null, serializer);
+                if (self != null) {
+                    sse_encode_box_autoadd_u_16(self, serializer);
+                }
+                 }
+
+@protected void sse_encode_opt_box_autoadd_u_32(int? self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+                sse_encode_bool(self != null, serializer);
+                if (self != null) {
+                    sse_encode_box_autoadd_u_32(self, serializer);
+                }
+                 }
+
+@protected void sse_encode_playlist_detail(PlaylistDetail self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_playlist_summary(self.playlist, serializer);
+sse_encode_list_playlist_entry(self.entries, serializer);
+ }
+
+@protected void sse_encode_playlist_entry(PlaylistEntry self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_u_32(self.position, serializer);
+sse_encode_opt_box_autoadd_song(self.song, serializer);
+ }
+
+@protected void sse_encode_playlist_summary(PlaylistSummary self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_64(self.id, serializer);
+sse_encode_String(self.name, serializer);
+sse_encode_u_32(self.songCount, serializer);
+sse_encode_i_64(self.durationMs, serializer);
+ }
+
+@protected void sse_encode_previous_result(PreviousResult self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.index, serializer); }
+
+@protected void sse_encode_profile_summary(ProfileSummary self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_String(self.profileId, serializer);
+sse_encode_String(self.displayName, serializer);
+sse_encode_list_credential_key(self.credentials, serializer);
+ }
+
+@protected void sse_encode_queue_entry(QueueEntry self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_64(self.uid, serializer);
+sse_encode_song(self.song, serializer);
+sse_encode_chosen_by(self.chosenBy, serializer);
+ }
+
+@protected void sse_encode_queue_state(QueueState self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_list_queue_entry(self.history, serializer);
+sse_encode_opt_box_autoadd_queue_entry(self.current, serializer);
+sse_encode_list_queue_entry(self.upNext, serializer);
+sse_encode_list_queue_entry(self.autoplay, serializer);
+sse_encode_bool(self.shuffle, serializer);
+sse_encode_repeat_mode(self.repeat, serializer);
+sse_encode_bool(self.autoplayEnabled, serializer);
+sse_encode_bool(self.canUndo, serializer);
+ }
+
+@protected void sse_encode_quick_connect_start(QuickConnectStart self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_String(self.code, serializer);
+sse_encode_u_32(self.expiresInSeconds, serializer);
+ }
+
+@protected void sse_encode_repeat_mode(RepeatMode self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.index, serializer); }
+
+@protected void sse_encode_result_kind(ResultKind self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.index, serializer); }
+
+@protected void sse_encode_search_results(SearchResults self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_opt_box_autoadd_top_result(self.top, serializer);
+sse_encode_list_song(self.songs, serializer);
+sse_encode_list_album_summary(self.albums, serializer);
+sse_encode_list_artist_summary(self.artists, serializer);
+sse_encode_list_playlist_summary(self.playlists, serializer);
+ }
+
+@protected void sse_encode_server_check(ServerCheck self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_String(self.baseUrl, serializer);
+sse_encode_String(self.name, serializer);
+sse_encode_String(self.version, serializer);
+sse_encode_String(self.serverId, serializer);
+sse_encode_bool(self.plainHttpOnLocalNetwork, serializer);
+ }
+
+@protected void sse_encode_server_row(ServerRow self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_64(self.sourceId, serializer);
+sse_encode_String(self.kind, serializer);
+sse_encode_String(self.name, serializer);
+sse_encode_String(self.baseUrl, serializer);
+sse_encode_opt_String(self.version, serializer);
+sse_encode_String(self.userName, serializer);
+sse_encode_u_32(self.songCount, serializer);
+sse_encode_opt_box_autoadd_i_64(self.lastSyncUtcMs, serializer);
+sse_encode_bool(self.signedIn, serializer);
+ }
+
+@protected void sse_encode_signed_in(SignedIn self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_String(self.profileId, serializer);
+sse_encode_i_64(self.sourceId, serializer);
+sse_encode_String(self.credentialKey, serializer);
+sse_encode_String(self.token, serializer);
+sse_encode_String(self.userName, serializer);
+ }
+
+@protected void sse_encode_song(Song self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_64(self.id, serializer);
+sse_encode_i_64(self.sourceId, serializer);
+sse_encode_String(self.title, serializer);
+sse_encode_String(self.artist, serializer);
+sse_encode_String(self.albumArtist, serializer);
+sse_encode_opt_box_autoadd_i_64(self.albumId, serializer);
+sse_encode_opt_String(self.albumTitle, serializer);
+sse_encode_opt_box_autoadd_u_32(self.discNumber, serializer);
+sse_encode_opt_box_autoadd_u_32(self.trackNumber, serializer);
+sse_encode_i_64(self.durationMs, serializer);
+sse_encode_opt_box_autoadd_i_32(self.year, serializer);
+sse_encode_opt_String(self.container, serializer);
+sse_encode_bool(self.hasLyrics, serializer);
+sse_encode_opt_box_autoadd_f_64(self.trackGainDb, serializer);
+sse_encode_opt_box_autoadd_f_64(self.albumGainDb, serializer);
+ }
+
+@protected void sse_encode_song_sort(SongSort self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.index, serializer); }
+
+@protected void sse_encode_source_token(SourceToken self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_64(self.sourceId, serializer);
+sse_encode_String(self.token, serializer);
+ }
+
+@protected void sse_encode_started_from(StartedFrom self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.index, serializer); }
+
+@protected void sse_encode_stream_info(StreamInfo self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_64(self.songId, serializer);
+sse_encode_String(self.url, serializer);
+sse_encode_String(self.urlWithApiKey, serializer);
+sse_encode_list_http_header(self.headers, serializer);
+sse_encode_bool(self.mayTranscode, serializer);
+ }
+
+@protected void sse_encode_stream_quality(StreamQuality self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.index, serializer); }
+
+@protected void sse_encode_sync_result(SyncResult self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_64(self.sourceId, serializer);
+sse_encode_u_32(self.artists, serializer);
+sse_encode_u_32(self.albums, serializer);
+sse_encode_u_32(self.songs, serializer);
+sse_encode_u_32(self.playlists, serializer);
+sse_encode_u_32(self.removed, serializer);
+ }
+
+@protected void sse_encode_top_result(TopResult self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_result_kind(self.kind, serializer);
+sse_encode_opt_box_autoadd_song(self.song, serializer);
+sse_encode_opt_box_autoadd_album_summary(self.album, serializer);
+sse_encode_opt_box_autoadd_artist_summary(self.artist, serializer);
+sse_encode_opt_box_autoadd_playlist_summary(self.playlist, serializer);
+ }
+
+@protected void sse_encode_transcode_codec(TranscodeCodec self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.index, serializer); }
+
+@protected void sse_encode_u_16(int self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+serializer.buffer.putUint16(self); }
+
+@protected void sse_encode_u_32(int self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+serializer.buffer.putUint32(self); }
 
 @protected void sse_encode_u_8(int self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
 serializer.buffer.putUint8(self); }
@@ -220,10 +3325,193 @@ serializer.buffer.putUint8(self); }
 @protected void sse_encode_unit(void self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
  }
 
-@protected void sse_encode_i_32(int self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
-serializer.buffer.putInt32(self); }
-
-@protected void sse_encode_bool(bool self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
-serializer.buffer.putUint8(self ? 1 : 0); }
+@protected void sse_encode_usize(BigInt self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+serializer.buffer.putBigUint64(self); }
                 }
                 
+
+            @sealed class EncoreImpl extends RustOpaque implements Encore {
+                // Not to be used by end users
+                EncoreImpl.frbInternalDcoDecode(List<dynamic> wire):
+                    super.frbInternalDcoDecode(wire, _kStaticData);
+
+                // Not to be used by end users
+                EncoreImpl.frbInternalSseDecode(BigInt ptr, int externalSizeOnNative):
+                    super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+                static final _kStaticData = RustArcStaticData(
+                    rustArcIncrementStrongCount: RustLib.instance.api.rust_arc_increment_strong_count_Encore,
+                    rustArcDecrementStrongCount: RustLib.instance.api.rust_arc_decrement_strong_count_Encore,
+                    rustArcDecrementStrongCountPtr: RustLib.instance.api.rust_arc_decrement_strong_count_EncorePtr,
+                );
+
+                 void  addRecentSearch({required String query })=>RustLib.instance.api.crateApiCoreEncoreAddRecentSearch(that: this, query: query);
+
+
+ QueueState  addToUpNext({required Int64List songIds })=>RustLib.instance.api.crateApiCoreEncoreAddToUpNext(that: this, songIds: songIds);
+
+
+ AlbumDetail  album({required PlatformInt64 albumId })=>RustLib.instance.api.crateApiCoreEncoreAlbum(that: this, albumId: albumId);
+
+
+ List<AlbumSummary>  albums({required AlbumSort sort , required int offset , required int limit })=>RustLib.instance.api.crateApiCoreEncoreAlbums(that: this, sort: sort, offset: offset, limit: limit);
+
+
+ ArtistDetail  artist({required PlatformInt64 artistId })=>RustLib.instance.api.crateApiCoreEncoreArtist(that: this, artistId: artistId);
+
+
+ List<Song>  artistSongs({required PlatformInt64 artistId , required int offset , required int limit })=>RustLib.instance.api.crateApiCoreEncoreArtistSongs(that: this, artistId: artistId, offset: offset, limit: limit);
+
+
+ List<ArtistSummary>  artists({required int offset , required int limit })=>RustLib.instance.api.crateApiCoreEncoreArtists(that: this, offset: offset, limit: limit);
+
+
+ ArtworkRequest  artwork({required ArtworkOf of , required PlatformInt64 id , required int sizePx })=>RustLib.instance.api.crateApiCoreEncoreArtwork(that: this, of: of, id: id, sizePx: sizePx);
+
+
+ Future<ServerCheck>  checkAddress({required String address })=>RustLib.instance.api.crateApiCoreEncoreCheckAddress(that: this, address: address);
+
+
+ void  clearRecentSearches()=>RustLib.instance.api.crateApiCoreEncoreClearRecentSearches(that: this, );
+
+
+ QueueState  clearUpNext()=>RustLib.instance.api.crateApiCoreEncoreClearUpNext(that: this, );
+
+
+ void  closeProfile()=>RustLib.instance.api.crateApiCoreEncoreCloseProfile(that: this, );
+
+
+ String?  currentProfile()=>RustLib.instance.api.crateApiCoreEncoreCurrentProfile(that: this, );
+
+
+/// Events: queue changed, now playing, preload, sync progress.
+ Stream<CoreEvent>  events()=>RustLib.instance.api.crateApiCoreEncoreEvents(that: this, );
+
+
+ List<Song>  genreSongs({required String genre , required int offset , required int limit })=>RustLib.instance.api.crateApiCoreEncoreGenreSongs(that: this, genre: genre, offset: offset, limit: limit);
+
+
+ List<GenreSummary>  genres()=>RustLib.instance.api.crateApiCoreEncoreGenres(that: this, );
+
+
+ QueueState  jumpTo({required PlatformInt64 uid })=>RustLib.instance.api.crateApiCoreEncoreJumpTo(that: this, uid: uid);
+
+
+ void  lyricLineTapped({required int lineIndex , required PlatformInt64 lineStartMs })=>RustLib.instance.api.crateApiCoreEncoreLyricLineTapped(that: this, lineIndex: lineIndex, lineStartMs: lineStartMs);
+
+
+ Future<String?>  lyricsRaw({required PlatformInt64 songId })=>RustLib.instance.api.crateApiCoreEncoreLyricsRaw(that: this, songId: songId);
+
+
+ QueueState  moveInQueue({required PlatformInt64 uid , required int toIndex })=>RustLib.instance.api.crateApiCoreEncoreMoveInQueue(that: this, uid: uid, toIndex: toIndex);
+
+
+ QueueState  next()=>RustLib.instance.api.crateApiCoreEncoreNext(that: this, );
+
+
+ void  openProfile({required String profileId , required List<SourceToken> tokens })=>RustLib.instance.api.crateApiCoreEncoreOpenProfile(that: this, profileId: profileId, tokens: tokens);
+
+
+ QueueState  play({required Int64List songIds , required int startIndex , required StartedFrom startedFrom , String? contextId })=>RustLib.instance.api.crateApiCoreEncorePlay(that: this, songIds: songIds, startIndex: startIndex, startedFrom: startedFrom, contextId: contextId);
+
+
+ QueueState  playNext({required Int64List songIds })=>RustLib.instance.api.crateApiCoreEncorePlayNext(that: this, songIds: songIds);
+
+
+ QueueEntry?  playbackEnded({required EndReason reason , required PlatformInt64 listenedMs })=>RustLib.instance.api.crateApiCoreEncorePlaybackEnded(that: this, reason: reason, listenedMs: listenedMs);
+
+
+ void  playbackProgress({required PlatformInt64 positionMs , required PlatformInt64 listenedMs })=>RustLib.instance.api.crateApiCoreEncorePlaybackProgress(that: this, positionMs: positionMs, listenedMs: listenedMs);
+
+
+ void  playbackStarted({required PlatformInt64 uid , required int utcOffsetMinutes })=>RustLib.instance.api.crateApiCoreEncorePlaybackStarted(that: this, uid: uid, utcOffsetMinutes: utcOffsetMinutes);
+
+
+ PlaylistDetail  playlist({required PlatformInt64 playlistId })=>RustLib.instance.api.crateApiCoreEncorePlaylist(that: this, playlistId: playlistId);
+
+
+ List<PlaylistSummary>  playlists({required int offset , required int limit })=>RustLib.instance.api.crateApiCoreEncorePlaylists(that: this, offset: offset, limit: limit);
+
+
+ PreviousResult  previous({required PlatformInt64 positionMs , required bool fromSwipe })=>RustLib.instance.api.crateApiCoreEncorePrevious(that: this, positionMs: positionMs, fromSwipe: fromSwipe);
+
+
+ List<ProfileSummary>  profiles()=>RustLib.instance.api.crateApiCoreEncoreProfiles(that: this, );
+
+
+ QueueState  queue()=>RustLib.instance.api.crateApiCoreEncoreQueue(that: this, );
+
+
+ void  quickConnectCancel()=>RustLib.instance.api.crateApiCoreEncoreQuickConnectCancel(that: this, );
+
+
+ Future<QuickConnectStart>  quickConnectStart({required String baseUrl })=>RustLib.instance.api.crateApiCoreEncoreQuickConnectStart(that: this, baseUrl: baseUrl);
+
+
+ Future<SignedIn>  quickConnectWait()=>RustLib.instance.api.crateApiCoreEncoreQuickConnectWait(that: this, );
+
+
+ List<String>  recentSearches()=>RustLib.instance.api.crateApiCoreEncoreRecentSearches(that: this, );
+
+
+ QueueState  removeFromQueue({required PlatformInt64 uid })=>RustLib.instance.api.crateApiCoreEncoreRemoveFromQueue(that: this, uid: uid);
+
+
+ void  removeRecentSearch({required String query })=>RustLib.instance.api.crateApiCoreEncoreRemoveRecentSearch(that: this, query: query);
+
+
+ void  removeServer({required PlatformInt64 sourceId })=>RustLib.instance.api.crateApiCoreEncoreRemoveServer(that: this, sourceId: sourceId);
+
+
+ QueueState  replayFromHistory({required PlatformInt64 uid })=>RustLib.instance.api.crateApiCoreEncoreReplayFromHistory(that: this, uid: uid);
+
+
+ SearchResults  search({required String query })=>RustLib.instance.api.crateApiCoreEncoreSearch(that: this, query: query);
+
+
+ List<ServerRow>  servers()=>RustLib.instance.api.crateApiCoreEncoreServers(that: this, );
+
+
+ void  setListeningMode({required ListeningMode mode })=>RustLib.instance.api.crateApiCoreEncoreSetListeningMode(that: this, mode: mode);
+
+
+ void  setPlaybackCapabilities({required List<String> directPlayContainers , required TranscodeCodec transcodeCodec })=>RustLib.instance.api.crateApiCoreEncoreSetPlaybackCapabilities(that: this, directPlayContainers: directPlayContainers, transcodeCodec: transcodeCodec);
+
+
+ QueueState  setRepeat({required RepeatMode mode })=>RustLib.instance.api.crateApiCoreEncoreSetRepeat(that: this, mode: mode);
+
+
+ QueueState  setShuffle({required bool on_ })=>RustLib.instance.api.crateApiCoreEncoreSetShuffle(that: this, on_: on_);
+
+
+ void  setStreamQuality({required Network network , required StreamQuality quality })=>RustLib.instance.api.crateApiCoreEncoreSetStreamQuality(that: this, network: network, quality: quality);
+
+
+ Future<SignedIn>  signIn({required String baseUrl , required String username , required String password })=>RustLib.instance.api.crateApiCoreEncoreSignIn(that: this, baseUrl: baseUrl, username: username, password: password);
+
+
+ Future<void>  signOut({required PlatformInt64 sourceId })=>RustLib.instance.api.crateApiCoreEncoreSignOut(that: this, sourceId: sourceId);
+
+
+ Song  song({required PlatformInt64 songId })=>RustLib.instance.api.crateApiCoreEncoreSong(that: this, songId: songId);
+
+
+ List<Song>  songs({required SongSort sort , required int offset , required int limit })=>RustLib.instance.api.crateApiCoreEncoreSongs(that: this, sort: sort, offset: offset, limit: limit);
+
+
+ StreamInfo  streamFor({required PlatformInt64 songId , required Network network })=>RustLib.instance.api.crateApiCoreEncoreStreamFor(that: this, songId: songId, network: network);
+
+
+ StreamQuality  streamQuality({required Network network })=>RustLib.instance.api.crateApiCoreEncoreStreamQuality(that: this, network: network);
+
+
+ Future<List<SyncResult>>  syncLibrary()=>RustLib.instance.api.crateApiCoreEncoreSyncLibrary(that: this, );
+
+
+ void  trustCertificate({required String address , required String sha256 })=>RustLib.instance.api.crateApiCoreEncoreTrustCertificate(that: this, address: address, sha256: sha256);
+
+
+ QueueState  undoQueue()=>RustLib.instance.api.crateApiCoreEncoreUndoQueue(that: this, );
+
+
+            }

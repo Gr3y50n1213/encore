@@ -3,6 +3,7 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
+import 'api/core.dart';
 import 'api/hello.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -21,39 +22,603 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
                     required super.portManager,
                   });
 
-                  
+                  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_EncorePtr => wire._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncorePtr;
 
-                  @protected String dco_decode_String(dynamic raw);
+
+
+                  @protected AnyhowException dco_decode_AnyhowException(dynamic raw);
+
+@protected Encore dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(dynamic raw);
+
+@protected Encore dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(dynamic raw);
+
+@protected Encore dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(dynamic raw);
+
+@protected RustStreamSink<CoreEvent> dco_decode_StreamSink_core_event_Sse(dynamic raw);
+
+@protected String dco_decode_String(dynamic raw);
+
+@protected AlbumDetail dco_decode_album_detail(dynamic raw);
+
+@protected AlbumSort dco_decode_album_sort(dynamic raw);
+
+@protected AlbumSummary dco_decode_album_summary(dynamic raw);
+
+@protected ApiError dco_decode_api_error(dynamic raw);
+
+@protected ArtistDetail dco_decode_artist_detail(dynamic raw);
+
+@protected ArtistSummary dco_decode_artist_summary(dynamic raw);
+
+@protected ArtworkOf dco_decode_artwork_of(dynamic raw);
+
+@protected ArtworkRequest dco_decode_artwork_request(dynamic raw);
+
+@protected bool dco_decode_bool(dynamic raw);
+
+@protected AlbumSummary dco_decode_box_autoadd_album_summary(dynamic raw);
+
+@protected ArtistSummary dco_decode_box_autoadd_artist_summary(dynamic raw);
+
+@protected CoreConfig dco_decode_box_autoadd_core_config(dynamic raw);
+
+@protected double dco_decode_box_autoadd_f_64(dynamic raw);
+
+@protected int dco_decode_box_autoadd_i_32(dynamic raw);
+
+@protected PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
+
+@protected PlaylistSummary dco_decode_box_autoadd_playlist_summary(dynamic raw);
+
+@protected QueueEntry dco_decode_box_autoadd_queue_entry(dynamic raw);
+
+@protected QueueState dco_decode_box_autoadd_queue_state(dynamic raw);
+
+@protected Song dco_decode_box_autoadd_song(dynamic raw);
+
+@protected TopResult dco_decode_box_autoadd_top_result(dynamic raw);
+
+@protected int dco_decode_box_autoadd_u_16(dynamic raw);
+
+@protected int dco_decode_box_autoadd_u_32(dynamic raw);
+
+@protected ChosenBy dco_decode_chosen_by(dynamic raw);
+
+@protected CoreConfig dco_decode_core_config(dynamic raw);
+
+@protected CoreEvent dco_decode_core_event(dynamic raw);
+
+@protected CredentialKey dco_decode_credential_key(dynamic raw);
+
+@protected EndReason dco_decode_end_reason(dynamic raw);
+
+@protected ErrorKind dco_decode_error_kind(dynamic raw);
+
+@protected EventKind dco_decode_event_kind(dynamic raw);
+
+@protected double dco_decode_f_64(dynamic raw);
+
+@protected GenreSummary dco_decode_genre_summary(dynamic raw);
+
+@protected HttpHeader dco_decode_http_header(dynamic raw);
+
+@protected int dco_decode_i_32(dynamic raw);
+
+@protected PlatformInt64 dco_decode_i_64(dynamic raw);
+
+@protected List<String> dco_decode_list_String(dynamic raw);
+
+@protected List<AlbumSummary> dco_decode_list_album_summary(dynamic raw);
+
+@protected List<ArtistSummary> dco_decode_list_artist_summary(dynamic raw);
+
+@protected List<CredentialKey> dco_decode_list_credential_key(dynamic raw);
+
+@protected List<GenreSummary> dco_decode_list_genre_summary(dynamic raw);
+
+@protected List<HttpHeader> dco_decode_list_http_header(dynamic raw);
+
+@protected List<PlaylistEntry> dco_decode_list_playlist_entry(dynamic raw);
+
+@protected List<PlaylistSummary> dco_decode_list_playlist_summary(dynamic raw);
+
+@protected Int64List dco_decode_list_prim_i_64_strict(dynamic raw);
 
 @protected Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
+
+@protected List<ProfileSummary> dco_decode_list_profile_summary(dynamic raw);
+
+@protected List<QueueEntry> dco_decode_list_queue_entry(dynamic raw);
+
+@protected List<ServerRow> dco_decode_list_server_row(dynamic raw);
+
+@protected List<Song> dco_decode_list_song(dynamic raw);
+
+@protected List<SourceToken> dco_decode_list_source_token(dynamic raw);
+
+@protected List<SyncResult> dco_decode_list_sync_result(dynamic raw);
+
+@protected ListeningMode dco_decode_listening_mode(dynamic raw);
+
+@protected Network dco_decode_network(dynamic raw);
+
+@protected String? dco_decode_opt_String(dynamic raw);
+
+@protected AlbumSummary? dco_decode_opt_box_autoadd_album_summary(dynamic raw);
+
+@protected ArtistSummary? dco_decode_opt_box_autoadd_artist_summary(dynamic raw);
+
+@protected double? dco_decode_opt_box_autoadd_f_64(dynamic raw);
+
+@protected int? dco_decode_opt_box_autoadd_i_32(dynamic raw);
+
+@protected PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
+
+@protected PlaylistSummary? dco_decode_opt_box_autoadd_playlist_summary(dynamic raw);
+
+@protected QueueEntry? dco_decode_opt_box_autoadd_queue_entry(dynamic raw);
+
+@protected QueueState? dco_decode_opt_box_autoadd_queue_state(dynamic raw);
+
+@protected Song? dco_decode_opt_box_autoadd_song(dynamic raw);
+
+@protected TopResult? dco_decode_opt_box_autoadd_top_result(dynamic raw);
+
+@protected int? dco_decode_opt_box_autoadd_u_16(dynamic raw);
+
+@protected int? dco_decode_opt_box_autoadd_u_32(dynamic raw);
+
+@protected PlaylistDetail dco_decode_playlist_detail(dynamic raw);
+
+@protected PlaylistEntry dco_decode_playlist_entry(dynamic raw);
+
+@protected PlaylistSummary dco_decode_playlist_summary(dynamic raw);
+
+@protected PreviousResult dco_decode_previous_result(dynamic raw);
+
+@protected ProfileSummary dco_decode_profile_summary(dynamic raw);
+
+@protected QueueEntry dco_decode_queue_entry(dynamic raw);
+
+@protected QueueState dco_decode_queue_state(dynamic raw);
+
+@protected QuickConnectStart dco_decode_quick_connect_start(dynamic raw);
+
+@protected RepeatMode dco_decode_repeat_mode(dynamic raw);
+
+@protected ResultKind dco_decode_result_kind(dynamic raw);
+
+@protected SearchResults dco_decode_search_results(dynamic raw);
+
+@protected ServerCheck dco_decode_server_check(dynamic raw);
+
+@protected ServerRow dco_decode_server_row(dynamic raw);
+
+@protected SignedIn dco_decode_signed_in(dynamic raw);
+
+@protected Song dco_decode_song(dynamic raw);
+
+@protected SongSort dco_decode_song_sort(dynamic raw);
+
+@protected SourceToken dco_decode_source_token(dynamic raw);
+
+@protected StartedFrom dco_decode_started_from(dynamic raw);
+
+@protected StreamInfo dco_decode_stream_info(dynamic raw);
+
+@protected StreamQuality dco_decode_stream_quality(dynamic raw);
+
+@protected SyncResult dco_decode_sync_result(dynamic raw);
+
+@protected TopResult dco_decode_top_result(dynamic raw);
+
+@protected TranscodeCodec dco_decode_transcode_codec(dynamic raw);
+
+@protected int dco_decode_u_16(dynamic raw);
+
+@protected int dco_decode_u_32(dynamic raw);
 
 @protected int dco_decode_u_8(dynamic raw);
 
 @protected void dco_decode_unit(dynamic raw);
 
+@protected BigInt dco_decode_usize(dynamic raw);
+
+@protected AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
+
+@protected Encore sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(SseDeserializer deserializer);
+
+@protected Encore sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(SseDeserializer deserializer);
+
+@protected Encore sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(SseDeserializer deserializer);
+
+@protected RustStreamSink<CoreEvent> sse_decode_StreamSink_core_event_Sse(SseDeserializer deserializer);
+
 @protected String sse_decode_String(SseDeserializer deserializer);
 
+@protected AlbumDetail sse_decode_album_detail(SseDeserializer deserializer);
+
+@protected AlbumSort sse_decode_album_sort(SseDeserializer deserializer);
+
+@protected AlbumSummary sse_decode_album_summary(SseDeserializer deserializer);
+
+@protected ApiError sse_decode_api_error(SseDeserializer deserializer);
+
+@protected ArtistDetail sse_decode_artist_detail(SseDeserializer deserializer);
+
+@protected ArtistSummary sse_decode_artist_summary(SseDeserializer deserializer);
+
+@protected ArtworkOf sse_decode_artwork_of(SseDeserializer deserializer);
+
+@protected ArtworkRequest sse_decode_artwork_request(SseDeserializer deserializer);
+
+@protected bool sse_decode_bool(SseDeserializer deserializer);
+
+@protected AlbumSummary sse_decode_box_autoadd_album_summary(SseDeserializer deserializer);
+
+@protected ArtistSummary sse_decode_box_autoadd_artist_summary(SseDeserializer deserializer);
+
+@protected CoreConfig sse_decode_box_autoadd_core_config(SseDeserializer deserializer);
+
+@protected double sse_decode_box_autoadd_f_64(SseDeserializer deserializer);
+
+@protected int sse_decode_box_autoadd_i_32(SseDeserializer deserializer);
+
+@protected PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
+
+@protected PlaylistSummary sse_decode_box_autoadd_playlist_summary(SseDeserializer deserializer);
+
+@protected QueueEntry sse_decode_box_autoadd_queue_entry(SseDeserializer deserializer);
+
+@protected QueueState sse_decode_box_autoadd_queue_state(SseDeserializer deserializer);
+
+@protected Song sse_decode_box_autoadd_song(SseDeserializer deserializer);
+
+@protected TopResult sse_decode_box_autoadd_top_result(SseDeserializer deserializer);
+
+@protected int sse_decode_box_autoadd_u_16(SseDeserializer deserializer);
+
+@protected int sse_decode_box_autoadd_u_32(SseDeserializer deserializer);
+
+@protected ChosenBy sse_decode_chosen_by(SseDeserializer deserializer);
+
+@protected CoreConfig sse_decode_core_config(SseDeserializer deserializer);
+
+@protected CoreEvent sse_decode_core_event(SseDeserializer deserializer);
+
+@protected CredentialKey sse_decode_credential_key(SseDeserializer deserializer);
+
+@protected EndReason sse_decode_end_reason(SseDeserializer deserializer);
+
+@protected ErrorKind sse_decode_error_kind(SseDeserializer deserializer);
+
+@protected EventKind sse_decode_event_kind(SseDeserializer deserializer);
+
+@protected double sse_decode_f_64(SseDeserializer deserializer);
+
+@protected GenreSummary sse_decode_genre_summary(SseDeserializer deserializer);
+
+@protected HttpHeader sse_decode_http_header(SseDeserializer deserializer);
+
+@protected int sse_decode_i_32(SseDeserializer deserializer);
+
+@protected PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
+
+@protected List<String> sse_decode_list_String(SseDeserializer deserializer);
+
+@protected List<AlbumSummary> sse_decode_list_album_summary(SseDeserializer deserializer);
+
+@protected List<ArtistSummary> sse_decode_list_artist_summary(SseDeserializer deserializer);
+
+@protected List<CredentialKey> sse_decode_list_credential_key(SseDeserializer deserializer);
+
+@protected List<GenreSummary> sse_decode_list_genre_summary(SseDeserializer deserializer);
+
+@protected List<HttpHeader> sse_decode_list_http_header(SseDeserializer deserializer);
+
+@protected List<PlaylistEntry> sse_decode_list_playlist_entry(SseDeserializer deserializer);
+
+@protected List<PlaylistSummary> sse_decode_list_playlist_summary(SseDeserializer deserializer);
+
+@protected Int64List sse_decode_list_prim_i_64_strict(SseDeserializer deserializer);
+
 @protected Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
+
+@protected List<ProfileSummary> sse_decode_list_profile_summary(SseDeserializer deserializer);
+
+@protected List<QueueEntry> sse_decode_list_queue_entry(SseDeserializer deserializer);
+
+@protected List<ServerRow> sse_decode_list_server_row(SseDeserializer deserializer);
+
+@protected List<Song> sse_decode_list_song(SseDeserializer deserializer);
+
+@protected List<SourceToken> sse_decode_list_source_token(SseDeserializer deserializer);
+
+@protected List<SyncResult> sse_decode_list_sync_result(SseDeserializer deserializer);
+
+@protected ListeningMode sse_decode_listening_mode(SseDeserializer deserializer);
+
+@protected Network sse_decode_network(SseDeserializer deserializer);
+
+@protected String? sse_decode_opt_String(SseDeserializer deserializer);
+
+@protected AlbumSummary? sse_decode_opt_box_autoadd_album_summary(SseDeserializer deserializer);
+
+@protected ArtistSummary? sse_decode_opt_box_autoadd_artist_summary(SseDeserializer deserializer);
+
+@protected double? sse_decode_opt_box_autoadd_f_64(SseDeserializer deserializer);
+
+@protected int? sse_decode_opt_box_autoadd_i_32(SseDeserializer deserializer);
+
+@protected PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
+
+@protected PlaylistSummary? sse_decode_opt_box_autoadd_playlist_summary(SseDeserializer deserializer);
+
+@protected QueueEntry? sse_decode_opt_box_autoadd_queue_entry(SseDeserializer deserializer);
+
+@protected QueueState? sse_decode_opt_box_autoadd_queue_state(SseDeserializer deserializer);
+
+@protected Song? sse_decode_opt_box_autoadd_song(SseDeserializer deserializer);
+
+@protected TopResult? sse_decode_opt_box_autoadd_top_result(SseDeserializer deserializer);
+
+@protected int? sse_decode_opt_box_autoadd_u_16(SseDeserializer deserializer);
+
+@protected int? sse_decode_opt_box_autoadd_u_32(SseDeserializer deserializer);
+
+@protected PlaylistDetail sse_decode_playlist_detail(SseDeserializer deserializer);
+
+@protected PlaylistEntry sse_decode_playlist_entry(SseDeserializer deserializer);
+
+@protected PlaylistSummary sse_decode_playlist_summary(SseDeserializer deserializer);
+
+@protected PreviousResult sse_decode_previous_result(SseDeserializer deserializer);
+
+@protected ProfileSummary sse_decode_profile_summary(SseDeserializer deserializer);
+
+@protected QueueEntry sse_decode_queue_entry(SseDeserializer deserializer);
+
+@protected QueueState sse_decode_queue_state(SseDeserializer deserializer);
+
+@protected QuickConnectStart sse_decode_quick_connect_start(SseDeserializer deserializer);
+
+@protected RepeatMode sse_decode_repeat_mode(SseDeserializer deserializer);
+
+@protected ResultKind sse_decode_result_kind(SseDeserializer deserializer);
+
+@protected SearchResults sse_decode_search_results(SseDeserializer deserializer);
+
+@protected ServerCheck sse_decode_server_check(SseDeserializer deserializer);
+
+@protected ServerRow sse_decode_server_row(SseDeserializer deserializer);
+
+@protected SignedIn sse_decode_signed_in(SseDeserializer deserializer);
+
+@protected Song sse_decode_song(SseDeserializer deserializer);
+
+@protected SongSort sse_decode_song_sort(SseDeserializer deserializer);
+
+@protected SourceToken sse_decode_source_token(SseDeserializer deserializer);
+
+@protected StartedFrom sse_decode_started_from(SseDeserializer deserializer);
+
+@protected StreamInfo sse_decode_stream_info(SseDeserializer deserializer);
+
+@protected StreamQuality sse_decode_stream_quality(SseDeserializer deserializer);
+
+@protected SyncResult sse_decode_sync_result(SseDeserializer deserializer);
+
+@protected TopResult sse_decode_top_result(SseDeserializer deserializer);
+
+@protected TranscodeCodec sse_decode_transcode_codec(SseDeserializer deserializer);
+
+@protected int sse_decode_u_16(SseDeserializer deserializer);
+
+@protected int sse_decode_u_32(SseDeserializer deserializer);
 
 @protected int sse_decode_u_8(SseDeserializer deserializer);
 
 @protected void sse_decode_unit(SseDeserializer deserializer);
 
-@protected int sse_decode_i_32(SseDeserializer deserializer);
+@protected BigInt sse_decode_usize(SseDeserializer deserializer);
 
-@protected bool sse_decode_bool(SseDeserializer deserializer);
+@protected void sse_encode_AnyhowException(AnyhowException self, SseSerializer serializer);
+
+@protected void sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(Encore self, SseSerializer serializer);
+
+@protected void sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(Encore self, SseSerializer serializer);
+
+@protected void sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(Encore self, SseSerializer serializer);
+
+@protected void sse_encode_StreamSink_core_event_Sse(RustStreamSink<CoreEvent> self, SseSerializer serializer);
 
 @protected void sse_encode_String(String self, SseSerializer serializer);
 
+@protected void sse_encode_album_detail(AlbumDetail self, SseSerializer serializer);
+
+@protected void sse_encode_album_sort(AlbumSort self, SseSerializer serializer);
+
+@protected void sse_encode_album_summary(AlbumSummary self, SseSerializer serializer);
+
+@protected void sse_encode_api_error(ApiError self, SseSerializer serializer);
+
+@protected void sse_encode_artist_detail(ArtistDetail self, SseSerializer serializer);
+
+@protected void sse_encode_artist_summary(ArtistSummary self, SseSerializer serializer);
+
+@protected void sse_encode_artwork_of(ArtworkOf self, SseSerializer serializer);
+
+@protected void sse_encode_artwork_request(ArtworkRequest self, SseSerializer serializer);
+
+@protected void sse_encode_bool(bool self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_album_summary(AlbumSummary self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_artist_summary(ArtistSummary self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_core_config(CoreConfig self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_f_64(double self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_i_32(int self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_i_64(PlatformInt64 self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_playlist_summary(PlaylistSummary self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_queue_entry(QueueEntry self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_queue_state(QueueState self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_song(Song self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_top_result(TopResult self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_u_16(int self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_u_32(int self, SseSerializer serializer);
+
+@protected void sse_encode_chosen_by(ChosenBy self, SseSerializer serializer);
+
+@protected void sse_encode_core_config(CoreConfig self, SseSerializer serializer);
+
+@protected void sse_encode_core_event(CoreEvent self, SseSerializer serializer);
+
+@protected void sse_encode_credential_key(CredentialKey self, SseSerializer serializer);
+
+@protected void sse_encode_end_reason(EndReason self, SseSerializer serializer);
+
+@protected void sse_encode_error_kind(ErrorKind self, SseSerializer serializer);
+
+@protected void sse_encode_event_kind(EventKind self, SseSerializer serializer);
+
+@protected void sse_encode_f_64(double self, SseSerializer serializer);
+
+@protected void sse_encode_genre_summary(GenreSummary self, SseSerializer serializer);
+
+@protected void sse_encode_http_header(HttpHeader self, SseSerializer serializer);
+
+@protected void sse_encode_i_32(int self, SseSerializer serializer);
+
+@protected void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
+
+@protected void sse_encode_list_String(List<String> self, SseSerializer serializer);
+
+@protected void sse_encode_list_album_summary(List<AlbumSummary> self, SseSerializer serializer);
+
+@protected void sse_encode_list_artist_summary(List<ArtistSummary> self, SseSerializer serializer);
+
+@protected void sse_encode_list_credential_key(List<CredentialKey> self, SseSerializer serializer);
+
+@protected void sse_encode_list_genre_summary(List<GenreSummary> self, SseSerializer serializer);
+
+@protected void sse_encode_list_http_header(List<HttpHeader> self, SseSerializer serializer);
+
+@protected void sse_encode_list_playlist_entry(List<PlaylistEntry> self, SseSerializer serializer);
+
+@protected void sse_encode_list_playlist_summary(List<PlaylistSummary> self, SseSerializer serializer);
+
+@protected void sse_encode_list_prim_i_64_strict(Int64List self, SseSerializer serializer);
+
 @protected void sse_encode_list_prim_u_8_strict(Uint8List self, SseSerializer serializer);
+
+@protected void sse_encode_list_profile_summary(List<ProfileSummary> self, SseSerializer serializer);
+
+@protected void sse_encode_list_queue_entry(List<QueueEntry> self, SseSerializer serializer);
+
+@protected void sse_encode_list_server_row(List<ServerRow> self, SseSerializer serializer);
+
+@protected void sse_encode_list_song(List<Song> self, SseSerializer serializer);
+
+@protected void sse_encode_list_source_token(List<SourceToken> self, SseSerializer serializer);
+
+@protected void sse_encode_list_sync_result(List<SyncResult> self, SseSerializer serializer);
+
+@protected void sse_encode_listening_mode(ListeningMode self, SseSerializer serializer);
+
+@protected void sse_encode_network(Network self, SseSerializer serializer);
+
+@protected void sse_encode_opt_String(String? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_album_summary(AlbumSummary? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_artist_summary(ArtistSummary? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_f_64(double? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_i_32(int? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_i_64(PlatformInt64? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_playlist_summary(PlaylistSummary? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_queue_entry(QueueEntry? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_queue_state(QueueState? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_song(Song? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_top_result(TopResult? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_u_16(int? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_u_32(int? self, SseSerializer serializer);
+
+@protected void sse_encode_playlist_detail(PlaylistDetail self, SseSerializer serializer);
+
+@protected void sse_encode_playlist_entry(PlaylistEntry self, SseSerializer serializer);
+
+@protected void sse_encode_playlist_summary(PlaylistSummary self, SseSerializer serializer);
+
+@protected void sse_encode_previous_result(PreviousResult self, SseSerializer serializer);
+
+@protected void sse_encode_profile_summary(ProfileSummary self, SseSerializer serializer);
+
+@protected void sse_encode_queue_entry(QueueEntry self, SseSerializer serializer);
+
+@protected void sse_encode_queue_state(QueueState self, SseSerializer serializer);
+
+@protected void sse_encode_quick_connect_start(QuickConnectStart self, SseSerializer serializer);
+
+@protected void sse_encode_repeat_mode(RepeatMode self, SseSerializer serializer);
+
+@protected void sse_encode_result_kind(ResultKind self, SseSerializer serializer);
+
+@protected void sse_encode_search_results(SearchResults self, SseSerializer serializer);
+
+@protected void sse_encode_server_check(ServerCheck self, SseSerializer serializer);
+
+@protected void sse_encode_server_row(ServerRow self, SseSerializer serializer);
+
+@protected void sse_encode_signed_in(SignedIn self, SseSerializer serializer);
+
+@protected void sse_encode_song(Song self, SseSerializer serializer);
+
+@protected void sse_encode_song_sort(SongSort self, SseSerializer serializer);
+
+@protected void sse_encode_source_token(SourceToken self, SseSerializer serializer);
+
+@protected void sse_encode_started_from(StartedFrom self, SseSerializer serializer);
+
+@protected void sse_encode_stream_info(StreamInfo self, SseSerializer serializer);
+
+@protected void sse_encode_stream_quality(StreamQuality self, SseSerializer serializer);
+
+@protected void sse_encode_sync_result(SyncResult self, SseSerializer serializer);
+
+@protected void sse_encode_top_result(TopResult self, SseSerializer serializer);
+
+@protected void sse_encode_transcode_codec(TranscodeCodec self, SseSerializer serializer);
+
+@protected void sse_encode_u_16(int self, SseSerializer serializer);
+
+@protected void sse_encode_u_32(int self, SseSerializer serializer);
 
 @protected void sse_encode_u_8(int self, SseSerializer serializer);
 
 @protected void sse_encode_unit(void self, SseSerializer serializer);
 
-@protected void sse_encode_i_32(int self, SseSerializer serializer);
-
-@protected void sse_encode_bool(bool self, SseSerializer serializer);
+@protected void sse_encode_usize(BigInt self, SseSerializer serializer);
                 }
                 
 
@@ -74,6 +639,28 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
             RustLibWire(ffi.DynamicLibrary dynamicLibrary)
                 : _lookup = dynamicLibrary.lookup;
 
+            
+            void rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(
+              ffi.Pointer<ffi.Void> ptr,
+            ) {
+              return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(
+                ptr,
+              );
+            }
+
+            late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncorePtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>('frbgen_encore_core_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore');
+            late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore = _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncorePtr.asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+            
+            void rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(
+              ffi.Pointer<ffi.Void> ptr,
+            ) {
+              return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(
+                ptr,
+              );
+            }
+
+            late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncorePtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>('frbgen_encore_core_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore');
+            late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore = _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncorePtr.asFunction<void Function(ffi.Pointer<ffi.Void>)>();
             
         }
         

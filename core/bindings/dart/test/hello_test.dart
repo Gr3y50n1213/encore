@@ -27,6 +27,32 @@ void main() {
     expect(appName(), 'Encore');
   });
 
+  // No network: signing in, syncing and playing are tested in Rust on a real
+  // Jellyfin recording. This proves the Encore handle, async calls and errors.
+  test('the Encore handle works without a server', () async {
+    final dir = Directory.systemTemp.createTempSync('encore-dart-smoke');
+    final core = Encore.create(
+      config: CoreConfig(
+          dataDir: dir.path, deviceId: 'smoke', deviceName: 'CI', platform: 'ci'),
+    );
+    final subscription = core.events().listen((_) {});
+    expect(core.profiles(), isEmpty);
+    expect(core.currentProfile(), isNull);
+    expect(
+      () => core.servers(),
+      throwsA(isA<ApiError>().having((e) => e.kind, 'kind', ErrorKind.noProfile)),
+    );
+    await expectLater(
+      core.checkAddress(address: 'http://music.example.org'),
+      throwsA(isA<ApiError>()
+          .having((e) => e.kind, 'kind', ErrorKind.insecureAddress)
+          .having((e) => e.message, 'message', contains('https'))),
+    );
+    await subscription.cancel();
+    core.dispose();
+    dir.deleteSync(recursive: true);
+  });
+
   test('token constants are usable', () {
     expect(EncoreTokens.breakpoints.railWidth, 80);
     expect(EncoreTokens.motion.timing.reduceMotionCrossfadeMs, 120);

@@ -2,7 +2,7 @@
 
 Status of every decision in this project. Claude Code: build on "Decided" and "Chosen for the owner" rows. Treat "Assumed" rows as defaults you may change when the owner says so, and ask before building anything that is hard to undo on top of them. Never treat "Unverified" rows as fact.
 
-Last updated: 6 November 2026, when the owner approved the colours and the type scale (section 1). Before that: 5 November 2026, after the plan was split into four tracks (core and server, Apple, Android, Windows and Linux; `docs/ROADMAP.md`), on top of the year recap engine, swipe gestures and drag and drop (plan sections 25 and 26, boards 39 to 43).
+Last updated: 6 November 2026, Phase 2 (core): the owner's choices on fixtures and libraries, the name kept, and new unverified items (section 5). Earlier the same day: the colours and the type scale (section 1). Before that: 5 November 2026, after the plan was split into four tracks (core and server, Apple, Android, Windows and Linux; `docs/ROADMAP.md`), on top of the year recap engine, swipe gestures and drag and drop (plan sections 25 and 26, boards 39 to 43).
 
 ## 1. Decided by the owner
 
@@ -21,6 +21,9 @@ Last updated: 6 November 2026, when the owner approved the colours and the type 
 | Features | Word-by-word synced lyrics, YouTube Music-style recommendations that learn from skips, local and private personalization, a Wrapped-style year recap that differs each year, multiple profiles that swap on one device with data synced to the server, account-based handoff, five mood mixes |
 | Live surfaces | Widgets, lock screen and Live Activities (or the platform equivalent) planned for every supported platform (plan section 20) |
 | Colours (6 November 2026) | Iris (`#5B3FC4`) is the default accent on Android and on Windows and Linux. Eight profile accents (Iris, Cobalt, Lagoon, Fern, Amber, Coral, Rose, Graphite), each with light and dark Material 3 schemes that pass 4.5:1 for text. Album colours still come first. Apple devices use Apple's own system colours and design system; the core does not generate them. `design/tokens.json` `color` |
+| Name and identifiers (6 November 2026) | Keep "Encore". The reverse-domain prefix is `uk.gcartee` (the owner's domain, gcartee.uk), for example `uk.gcartee.encore.core`. A check that the store name is free remains before the first upload. `docs/adr/core-0001-names-and-identifiers.md` |
+| Jellyfin test fixtures (6 November 2026) | Recorded from the owner's own Jellyfin 12.0 server through Quick Connect, with every name, title, ID and path replaced by consistent stand-ins before committing (the repository will be public). `tools/fixtures/jellyfin/RECORDING.md` |
+| Phase 2 core libraries (6 November 2026) | Approved: tokio, reqwest with rustls, rustls-platform-verifier, rusqlite with bundled SQLite, ulid, thiserror, url, unicode-normalization, sha2. Anything else is asked first. `core/THIRD_PARTY_LICENSES.md` |
 | Type (6 November 2026) | Android, Windows and Linux follow the type drawn on the boards: a compact scale under 600 wide and a wide scale from 600, by window width. Every Android page title is 28 sp, weight 500, as on the Home board. Apple devices use the system text styles. `design/tokens.json` `typography.scale` |
 
 ## 2. Chosen for the owner (the owner delegated these)
@@ -72,18 +75,20 @@ The owner has not answered these. They are the plan's defaults (plan section 15)
 
 | Open item | Why it matters | When |
 | --- | --- | --- |
-| **App name, and bundle, package and domain identifiers** | Identifiers are hard to change after the first store upload. "Encore" is a placeholder and may collide with existing apps | Before phase 1 creates projects; certainly before any store upload |
+| **Store name check** | The owner chose to keep "Encore" and `uk.gcartee` (section 1). Whether "Encore" is free in each store is not checked | Before any store upload |
 | **Build hardware** | Apple targets need a Mac with Xcode; testing needs a Windows and a Linux machine or VM and real phones | Before phase 2 |
 | **Developer accounts** | Apple Developer Program (paid, annual), Google Play Console (one-time fee), GitHub for CI. Signing and TestFlight need them | Before phase 2 (Apple) and phase 6 (Google) |
 | **Licence confirmation** | MPL-2.0 apps and AGPL-3.0 server is a suggestion; the licence file should not be added until confirmed | Before the first public push |
-| **A real Jellyfin test library** | 50 to 100 tracks with lyrics files, gapless albums, odd metadata, in `tools/fixtures` or on a reachable server | Before phase 2 |
 | **Recap design packs** | Editorial, Tide, Bloom and Glass are defaults; Contour, Aura, Neon Grid and Paper Collage are held back for later releases | Before phase 11 |
 
 ## 5. Unverified: check before relying on or releasing
 
 | Item | Why it is open | Check against |
 | --- | --- | --- |
-| Word-by-word lyrics source | Jellyfin and LRCLIB mostly provide line-synced lyrics. Word timings need enhanced LRC or TTML files. Not tested against the owner's library | A spike in phase 2 or 3: what Jellyfin returns for real files |
+| Word-by-word lyrics source | Jellyfin and LRCLIB mostly provide line-synced lyrics. Word timings need enhanced LRC or TTML files. One song recorded from the owner's library (6 Nov 2026) came back line-synced, 34 lines with start times and no word cues; most recorded songs report lyrics | A spike in phase 3: Jellyfin's replies for more of the owner's files |
+| Stream transcode settings | AAC in ADTS and Opus in Ogg through `/Audio/{id}/universal`, chosen from Jellyfin's API document; not played on any device | Each platform's player in its Phase 2 |
+| Certificate checks through each operating system's verifier | Built for every target in CI; not run against a real https server with a private CA or a self-signed certificate | Each platform track's first https sign-in; Android also needs request `core-0001-android-tls-init` |
+| Search speed on devices | Under 50 ms on 50,000 songs on a CI runner, not on a phone | The platform tracks, Phase 6 |
 | Exact Material 3 Expressive corner radii | The library documents shape slots, not numbers; 24 dp, 14 dp and 50% are Encore tokens | The pinned Compose Material 3 version, on a device |
 | New MacBook Pro Dynamic Island and touch screen | Known from press coverage of Apple's announcement (ships Nov 6); how apps use it is not documented | Apple's developer documentation and a real Mac |
 | Mac apps starting their own Live Activity | Not documented; only the iPhone mirror is planned | Apple's ActivityKit and macOS documentation |
