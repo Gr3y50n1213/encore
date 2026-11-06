@@ -5,12 +5,15 @@
 //! these same functions). `docs/core/CORE-API.md` is the contract; anything public
 //! here is listed there first.
 //!
-//! Phase 1 offers only the hello-world calls that prove the bindings work.
+//! Phase 1 added the hello-world calls that prove the bindings work; Phase 2 adds
+//! `api::EncoreCore` (connect, sync, browse, search, queue, play log, streams).
 
+pub mod api;
 pub mod brand;
 pub mod library;
 pub mod playlog;
 pub mod queue;
+pub mod tokens;
 
 #[cfg(feature = "uniffi")]
 uniffi::setup_scaffolding!();

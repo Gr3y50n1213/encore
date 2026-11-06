@@ -196,8 +196,12 @@ dependencies = [
  "encore-store",
  "encore-sync",
  "serde",
+ "serde_json",
+ "sha2",
  "thiserror",
+ "tokio",
  "ulid",
+ "url",
 ]
 
 [[package]]

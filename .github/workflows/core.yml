@@ -63,6 +63,11 @@ env:
   JNA_VERSION: 5.17.0
   # SHA-256 of jna-5.17.0.jar from Maven Central; its published SHA-1 is 33d12735bef894440780fce64f9758d420c7bae2.
   JNA_SHA256: b3a9408e7c51e08ef0e3bfcc08f443f6ec0f6191ba8cd7c18d53d2b22e5bdbc0
+  # The Kotlin bindings' async calls are suspend functions (UniFFI uses
+  # kotlinx-coroutines). Apache-2.0; published 7 May 2026; SHA-256 computed from
+  # Maven Central, whose SHA-1 is 3d57dc678bd8d72a60e7adf0eca5c54e3f4f4b79.
+  COROUTINES_VERSION: 1.11.0
+  COROUTINES_SHA256: d1d75aa01dffbb4d1c520e67e4c4e7f5f6174718e7cb4632412503f2f0e604fa
 
 jobs:
   regenerate:
@@ -236,9 +241,12 @@ jobs:
           curl -fsSL --retry 3 -o target/jna.jar \
             "https://repo1.maven.org/maven2/net/java/dev/jna/jna/$JNA_VERSION/jna-$JNA_VERSION.jar"
           echo "$JNA_SHA256  target/jna.jar" | sha256sum -c -
-          kotlinc -cp target/jna.jar -include-runtime -d target/smoke-kotlin.jar \
+          curl -fsSL --retry 3 -o target/coroutines.jar \
+            "https://repo1.maven.org/maven2/org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm/$COROUTINES_VERSION/kotlinx-coroutines-core-jvm-$COROUTINES_VERSION.jar"
+          echo "$COROUTINES_SHA256  target/coroutines.jar" | sha256sum -c -
+          kotlinc -cp target/jna.jar:target/coroutines.jar -include-runtime -d target/smoke-kotlin.jar \
             bindings/kotlin/uk/gcartee/encore/core/encore_core.kt bindings/tokens/EncoreTokens.kt smoke/kotlin/Main.kt
-          java -Djna.library.path=target/debug -cp target/smoke-kotlin.jar:target/jna.jar MainKt
+          java -Djna.library.path=target/debug -cp target/smoke-kotlin.jar:target/jna.jar:target/coroutines.jar MainKt
 
       - name: Dart
         working-directory: core/bindings/dart
