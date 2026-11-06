@@ -1,0 +1,68 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="./wf.css"><style>html,body{margin:0}</style>
+
+<style>
+.wl{background:radial-gradient(90% 50% at 15% 15%,#4F7CFF 0%,transparent 60%),radial-gradient(80% 50% at 90% 40%,#B04CFF 0%,transparent 60%),radial-gradient(90% 50% at 40% 95%,#FF6A88 0%,transparent 60%),#14122B}
+.w{color:#fff}
+.w2{color:rgba(255,255,255,.8)}
+.blob{position:absolute;border-radius:50%;filter:blur(28px);opacity:.55;animation:dr 18s ease-in-out infinite alternate}
+@keyframes dr{from{transform:translate(0,0)}to{transform:translate(30px,-24px)}}
+@media (prefers-reduced-motion:reduce){.blob{animation:none}}
+.shape{width:150px;height:150px;background:rgba(255,255,255,.88);margin:0 auto;animation:spin 24s linear infinite}
+</style>
+</head><body>
+
+<div class="board">
+<div class="col">
+<div class="lbl">iOS 26 · Liquid Glass</div>
+<div class="phone ios wl dk">
+<div class="blob" style="width:220px;height:220px;background:#6C8CFF;left:-40px;top:120px"></div>
+<div class="blob" style="width:200px;height:200px;background:#FF7AA0;right:-50px;top:420px;animation-delay:-6s"></div>
+<div style="position:absolute;left:0;right:0;top:0;bottom:0;padding:120px 28px 0;display:flex;flex-direction:column">
+<div class="w" style="font-size:44px;font-weight:700;letter-spacing:-.02em">Encore</div>
+<div class="w2" style="font-size:18px;margin-top:8px;line-height:1.35">Your music, from your own server, with nothing watching.</div>
+</div>
+<div style="position:absolute;left:24px;right:24px;bottom:44px;display:flex;flex-direction:column;gap:10px">
+<button class="glass" style="border-radius:999px;padding:16px 0;font-weight:700;font-size:16px">Get started</button>
+<button class="w2" style="padding:12px 0;font-weight:600">I already have a profile</button>
+<div class="w2" style="text-align:center;font-size:12px;opacity:.85;padding-top:2px"><u>Privacy policy</u> &nbsp;·&nbsp; <u>Open-source licenses</u></div>
+</div>
+<div class="n" style="top:112px;left:1px">1</div>
+<div class="n" style="top:168px;left:1px">2</div>
+<div class="n" style="top:714px;left:1px">3</div>
+<div class="n" style="top:772px;left:1px">4</div>
+<div class="n" style="top:800px;left:1px">5</div>
+</div>
+</div>
+<div class="col">
+<div class="lbl">Android 16 · Material 3 Expressive</div>
+<div class="phone and wl dk">
+<div class="blob" style="width:220px;height:220px;background:#6C8CFF;left:-40px;top:120px"></div>
+<div class="blob" style="width:200px;height:200px;background:#FF7AA0;right:-50px;top:420px;animation-delay:-6s"></div>
+<div style="position:absolute;left:0;right:0;top:0;bottom:0;padding:90px 28px 0;display:flex;flex-direction:column;gap:14px">
+<div class="shape sh sh-cookie"></div>
+<div class="w" style="font-size:40px;font-weight:500;line-height:1.05;margin-top:10px">Encore</div>
+<div class="w2" style="font-size:18px;line-height:1.35">Your music, from your own server, with nothing watching.</div>
+</div>
+<div style="position:absolute;left:24px;right:24px;bottom:44px;display:flex;flex-direction:column;gap:8px">
+<button style="border-radius:28px;padding:18px 0;font-weight:700;font-size:16px;background:#fff;color:#33266B">Get started</button>
+<button class="w" style="border-radius:28px;padding:16px 0;font-weight:600;background:rgba(255,255,255,.18)">I already have a profile</button>
+<div class="w2" style="text-align:center;font-size:12px;opacity:.85;padding-top:4px"><u>Privacy policy</u> &nbsp;·&nbsp; <u>Open-source licenses</u></div>
+</div>
+<div class="n" style="top:94px;left:1px">1</div>
+<div class="n" style="top:262px;left:1px">2</div>
+<div class="n" style="top:710px;left:1px">3</div>
+<div class="n" style="top:772px;left:1px">4</div>
+<div class="n" style="top:806px;left:1px">5</div>
+</div>
+</div>
+<div class="spec">
+<div class="lbl" style="margin-bottom:10px">Welcome</div>
+<div class="sr"><div class="no">1</div><div><span class="nm">Background.</span> The same slow-drifting gradient system as Now Playing, with the app's own palette, on a 40 s loop. Reduced motion shows one still frame. The name and line fade up over 500 ms, staggered by 120 ms. On Android a Material cookie shape sits above the name, turning slowly and morphing to the sunny shape and back every 8 s.</div></div>
+<div class="sr"><div class="no">2</div><div><span class="nm">Promise line.</span> One sentence, with the privacy stance, and no feature list. Nothing here asks for permissions.</div></div>
+<div class="sr"><div class="no">3</div><div><span class="nm">Get started.</span> <span class="k">TAP</span>moves to Connect your server with a push transition (shared glass morph on iOS, shared-axis on Android). <span class="k">GUARD</span>disabled for 300 ms after the screen appears so a stray tap cannot skip it. <span class="k">HAPTIC</span>soft.</div></div>
+<div class="sr"><div class="no">4</div><div><span class="nm">Existing profile.</span> <span class="k">TAP</span>asks for the companion server address and signs in, then pulls this profile's settings, history and queue down. Used when the user already set the app up elsewhere.</div></div>
+<div class="sr"><div class="no">5</div><div><span class="nm">Policy links.</span> Privacy policy and Open-source licenses open in an in-app browser sheet (SFSafariViewController on iOS, Custom Tabs on Android), so the policy is reachable before anything is collected or any account exists. The same two links live in Settings, About and licenses, and the privacy policy also appears in Privacy and data. The store listing links the same page.</div></div>
+<div class="st"><b>First launch only.</b> Later launches go straight to Home, or to the profile chooser if more than one profile is signed in. <b>Tablet and desktop.</b> The content sits in a centered column, 420 pt wide, over the same background. <b>Accessibility.</b> The gradient is decorative and hidden from screen readers; the buttons are the only focus stops. <b>Dark and light.</b> This screen is dark in both themes by design.</div>
+</div>
+</div>
+</body></html>

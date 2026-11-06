@@ -1,0 +1,68 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="./wf.css"><style>html,body{margin:0}</style>
+
+<style>
+.fld{height:44px;border-radius:999px;background:#E3E6EC;display:flex;align-items:center;padding:0 16px;font-size:14px;color:#4A5160}
+.and .fld{height:56px;background:#ECE6F0}
+</style>
+</head><body>
+
+<div class="board">
+<div class="col">
+<div class="lbl">iOS 26 · Liquid Glass</div>
+<div class="phone ios">
+<div class="sc">
+<div class="hd">Search</div>
+<div class="h3" style="margin-top:6px">Recent searches</div>
+<div class="rw" style="min-height:44px"><div class="g t">song or artist I typed</div><div class="s">Remove</div></div>
+<div class="rw" style="min-height:44px"><div class="g t">another recent search</div><div class="s">Remove</div></div>
+<div class="rw" style="min-height:44px"><div class="g t">a third recent search</div><div class="s">Remove</div></div>
+<div class="h3" style="margin-top:8px">Browse by mood</div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+<button class="b" style="height:84px;text-align:left;padding:12px;font-weight:600;border-radius:18px">Focus</button>
+<button class="b" style="height:84px;text-align:left;padding:12px;font-weight:600;border-radius:18px">Wind down</button>
+<button class="b" style="height:84px;text-align:left;padding:12px;font-weight:600;border-radius:18px">Upbeat</button>
+<button class="b" style="height:84px;text-align:left;padding:12px;font-weight:600;border-radius:18px">Moody</button>
+</div>
+</div>
+<div class="glass" style="position:absolute;left:16px;right:16px;bottom:96px;height:50px;display:flex;align-items:center;padding:0 18px;font-size:14px;color:#4A5160">Songs, albums, artists, lyrics</div>
+<div class="glass tabbar"><span class="tb"><i class="ic m-home"></i>Home</span><span class="tb"><i class="ic m-mixes"></i>Mixes</span><span class="tb"><i class="ic m-library"></i>Library</span></div>
+<div class="glass tabsrch on" aria-label="Search"><i class="ic m-search"></i></div>
+<div class="n" style="top:690px;left:1px">1</div>
+<div class="n" style="top:136px;left:1px">2</div>
+<div class="n" style="top:350px;left:1px">3</div>
+</div>
+</div>
+<div class="col">
+<div class="lbl">Android 16 · Material 3 Expressive</div>
+<div class="phone and">
+<div class="sc">
+<div class="fld" style="gap:12px"><i class="ic m-search"></i><span style="flex:1">Songs, albums, artists, lyrics</span><div class="art circ" style="width:32px;height:32px;font-size:10px">You</div></div>
+<div class="rowh"><button class="pill on">All</button><button class="pill">Library</button><button class="pill">Downloaded</button></div>
+<div class="h3" style="font-weight:500">Recent searches</div>
+<div class="rw" style="min-height:48px"><div class="g t">song or artist I typed</div><div class="s">Remove</div></div>
+<div class="rw" style="min-height:48px"><div class="g t">another recent search</div><div class="s">Remove</div></div>
+<div class="rw" style="min-height:48px"><div class="g t">a third recent search</div><div class="s">Remove</div></div>
+<div class="h3" style="font-weight:500">Browse by mood</div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+<button class="b" style="height:84px;text-align:left;padding:14px 18px;font-weight:600;border-radius:28px 12px 28px 12px">Focus</button>
+<button class="b" style="height:84px;text-align:left;padding:14px 18px;font-weight:600;border-radius:12px 28px 12px 28px">Wind down</button>
+<button class="b" style="height:84px;text-align:left;padding:14px 18px;font-weight:600;border-radius:12px 28px 12px 28px">Upbeat</button>
+<button class="b" style="height:84px;text-align:left;padding:14px 18px;font-weight:600;border-radius:28px 12px 28px 12px">Moody</button>
+</div>
+</div>
+<div class="navbar"><span class="nb"><b><i class="ic m-home"></i></b>Home</span><span class="nb"><b><i class="ic m-mixes"></i></b>Mixes</span><span class="nb"><b><i class="ic m-library"></i></b>Library</span><span class="nb on"><b><i class="ic m-search"></i></b>Search</span></div>
+<div class="n" style="top:48px;left:1px">1</div>
+<div class="n" style="top:182px;left:1px">2</div>
+<div class="n" style="top:392px;left:1px">3</div>
+</div>
+</div>
+<div class="spec">
+<div class="lbl" style="margin-bottom:10px">Search</div>
+<div class="sr"><div class="no">1</div><div><span class="nm">Search field.</span> iOS puts it at the bottom in glass, within thumb reach; Android docks it at the top. <span class="k">TAP</span>opens the keyboard and shows results as you type, matched against the on-device library index in under 50 ms, typo tolerant, lyrics included when the server has them. The return key saves the query. <span class="k">SWIPE</span>down on results dismisses the keyboard. Android's scope chips: All, Library, Downloaded.</div></div>
+<div class="sr"><div class="no">2</div><div><span class="nm">Recent searches.</span> Saved per profile and never synced to anyone else. <span class="k">TAP</span>fills the field and runs it. <span class="k">SWIPE</span>left or tap Remove deletes one. <span class="k">HOLD</span>on the header offers "Clear all" in a confirm sheet.</div></div>
+<div class="sr"><div class="no">3</div><div><span class="nm">Browse by mood.</span> Tiles come from the audio analysis, not genre tags. <span class="k">TAP</span>opens a mix for that mood. Android's tiles alternate two leaf shapes, round at one pair of corners and tight at the other, so the grid reads as a pattern. Tiles are plain color, never artwork.</div></div>
+<div class="sr"><div class="no"></div><div><span class="nm">Results while typing.</span> Sections: Top Result, Songs, Albums, Artists, Playlists. <span class="k">TAP</span>song plays it and starts autoplay from it. <span class="k">TAP</span>other types open them. <span class="k">HOLD</span>item menu. <span class="k">GUARD</span>the list is frozen from touch-down until release, so a row that re-ranks under the finger never launches the wrong song.</div></div>
+<div class="st"><b>States.</b> Idle (shown). Typing, results (above). No match: "Nothing matches [query]" with a tip to check spelling; if an online lyrics provider is on, "Search lyrics online" appears. Empty library: "Connect a server to search". Offline: search still works from the local index, and songs that are not downloaded dim.</div>
+</div>
+</div>
+</body></html>

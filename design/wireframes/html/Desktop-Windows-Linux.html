@@ -1,0 +1,264 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="./wf.css"><style>html,body{margin:0}</style>
+
+<style>
+
+.adev{position:relative;flex:none;background:#1D1B20;border-radius:34px;box-shadow:0 24px 60px rgba(20,25,40,.32),inset 0 0 0 2px #3A383E}
+.ascr{position:absolute;left:8px;top:8px;right:8px;bottom:8px;border-radius:27px;overflow:hidden;background:#FEF7FF;color:#1D1B20}
+.ast{position:absolute;left:0;right:0;top:0;height:28px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:12px;font-weight:500;z-index:4}
+.abat{display:inline-block;width:22px;height:11px;border-radius:3px;background:#1D1B20;vertical-align:middle;margin-left:8px;opacity:.85}
+.wallA{position:relative;overflow:hidden;background:linear-gradient(160deg,#B9C8F2 0%,#DCCCF2 55%,#F6D1C1 100%)}
+.rail{position:absolute;left:0;top:28px;bottom:0;background:#F7F2FA;display:flex;flex-direction:column;padding:8px 12px 12px;gap:2px;z-index:2}
+.rb{width:48px;height:48px;border-radius:24px;display:flex;align-items:center;justify-content:center;margin-bottom:6px}
+.rb .ic,.ri .ic{width:24px;height:24px;color:#49454F}
+.ri{display:flex;align-items:center;gap:12px;height:52px;padding:0 16px;border-radius:26px;font-size:14px;font-weight:500;color:#49454F;white-space:nowrap}
+.ri.sel{background:#E8DEF8;color:#1D192B}.ri.sel .ic{color:#1D192B}
+.rh2{font-size:12px;font-weight:500;color:#49454F;padding:14px 16px 4px}
+.rs{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:500;color:#49454F;padding:6px 0}
+.rs .pi{width:56px;height:32px;border-radius:16px;display:flex;align-items:center;justify-content:center}
+.rs .pi .ic{width:24px;height:24px;color:#49454F}
+.rs.sel{color:#1D192B}.rs.sel .pi{background:#E8DEF8}.rs.sel .pi .ic{color:#1D192B}
+.pane{position:absolute;border-radius:28px;overflow:hidden}
+.chp{height:32px;padding:0 14px;border-radius:8px;border:1px solid #79747E;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:#49454F}
+.chp.sel{background:#E8DEF8;border-color:transparent;color:#1D192B}
+.li{display:flex;align-items:center;gap:14px;height:68px;padding:0 12px;border-radius:20px}
+.li.sel{background:#E8DEF8}
+.li .tt{font-size:15px;font-weight:500;line-height:1.25}
+.li .ss{font-size:12.5px;color:#49454F}
+.grp{display:flex;gap:2px}
+.grp>div{height:48px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:600;border-radius:8px;padding:0 22px}
+.grp>div .ic{width:20px;height:20px}
+.gl{border-radius:24px 8px 8px 24px!important}.gr{border-radius:8px 24px 24px 8px!important}
+.fl{background:#6750A4;color:#fff}.fl .ic{color:#fff}
+.tn{background:#E8DEF8;color:#1D192B}
+.ag>div{display:flex;align-items:center;gap:14px;height:52px;padding:0 18px;background:#F3EDF7;border-radius:6px;margin-bottom:2px;font-size:14.5px}
+.ag>div:first-child{border-radius:24px 24px 6px 6px}
+.ag>div:last-child{border-radius:6px 6px 24px 24px;margin-bottom:0}
+.ag .nn{width:20px;text-align:center;color:#49454F;font-size:13px}
+.ag .tt{flex:1;min-width:0}
+.ag .d{font-size:12.5px;color:#49454F}
+.ag .cur{background:#E8DEF8;font-weight:600}
+.eqa{display:inline-block;width:3px;height:13px;border-radius:2px;background:#6750A4;box-shadow:-6px 4px #6750A4,6px 2px #6750A4;margin:0 5px}
+.nbar{position:absolute;height:80px;border-radius:28px;background:#ECE6F0;display:flex;align-items:center;gap:14px;padding:0 22px 0 12px;z-index:3;box-shadow:0 2px 10px rgba(29,27,32,.14)}
+.nbar .ic{width:24px;height:24px;color:#49454F}
+.pb{width:52px;height:52px;border-radius:17px;background:#6750A4;display:flex;align-items:center;justify-content:center;flex:none}
+.pb .ic{color:#fff}
+.ib{width:48px;height:48px;border-radius:24px;display:flex;align-items:center;justify-content:center;flex:none}
+.sup{position:absolute;overflow:hidden;color:#fff}
+.sgm{display:flex;gap:2px;position:absolute}
+.sgm span{flex:1;height:36px;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:13px;font-weight:600;background:rgba(255,255,255,.18);color:#fff}
+.sgm span:first-child{border-radius:18px 8px 8px 18px}.sgm span:last-child{border-radius:8px 18px 18px 8px}
+.sgm span.act{background:#fff;color:#1D192B;border-radius:18px}
+.lns{position:absolute;display:flex;flex-direction:column;justify-content:center;gap:16px;font-weight:700;letter-spacing:-.012em;line-height:1.15;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 18%,#000 82%,transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 18%,#000 82%,transparent 100%)}
+.lns div{color:rgba(255,255,255,.42)}
+.lns .cur{background:linear-gradient(90deg,#fff 0,#fff 55%,rgba(255,255,255,.44) 64%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.gridA{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 14px}
+.gridA .t{font-size:13.5px;line-height:1.3}
+.gridA .t b{display:block;font-weight:500;margin-top:8px}
+.gridA .t span{color:#49454F;font-size:12px}
+.scrimA{position:absolute;left:0;right:0;top:0;bottom:0;background:rgba(29,27,32,.36);z-index:5}
+.ps{position:absolute;display:flex;align-items:center;justify-content:center}
+.cap{position:absolute;left:0;right:0;top:0;height:40px;background:#E6E0E9;display:flex;align-items:center;gap:10px;padding:0 10px 0 14px;font-size:13px;font-weight:500;z-index:3}
+.cap .ic{width:18px;height:18px;color:#49454F}
+.nvb{position:absolute;left:0;right:0;bottom:0;height:76px;background:#F3EDF7;display:flex;align-items:center;justify-content:space-around;z-index:3}
+.nvb div{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:500;color:#49454F;width:72px}
+.nvb .pi{width:56px;height:30px;border-radius:15px;display:flex;align-items:center;justify-content:center}
+.nvb .pi .ic{width:22px;height:22px;color:#49454F}
+.nvb .sel{color:#1D192B}.nvb .sel .pi{background:#E8DEF8}.nvb .sel .pi .ic{color:#1D192B}
+.rhA{position:absolute;right:6px;bottom:6px;width:20px;height:20px;border-right:4px solid rgba(29,27,32,.4);border-bottom:4px solid rgba(29,27,32,.4);border-radius:0 0 16px 0;z-index:6}
+.szc{display:flex;flex-direction:column;align-items:center;gap:6px}
+.szc .bx{position:relative;border:1.5px solid #8E97A8;border-radius:10px;background:#fff;height:76px;display:flex;gap:4px;padding:5px;overflow:hidden}
+.szc .bx i{display:block;border-radius:5px;background:#CBD1DB}
+.szc .bx i.a{background:#D8C8F4}
+.szc .bx i.g{background:linear-gradient(135deg,#F2784B,#B8337E)}
+.szc .bx i.dash{background:transparent;border:1.5px dashed #6B7280}
+.szc .cp2{font-size:11px;line-height:1.3;text-align:center;color:#2B3140;white-space:nowrap}
+.szc .cp2 b{display:block;font-weight:600;color:#16181D}
+.hinge{position:absolute;background:#0E0D11;z-index:4}
+.fh{position:absolute;overflow:hidden}
+.pt{width:100%;border-collapse:collapse;font-size:12px;line-height:1.35;color:#2B3140}
+.pt th{text-align:left;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#4A5160;font-weight:600;padding:5px 8px 5px 0;border-bottom:1.5px solid #16181D}
+.pt td{vertical-align:top;padding:7px 8px 7px 0;border-bottom:1px solid #CBD1DB}
+.pt td:first-child{font-weight:600;color:#16181D;white-space:nowrap}
+
+.wwin{position:relative;overflow:hidden;background:#FEF7FF;color:#1D1B20;box-shadow:0 24px 64px rgba(29,27,32,.32),0 0 0 1px rgba(29,27,32,.3)}
+.wtb{position:absolute;left:0;right:0;top:0;height:48px;background:#F3EDF7;display:flex;align-items:center;z-index:4}
+.wtb .ti{display:flex;align-items:center;gap:10px;padding-left:16px;font-size:13px;font-weight:500;width:224px}
+.wic{width:22px;height:22px;border-radius:7px;background:#6750A4;display:flex;align-items:center;justify-content:center}
+.wic .ic{width:14px;height:14px;color:#fff}
+.sfld{height:34px;border-radius:17px;background:#E6E0E9;display:flex;align-items:center;gap:10px;padding:0 14px;font-size:13px;color:#49454F}
+.sfld .ic{width:18px;height:18px;color:#49454F}
+.sfld kbd{margin-left:auto;font-family:'DejaVu Sans Mono',monospace;font-size:10.5px;padding:1px 6px;border-radius:5px;background:rgba(29,27,32,.08)}
+.wcb{display:flex;height:100%;margin-left:auto}
+.wb{width:46px;height:100%;display:flex;align-items:center;justify-content:center}
+.wb .ic{width:14px;height:14px;color:#1D1B20}
+.wb.w .ic{color:#fff}
+.hb{position:absolute;left:0;right:0;top:0;height:46px;background:#F3EDF7;display:flex;align-items:center;gap:8px;padding:0 10px;z-index:4;border-bottom:1px solid rgba(29,27,32,.08)}
+.gb{width:28px;height:28px;border-radius:50%;background:rgba(29,27,32,.08);display:flex;align-items:center;justify-content:center}
+.gb .ic{width:14px;height:14px;color:#1D1B20}
+.cth{display:grid;grid-template-columns:48px 1.7fr 1.2fr 1.3fr 60px 56px;align-items:center;gap:0 10px;height:36px;padding:0 18px;font-size:12px;font-weight:500;color:#49454F;border-bottom:1px solid #CAC4D0}
+.ctr{display:grid;grid-template-columns:48px 1.7fr 1.2fr 1.3fr 60px 56px;align-items:center;gap:0 10px;height:44px;padding:0 18px;font-size:14px;border-radius:12px}
+.ctr .nn{text-align:center;color:#49454F;font-size:13px}
+.ctr .m{color:#49454F;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctr .r,.cth .r{text-align:right}
+.ctr.pl{background:#E8DEF8;font-weight:600}
+.ctr.hv{background:rgba(103,80,164,.08)}
+.ctr.fc{outline:3px solid #6750A4;outline-offset:-3px}
+.cm{position:absolute;width:250px;border-radius:12px;background:#F3EDF7;box-shadow:0 10px 30px rgba(29,27,32,.3),0 0 0 1px rgba(29,27,32,.08);padding:8px 0;z-index:8;font-size:14px}
+.cm div{display:flex;align-items:center;height:34px;padding:0 16px;gap:12px}
+.cm div span{margin-left:auto;font-size:12px;color:#49454F}
+.cm div.hv{background:rgba(103,80,164,.12)}
+.cm hr{border:0;border-top:1px solid #CAC4D0;margin:6px 0}
+.cm .ic{width:20px;height:20px;color:#49454F}
+.sgt{display:flex;gap:2px}
+.sgt span{flex:1;height:36px;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:13px;font-weight:600;background:#ECE6F0;color:#49454F}
+.sgt span:first-child{border-radius:18px 8px 8px 18px}.sgt span:last-child{border-radius:8px 18px 18px 8px}
+.sgt span.act{background:#6750A4;color:#fff;border-radius:18px}
+.qr{display:flex;align-items:center;gap:10px;height:56px;padding:0 10px 0 4px;border-radius:14px;font-size:14px}
+.qr .dr{width:18px;height:18px;position:relative;flex:none}
+.qr .dr:before,.qr .dr:after{content:"";position:absolute;left:4px;width:10px;height:6px;background:radial-gradient(circle,#79747E 1.4px,transparent 1.6px) 0 0/5px 6px}
+.qr .dr:before{top:2px}.qr .dr:after{top:10px}
+.qh{font-size:12px;font-weight:500;color:#49454F;padding:12px 10px 4px}
+.sys{outline:2px dashed #6750A4;outline-offset:4px}.lt+.sys{margin-top:14px}
+.dk{background:#2C2C2E;color:#fff;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12)}
+.dk .ic{color:#fff}
+.tmn{border-radius:8px;background:#F9F9F9;box-shadow:0 10px 30px rgba(0,0,0,.28),0 0 0 1px rgba(0,0,0,.1);padding:6px;font-size:13px;color:#1B1B1B}
+.tmn div{display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:5px}
+.tmn div .ic{width:16px;height:16px;color:#1B1B1B}
+.tmn div.dis{color:#6B6B6B}
+.tmn hr{border:0;border-top:1px solid #E0E0E0;margin:5px 4px}
+.tmn.lx{border-radius:12px;background:#FAFAFA}
+.tmn.lx div{border-radius:8px}
+.tile2{position:relative}
+.tile2 .hov{position:absolute;left:0;right:0;top:0;aspect-ratio:1;border-radius:16px;background:rgba(29,27,32,.28)}
+.tile2 .pp{position:absolute;right:10px;top:calc(100% - 0px);}
+
+</style>
+</head><body>
+
+<div class="lgb" style="height:2800px">
+
+<div><h1>Windows and Linux · Material 3 Expressive</h1>
+<p class="intro">Windows and Linux get the Android look at desktop density: tonal surfaces, rounded panes, connected button groups and wavy progress, with a title bar, a table, a context menu, hover and focus states, keyboard shortcuts and the system media controls that desktop apps need. Every window can be resized, so the layout follows the width through the same four classes as the tablets.</p></div>
+<div><div class="lt">Windows · main window · Large</div>
+<div class="wwin win" style="width:1412px;height:700px;border-radius:8px">
+<div class="wtb"><div class="ti"><div class="wic"><i class="ic m-note"></i></div>Encore</div><div class="sfld" style="position:absolute;left:50%;margin-left:-210px;width:420px;top:7px"><i class="ic m-search"></i>Search songs, albums, artists<kbd>Ctrl+F</kbd></div>
+<div class="wcb"><div class="wb"><i class="ic m-min"></i></div><div class="wb"><i class="ic m-max"></i></div><div class="wb"><i class="ic m-close"></i></div></div></div>
+
+<div class="rail" style="width:240px;top:48px">
+<div class="rb"><i class="ic m-list"></i></div>
+<div class="ri"><i class="ic m-home"></i>Home</div>
+<div class="ri"><i class="ic m-mixes"></i>Mixes</div>
+<div class="ri sel"><i class="ic m-library"></i>Library</div>
+<div class="ri"><i class="ic m-search"></i>Search</div>
+<div class="rh2">Pinned</div>
+<div class="ri" style="height:44px"><div class="art cv-a" style="width:28px;height:28px;border-radius:9px"></div>Evening Drive</div>
+<div class="ri" style="height:44px"><div class="art cv-b" style="width:28px;height:28px;border-radius:9px"></div>Rainy Focus</div>
+<div class="ri" style="height:44px"><div class="art cv-c" style="width:28px;height:28px;border-radius:9px"></div>Drive Home</div>
+<div class="rh2">Playlists</div>
+<div class="ri" style="height:44px"><i class="ic m-queue"></i>Road trip</div>
+<div class="ri" style="height:44px"><i class="ic m-queue"></i>Study</div>
+<div style="flex:1"></div>
+<div class="ri" style="height:56px"><div class="art circ" style="width:32px;height:32px;font-size:9px;background:#D0BCFF;color:#381E72">You</div><span style="flex:1">You</span><i class="ic m-gear"></i></div>
+</div>
+<div class="pane" style="left:252px;top:58px;bottom:104px;width:816px;background:#fff;padding:20px 8px 0">
+<div style="display:flex;gap:20px;align-items:flex-end;padding:0 14px"><div class="art cv-a" style="width:132px;height:132px;border-radius:28px;box-shadow:0 8px 24px rgba(29,27,32,.24)"></div>
+<div style="min-width:0;flex:1;padding-bottom:2px"><div style="font-size:13px;color:#49454F;font-weight:500">Album · 2024 · 11 songs · 41 min</div><div style="font-size:30px;line-height:1.15;margin:2px 0 2px">Golden Hour Static</div><div style="font-size:15px;color:#6750A4;font-weight:500">Ember Cove</div></div>
+<div class="grp"><div class="fl gl"><i class="ic m-play"></i>Play</div><div class="tn"><i class="ic m-shuffle"></i>Shuffle</div><div class="tn" style="padding:0 16px"><i class="ic m-add"></i></div><div class="tn gr" style="padding:0 16px"><i class="ic m-more"></i></div></div></div>
+<div style="margin-top:18px"><div class="cth"><span class="r" style="text-align:center">#</span><span>Title ▲</span><span>Artist</span><span>Album</span><span class="r">Plays</span><span class="r">Time</span></div>
+<div class="ctr pl"><span class="nn"><span class="eqa"></span></span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Slow Tide</span><span class="m">Ember Cove</span><span class="m">Golden Hour Static</span><span class="m r">12,408</span><span class="m r">3:41</span></div><div class="ctr fc"><span class="nn">2</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Paper Lanterns</span><span class="m">Ember Cove</span><span class="m">Golden Hour Static</span><span class="m r">9,310</span><span class="m r">3:12</span></div><div class="ctr "><span class="nn">3</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Count the Hours</span><span class="m">Ember Cove</span><span class="m">Golden Hour Static</span><span class="m r">7,904</span><span class="m r">4:05</span></div><div class="ctr "><span class="nn">4</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Golden Hour, Static</span><span class="m">Ember Cove</span><span class="m">Golden Hour Static</span><span class="m r">6,118</span><span class="m r">3:28</span></div><div class="ctr "><span class="nn">5</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Hold the Sky</span><span class="m">Ember Cove</span><span class="m">Golden Hour Static</span><span class="m r">5,277</span><span class="m r">2:57</span></div><div class="ctr hv"><span class="nn">6</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Low Orbit</span><span class="m">Ember Cove</span><span class="m">Golden Hour Static</span><span class="m r">4,402</span><span class="m r">3:50</span></div><div class="ctr "><span class="nn">7</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Harbor Radio</span><span class="m">Ember Cove</span><span class="m">Golden Hour Static</span><span class="m r">3,860</span><span class="m r">4:19</span></div></div>
+</div>
+<div class="pane" style="left:1080px;right:12px;top:58px;bottom:104px;background:#F7F2FA;padding:14px 12px 0">
+<div class="sgt"><span>Lyrics</span><span class="act">Up next</span><span>Info</span></div>
+<div class="qh" style="padding-top:14px">Playing from Golden Hour Static</div>
+<div class="qr"><div class="dr"></div><div class="art cv-b" style="width:40px;height:40px;border-radius:12px;"></div><div style="flex:1;min-width:0"><div style="font-weight:500">Night Market</div><div style="font-size:12px;color:#49454F">Pale Harbor</div></div><span style="font-size:12.5px;color:#49454F">3:55</span></div><div class="qr"><div class="dr"></div><div class="art cv-c" style="width:40px;height:40px;border-radius:12px;"></div><div style="flex:1;min-width:0"><div style="font-weight:500">Salt and Signal</div><div style="font-size:12px;color:#49454F">Moth Choir</div></div><span style="font-size:12.5px;color:#49454F">4:21</span></div><div class="qr"><div class="dr"></div><div class="art cv-d" style="width:40px;height:40px;border-radius:12px;"></div><div style="flex:1;min-width:0"><div style="font-weight:500">Terminal Bloom</div><div style="font-size:12px;color:#49454F">Juno Weft</div></div><span style="font-size:12.5px;color:#49454F">3:10</span></div><div class="qr"><div class="dr"></div><div class="art cv-b" style="width:40px;height:40px;border-radius:12px;"></div><div style="flex:1;min-width:0"><div style="font-weight:500">Tidewater</div><div style="font-size:12px;color:#49454F">Pale Harbor</div></div><span style="font-size:12.5px;color:#49454F">4:02</span></div><div class="qr"><div class="dr"></div><div class="art cv-c" style="width:40px;height:40px;border-radius:12px;"></div><div style="flex:1;min-width:0"><div style="font-weight:500">Brass Arches</div><div style="font-size:12px;color:#49454F">Moth Choir</div></div><span style="font-size:12.5px;color:#49454F">3:36</span></div>
+</div>
+<div class="nbar" style="left:252px;right:12px;bottom:12px">
+<div style="display:flex;align-items:center;gap:14px;width:300px"><div class="art cv-a" style="width:56px;height:56px;border-radius:16px;"></div><div style="min-width:0"><div style="font-size:15px;font-weight:500">Slow Tide</div><div style="font-size:12.5px;color:#49454F">Ember Cove</div></div></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="display:flex;align-items:center;gap:10px"><div class="ib"><i class="ic m-shuffle"></i></div><div class="ib"><i class="ic m-prev"></i></div><div class="pb"><i class="ic m-pause"></i></div><div class="ib"><i class="ic m-next"></i></div><div class="ib"><i class="ic m-repeat"></i></div></div><div style="display:flex;align-items:center;gap:10px;font-size:11px;color:#49454F">1:24<svg width="380" height="16" aria-hidden="true" style="display:block"><defs><pattern id="wy4" width="20" height="16" patternUnits="userSpaceOnUse"><path d="M0 8.0 Q5 3.0 10 8.0 T20 8.0" fill="none" stroke="#6750A4" stroke-width="3" stroke-linecap="round"/></pattern></defs><rect width="142" height="16" fill="url(#wy4)"/><line x1="142" y1="8.0" x2="380" y2="8.0" stroke="rgba(73,69,79,.3)" stroke-width="3" stroke-linecap="round"/></svg>3:41</div></div>
+<div style="display:flex;align-items:center;gap:4px;width:300px;justify-content:flex-end"><div class="ib"><i class="ic m-lyrics"></i></div><div class="ib" style="background:#E8DEF8"><i class="ic m-queue"></i></div><div class="ib"><i class="ic m-vol"></i></div><div style="width:70px;height:4px;border-radius:2px;background:rgba(73,69,79,.3);position:relative"><div style="position:absolute;left:0;top:0;bottom:0;width:60%;border-radius:2px;background:#6750A4"></div></div></div>
+</div>
+<div class="cm" style="left:520px;top:340px">
+<div><i class="ic m-play"></i>Play<span>Enter</span></div><div><i class="ic m-next"></i>Play next</div><div class="hv"><i class="ic m-queue"></i>Add to queue</div><div><i class="ic m-add"></i>Add to playlist<span>&#9656;</span></div><hr><div><i class="ic m-heart"></i>Like<span>Ctrl+L</span></div><div><i class="ic m-user"></i>Go to artist</div><div><i class="ic m-info"></i>Song info</div></div>
+<div class="n" style="top:4px;left:928px">1</div><div class="n" style="top:300px;left:246px">2</div><div class="n" style="top:300px;left:1060px">3</div><div class="n" style="top:346px;left:502px">4</div><div class="n" style="top:590px;left:258px">5</div>
+</div></div>
+<div class="cols">
+<div><div class="lt">Linux · Medium window · header bar</div>
+<div class="wwin win" style="width:700px;height:540px;border-radius:12px">
+<div class="hb"><div class="gb" style="width:34px;height:34px;border-radius:12px"><i class="ic m-sidebar" style="width:18px;height:18px"></i></div><div style="flex:1;text-align:center;font-size:14px;font-weight:600">Library</div><div class="gb" style="width:34px;height:34px;border-radius:12px"><i class="ic m-search" style="width:18px;height:18px"></i></div><div class="gb"><i class="ic m-min"></i></div><div class="gb"><i class="ic m-max"></i></div><div class="gb"><i class="ic m-close"></i></div></div>
+<div class="rail" style="width:80px;top:46px;padding:12px 12px 12px;align-items:center">
+<div class="rs"><div class="pi"><i class="ic m-home"></i></div>Home</div><div class="rs"><div class="pi"><i class="ic m-mixes"></i></div>Mixes</div><div class="rs sel"><div class="pi"><i class="ic m-library"></i></div>Library</div><div class="rs"><div class="pi"><i class="ic m-search"></i></div>Search</div>
+<div style="flex:1"></div><div class="art circ" style="width:40px;height:40px;font-size:10px;background:#D0BCFF;color:#381E72">You</div></div>
+<div style="position:absolute;left:96px;right:20px;top:62px;bottom:0">
+<div style="display:flex;gap:8px;margin:0 0 18px"><div class="chp sel"><i class="ic m-check" style="width:16px;height:16px"></i>Albums</div><div class="chp">Artists</div><div class="chp">Songs</div></div>
+<div class="gridA"><div class="t" style=""><div class="art cv-a" style="width:100%;aspect-ratio:1;border-radius:16px;;box-shadow:0 3px 10px rgba(29,27,32,.18)"></div><b>Golden Hour Static</b><span>Ember Cove</span></div><div class="t tile2"><div class="art cv-b" style="width:100%;aspect-ratio:1;border-radius:16px;;box-shadow:0 3px 10px rgba(29,27,32,.18)"></div><div class="hov"></div><div class="pb" style="position:absolute;right:10px;top:10px;width:46px;height:46px;border-radius:23px;margin-top:calc(100% - 66px)"><i class="ic m-play"></i></div><b>Night Market</b><span>Pale Harbor</span></div><div class="t" style="outline:3px solid #6750A4;outline-offset:4px;border-radius:18px"><div class="art cv-c" style="width:100%;aspect-ratio:1;border-radius:16px;;box-shadow:0 3px 10px rgba(29,27,32,.18)"></div><b>Salt and Signal</b><span>Moth Choir</span></div><div class="t" style=""><div class="art cv-d" style="width:100%;aspect-ratio:1;border-radius:16px;;box-shadow:0 3px 10px rgba(29,27,32,.18)"></div><b>Terminal Bloom</b><span>Juno Weft</span></div><div class="t" style=""><div class="art cv-b" style="width:100%;aspect-ratio:1;border-radius:16px;filter:hue-rotate(35deg);box-shadow:0 3px 10px rgba(29,27,32,.18)"></div><b>Tidewater</b><span>Pale Harbor</span></div><div class="t" style=""><div class="art cv-c" style="width:100%;aspect-ratio:1;border-radius:16px;filter:hue-rotate(-40deg);box-shadow:0 3px 10px rgba(29,27,32,.18)"></div><b>Brass Arches</b><span>Moth Choir</span></div></div></div>
+<div class="nbar" style="left:92px;right:12px;bottom:12px;height:72px;gap:12px;padding:0 14px 0 10px"><div class="art cv-a" style="width:52px;height:52px;border-radius:16px;"></div><div style="min-width:0;flex:1"><div style="font-size:15px;font-weight:500">Slow Tide</div><div style="font-size:12.5px;color:#49454F">Ember Cove</div></div><div class="ib"><i class="ic m-prev"></i></div><div class="pb"><i class="ic m-pause"></i></div><div class="ib"><i class="ic m-next"></i></div></div>
+<div class="n" style="top:4px;left:48px">6</div>
+</div></div>
+<div><div class="lt">Now Playing window</div>
+<div class="wwin win pal-a" style="width:676px;height:540px;border-radius:8px;color:#fff"><div class="bgm" style="position:absolute;left:0;right:0;top:0;bottom:0"></div>
+<div class="ps" style="left:14px;top:14px;width:44px;height:44px;border-radius:22px;background:rgba(255,255,255,.2)"><i class="ic m-down"></i></div>
+<div class="ps" style="left:64px;top:14px;width:44px;height:44px;border-radius:22px;background:rgba(255,255,255,.2)"><i class="ic m-pip"></i></div>
+<div class="sgm" style="left:50%;margin-left:-130px;width:260px;top:14px"><span class="act">Lyrics</span><span>Up next</span><span>Info</span></div>
+<div style="position:absolute;right:0;top:0;height:32px;display:flex"><div class="wb w" style="height:32px"><i class="ic m-min"></i></div><div class="wb w" style="height:32px"><i class="ic m-max"></i></div><div class="wb w" style="height:32px"><i class="ic m-close"></i></div></div>
+<div class="art cv-a" style="width:240px;height:240px;border-radius:28px;position:absolute;left:44px;top:92px;box-shadow:0 22px 54px rgba(0,0,0,.5)"></div>
+<div style="position:absolute;left:44px;top:352px;width:240px;display:flex;align-items:center;gap:10px"><div style="flex:1;min-width:0"><div style="font-size:21px;font-weight:500">Golden Hour Static</div><div style="font-size:14px;color:rgba(255,255,255,.78)">Ember Cove</div></div><div class="ps" style="position:relative;width:48px;height:48px;border-radius:24px;background:rgba(255,255,255,.2)"><i class="ic m-heart"></i></div></div>
+<div style="position:absolute;left:44px;top:424px;width:240px"><svg width="240" height="18" aria-hidden="true" style="display:block"><defs><pattern id="wy5" width="20" height="18" patternUnits="userSpaceOnUse"><path d="M0 9.0 Q5 4.0 10 9.0 T20 9.0" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/></pattern></defs><rect width="92" height="18" fill="url(#wy5)"/><line x1="92" y1="9.0" x2="240" y2="9.0" stroke="rgba(255,255,255,.34)" stroke-width="4" stroke-linecap="round"/></svg><div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.78);margin-top:4px"><span>1:24</span><span>-2:18</span></div></div>
+<div style="position:absolute;left:34px;top:470px;width:260px;display:flex;gap:8px;justify-content:center">
+<div class="ps" style="position:relative;width:68px;height:52px;border-radius:26px 10px 10px 26px;background:rgba(255,255,255,.22)"><i class="ic m-prev"></i></div>
+<div class="ps" style="position:relative;width:100px;height:52px;border-radius:17px;background:#fff"><i class="ic l m-pause" style="color:#1D192B"></i></div>
+<div class="ps" style="position:relative;width:68px;height:52px;border-radius:10px 26px 26px 10px;background:rgba(255,255,255,.22)"><i class="ic m-next"></i></div></div>
+<div style="position:absolute;left:340px;right:32px;top:84px;bottom:56px;display:flex;flex-direction:column;justify-content:center;gap:20px;font-size:27px;font-weight:700;letter-spacing:-.015em;line-height:1.15;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 20%,#000 80%,transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 20%,#000 80%,transparent 100%)"><div style="color:rgba(255,255,255,.4)">Slow tide pulling at the lights</div><div style="color:rgba(255,255,255,.4)">paper lanterns drift away</div><div style="background:linear-gradient(90deg,#fff 0,#fff 56%,rgba(255,255,255,.42) 64%);-webkit-background-clip:text;background-clip:text;color:transparent">count the hours as they glow</div><div style="color:rgba(255,255,255,.4)">golden hour, static in the air</div><div style="color:rgba(255,255,255,.4)">hold the sky a little longer</div></div>
+<div class="ps" style="right:90px;bottom:18px;width:48px;height:48px;border-radius:24px;background:rgba(255,255,255,.2)"><i class="ic m-vol"></i></div>
+<div class="ps" style="right:32px;bottom:18px;width:48px;height:48px;border-radius:24px;background:rgba(255,255,255,.2)"><i class="ic m-queue"></i></div>
+<div class="n" style="top:70px;left:70px">7</div>
+</div></div>
+</div>
+<div class="cols">
+<div><div class="lt">Windows · Compact window</div>
+<div class="wwin win" style="width:376px;height:560px;border-radius:8px">
+<div class="wtb"><div class="ti"><div class="wic"><i class="ic m-note"></i></div>Encore</div>
+<div class="wcb"><div class="wb"><i class="ic m-min"></i></div><div class="wb"><i class="ic m-max"></i></div><div class="wb"><i class="ic m-close"></i></div></div></div>
+<div style="position:absolute;left:18px;right:18px;top:60px"><div style="font-size:28px;line-height:1.1;margin-bottom:10px">Library</div>
+<div style="display:flex;gap:8px;margin:0 0 14px"><div class="chp sel"><i class="ic m-check" style="width:16px;height:16px"></i>Albums</div><div class="chp">Artists</div><div class="chp">Songs</div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 14px;font-size:13px;line-height:1.3"><div><div class="art cv-a" style="width:100%;aspect-ratio:1;border-radius:16px;;box-shadow:0 3px 10px rgba(29,27,32,.18)"></div><div style="font-weight:500;margin-top:7px">Golden Hour Static</div><div style="color:#49454F;font-size:12px">Ember Cove</div></div><div><div class="art cv-b" style="width:100%;aspect-ratio:1;border-radius:16px;;box-shadow:0 3px 10px rgba(29,27,32,.18)"></div><div style="font-weight:500;margin-top:7px">Night Market</div><div style="color:#49454F;font-size:12px">Pale Harbor</div></div><div><div class="art cv-c" style="width:100%;aspect-ratio:1;border-radius:16px;;box-shadow:0 3px 10px rgba(29,27,32,.18)"></div><div style="font-weight:500;margin-top:7px">Salt and Signal</div><div style="color:#49454F;font-size:12px">Moth Choir</div></div><div><div class="art cv-d" style="width:100%;aspect-ratio:1;border-radius:16px;;box-shadow:0 3px 10px rgba(29,27,32,.18)"></div><div style="font-weight:500;margin-top:7px">Terminal Bloom</div><div style="color:#49454F;font-size:12px">Juno Weft</div></div></div></div>
+<div style="position:absolute;left:10px;right:10px;bottom:84px;height:64px;border-radius:20px;background:#E8DEF8;display:flex;align-items:center;gap:12px;padding:0 10px 0 8px;z-index:3"><div class="art cv-a" style="width:48px;height:48px;border-radius:14px;"></div><div style="min-width:0;flex:1"><div style="font-size:14px;font-weight:500">Slow Tide</div><div style="font-size:12px;color:#49454F">Ember Cove</div></div><div class="ib" style="width:40px;height:40px"><i class="ic m-pause"></i></div><div class="ib" style="width:40px;height:40px"><i class="ic m-next"></i></div></div>
+<div class="nvb"><div><div class="pi"><i class="ic m-home"></i></div>Home</div><div><div class="pi"><i class="ic m-mixes"></i></div>Mixes</div><div class="sel" style="color:#49454F"><div class="pi" style="background:#E8DEF8"><i class="ic m-library" style="color:#1D192B"></i></div>Library</div><div><div class="pi"><i class="ic m-search"></i></div>Search</div></div>
+<div class="n" style="top:16px;left:120px">8</div>
+</div></div>
+<div style="width:380px"><div class="lt">Mini player · always on top</div>
+<div class="wwin win" style="width:380px;height:110px;border-radius:8px;background:#F3EDF7">
+<div class="art cv-a" style="width:110px;height:110px;border-radius:0px;position:absolute;left:0;top:0;border-radius:0"></div>
+<div style="position:absolute;left:126px;right:12px;top:12px"><div style="font-size:14px;font-weight:500">Slow Tide</div><div style="font-size:12px;color:#49454F">Ember Cove</div></div>
+<div style="position:absolute;right:8px;top:6px;display:flex;gap:0"><i class="ic m-pin" style="width:16px;height:16px;color:#6750A4;margin:6px"></i><i class="ic m-restore" style="width:14px;height:14px;color:#49454F;margin:7px"></i></div>
+<div style="position:absolute;left:126px;top:56px"><svg width="238" height="14" aria-hidden="true" style="display:block"><defs><pattern id="wy6" width="20" height="14" patternUnits="userSpaceOnUse"><path d="M0 7.0 Q5 2.0 10 7.0 T20 7.0" fill="none" stroke="#6750A4" stroke-width="3" stroke-linecap="round"/></pattern></defs><rect width="90" height="14" fill="url(#wy6)"/><line x1="90" y1="7.0" x2="238" y2="7.0" stroke="rgba(73,69,79,.3)" stroke-width="3" stroke-linecap="round"/></svg></div>
+<div style="position:absolute;left:122px;right:12px;bottom:6px;display:flex;align-items:center;gap:2px"><div class="ib" style="width:36px;height:36px"><i class="ic m-prev" style="width:20px;height:20px"></i></div><div class="pb" style="width:44px;height:36px;border-radius:14px"><i class="ic m-pause"></i></div><div class="ib" style="width:36px;height:36px"><i class="ic m-next" style="width:20px;height:20px"></i></div><div style="flex:1"></div><div class="ib" style="width:36px;height:36px"><i class="ic m-heart" style="width:20px;height:20px"></i></div></div>
+<div class="n" style="top:38px;left:356px">9</div>
+</div>
+<div class="lt" style="margin-top:34px">Windows · media flyout</div><div class="dk sys" style="width:360px;height:150px;padding:12px 14px;position:relative">
+<div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:rgba(255,255,255,.78)"><div class="wic" style="width:16px;height:16px;border-radius:5px"><i class="ic m-note" style="width:10px;height:10px"></i></div>Encore<span style="margin-left:auto;font-size:12px">&#8943;</span></div>
+<div style="display:flex;gap:12px;margin-top:10px"><div class="art cv-a" style="width:72px;height:72px;border-radius:4px;"></div><div style="min-width:0;flex:1"><div style="font-size:14px;font-weight:600">Slow Tide</div><div style="font-size:12px;color:rgba(255,255,255,.72)">Ember Cove</div><div style="display:flex;align-items:center;gap:8px;font-size:10.5px;color:rgba(255,255,255,.7);margin-top:12px">1:24<div style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.25);position:relative"><div style="position:absolute;left:0;top:0;bottom:0;width:38%;background:#fff;border-radius:2px"></div></div>3:41</div></div></div>
+<div style="display:flex;justify-content:center;gap:26px;margin-top:2px"><i class="ic m-prev" style="width:20px;height:20px"></i><i class="ic m-pause" style="width:22px;height:22px"></i><i class="ic m-next" style="width:20px;height:20px"></i></div>
+<div class="n" style="top:-8px;left:-8px">10</div></div>
+<div class="lt" style="margin-top:34px">Windows · taskbar thumbnail</div><div class="dk sys" style="width:320px;height:200px;padding:10px 12px;position:relative">
+<div style="display:flex;align-items:center;gap:8px;font-size:12px"><div class="wic" style="width:16px;height:16px;border-radius:5px"><i class="ic m-note" style="width:10px;height:10px"></i></div>Encore - Slow Tide<span style="margin-left:auto">&#10005;</span></div>
+<div class="pal-a" style="margin-top:8px;height:108px;border-radius:6px;position:relative;overflow:hidden"><div class="bgm" style="position:absolute;left:0;right:0;top:0;bottom:0"></div><div class="art cv-a" style="width:60px;height:60px;border-radius:8px;position:absolute;left:14px;top:24px"></div><div style="position:absolute;left:90px;top:30px;right:12px;font-size:13px;font-weight:700;line-height:1.3;color:#fff">count the hours<br><span style="opacity:.5">as they glow</span></div></div>
+<div style="display:flex;justify-content:center;gap:12px;margin-top:10px"><div style="width:36px;height:30px;border-radius:5px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center"><i class="ic m-prev" style="width:16px;height:16px"></i></div><div style="width:36px;height:30px;border-radius:5px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center"><i class="ic m-pause" style="width:16px;height:16px"></i></div><div style="width:36px;height:30px;border-radius:5px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center"><i class="ic m-next" style="width:16px;height:16px"></i></div></div>
+</div></div>
+<div style="width:536px"><div class="lt">Linux · media controls (MPRIS)</div><div class="sys" style="width:400px;border-radius:16px;background:#F6F5F4;box-shadow:0 8px 26px rgba(0,0,0,.2),0 0 0 1px rgba(0,0,0,.08);padding:14px;position:relative;color:#1B1B1B">
+<div style="display:flex;gap:12px;align-items:center"><div class="art cv-a" style="width:64px;height:64px;border-radius:10px;"></div><div style="min-width:0;flex:1"><div style="font-size:11px;color:#5E5C64">Encore</div><div style="font-size:14px;font-weight:700">Slow Tide</div><div style="font-size:12.5px;color:#5E5C64">Ember Cove</div></div>
+<div style="display:flex;gap:6px;align-items:center"><div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center"><i class="ic m-prev" style="width:18px;height:18px;color:#1B1B1B"></i></div><div style="width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center"><i class="ic m-pause" style="width:20px;height:20px;color:#1B1B1B"></i></div><div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center"><i class="ic m-next" style="width:18px;height:18px;color:#1B1B1B"></i></div></div></div>
+<div style="display:flex;align-items:center;gap:8px;font-size:10.5px;color:#5E5C64;margin-top:10px">1:24<div style="flex:1;height:4px;border-radius:2px;background:rgba(0,0,0,.14);position:relative"><div style="position:absolute;left:0;top:0;bottom:0;width:38%;background:#3584E4;border-radius:2px"></div></div>3:41</div>
+<div class="n" style="top:-8px;left:-8px">10</div></div>
+<div style="display:flex;gap:36px;margin-top:34px"><div><div class="lt">Windows · notification area menu</div><div class="tmn " style="width:250px">
+<div class="dis">Slow Tide · Ember Cove</div><hr>
+<div><i class="ic m-pause"></i>Pause</div><div><i class="ic m-next"></i>Next</div><div><i class="ic m-prev"></i>Previous</div><hr>
+<div><i class="ic m-note"></i>Open Encore</div><div><i class="ic m-gear"></i>Settings</div><hr><div><i class="ic m-close"></i>Quit Encore</div></div></div><div><div class="lt">Linux · tray menu (optional)</div><div class="tmn lx" style="width:250px">
+<div class="dis">Slow Tide · Ember Cove</div><hr>
+<div><i class="ic m-pause"></i>Pause</div><div><i class="ic m-next"></i>Next</div><div><i class="ic m-prev"></i>Previous</div><hr>
+<div><i class="ic m-note"></i>Open Encore</div><div><i class="ic m-gear"></i>Settings</div><hr><div><i class="ic m-close"></i>Quit Encore</div></div></div></div></div>
+</div>
+<div class="specg"><div class="sr"><div class="no">1</div><div><span class="nm">Title bar and window.</span> The app draws a 48 px title bar in the window: icon and name on the left, a centred search field (Ctrl+F), and the three Windows caption buttons, 46 px wide, on the right. The close button turns red on hover and the others get a neutral fill. Dragging the bar moves the window and double-click maximises it. The frame, shadow, resize edges and rounded corners stay the system's. Windows 10 and 11 are supported, with an optional Mica backdrop behind the rail on Windows 11 and a solid tonal fill elsewhere. <span class="k">CHECK</span>Snap Layouts on the maximise button must be verified in the first Windows build.</div></div><div class="sr"><div class="no">2</div><div><span class="nm">Navigation and panes.</span> The same structure as the Android tablet, drawn at desktop density. The expanded rail (240 px) holds the destinations, Pinned mixes, Playlists and the profile. Below 840 px it becomes the 80 px rail, and below 600 px the bottom bar. Panes are rounded containers, with the supporting pane docked at 1200 px and wider. Keyboard: Tab moves through panes, arrow keys inside lists, and every focus shows a 3 px ring in the primary colour.</div></div><div class="sr"><div class="no">3</div><div><span class="nm">Album table.</span> A desktop table: number, title, artist, album, plays and time. Clicking a header sorts by it and shows an arrow; dragging a header border resizes the column. <span class="k">CLICK</span>selects a row, <span class="k">DOUBLE-CLICK</span>or Enter plays it, Ctrl and Shift extend the selection, and rows can be dragged to the queue, the Up next pane or a playlist in the rail (rules on board 43). Hover adds a faint tint; the playing row is tonal. Scrollbars are thin and widen when the pointer is near them.</div></div><div class="sr"><div class="no">4</div><div><span class="nm">Context menu.</span> <span class="k">RIGHT-CLICK</span>on a row, or the Menu key or Shift+F10, opens a menu at the pointer, flipped to stay on screen. It holds Play, Play next, Add to queue, Add to playlist (opens a submenu after 200 ms hover), Like, Go to artist and Song info, with shortcuts on the right. Arrow keys move, Enter chooses and Esc closes. It is the same menu that long press opens on touch screens.</div></div><div class="sr"><div class="no">5</div><div><span class="nm">Player bar and Up next.</span> A tonal bar floats over the panes with cover, title, transport, shuffle and repeat, a wavy progress line with times, and lyrics, queue and volume. <span class="k">CLICK</span>the line to seek or drag it for a time tooltip; scrolling over the volume changes it by 5 percent. Space plays or pauses when no text field has focus, and media keys always work. In the Up next pane rows show a drag handle for discoverability, though the whole row drags; dragging shows an insertion line, Delete removes the selected row, and dropping outside the pane returns the row with a spring.</div></div><div class="sr"><div class="no">6</div><div><span class="nm">Linux window.</span> The Linux window uses a header bar with a sidebar button, the page title, search and the window controls, whose position and look follow the desktop. The app keeps its own Material look on every desktop and does not borrow the GTK theme, but it follows the system light or dark setting. Hover shows a play button on the cover, keyboard focus a 3 px ring. The window works under Wayland and X11 and tiles cleanly with no minimum-size trap beyond 360 by 480 px.</div></div><div class="sr"><div class="no">7</div><div><span class="nm">Now Playing window.</span> The same Now Playing as the tablet, in its own full window: album gradient, wavy progress, the same three-button transport (Previous round on the left, Next round on the right, play flat while playing and round when paused) and word-by-word lyrics. A chevron (or Esc) returns to the library, F11 enters full screen, and the compact button opens the mini player. The caption buttons stay visible in white. Clicking a lyric line seeks, and scrolling by hand pauses auto-follow for 4 seconds.</div></div><div class="sr"><div class="no">8</div><div><span class="nm">Compact window.</span> Any window narrower than 600 px shows the phone layout: large title, a navigation bar and the mini player. The smallest window is 360 by 480 px. Resizing re-flows live with no reload, keeps the scroll position and selection, and animates pane changes with a short spring, or a cross-fade with reduced motion.</div></div><div class="sr"><div class="no">9</div><div><span class="nm">Mini player.</span> A small always-on-top window (compact overlay on Windows; keep-above on Linux where the compositor allows it, otherwise a normal window). Cover, title, wavy progress and transport. The pin keeps it on top, the restore button returns to the main window, and it remembers its place. It never takes focus from another app unless clicked.</div></div><div class="sr"><div class="no">10</div><div><span class="nm">System surfaces.</span> Not drawn by the app. Windows reads title, artist, cover and position through the System Media Transport Controls for the volume flyout, lock screen and media keys, and shows previous, play and next on the taskbar thumbnail. Linux publishes the same through MPRIS for GNOME, KDE, playerctl and media keys. An optional tray icon with the menu shown here is off by default, and no feature depends on it because GNOME has no tray without an extension.</div></div></div>
+<div class="st"><b>Design language.</b> Windows and Linux use Material 3 Expressive, built as a small Encore theme in Flutter because Flutter does not ship the Expressive components: color roles from each album, tonal surfaces, connected button groups, 28 px pane corners, a wavy progress painter and spring motion. It is the same look as Android, at desktop density and with desktop input. <b>Size classes.</b> Compact under 600 px, Medium 600 to 839, Expanded 840 to 1199, Large from 1200, exactly as on the tablets, and the layout never checks the operating system. <b>Theme.</b> Light and dark follow the system; dark uses the Material dark tonal roles with the same shapes. <b>Accessibility.</b> Narrator and Orca get labels and roles for every control, text scales with the system setting, contrast stays at least 4.5 to 1, and Reduce motion stops the wave and the gradient drift.</div>
+
+</div>
+</body></html>

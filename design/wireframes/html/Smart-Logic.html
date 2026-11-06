@@ -1,0 +1,97 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="./wf.css"><style>html,body{margin:0}</style>
+
+<style>
+
+.slbl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:#4A5160;margin:0 0 8px}
+.ssec{position:relative}
+.spipe{display:flex;align-items:stretch;gap:0}
+.sbx{flex:1;min-width:0;border:1px solid #CBD1DB;border-radius:14px;background:#fff;padding:11px 12px 12px;position:relative}
+.sbx .kk{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6B7280}
+.sbx b{display:block;font-size:14px;margin:2px 0 6px}
+.sbx p{margin:0;font-size:11.5px;line-height:1.42;color:#2B3140}
+.sar{flex:none;width:22px;display:flex;align-items:center;justify-content:center;color:#6B7280;font-size:15px}
+.sgr{display:flex;gap:0;margin-top:8px}
+.sgr div{border-top:3px solid #6750A4;padding-top:5px;font-size:11px;line-height:1.35;color:#2B3140}
+.sgr div b{color:#16181D}
+.stb{width:100%;border-collapse:collapse;table-layout:fixed;font-size:11.5px;line-height:1.4;color:#2B3140}
+.stb th{text-align:left;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:#4A5160;padding:0 10px 7px 0;border-bottom:2px solid #16181D;font-weight:600}
+.stb td{vertical-align:top;padding:7px 10px 7px 0;border-bottom:1px solid #CBD1DB}
+.stb td:first-child{font-weight:600;color:#16181D}
+.stb td.w{font-family:'DejaVu Sans Mono',monospace;font-size:11px;white-space:nowrap}
+.stb td.pos{color:#1E7B46}.stb td.neg{color:#B3261E}.stb td.nil{color:#6B7280}
+.stb code,.scard code{font-family:'DejaVu Sans Mono',monospace;font-size:10.5px;background:rgba(22,24,29,.06);padding:0 3px;border-radius:3px}
+.scard{border:1px solid #CBD1DB;border-radius:16px;background:#fff;padding:14px 16px;position:relative}
+.scard h3{margin:0 0 8px;font-size:14px;font-weight:600}
+.scard p,.scard li{margin:0 0 6px;font-size:12px;line-height:1.45;color:#2B3140}
+.scard ul{margin:0;padding-left:16px}
+.scard li{margin-bottom:5px}
+.sflag{display:inline-block;font-size:9.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#8A4B00;background:#FFE9C7;border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:1px}
+.snew{display:inline-block;font-size:9.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#1E5FD1;background:#E1ECFF;border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:1px}
+.sladder{display:flex;gap:10px}
+.sstep{flex:1;border:1px solid #CBD1DB;border-radius:14px;background:#fff;padding:11px 12px;position:relative;min-width:0}
+.sstep .n0{font-size:22px;font-weight:600;letter-spacing:-.02em}
+.sstep .n0 small{font-size:11px;font-weight:500;color:#6B7280;letter-spacing:0;margin-left:4px}
+.sstep p{margin:6px 0 0;font-size:11.5px;line-height:1.42;color:#2B3140}
+
+</style>
+</head><body>
+
+<div class="lgb" style="height:2340px">
+
+<div><h1>Smart picks: signals and rules</h1>
+<p class="intro">Everything that chooses a song for the user (autoplay, mixes, smart shuffle, radio, suggestions, smart downloads) goes through one engine with one set of rules. It extends section 7 of the plan: the weights, the 30 second early-skip boundary, the 10% default exploration and the five mixes are unchanged, and the additions are marked New. Skips are read carefully so the app learns from real dislike and not from a dropped call.</p></div>
+<div class="ssec"><div class="slbl">The pipeline</div><div class="spipe">
+<div class="sbx"><div class="kk">1 · Capture</div><b>Log what happened</b><p>One event per play: song, who chose it, where it started, seconds played, how it ended, time bucket, output. Likes, adds and downloads are events too.</p></div><div class="sar">›</div>
+<div class="sbx"><div class="kk">2 · Interpret</div><b>Read the event</b><p>Weights from the table below, minus events that do not count (call, route change, error, Private listening).</p></div><div class="sar">›</div>
+<div class="sbx"><div class="kk">3 · Learn</div><b>Update the model</b><p>Per-profile ranking model plus the co-listen graph. Trained nightly on the server, or on the device while charging and idle.</p></div><div class="sar">›</div>
+<div class="sbx"><div class="kk">4 · Candidates</div><b>About 500 songs</b><p>Co-listened, similar sounding, related artists, rediscovery and new additions, then hard filters.</p></div><div class="sar">›</div>
+<div class="sbx"><div class="kk">5 · Rank</div><b>Score each one</b><p>Chance the song is played past 30 s and finished, from the model, or hand-tuned until one exists.</p></div><div class="sar">›</div>
+<div class="sbx"><div class="kk">6 · Shape</div><b>Diversify and order</b><p>Exploration slots, diversity re-rank, artist and album caps, smooth tempo and energy.</p></div><div class="sar">›</div>
+<div class="sbx"><div class="kk">7 · Deliver</div><b>Show it, explain it</b><p>Shelves, queue, widgets. Every pick keeps its top two reasons for "Why this song".</p></div>
+</div>
+<div class="sgr">
+<div style="flex:2.2;margin-right:8px"><b>Live, on the device, before the next song starts</b>: steps 1, 2, 4 to 7 and the in-session adjustment.</div>
+<div style="flex:1;margin-right:8px;border-top-color:#1E7B46"><b>Nightly</b>: step 3 and the mixes.</div>
+<div style="flex:3.4;border-top-color:#8A4B00"><b>At request</b>: queue refills and shelves read the precomputed lists, so the next song never waits for a model.</div>
+</div></div>
+<div style="display:flex;gap:36px;align-items:flex-start">
+ <div style="flex:1.45;min-width:0" class="ssec"><div class="slbl">How each event is read</div><table class="stb"><colgroup><col style="width:23%"><col style="width:15%"><col style="width:10%"><col style="width:52%"></colgroup><thead><tr><th>Event</th><th>Reads as</th><th>Weight</th><th>Rule</th></tr></thead><tbody><tr><td>Liked</td><td>Permanent positive</td><td class="w pos">+3.0</td><td>Never decays. Unliking removes it.</td></tr><tr><td>Replayed, queued by hand, searched then played</td><td>Strong intent</td><td class="w pos">+1.5</td><td>A replay is a restart within 10 minutes, or Repeat One.</td></tr><tr><td>Added to a playlist or downloaded <span class="snew">New</span></td><td>Strong intent</td><td class="w pos">+1.5</td><td>Removing it later does not undo the signal.</td></tr><tr><td>Finished</td><td>Positive</td><td class="w pos">+1.0</td><td>Strongest when autoplay or a mix chose the song.</td></tr><tr><td>Played past 80%, then skipped</td><td>Mostly enjoyed</td><td class="w pos">+0.5</td><td>Treated as finished for the context it was played in.</td></tr><tr><td>Skipped between 30 s and 80%</td><td>Mild negative</td><td class="w neg">−0.5</td><td>Fades with a 30 day half-life <span class="snew">New</span>.</td></tr><tr><td>Skipped in the first 30 s, app-chosen</td><td>The key signal</td><td class="w neg">−1.5</td><td>Also steers the rest of this session (below). Fades with a 30 day half-life.</td></tr><tr><td>Skipped, song the user picked</td><td>Browsing</td><td class="w neg">−0.2</td><td>Ignored until the same song is skipped 3 times in 14 days <span class="snew">New</span>.</td></tr><tr><td>Paused and never resumed</td><td>Ambiguous</td><td class="w nil">0</td><td>Ignored.</td></tr><tr><td>Not interested</td><td>Exclude</td><td class="w nil">Exclude</td><td>The song, or the artist if chosen. Never decays. Cleared by Undo, by removing it in Settings, or by Clear list.</td></tr></tbody></table></div>
+ <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:14px"><div class="scard"><h3>What does not count as a signal</h3><ul>
+<li><b>Interruptions.</b> A skip within 3 s of a headphone unplug, a Bluetooth or AirPlay switch, a call or an assistant request.</li>
+<li><b>Errors.</b> Unavailable songs, failed loads and automatic skips by the app.</li>
+<li><b>Seeking.</b> Dragging the progress bar is never a skip.</li>
+<li><b>Accidents.</b> Anything stopped under 2 s after starting.</li>
+<li><b>Too soon.</b> A negative for a song heard in the last 2 hours is recorded as "too soon", not dislike.</li>
+<li><b>Ends by system.</b> A sleep timer, a closed app or a lost connection.</li>
+<li><b>Private listening</b> and any time <b>Learn from my listening</b> is off: nothing is stored.</li>
+</ul></div><div class="scard"><h3>In-session adjustment <span class="sflag">Starting values</span></h3>
+<p><b>Three early skips in a row</b> of app-chosen songs: exploration drops to zero for the next 10 picks, the session's sound moves 30% away from the skipped songs, and the unplayed autoplay songs are swapped in the background. Songs the user queued are never touched.</p>
+<p><b>A like or a replay</b> moves the session 30% toward that song and the next two picks come from its nearest neighbours.</p>
+<p>Both run on the device before the next song starts. Tune the numbers with replay tests on real histories.</p></div></div>
+</div>
+<div class="ssec"><div class="slbl">Where the engine is used</div><table class="stb"><colgroup><col style="width:14%"><col style="width:26%"><col style="width:9%"><col style="width:24%"><col style="width:27%"></colgroup><thead><tr><th>Where</th><th>What it asks the engine for</th><th>Size</th><th>Refreshes</th><th>When there is no data, offline or learning is off</th></tr></thead><tbody><tr><td>Home: Made for you</td><td>The five mixes (plan section 7.1)</td><td>5 tiles</td><td>Nightly, and after 25 or more new plays. Never while a mix is playing.</td><td>Yesterday's mixes with an age label. Under 50 plays: three mixes from library audio. Learning off: Recently added and Most played.</td></tr><tr><td>Home: Rediscover</td><td>Loved songs not played for 60+ days</td><td>12</td><td>Daily</td><td>Random liked songs.</td></tr><tr><td>Home: Recently played</td><td>Not smart. Plain history order.</td><td>12</td><td>Live</td><td>Always available.</td></tr><tr><td>Mixes tab</td><td>The same mixes, each with a reason line, plus Deep Cuts</td><td>5 + 1</td><td>With the mixes</td><td>Same fallbacks as Home.</td></tr><tr><td>Queue: Autoplay</td><td>Next songs seeded by the current song and the last 5 finished</td><td>10</td><td>Refills when fewer than 5 are upcoming. Touches only the Autoplay section.</td><td>Related artists, genre and era from metadata. Offline: downloaded songs only.</td></tr><tr><td>Smart shuffle <span class="snew">New</span></td><td>One suggestion per 4 songs from the list being shuffled</td><td>1 in 4</td><td>Live</td><td>Plain shuffle. Suggestions are marked with a spark and swipe away.</td></tr><tr><td>Radio from a song, album, artist or playlist</td><td>Autoplay with that seed held for the whole session</td><td>endless</td><td>Live</td><td>Seed's related artists.</td></tr><tr><td>Search</td><td>Order of equally good text matches only</td><td>–</td><td>Live</td><td>Text relevance. Personal boost is capped at 15% and never hides an exact match.</td></tr><tr><td>Widgets, CarPlay, Android Auto</td><td>The same mix snapshot, written per profile</td><td>5</td><td>With the mixes</td><td>Last snapshot with an age label.</td></tr><tr><td>Smart downloads <span class="snew">New</span></td><td>Top songs of pinned mixes inside a size budget</td><td>2 GB default</td><td>Nightly, on Wi-Fi and charging</td><td>Off by default. Without data it downloads nothing.</td></tr><tr><td>Year-end recap</td><td>Reads the event log only, never the model</td><td>–</td><td>Year end</td><td>Needs 100 plays; otherwise a short card.</td></tr></tbody></table></div>
+<div style="display:flex;gap:36px;align-items:flex-start">
+ <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:14px"><div class="scard"><h3>Ranking and shaping rules</h3><ul>
+<li><b>Hard filters first.</b> Not interested, hidden explicit songs when set, unavailable or not downloaded when offline, duplicates of the same recording, anything played in the last 24 hours unless loved.</li>
+<li><b>Score</b> is the model's chance that the song is played past 30 s and finished. Until a model exists: 0.35 affinity, 0.20 session fit, 0.15 time-of-day fit, 0.10 freshness, minus 0.20 for the recent skip rate in similar contexts <span class="sflag">Starting values</span>.</li>
+<li><b>Exploration.</b> Familiar 5%, Balanced 10% (default, as in section 7), Adventurous 20% of slots, picked by Thompson sampling. Never the first slot, never two in a row, always after a song the user is likely to finish.</li>
+<li><b>Diversity.</b> Re-rank with maximal marginal relevance (weight 0.7 on score) over sound and artist. No artist twice within 3 songs, at most 2 per artist and 4 per album in a mix.</li>
+<li><b>Flow.</b> Tempo and energy move one step at a time, except at a planned mood shift.</li>
+<li><b>Stability.</b> A shelf changes by at most 30% on refresh unless the user pinned it or taps Regenerate.</li>
+<li><b>Explainable.</b> Each pick keeps its top two reasons.</li>
+</ul></div><div class="scard"><h3>Budgets <span class="sflag">Starting values</span></h3>
+<p>Next-song decision under 50 ms, read from the precomputed list. A full mix build under 20 s for 20,000 songs on a mid-range phone, under 150 MB of memory, and never during the first seconds of playback. Background jobs stop on a thermal warning.</p></div></div>
+ <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:14px">
+  <div class="ssec"><div class="slbl">Cold start</div><div class="sladder">
+<div class="sstep"><div class="n0">0<small>plays</small></div><p>Home shows Recently added, Rediscover and a Starter mix from the server's favourites and most played. Autoplay follows artist, genre and era. An optional import of Last.fm or ListenBrainz history skips this step.</p></div>
+<div class="sstep"><div class="n0">1–49<small>plays</small></div><p>Up to three mixes from library audio (calm, upbeat, focus), a one-time "Encore is still learning" note, exploration fixed at Balanced.</p></div>
+<div class="sstep"><div class="n0">50+<small>plays</small></div><p>Five mixes, session adaptation and specific "Why this song" reasons.</p></div>
+<div class="sstep"><div class="n0">30 days<small>of history</small></div><p>Time-of-day mix, a mix for where taste has drifted, and the stretch mix with about 30% new-to-you songs.</p></div>
+</div></div>
+  <div class="ssec"><div class="slbl">When something is missing</div><table class="stb"><colgroup><col style="width:30%"><col style="width:70%"></colgroup><thead><tr><th>Situation</th><th>What happens</th></tr></thead><tbody><tr><td>No companion server</td><td>The device trains while charging and idle with the same Rust code. Nothing else changes.</td></tr><tr><td>Server unreachable</td><td>Last model keeps working. Events queue on the device and sync later.</td></tr><tr><td>Model file missing, corrupt or too new</td><td>Rebuilt from the event log. Hand-tuned scoring runs in the meantime.</td></tr><tr><td>Audio analysis not finished</td><td>Metadata and co-listen only. Analysis continues in the background and upgrades the picks.</td></tr><tr><td>Songs removed from the library</td><td>Dropped silently and refilled. A tile never points at a missing song.</td></tr><tr><td>Offline</td><td>Candidates are limited to downloaded songs. Mixes say "Only downloaded songs".</td></tr><tr><td>Battery saver or high temperature</td><td>Background builds wait. Live ranking still runs, it takes milliseconds.</td></tr><tr><td>Library over 100,000 songs</td><td>Candidates come from an approximate nearest-neighbour index, capped at 200 per pool.</td></tr><tr><td>Profile switch or Guest</td><td>Model, events and mixes belong to the profile and swap in under a second. Guest learns nothing and uses the plain fallbacks.</td></tr></tbody></table></div>
+ </div>
+</div>
+<div class="ssec"><div class="slbl">Rules that apply everywhere</div><div class="specg"><div class="sr"><div class="no">1</div><div><span class="nm">The event log is the truth.</span> Models, mixes and caches can always be rebuilt from it. Reset suggestions and Clear listening history are different: reset ignores old events for learning, clear deletes them.</div></div><div class="sr"><div class="no">2</div><div><span class="nm">Who chose the song matters.</span> A skip of a song the user picked is browsing. A skip of a song the app picked is the strongest negative there is.</div></div><div class="sr"><div class="no">3</div><div><span class="nm">Sync.</span> Events are append-only and merged by id. Models carry a version and a training epoch, and the newest epoch wins. Not-interested is a set of adds and removes, last write wins per item. Clear and Reset sync as tombstones, so another device cannot bring the data back.</div></div><div class="sr"><div class="no">4</div><div><span class="nm">Privacy.</span> Listening data stays on the user's devices and their own server. Looking up related artists on MusicBrainz, importing from or scrobbling to ListenBrainz or Last.fm are off by default, ask per profile, and send song identifiers only.</div></div><div class="sr"><div class="no">5</div><div><span class="nm">Plain reasons.</span> "Why this song" uses facts the user can check: what they played, when, and what sounds similar. It never guesses mood, health or location.</div></div><div class="sr"><div class="no">6</div><div><span class="nm">Measuring it.</span> A private page, How suggestions are doing, shows skip rate of app-chosen songs, completion, distinct artists per 20 songs and repeats, per shelf. Offline replay on test histories runs in CI. No telemetry leaves the device. The v1 target is to beat shuffle by a wide margin (section 7).</div></div><div class="sr"><div class="no">7</div><div><span class="nm">Licences.</span> The audio embedding model and the nearest-neighbour library each need a licence check before release. Some audio analysis tools use copyleft licences that fit the server (AGPL) but not the apps (MPL).</div></div><div class="sr"><div class="no">8</div><div><span class="nm">Guest and Private listening.</span> Neither stores events. Private listening is a per-session switch in the Now Playing menu that ends after 2 hours of silence and shows a small badge while on.</div></div></div></div>
+
+</div>
+</body></html>

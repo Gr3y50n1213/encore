@@ -1,0 +1,73 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="./wf.css"><style>html,body{margin:0}</style>
+
+<style>
+.stc{border-radius:20px;background:#fff;padding:12px 14px;margin:0 0 10px;box-shadow:0 1px 0 rgba(20,25,40,.06)}
+.and .stc{background:#F3EDF7;border-radius:24px;box-shadow:none}
+.stc .h{font-size:14px;font-weight:600}
+.stc .b,.and .stc .b{background:none;border-radius:0;font-size:12.5px;color:#4A5160;margin-top:2px;line-height:1.35}
+.ban{display:flex;align-items:center;gap:10px;border-radius:999px;padding:8px 14px;font-size:12.5px;background:#FFE9C2;color:#5B3B00;margin:0 0 10px}
+.and .ban{border-radius:16px;background:#FFDDB3}
+.sk{height:10px;border-radius:5px;background:linear-gradient(90deg,#DADFE8 25%,#EDF0F5 50%,#DADFE8 75%);background-size:200% 100%;animation:shim 1.4s linear infinite;margin:6px 0}
+@keyframes shim{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.sk{animation:none}}
+.act{display:inline-block;margin-top:8px;font-size:12px;font-weight:600;color:#2F6BFF}
+.and .act{color:#6750A4}
+.dis{opacity:.45}
+.ld{position:absolute;right:14px;top:12px;width:28px;height:28px;background:#6750A4}
+</style>
+</head><body>
+
+<div class="board">
+<div class="col">
+<div class="lbl">iOS 26 · Liquid Glass</div>
+<div class="phone ios" style="background:#EEF0F5">
+<div class="sc" style="padding:62px 14px 0">
+<div class="ban">Offline. Showing downloaded music</div>
+<div class="stc"><div class="h">Nothing here yet</div><div class="b">Songs you like will show up in this list.</div><span class="act">Browse music</span></div>
+<div class="stc"><div class="h">Couldn't load</div><div class="b">Check your connection and try again.</div><span class="act">Try again</span></div>
+<div class="stc"><div class="sk" style="width:60%"></div><div class="sk" style="width:90%"></div><div class="sk" style="width:40%"></div></div>
+<div class="stc dis"><div class="h">Song unavailable</div><div class="b">It is no longer on your server.</div></div>
+<div class="stc"><div class="h">No results for "xyz"</div><div class="b">Check the spelling or try fewer words.</div></div>
+</div>
+<div class="n" style="top:54px;left:1px">1</div>
+<div class="n" style="top:98px;left:1px">2</div>
+<div class="n" style="top:186px;left:1px">3</div>
+<div class="n" style="top:274px;left:1px">4</div>
+<div class="n" style="top:362px;left:1px">5</div>
+<div class="n" style="top:440px;left:1px">6</div>
+<div class="glass tabbar"><span class="tb"><i class="ic m-home"></i>Home</span><span class="tb"><i class="ic m-mixes"></i>Mixes</span><span class="tb on"><i class="ic m-library"></i>Library</span></div>
+<div class="glass tabsrch" aria-label="Search"><i class="ic m-search"></i></div>
+</div>
+</div>
+<div class="col">
+<div class="lbl">Android 16 · Material 3 Expressive</div>
+<div class="phone and" style="background:#FEF7FF">
+<div class="sc" style="padding:50px 14px 0">
+<div class="ban">Offline. Showing downloaded music</div>
+<div class="stc"><div class="h">Nothing here yet</div><div class="b">Songs you like will show up in this list.</div><span class="act">Browse music</span></div>
+<div class="stc"><div class="h">Couldn't load</div><div class="b">Check your connection and try again.</div><span class="act">Try again</span></div>
+<div class="stc" style="position:relative"><div class="ld sh sh-sun spin"></div><div class="sk" style="width:60%"></div><div class="sk" style="width:90%"></div><div class="sk" style="width:40%"></div></div>
+<div class="stc dis"><div class="h">Song unavailable</div><div class="b">It is no longer on your server.</div></div>
+<div class="stc"><div class="h">No results for "xyz"</div><div class="b">Check the spelling or try fewer words.</div></div>
+</div>
+<div class="n" style="top:52px;left:1px">1</div>
+<div class="n" style="top:96px;left:1px">2</div>
+<div class="n" style="top:184px;left:1px">3</div>
+<div class="n" style="top:272px;left:1px">4</div>
+<div class="n" style="top:360px;left:1px">5</div>
+<div class="n" style="top:438px;left:1px">6</div>
+<div class="navbar"><span class="nb"><b><i class="ic m-home"></i></b>Home</span><span class="nb"><b><i class="ic m-mixes"></i></b>Mixes</span><span class="nb on"><b><i class="ic m-library"></i></b>Library</span><span class="nb"><b><i class="ic m-search"></i></b>Search</span></div>
+</div>
+</div>
+<div class="spec">
+<div class="lbl" style="margin-bottom:10px">Empty, error and offline states</div>
+<div class="sr"><div class="no">1</div><div><span class="nm">Offline banner.</span> Slides in under the status area when the network is lost for more than 2 s, and leaves 2 s after it returns. It never covers controls. Browsing is limited to downloaded and already cached items; everything else dims with "Needs connection". Playback of the current song continues from its buffer.</div></div>
+<div class="sr"><div class="no">2</div><div><span class="nm">Empty.</span> One sentence saying what will appear and one action. No cartoons. Home, Library sections, Likes, Downloads, Queue ("Nothing is playing next") and Search recents each have their own text.</div></div>
+<div class="sr"><div class="no">3</div><div><span class="nm">Error.</span> A short cause and one action, Try again. <span class="k">TAP</span>retries and shows the spinner for at least 400 ms so the tap feels received. After the third failure it also shows "Check servers". <span class="k">HAPTIC</span>error only on a user-started retry, never on a background failure.</div></div>
+<div class="sr"><div class="no">4</div><div><span class="nm">Loading.</span> Skeleton shapes in the exact layout of the content, with a slow shimmer. For waits with no known layout, Android shows the Material expressive loading indicator, a turning shape that morphs between cookie and sunny forms, and iOS shows the system spinner. They appear only if loading takes more than 250 ms, so quick loads do not flash. Reduced motion stops the shimmer.</div></div>
+<div class="sr"><div class="no">5</div><div><span class="nm">Unavailable item.</span> Dimmed. <span class="k">TAP</span>shakes 6 pt twice with the warning haptic and shows the reason as a toast. The item stays in lists so nothing silently vanishes, and the song menu offers Remove.</div></div>
+<div class="sr"><div class="no">6</div><div><span class="nm">No results.</span> Echoes the query, suggests a fix, and offers "Search all sources" when only the downloaded ones were searched.</div></div>
+<div class="st"><b>Playback errors.</b> Buffering: the play button becomes a ring after 500 ms of stalling. Stream fails twice: skip to the next song and show "Couldn't play Song". Three in a row: pause and say why. <b>Toasts and banners</b> are announced to screen readers and never trap focus. <b>Server error text</b> shows the real reason from the server in a "Details" disclosure.</div>
+</div>
+</div>
+</body></html>

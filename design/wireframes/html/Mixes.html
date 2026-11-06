@@ -1,0 +1,71 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="./wf.css"><style>html,body{margin:0}</style>
+
+<style>
+.mx{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mc{border-radius:18px}
+.mc .cv{aspect-ratio:1/1;display:grid;grid-template-columns:1fr 1fr;gap:0;overflow:hidden;border-radius:18px}
+.mc .tt{font-size:14px;font-weight:600;margin-top:6px}
+.mc .ds{font-size:11.5px;color:#4A5160;line-height:1.3}
+.and .mc .cv{border-radius:24px}
+.and .mc .cv.sh{border-radius:0;position:relative;display:block}
+.mc .cv .in{position:absolute;inset:11px;display:grid;grid-template-columns:1fr 1fr;overflow:hidden}
+.pin{font-size:10.5px;border:1px solid #AEB5C4;border-radius:999px;padding:1px 7px;color:#4A5160;margin-left:6px}
+.stamp{font-size:12px;color:#6B7280;margin:0 2px 12px}
+</style>
+</head><body>
+
+<div class="board">
+<div class="col">
+<div class="lbl">iOS 26 · Liquid Glass</div>
+<div class="phone ios" style="background:#EEF0F5">
+<div class="sc" style="padding:62px 16px 0">
+<div style="font-size:30px;font-weight:700;margin:6px 2px 2px">Mixes</div>
+<div class="stamp">Five new mixes today, made on this device</div>
+<div class="mx">
+<div class="mc"><div class="cv"><div class="cv-a"></div><div class="cv-b"></div><div class="cv-c"></div><div class="cv-d"></div></div><div class="tt">Quiet hours</div><div class="ds">Slow, warm songs after 10 pm</div></div>
+<div class="mc"><div class="cv"><div class="cv-c"></div><div class="cv-d"></div><div class="cv-a"></div><div class="cv-b"></div></div><div class="tt">Gym push<span class="pin">Pinned</span></div><div class="ds">Fast, loud, rarely skipped</div></div>
+<div class="mc"><div class="cv"><div class="cv-b"></div><div class="cv-c"></div><div class="cv-d"></div><div class="cv-a"></div></div><div class="tt">Rainy commute</div><div class="ds">Mellow songs on weekday mornings</div></div>
+<div class="mc"><div class="cv"><div class="cv-d"></div><div class="cv-a"></div><div class="cv-b"></div><div class="cv-c"></div></div><div class="tt">Old favorites</div><div class="ds">Songs you loved and haven't played lately</div></div>
+</div>
+</div>
+<div class="n" style="top:62px;right:1px">1</div>
+<div class="n" style="top:112px;right:1px">2</div>
+<div class="n" style="top:150px;left:1px">3</div>
+<div class="n" style="top:304px;right:1px">4</div>
+<button class="glass mini-i" aria-label="Mini player"><div class="art cv-a" style="width:40px;height:40px"></div><div class="g" style="text-align:left"><div class="t" style="font-weight:600">Golden Hour Static</div><div class="s">Ember Cove</div></div><i class="ic m-play"></i><i class="ic m-next"></i></button>
+<div class="glass tabbar"><span class="tb"><i class="ic m-home"></i>Home</span><span class="tb on"><i class="ic m-mixes"></i>Mixes</span><span class="tb"><i class="ic m-library"></i>Library</span></div>
+<div class="glass tabsrch" aria-label="Search"><i class="ic m-search"></i></div>
+</div>
+</div>
+<div class="col">
+<div class="lbl">Android 16 · Material 3 Expressive</div>
+<div class="phone and" style="background:#FEF7FF">
+<div class="sc" style="padding:50px 16px 0">
+<div style="font-size:34px;font-weight:500;margin:16px 4px 2px;line-height:1.1">Mixes</div>
+<div class="stamp" style="margin-left:4px">Five new mixes today, made on this device</div>
+<div class="mx">
+<div class="mc"><div class="cv sh sh-cookie" style="background:#D0BCFF"><div class="in sh"><div class="cv-a"></div><div class="cv-b"></div><div class="cv-c"></div><div class="cv-d"></div></div></div><div class="tt">Quiet hours</div><div class="ds">Slow, warm songs after 10 pm</div></div>
+<div class="mc"><div class="cv sh sh-squircle" style="background:#EFB8C8"><div class="in sh"><div class="cv-c"></div><div class="cv-d"></div><div class="cv-a"></div><div class="cv-b"></div></div></div><div class="tt">Gym push<span class="pin">Pinned</span></div><div class="ds">Fast, loud, rarely skipped</div></div>
+<div class="mc"><div class="cv sh sh-arch" style="background:#CCC2DC"><div class="in sh"><div class="cv-b"></div><div class="cv-c"></div><div class="cv-d"></div><div class="cv-a"></div></div></div><div class="tt">Rainy commute</div><div class="ds">Mellow songs on weekday mornings</div></div>
+<div class="mc"><div class="cv sh sh-clover" style="background:#D0BCFF"><div class="in sh"><div class="cv-d"></div><div class="cv-a"></div><div class="cv-b"></div><div class="cv-c"></div></div></div><div class="tt">Old favorites</div><div class="ds">Songs you loved and haven't played lately</div></div>
+</div>
+</div>
+<div class="n" style="top:70px;right:1px">1</div>
+<div class="n" style="top:112px;right:1px">2</div>
+<div class="n" style="top:150px;left:1px">3</div>
+<div class="n" style="top:304px;right:1px">4</div>
+<button class="mini-a" aria-label="Mini player"><div class="art cv-a" style="width:46px;height:46px"></div><div class="g" style="text-align:left"><div class="t" style="font-weight:600">Golden Hour Static</div><div class="s">Ember Cove</div></div><i class="ic m-play"></i><i class="ic m-next"></i></button>
+<div class="navbar"><span class="nb"><b><i class="ic m-home"></i></b>Home</span><span class="nb on"><b><i class="ic m-mixes"></i></b>Mixes</span><span class="nb"><b><i class="ic m-library"></i></b>Library</span><span class="nb"><b><i class="ic m-search"></i></b>Search</span></div>
+</div>
+</div>
+<div class="spec">
+<div class="lbl" style="margin-bottom:10px">Mixes tab</div>
+<div class="sr"><div class="no">1</div><div><span class="nm">Title and stamp.</span> The tab shows the five mixes generated for the day, newest first by relevance, and a line saying when and where they were made. Pull to refresh asks for a new set only if it has been over 6 hours.</div></div>
+<div class="sr"><div class="no">2</div><div><span class="nm">Cards.</span> A 2-column grid on phones. The cover is a mosaic of four song covers. Title: two to four plain words. One short line says what the mix is. <span class="k">TAP</span>opens the mix page. On Android each generated mix takes one shape from the Material shape set (cookie, squircle, arch, clover), picked from the mix id so it stays the same for that mix. Real album art never gets these shapes; it keeps one plain radius on all four corners. <span class="k">HOLD</span>menu: Play, Shuffle, Pin, Why these songs, Hide this mix.</div></div>
+<div class="sr"><div class="no">3</div><div><span class="nm">Play from the card.</span> <span class="k">2×TAP</span>does nothing. A small play button on the cover plays the mix directly, with the replace-queue Undo toast. <span class="k">GUARD</span>the play button's hit area is 44 pt and sits at the cover's corner, away from the card's own tap area.</div></div>
+<div class="sr"><div class="no">4</div><div><span class="nm">Pinned.</span> A pinned mix keeps its songs until the user refreshes it, shows a "Pinned" label, and sorts first. Up to 10 are pinned; beyond that, Pin asks to unpin another.</div></div>
+<div class="sr"><div class="no"></div><div><span class="nm">Below the grid.</span> A "Because you listened to" row, up to 3 shelves, each a horizontal strip of albums or artists, followed by "Your recap" when it is available. Nothing is infinite; the page ends.</div></div>
+<div class="st"><b>Generation.</b> At 6:00 AM or the first launch after it, on the device, from the play log and skips, never from genre alone. Five mixes need at least four distinct moods; fewer moods make fewer mixes, down to a minimum of two. <b>Hidden mix.</b> Removed from today's set and used as a signal; Undo for 5 s. <b>Empty.</b> See the states board. <b>Tablet and desktop.</b> 3 to 5 columns.</div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,110 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="./wf.css"><style>html,body{margin:0}</style>
+
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;color:#16181D}
+h2{margin:0 0 12px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#4A5160;font-weight:600}
+.r{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid #DDE1E8;font-size:13px;line-height:1.45;color:#2B3140}
+.r b{min-width:96px;font-weight:600;color:#16181D}
+.sp{position:relative;height:330px;border-radius:28px;overflow:hidden;box-sizing:border-box;padding:22px;display:flex;flex-direction:column;justify-content:space-between;margin:0 0 10px}
+.gw{background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.42);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:600;font-size:14px}
+.sh1{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:10.5px;color:#4A5160}
+.tn{display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:#1D1B20}
+</style>
+</head><body>
+
+<div style="width:1500px;height:1330px;box-sizing:border-box;background:#EEF0F3;padding:48px 56px;display:flex;flex-direction:column;gap:24px">
+<div>
+<h1 style="margin:0 0 8px;font-size:34px;font-weight:600;letter-spacing:-.02em">Platform design languages</h1>
+<p style="margin:0;font-size:15px;line-height:1.5;max-width:980px;color:#2B3140">Every platform has the same structure, copy, gestures and behavior. What differs is the material. iPhone, iPad and Mac get Liquid Glass: light, translucent surfaces that float over the album. Android gets Material 3 Expressive: tonal color, big shapes, and springy motion that you can read from the shape of a control. Windows and Linux get the same Expressive look, built as a small Flutter theme and drawn at desktop density.</p>
+</div>
+<div style="display:flex;gap:56px;align-items:flex-start">
+<div style="flex:1;min-width:0">
+<h2>iPhone, iPad, Mac · Liquid Glass</h2>
+<div class="sp bgm pal-a">
+<div style="display:flex;gap:10px;align-items:center">
+<div class="gw" style="height:52px;padding:0 30px;border-radius:999px"><i class="ic m-play"></i>Play</div>
+<div class="gw" style="height:52px;padding:0 30px;border-radius:999px"><i class="ic m-shuffle"></i>Shuffle</div>
+<div style="flex:1"></div>
+<div class="gw" style="width:52px;height:52px;border-radius:50%"><i class="ic m-heart"></i></div>
+<div class="gw" style="width:52px;height:52px;border-radius:50%"><div class="i-dots"></div></div>
+</div>
+<div style="display:flex;gap:10px;align-items:center">
+<div class="glass" style="flex:1;height:64px;border-radius:32px;display:flex;align-items:center;justify-content:space-around;padding:0 14px;color:#3A4150;font-size:11px">
+<span style="display:flex;flex-direction:column;align-items:center;gap:2px"><i class="ic m-home"></i>Home</span>
+<span style="display:flex;flex-direction:column;align-items:center;gap:2px"><i class="ic m-mixes"></i>Mixes</span>
+<span style="display:flex;flex-direction:column;align-items:center;gap:2px;color:#2F6BFF;font-weight:600"><i class="ic m-library"></i>Library</span>
+</div>
+<div class="glass" style="width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#3A4150"><i class="ic m-search"></i></div>
+</div>
+<div class="glass" style="height:64px;border-radius:32px;display:flex;align-items:center;gap:12px;padding:0 14px 0 8px">
+<div class="art cv-a" style="width:48px;height:48px;border-radius:14px"></div>
+<div style="flex:1;line-height:1.25"><div style="font-weight:600;font-size:14px;color:#16181D">Golden Hour Static</div><div style="font-size:12px;color:#4A5160">Ember Cove</div></div>
+<i class="ic l m-play" style="color:#16181D"></i><i class="ic l m-next" style="color:#16181D"></i>
+</div>
+</div>
+<div class="r"><b>Material</b><span>Glass is for things that float over content: the tab bar, mini player, buttons over artwork, menus and sheets. Lists and page backgrounds stay plain, and glass is never stacked on glass.</span></div>
+<div class="r"><b>Shape</b><span>Capsules for buttons and bars. Where one shape sits inside another, the radii are concentric (inner = outer minus padding) so corners run parallel. Album art takes one radius, 14 pt, on all four corners, even inside a capsule.</span></div>
+<div class="r"><b>Color</b><span>The content supplies the color. The album gradient sits behind the glass and shows through it. Selection uses the system tint. Text over light art flips to dark.</span></div>
+<div class="r"><b>Motion</b><span>Springs only. Glass lifts and shimmers under the finger, menus morph out of the pressed item, and the tab bar shrinks while scrolling down.</span></div>
+<div class="r"><b>Type</b><span>Large bold titles that collapse into the bar, tight tracking, one clear step between title and subtitle.</span></div>
+<div class="r" style="border-bottom:0"><b>Built with</b><span>SwiftUI <code style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#1E3FA8">glassEffect</code>, <code style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#1E3FA8">GlassEffectContainer</code>, <code style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#1E3FA8">tabBarMinimizeBehavior</code> and <code style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#1E3FA8">MeshGradient</code>. Earlier iOS versions fall back to the system blur materials. iPad and Mac use the same components; the Mac adds a menu bar, hover and a floating sidebar.</span></div>
+</div>
+<div style="flex:1;min-width:0">
+<h2>Android phone and tablet · Material 3 Expressive</h2>
+<div class="sp" style="background:#FEF7FF;border:1px solid #E7E0EC">
+<div style="display:flex;gap:22px;align-items:center;justify-content:space-between">
+<div style="display:flex;gap:4px">
+<div class="tn" style="height:52px;padding:0 22px;border-radius:26px 10px 10px 26px;background:#D0BCFF">Play</div>
+<div class="tn" style="height:52px;padding:0 20px;border-radius:10px;background:#E8DEF8">Shuffle</div>
+<div class="tn" style="height:52px;width:52px;border-radius:10px 26px 26px 10px;background:#E8DEF8"><i class="ic m-download"></i></div>
+</div>
+<div style="display:flex;gap:4px">
+<div class="tn" style="height:44px;padding:0 18px;border-radius:999px;background:#CFBCF6;font-size:12px">Grid</div>
+<div class="tn" style="height:44px;padding:0 18px;border-radius:8px 999px 999px 8px;background:#E8DEF8;font-size:12px;font-weight:500">List</div>
+</div>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:flex-end">
+<div class="sh1"><div class="sh sh-cookie" style="width:58px;height:58px;background:#D0BCFF"></div>Cookie</div>
+<div class="sh1"><div class="sh sh-sun" style="width:58px;height:58px;background:#FFB8D1"></div>Sunny</div>
+<div class="sh1"><div class="sh sh-clover" style="width:58px;height:58px;background:#6750A4"></div>Clover</div>
+<div class="sh1"><div class="sh sh-arch" style="width:58px;height:58px;background:#EFB8C8"></div>Arch</div>
+<div class="sh1"><div class="sh sh-squircle" style="width:58px;height:58px;background:#CCC2DC"></div>Squircle</div>
+<div class="sh1"><div style="width:88px;height:58px;border-radius:29px;background:#D0BCFF"></div>Pill</div>
+</div>
+<div style="display:flex;align-items:center;gap:20px">
+<svg width="300" height="22" aria-hidden="true" style="flex:none"><defs><pattern id="wv2" width="25" height="22" patternUnits="userSpaceOnUse"><path d="M0 11Q6.25 3 12.5 11T25 11" fill="none" stroke="#6750A4" stroke-width="3"/></pattern></defs><rect width="150" height="22" fill="url(#wv2)"/><rect x="154" y="2" width="5" height="18" rx="2.5" fill="#6750A4"/><rect x="165" y="9" width="135" height="4" rx="2" fill="#E6E0E9"/></svg>
+<div style="width:52px;height:32px;border-radius:16px;background:#6750A4;position:relative;flex:none"><div style="position:absolute;right:4px;top:4px;width:24px;height:24px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;color:#6750A4"><i class="ic sm m-check"></i></div></div>
+<div class="sh sh-sun spin" style="width:34px;height:34px;background:#6750A4;flex:none"></div>
+</div>
+<div style="display:flex;justify-content:space-around;background:#F3EDF7;border-radius:28px;padding:8px 6px;font-size:11px;color:#49454F">
+<span style="display:flex;flex-direction:column;align-items:center;gap:2px"><b style="width:52px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center"><i class="ic m-home"></i></b>Home</span>
+<span style="display:flex;flex-direction:column;align-items:center;gap:2px"><b style="width:52px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center"><i class="ic m-mixes"></i></b>Mixes</span>
+<span style="display:flex;flex-direction:column;align-items:center;gap:2px;color:#1D1B20;font-weight:600"><b style="width:52px;height:28px;border-radius:14px;background:#E8DEF8;display:flex;align-items:center;justify-content:center"><i class="ic m-library"></i></b>Library</span>
+<span style="display:flex;flex-direction:column;align-items:center;gap:2px"><b style="width:52px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center"><i class="ic m-search"></i></b>Search</span>
+</div>
+</div>
+<div class="r"><b>Color</b><span>Tonal surfaces from dynamic color: primary, secondary and tertiary containers, with a scheme built from the playing album. Color carries hierarchy, so shadows stay rare.</span></div>
+<div class="r"><b>Shape</b><span>Large radii (28 dp on art and cards) and a shape set for generated content: cookie, sunny, clover, arch, squircle, pill. Real album art never takes these; it keeps one plain radius on all four corners.</span></div>
+<div class="r"><b>Button groups</b><span>Outer corners fully round, facing corners 10 dp. The selected item becomes fully round, so the choice reads from shape alone, and pressing morphs a button while its neighbors squeeze.</span></div>
+<div class="r"><b>Motion</b><span>Expressive springs. Wavy progress with a pill handle, a loading indicator that turns and morphs between shapes, and a navigation pill that slides under the chosen tab.</span></div>
+<div class="r"><b>Type</b><span>Emphasized styles: bigger, heavier titles (34 sp, weight 500 to 600) and compact body text.</span></div>
+<div class="r" style="border-bottom:0"><b>Built with</b><span>Jetpack Compose Material 3 expressive APIs: <code style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#1E3FA8">MotionScheme.expressive()</code>, <code style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#1E3FA8">ButtonGroup</code>, <code style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#1E3FA8">MaterialShapes</code>, <code style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#1E3FA8">LoadingIndicator</code> and the wavy progress indicators.</span></div>
+</div>
+</div>
+<div style="display:flex;gap:40px;align-items:center;background:#FEF7FF;border:1px solid #E7E0EC;border-radius:28px;padding:24px 32px">
+<div style="flex:none;width:470px;display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;gap:4px;align-items:center"><div class="tn" style="height:48px;padding:0 22px;border-radius:24px 8px 8px 24px;background:#6750A4;color:#fff">Play</div><div class="tn" style="height:48px;padding:0 20px;border-radius:8px;background:#E8DEF8">Shuffle</div><div class="tn" style="height:48px;width:52px;border-radius:8px 24px 24px 8px;background:#E8DEF8"><i class="ic m-add"></i></div>
+<div style="flex:1"></div><div class="tn" style="height:34px;padding:0 14px;border-radius:8px;border:1px solid #79747E;font-size:12.5px;font-weight:500;color:#49454F;outline:3px solid #6750A4;outline-offset:2px">Focus ring</div></div>
+<div style="display:flex;align-items:center;gap:18px"><svg width="260" height="20" aria-hidden="true" style="flex:none"><defs><pattern id="wv3" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M0 10Q5 3 10 10T20 10" fill="none" stroke="#6750A4" stroke-width="3" stroke-linecap="round"/></pattern></defs><rect width="130" height="20" fill="url(#wv3)"/><line x1="130" y1="10" x2="260" y2="10" stroke="#CAC4D0" stroke-width="3" stroke-linecap="round"/></svg>
+<div style="display:flex;height:32px;border-radius:6px;overflow:hidden;background:#F3EDF7;flex:none"><div style="width:46px;display:flex;align-items:center;justify-content:center"><i class="ic m-min" style="width:14px;height:14px"></i></div><div style="width:46px;display:flex;align-items:center;justify-content:center"><i class="ic m-max" style="width:14px;height:14px"></i></div><div style="width:46px;display:flex;align-items:center;justify-content:center;background:#C42B1C"><i class="ic m-close" style="width:14px;height:14px;color:#fff"></i></div></div></div>
+</div>
+<div style="flex:1;min-width:0">
+<h2 style="margin-bottom:6px">Windows and Linux · Material 3 Expressive, desktop density</h2>
+<div class="r" style="padding:6px 0"><b>Look</b><span>The Android language at desktop density: tonal surfaces, 28 px pane corners, connected button groups, wavy progress, spring motion. The same Play, Shuffle and Add group, hover and focus states, a table for songs, and the system caption buttons.</span></div>
+<div class="r" style="padding:6px 0"><b>Why not Liquid Glass</b><span>Glass is Apple's material. Windows and Linux windows sit over arbitrary desktops, so a tonal, opaque surface reads reliably everywhere and stays close to Android, as requested.</span></div>
+<div class="r" style="padding:6px 0;border-bottom:0"><b>Built with</b><span>Flutter with a small Encore theme: color roles from the album, shape tokens, connected button groups and a wavy progress painter, because Flutter does not ship the Expressive components. Optional Mica backdrop on Windows 11.</span></div>
+</div>
+</div>
+<div style="background:#E3E6EC;border-radius:16px;padding:12px 18px;font-size:13px;line-height:1.5;color:#2B3140"><b>Shared on all platforms.</b> Screen structure, wording, gestures and what each haptic means, accessibility behavior, and the album-driven color. A change to behavior is made once and lands everywhere.</div>
+</div>
+</body></html>

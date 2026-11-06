@@ -1,0 +1,61 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0}</style>
+
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;color:#16181D}
+h2{margin:0 0 12px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#4A5160;font-weight:600}
+table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.4}
+th{text-align:left;font-weight:600;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#4A5160;padding:6px 10px 6px 0;border-bottom:2px solid #16181D}
+td{padding:7px 10px 7px 0;border-bottom:1px solid #DDE1E8;vertical-align:top;color:#2B3140}
+td:first-child{font-weight:500;color:#16181D}
+code{font-family:'DejaVu Sans Mono',monospace;font-size:11.5px;color:#1E3FA8}
+.a code{color:#5B3FC4}
+</style>
+</head><body>
+
+<div style="width:1500px;height:1000px;box-sizing:border-box;background:#EEF0F3;padding:48px 56px;display:flex;flex-direction:column;gap:28px">
+<div>
+<h1 style="margin:0 0 8px;font-size:34px;font-weight:600;letter-spacing:-.02em">Motion and haptics</h1>
+<p style="margin:0;font-size:15px;line-height:1.5;max-width:900px;color:#2B3140">Both platforms use springs, never fixed-duration easing, and every spring can be interrupted mid-flight. Haptics are sparse: they confirm a decision or mark a threshold, and nothing else. Reduce Motion swaps flights and sweeps for cross-fades; system haptic settings are always respected.</p>
+</div>
+<div style="display:flex;gap:48px;align-items:flex-start">
+<div style="width:640px">
+<h2>Motion roles</h2>
+<table>
+<tr><th>Moment</th><th>iOS 26 (SwiftUI)</th><th class="a">Android 16 (Compose M3E)</th></tr>
+<tr><td>Press feedback</td><td><code>.snappy</code>, glass lifts and shimmers (<code>.interactive()</code>)</td><td class="a">Shape morph on press, <code>fastSpatial</code></td></tr>
+<tr><td>Toggle, chip, like</td><td><code>.snappy</code>, heart pop 1 → 1.25 → 1</td><td class="a">Shape morph square ↔ round, <code>fastSpatial</code></td></tr>
+<tr><td>Navigate push</td><td>System push, interactive edge swipe back</td><td class="a">Predictive back with shared container</td></tr>
+<tr><td>Mini player → Now Playing</td><td><code>matchedGeometryEffect</code> artwork flight, hero spring</td><td class="a">Container transform, <code>slowSpatial</code></td></tr>
+<tr><td>Sheet present</td><td>System sheet with glass detents</td><td class="a">Modal bottom sheet, <code>defaultSpatial</code></td></tr>
+<tr><td>Menu open</td><td>Glass menu morphs out of the pressed item (<code>glassEffectID</code>)</td><td class="a">Popup scales from anchor, <code>fastSpatial</code></td></tr>
+<tr><td>Tab bar on scroll</td><td><code>tabBarMinimizeBehavior(.onScrollDown)</code></td><td class="a">Bar hides on scroll, returns on scroll up</td></tr>
+<tr><td>Color changes</td><td>Cross-fade, <code>smooth</code></td><td class="a"><code>defaultEffects</code> (no bounce)</td></tr>
+<tr><td>Progress</td><td>Linear bar with live scrub thumb</td><td class="a">Wavy progress while playing, flat when paused</td></tr>
+<tr><td>Loading</td><td>Skeleton rows, 1.2 s shimmer</td><td class="a">Expressive loading indicator, morphing shapes</td></tr>
+</table>
+<p style="margin:14px 0 0;font-size:12.5px;line-height:1.5;color:#4A5160">Android values come from <code style="color:#5B3FC4">MotionScheme.expressive()</code> in the library, not from numbers copied into the app.</p>
+</div>
+<div style="flex:1;min-width:0">
+<h2>Haptic map</h2>
+<table>
+<tr><th>Event</th><th>iOS (UIKit generators)</th><th class="a">Android (HapticFeedbackConstants)</th></tr>
+<tr><td>Play / pause, skip</td><td><code>impact(.soft)</code></td><td class="a"><code>VIRTUAL_KEY</code></td></tr>
+<tr><td>Like on</td><td><code>impact(.medium)</code></td><td class="a"><code>TOGGLE_ON</code>, <code>CONFIRM</code> below API 34</td></tr>
+<tr><td>Like off</td><td><code>impact(.light)</code></td><td class="a"><code>TOGGLE_OFF</code></td></tr>
+<tr><td>Double-tap artwork to like</td><td><code>impact(.medium)</code></td><td class="a"><code>CONFIRM</code></td></tr>
+<tr><td>Long press opens menu</td><td>System context menu haptic</td><td class="a"><code>LONG_PRESS</code></td></tr>
+<tr><td>Scrub start / end</td><td><code>selection</code> / <code>impact(.light)</code></td><td class="a"><code>GESTURE_START</code> / <code>GESTURE_END</code></td></tr>
+<tr><td>Volume and slider detents</td><td><code>selection</code></td><td class="a"><code>SEGMENT_FREQUENT_TICK</code></td></tr>
+<tr><td>Row picked up to reorder</td><td><code>impact(.medium)</code></td><td class="a"><code>DRAG_START</code></td></tr>
+<tr><td>Row dropped</td><td><code>impact(.light)</code></td><td class="a"><code>GESTURE_END</code></td></tr>
+<tr><td>Swipe action armed</td><td><code>impact(.rigid)</code></td><td class="a"><code>GESTURE_THRESHOLD_ACTIVATE</code></td></tr>
+<tr><td>Swipe action disarmed</td><td><code>selection</code></td><td class="a"><code>GESTURE_THRESHOLD_DEACTIVATE</code></td></tr>
+<tr><td>Profile switched, handoff done</td><td><code>notification(.success)</code></td><td class="a"><code>CONFIRM</code></td></tr>
+<tr><td>Blocked or failed action</td><td><code>notification(.warning)</code> / <code>(.error)</code></td><td class="a"><code>REJECT</code></td></tr>
+<tr><td>Lyric word sweep, gradient drift</td><td colspan="2">No haptics. Ambient motion never vibrates.</td></tr>
+</table>
+<p style="margin:14px 0 0;font-size:12.5px;line-height:1.5;color:#4A5160">Constants marked API 34 fall back through <code style="color:#5B3FC4">HapticFeedbackConstantsCompat</code>, which maps them to the nearest older effect.</p>
+</div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,103 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="./wf.css"><style>html,body{margin:0}</style>
+
+<style>
+html,body{margin:0}
+body{font-family:'Inter',system-ui,sans-serif;color:#16181D}
+h2{margin:0 0 10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#4A5160;font-weight:600}
+.blob{position:absolute;width:260px;height:260px;border-radius:50%;filter:blur(46px);opacity:.95}
+.b1{animation:d1 14s ease-in-out infinite alternate}
+.b2{animation:d2 17s ease-in-out infinite alternate}
+.b3{animation:d3 12s ease-in-out infinite alternate}
+.b4{animation:d4 19s ease-in-out infinite alternate}
+@keyframes d1{from{transform:translate(-40px,-30px) scale(1)}to{transform:translate(70px,60px) scale(1.25)}}
+@keyframes d2{from{transform:translate(60px,-20px) scale(1.1)}to{transform:translate(-50px,90px) scale(.9)}}
+@keyframes d3{from{transform:translate(-30px,80px) scale(.9)}to{transform:translate(80px,-40px) scale(1.2)}}
+@keyframes d4{from{transform:translate(40px,40px) scale(1.2)}to{transform:translate(-60px,-50px) scale(1)}}
+@media (prefers-reduced-motion:reduce){.b1,.b2,.b3,.b4{animation:none}}
+.r{font-size:13.5px;line-height:1.5;color:#2B3140;padding:7px 0;border-top:1px solid #DDE1E8}
+.r b{color:#16181D;font-weight:600}
+code{font-family:'DejaVu Sans Mono',monospace;font-size:11.5px;color:#1E3FA8}
+.cap{font-family:'DejaVu Sans Mono',monospace;font-size:11px;color:#3A4150;line-height:1.5;margin-top:8px}
+.lab{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#4A5160;margin:8px 0 4px}.sw{display:flex;gap:6px}.sw span{font-family:IBM Plex Mono,monospace;font-size:9px;color:#3A4150}.blob{width:230px!important;height:230px!important}</style>
+</head><body>
+
+<div style="width:1500px;height:1060px;box-sizing:border-box;background:#EEF0F3;padding:44px 56px;display:flex;flex-direction:column;gap:22px">
+<div>
+<h1 style="margin:0 0 8px;font-size:34px;font-weight:600;letter-spacing:-.02em">Album gradients</h1>
+<p style="margin:0;font-size:15px;line-height:1.5;max-width:1040px;color:#2B3140">As on Apple Music, the background is made from the playing album's own cover, so every album gets its own colors. The four covers below are original artwork, and the swatches under each are real: they were sampled from the cover image with the method described further down. The demos run about three times faster than production so the motion is easy to judge.</p>
+</div>
+<div style="display:flex;gap:24px">
+<div style="width:315px">
+<div class="bgm pal-a" style="position:relative;width:315px;height:290px;border-radius:24px;overflow:hidden">
+<div class="blob b1 c1" style="left:-60px;top:-40px"></div><div class="blob b2 c2" style="left:120px;top:30px"></div><div class="blob b3 c3" style="left:-30px;top:150px"></div><div class="blob b4 c4" style="left:140px;top:170px"></div>
+<div style="position:absolute;left:0;right:0;top:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px">
+<div class="cv-a" style="width:140px;height:140px;border-radius:14px;box-shadow:0 14px 30px rgba(0,0,0,.35)"></div>
+<div style="color:#fff;font-weight:600;font-size:16px">Golden Hour Static</div>
+<div style="color:rgba(255,255,255,.74);font-size:13px">Ember Cove</div>
+</div></div>
+<div class="cap" style="margin-top:10px"><b>Ember</b> · dark scheme, white text · lowest contrast 4.7:1</div>
+<div class="lab">Sampled (5 clusters)</div><div class="sw"><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#E65D45;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>E65D45</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#C52957;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>C52957</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#1E1231;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>1E1231</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#FED07A;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>FED07A</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#673942;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>673942</span></div></div>
+<div class="lab">Used (base + 4 stops, contrast clamped)</div><div class="sw"><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#380000;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>380000</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#D02E10;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>D02E10</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#D00053;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>D00053</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#1F1034;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>1F1034</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#9B6A00;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>9B6A00</span></div></div>
+</div>
+<div style="width:315px">
+<div class="bgm pal-b" style="position:relative;width:315px;height:290px;border-radius:24px;overflow:hidden">
+<div class="blob b1 c1" style="left:-60px;top:-40px"></div><div class="blob b2 c2" style="left:120px;top:30px"></div><div class="blob b3 c3" style="left:-30px;top:150px"></div><div class="blob b4 c4" style="left:140px;top:170px"></div>
+<div style="position:absolute;left:0;right:0;top:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px">
+<div class="cv-b" style="width:140px;height:140px;border-radius:14px;box-shadow:0 14px 30px rgba(0,0,0,.35)"></div>
+<div style="color:#fff;font-weight:600;font-size:16px">Tidewater</div>
+<div style="color:rgba(255,255,255,.74);font-size:13px">Salt &amp; Lantern</div>
+</div></div>
+<div class="cap" style="margin-top:10px"><b>Tidewater</b> · dark scheme, white text · lowest contrast 4.52:1</div>
+<div class="lab">Sampled (5 clusters)</div><div class="sw"><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#0D3857;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>0D3857</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#61C6BF;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>61C6BF</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#267B8D;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>267B8D</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#C2EFE6;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>C2EFE6</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#1C506A;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>1C506A</span></div></div>
+<div class="lab">Used (base + 4 stops, contrast clamped)</div><div class="sw"><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#041827;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>041827</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#00385C;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>00385C</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#00827C;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>00827C</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#007D91;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>007D91</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#4F7F77;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>4F7F77</span></div></div>
+</div>
+<div style="width:315px">
+<div class="bgm pal-c" style="position:relative;width:315px;height:290px;border-radius:24px;overflow:hidden">
+<div class="blob b1 c1" style="left:-60px;top:-40px"></div><div class="blob b2 c2" style="left:120px;top:30px"></div><div class="blob b3 c3" style="left:-30px;top:150px"></div><div class="blob b4 c4" style="left:140px;top:170px"></div>
+<div style="position:absolute;left:0;right:0;top:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px">
+<div class="cv-c" style="width:140px;height:140px;border-radius:14px;box-shadow:0 14px 30px rgba(0,0,0,.35)"></div>
+<div style="color:#fff;font-weight:600;font-size:16px">Brass Arches</div>
+<div style="color:rgba(255,255,255,.74);font-size:13px">Moth Parade</div>
+</div></div>
+<div class="cap" style="margin-top:10px"><b>Brass Arches</b> · dark scheme, white text · lowest contrast 4.51:1</div>
+<div class="lab">Sampled (5 clusters)</div><div class="sw"><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#1F3D2B;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>1F3D2B</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#E8C053;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>E8C053</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#86AD66;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>86AD66</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#D8ED92;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>D8ED92</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#D8ED92;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>D8ED92</span></div></div>
+<div class="lab">Used (base + 4 stops, contrast clamped)</div><div class="sw"><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#0B1A11;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>0B1A11</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#1A3E29;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>1A3E29</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#986D00;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>986D00</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#527D29;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>527D29</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#6D7E00;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>6D7E00</span></div></div>
+</div>
+<div style="width:315px">
+<div class="bgm pal-d" style="position:relative;width:315px;height:290px;border-radius:24px;overflow:hidden">
+<div class="blob b1 c1" style="left:-60px;top:-40px"></div><div class="blob b2 c2" style="left:120px;top:30px"></div><div class="blob b3 c3" style="left:-30px;top:150px"></div><div class="blob b4 c4" style="left:140px;top:170px"></div>
+<div style="position:absolute;left:0;right:0;top:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px">
+<div class="cv-d" style="width:140px;height:140px;border-radius:14px;box-shadow:0 14px 30px rgba(0,0,0,.35)"></div>
+<div style="color:#1A1A1A;font-weight:600;font-size:16px">Paper Moon</div>
+<div style="color:rgba(26,26,26,.7);font-size:13px">Quiet Press</div>
+</div></div>
+<div class="cap" style="margin-top:10px"><b>Paper Moon</b> · light art, dark text · lowest contrast 9.92:1</div>
+<div class="lab">Sampled (5 clusters)</div><div class="sw"><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#F3EBDD;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>F3EBDD</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#D94C3A;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>D94C3A</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#D4C1B5;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>D4C1B5</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#E59383;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>E59383</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#87837C;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>87837C</span></div></div>
+<div class="lab">Used (base + 4 stops, contrast clamped)</div><div class="sw"><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#E9E8E5;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>E9E8E5</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#F0EBE3;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>F0EBE3</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#FFBDAD;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>FFBDAD</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#E1D5CD;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>E1D5CD</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><i style="width:34px;height:34px;border-radius:50%;background:#FEC9BE;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"></i><span>FEC9BE</span></div></div>
+</div>
+</div>
+<div style="display:flex;gap:40px;align-items:flex-start">
+<div style="flex:1;min-width:0">
+<h2>Building the palette</h2>
+<div class="r"><b>1. Sample.</b> Shrink the artwork to 64 × 64 and cluster it into five colors (k-means in OKLab). Cache the result per album.</div>
+<div class="r"><b>2. Choose four stops.</b> Rank clusters by population and chroma, drop near-duplicates, keep the top four, then add a dark base tinted with the dominant hue.</div>
+<div class="r"><b>3. Keep text readable.</b> Lower lightness on every stop until white text reaches 4.5:1. Light art, like the fourth cover, flips to a light field with dark text at 7:1.</div>
+<div class="r"><b>4. Change tracks smoothly.</b> Cross-fade the colors over 600 ms when the album changes. Songs on the same album keep the same field. Never snap, never restart the drift.</div>
+</div>
+<div style="flex:1;min-width:0">
+<h2>Where it appears</h2>
+<div class="r"><b>Now Playing and Lyrics.</b> Animated field behind a soft blur. Each blob follows its own slow loop of 40 to 70 s, with about 6 to 10% of the width as travel and ±6° of hue shift.</div>
+<div class="r"><b>Album and playlist pages.</b> The cover sits on one tint taken from the palette, fading to the dark base. The field is pinned, only the list scrolls.</div>
+<div class="r"><b>Mini player.</b> Glass on iOS, a tonal container on Android, both lightly tinted by the dominant stop.</div>
+<div class="r"><b>Recap cards.</b> Same field at higher chroma, seeded by profile and year.</div>
+</div>
+<div style="flex:1;min-width:0">
+<h2>Building it</h2>
+<div class="r"><b>iOS.</b> <code>MeshGradient</code> with a 4 × 4 grid of control points, animated from a <code>TimelineView</code>. Below iOS 18, layered radial gradients.</div>
+<div class="r"><b>Android.</b> AGSL <code>RuntimeShader</code> from API 33. Below that, blurred radial brushes. Compose has no built-in mesh gradient.</div>
+<div class="r"><b>Fallbacks.</b> Reduce Motion: static. Reduce Transparency or battery saver: solid tint, no blur. Missing art: the profile accent.</div>
+<div class="r"><b>Reference.</b> The open-source AMLL project has a fluid background worth studying. Confirm its license before copying any code.</div>
+</div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,18 @@
+# Build output
+target/
+build/
+.gradle/
+.dart_tool/
+DerivedData/
+*.xcuserstate
+node_modules/
+# Secrets and local config
+.env
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
+local.properties
+# OS
+.DS_Store
+Thumbs.db

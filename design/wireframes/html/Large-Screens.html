@@ -1,0 +1,136 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="./wf.css"><style>html,body{margin:0}</style>
+
+<style>
+
+.adev{position:relative;flex:none;background:#1D1B20;border-radius:34px;box-shadow:0 24px 60px rgba(20,25,40,.32),inset 0 0 0 2px #3A383E}
+.ascr{position:absolute;left:8px;top:8px;right:8px;bottom:8px;border-radius:27px;overflow:hidden;background:#FEF7FF;color:#1D1B20}
+.ast{position:absolute;left:0;right:0;top:0;height:28px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:12px;font-weight:500;z-index:4}
+.abat{display:inline-block;width:22px;height:11px;border-radius:3px;background:#1D1B20;vertical-align:middle;margin-left:8px;opacity:.85}
+.wallA{position:relative;overflow:hidden;background:linear-gradient(160deg,#B9C8F2 0%,#DCCCF2 55%,#F6D1C1 100%)}
+.rail{position:absolute;left:0;top:28px;bottom:0;background:#F7F2FA;display:flex;flex-direction:column;padding:8px 12px 12px;gap:2px;z-index:2}
+.rb{width:48px;height:48px;border-radius:24px;display:flex;align-items:center;justify-content:center;margin-bottom:6px}
+.rb .ic,.ri .ic{width:24px;height:24px;color:#49454F}
+.ri{display:flex;align-items:center;gap:12px;height:52px;padding:0 16px;border-radius:26px;font-size:14px;font-weight:500;color:#49454F;white-space:nowrap}
+.ri.sel{background:#E8DEF8;color:#1D192B}.ri.sel .ic{color:#1D192B}
+.rh2{font-size:12px;font-weight:500;color:#49454F;padding:14px 16px 4px}
+.rs{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:500;color:#49454F;padding:6px 0}
+.rs .pi{width:56px;height:32px;border-radius:16px;display:flex;align-items:center;justify-content:center}
+.rs .pi .ic{width:24px;height:24px;color:#49454F}
+.rs.sel{color:#1D192B}.rs.sel .pi{background:#E8DEF8}.rs.sel .pi .ic{color:#1D192B}
+.pane{position:absolute;border-radius:28px;overflow:hidden}
+.chp{height:32px;padding:0 14px;border-radius:8px;border:1px solid #79747E;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:#49454F}
+.chp.sel{background:#E8DEF8;border-color:transparent;color:#1D192B}
+.li{display:flex;align-items:center;gap:14px;height:68px;padding:0 12px;border-radius:20px}
+.li.sel{background:#E8DEF8}
+.li .tt{font-size:15px;font-weight:500;line-height:1.25}
+.li .ss{font-size:12.5px;color:#49454F}
+.grp{display:flex;gap:2px}
+.grp>div{height:48px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:600;border-radius:8px;padding:0 22px}
+.grp>div .ic{width:20px;height:20px}
+.gl{border-radius:24px 8px 8px 24px!important}.gr{border-radius:8px 24px 24px 8px!important}
+.fl{background:#6750A4;color:#fff}.fl .ic{color:#fff}
+.tn{background:#E8DEF8;color:#1D192B}
+.ag>div{display:flex;align-items:center;gap:14px;height:52px;padding:0 18px;background:#F3EDF7;border-radius:6px;margin-bottom:2px;font-size:14.5px}
+.ag>div:first-child{border-radius:24px 24px 6px 6px}
+.ag>div:last-child{border-radius:6px 6px 24px 24px;margin-bottom:0}
+.ag .nn{width:20px;text-align:center;color:#49454F;font-size:13px}
+.ag .tt{flex:1;min-width:0}
+.ag .d{font-size:12.5px;color:#49454F}
+.ag .cur{background:#E8DEF8;font-weight:600}
+.eqa{display:inline-block;width:3px;height:13px;border-radius:2px;background:#6750A4;box-shadow:-6px 4px #6750A4,6px 2px #6750A4;margin:0 5px}
+.nbar{position:absolute;height:80px;border-radius:28px;background:#ECE6F0;display:flex;align-items:center;gap:14px;padding:0 22px 0 12px;z-index:3;box-shadow:0 2px 10px rgba(29,27,32,.14)}
+.nbar .ic{width:24px;height:24px;color:#49454F}
+.pb{width:52px;height:52px;border-radius:18px;background:#6750A4;display:flex;align-items:center;justify-content:center;flex:none}
+.pb .ic{color:#fff}
+.ib{width:48px;height:48px;border-radius:24px;display:flex;align-items:center;justify-content:center;flex:none}
+.sup{position:absolute;overflow:hidden;color:#fff}
+.sgm{display:flex;gap:2px;position:absolute}
+.sgm span{flex:1;height:36px;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:13px;font-weight:600;background:rgba(255,255,255,.18);color:#fff}
+.sgm span:first-child{border-radius:18px 8px 8px 18px}.sgm span:last-child{border-radius:8px 18px 18px 8px}
+.sgm span.act{background:#fff;color:#1D192B;border-radius:18px}
+.lns{position:absolute;display:flex;flex-direction:column;justify-content:center;gap:16px;font-weight:700;letter-spacing:-.012em;line-height:1.15;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 18%,#000 82%,transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 18%,#000 82%,transparent 100%)}
+.lns div{color:rgba(255,255,255,.42)}
+.lns .cur{background:linear-gradient(90deg,#fff 0,#fff 55%,rgba(255,255,255,.44) 64%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.gridA{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 14px}
+.gridA .t{font-size:13.5px;line-height:1.3}
+.gridA .t b{display:block;font-weight:500;margin-top:8px}
+.gridA .t span{color:#49454F;font-size:12px}
+.scrimA{position:absolute;left:0;right:0;top:0;bottom:0;background:rgba(29,27,32,.36);z-index:5}
+.ps{position:absolute;display:flex;align-items:center;justify-content:center}
+.cap{position:absolute;left:0;right:0;top:0;height:40px;background:#E6E0E9;display:flex;align-items:center;gap:10px;padding:0 10px 0 14px;font-size:13px;font-weight:500;z-index:3}
+.cap .ic{width:18px;height:18px;color:#49454F}
+.nvb{position:absolute;left:0;right:0;bottom:0;height:76px;background:#F3EDF7;display:flex;align-items:center;justify-content:space-around;z-index:3}
+.nvb div{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:500;color:#49454F;width:72px}
+.nvb .pi{width:56px;height:30px;border-radius:15px;display:flex;align-items:center;justify-content:center}
+.nvb .pi .ic{width:22px;height:22px;color:#49454F}
+.nvb .sel{color:#1D192B}.nvb .sel .pi{background:#E8DEF8}.nvb .sel .pi .ic{color:#1D192B}
+.rhA{position:absolute;right:6px;bottom:6px;width:20px;height:20px;border-right:4px solid rgba(29,27,32,.4);border-bottom:4px solid rgba(29,27,32,.4);border-radius:0 0 16px 0;z-index:6}
+.szc{display:flex;flex-direction:column;align-items:center;gap:6px}
+.szc .bx{position:relative;border:1.5px solid #8E97A8;border-radius:10px;background:#fff;height:76px;display:flex;gap:4px;padding:5px;overflow:hidden}
+.szc .bx i{display:block;border-radius:5px;background:#CBD1DB}
+.szc .bx i.a{background:#D8C8F4}
+.szc .bx i.g{background:linear-gradient(135deg,#F2784B,#B8337E)}
+.szc .bx i.dash{background:transparent;border:1.5px dashed #6B7280}
+.szc .cp2{font-size:11px;line-height:1.3;text-align:center;color:#2B3140;white-space:nowrap}
+.szc .cp2 b{display:block;font-weight:600;color:#16181D}
+.hinge{position:absolute;background:#0E0D11;z-index:4}
+.fh{position:absolute;overflow:hidden}
+.pt{width:100%;border-collapse:collapse;font-size:12px;line-height:1.35;color:#2B3140}
+.pt th{text-align:left;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#4A5160;font-weight:600;padding:5px 8px 5px 0;border-bottom:1.5px solid #16181D}
+.pt td{vertical-align:top;padding:7px 8px 7px 0;border-bottom:1px solid #CBD1DB}
+.pt td:first-child{font-weight:600;color:#16181D;white-space:nowrap}
+
+.ap .bx i.a{background:#BFD0FF}
+.ap .bx{border-color:#8E97A8}
+.pt.big{font-size:12.5px}
+.pt.big td:first-child{white-space:normal}
+.pt td.mk{font-weight:600}
+.ap2 th.ap,.ap2 td.ap{background:rgba(47,107,255,.07)}
+.ap2 th.mt,.ap2 td.mt{background:rgba(103,80,164,.07)}
+
+</style>
+</head><body>
+
+<div class="lgb" style="height:1340px">
+
+<div><h1>Size classes and platform rules</h1>
+<p class="intro">Every window on every platform can be resized, so the app has one layout engine with four size classes and two design languages. Apple devices share Liquid Glass. Android has Material 3 Expressive, built natively, and Windows and Linux get the same Expressive look from a small Flutter theme. This board is the rulebook; the boards beside it show each family at every width.</p></div>
+<div class="cols">
+<div style="width:740px"><div class="lt">Apple · iPhone, iPad, Mac · Liquid Glass</div><div class="ap" style="display:flex;gap:16px;align-items:flex-start">
+<div class="szc ap"><div class="bx" style="width:272px"><i style="width:46px"></i><i class="a" style="flex:1"></i><i class="g" style="width:74px"></i></div><div class="cp2"><b>Large</b>sidebar, content, inspector</div></div>
+<div class="szc ap"><div class="bx" style="width:182px"><i style="width:34px"></i><i class="a" style="flex:1"></i><i class="dash" style="width:44px;background:transparent"></i></div><div class="cp2"><b>Expanded</b>sidebar, content, inspector on demand</div></div>
+<div class="szc ap"><div class="bx" style="width:136px"><i class="a" style="flex:1"></i><i class="dash" style="position:absolute;left:5px;top:5px;bottom:5px;width:42px"></i></div><div class="cp2"><b>Medium</b>content, sidebar as overlay</div></div>
+<div class="szc ap"><div class="bx" style="width:90px"><i class="a" style="flex:1;margin-bottom:14px"></i><i style="position:absolute;left:5px;right:5px;bottom:5px;height:11px;border-radius:6px"></i></div><div class="cp2"><b>Compact</b>tab bar</div></div>
+</div>
+<div class="lt" style="margin-top:28px">Android, Windows, Linux · Material 3 Expressive</div><div style="display:flex;gap:16px;align-items:flex-start">
+<div class="szc "><div class="bx" style="width:272px"><i style="width:40px"></i><i style="width:50px"></i><i class="a" style="flex:1"></i><i class="g" style="width:56px"></i></div><div class="cp2"><b>Large</b>rail, list, detail, supporting</div></div>
+<div class="szc "><div class="bx" style="width:182px"><i style="width:30px"></i><i style="width:44px"></i><i class="a" style="flex:1"></i></div><div class="cp2"><b>Expanded</b>rail, list, detail</div></div>
+<div class="szc "><div class="bx" style="width:136px"><i style="width:22px"></i><i class="a" style="flex:1"></i><i class="dash" style="position:absolute;right:5px;top:5px;bottom:5px;width:44px"></i></div><div class="cp2"><b>Medium</b>rail, one pane, side sheet</div></div>
+<div class="szc "><div class="bx" style="width:90px"><i class="a" style="flex:1;margin-bottom:14px"></i><i style="position:absolute;left:5px;right:5px;bottom:5px;height:11px;border-radius:6px"></i></div><div class="cp2"><b>Compact</b>navigation bar</div></div>
+</div></div>
+<div style="flex:1;min-width:0"><div class="lt">Platforms</div><table class="pt big">
+<tr><th>Platform</th><th>Look</th><th>Built with</th><th>Window</th></tr>
+<tr><td>iPhone</td><td>Liquid Glass</td><td>SwiftUI</td><td>One window, both orientations</td></tr>
+<tr><td>iPad</td><td>Liquid Glass</td><td>SwiftUI</td><td>Full screen, Split View, Slide Over, Stage Manager, external display</td></tr>
+<tr><td>Mac</td><td>Liquid Glass</td><td>SwiftUI, macOS 26</td><td>Free windows, mini player, menu bar item</td></tr>
+<tr><td>Android phone</td><td>Material 3 Expressive</td><td>Jetpack Compose, Media3</td><td>Full screen, split screen</td></tr>
+<tr><td>Android tablet, foldable</td><td>Material 3 Expressive</td><td>Jetpack Compose, adaptive layouts</td><td>Split screen, freeform windows, fold postures</td></tr>
+<tr><td>Windows</td><td>Material 3 Expressive, desktop density</td><td>Flutter, Encore theme</td><td>Free windows, Snap Layouts, compact overlay</td></tr>
+<tr><td>Linux</td><td>Material 3 Expressive, desktop density</td><td>Flutter, Encore theme</td><td>Free windows on Wayland and X11, header bar</td></tr>
+</table></div>
+</div>
+<div><div class="lt">What changes with the window width</div><table class="pt big">
+<tr><th></th><th>Compact · under 600</th><th>Medium · 600 to 839</th><th>Expanded · 840 to 1199</th><th>Large · 1200 and up</th></tr>
+<tr><td>Navigation on Apple</td><td>Floating glass tab bar</td><td>Sidebar as an overlay</td><td>Floating glass sidebar</td><td>Floating glass sidebar</td></tr>
+<tr><td>Navigation on Android, Windows, Linux</td><td>Navigation bar</td><td>Rail, 80 dp</td><td>Expanded rail, 240 dp</td><td>Expanded rail, 240 dp</td></tr>
+<tr><td>Panes on Apple</td><td>One</td><td>One</td><td>Content, inspector on demand</td><td>Content and docked inspector</td></tr>
+<tr><td>Panes on Android, Windows, Linux</td><td>One</td><td>One, detail replaces list</td><td>List and detail</td><td>List, detail and supporting</td></tr>
+<tr><td>Lyrics and Up next</td><td>Inside Now Playing</td><td>Sheet or side sheet</td><td>Inspector or side sheet</td><td>Docked</td></tr>
+<tr><td>Player</td><td>Mini player above the bar</td><td>Floating over the content</td><td>Floating over the content</td><td>Floating over content and side pane</td></tr>
+<tr><td>Album grid</td><td>2 columns</td><td>3 columns</td><td>4 to 5 columns</td><td>6 to 8 columns</td></tr>
+</table></div>
+<div class="specg"><div class="sr"><div class="no">1</div><div><span class="nm">Width, not device.</span> The class comes from the width of the window and nothing else: never the device type, the operating system or the orientation. Rotating a tablet, folding a phone, dragging a Mac window and snapping a Windows window all go through the same four classes. Every board is tested by dragging an edge slowly through all of them.</div></div><div class="sr"><div class="no">2</div><div><span class="nm">State survives a resize.</span> The playing song, the open page, the scroll position, the selection and the sidebar state are kept when the class changes. Playback lives in the media session (the player service on Android, the audio session on Apple, the player engine on desktop), never in the window, so resizing never interrupts the music.</div></div><div class="sr"><div class="no">3</div><div><span class="nm">Windows are resizable.</span> iPad apps are free windows in iPadOS 26, so there is no full-screen lock and every orientation works. Android 16 ignores orientation and resizability locks for apps that target API 36 on screens of 600 dp and wider. Mac, Windows and Linux windows go down to 360 by 480 points. Nothing is drawn that needs a fixed size.</div></div><div class="sr"><div class="no">4</div><div><span class="nm">Input follows the window, not the device.</span> Touch targets are at least 44 pt on Apple devices and 48 dp on Android. Any window can also be used with a pointer (hover, right-click) and a keyboard (every control reachable, a visible focus ring, the same shortcuts on iPad, Mac, Windows and Linux, with Cmd or Ctrl). Long press and right-click open the same menu.</div></div><div class="sr"><div class="no">5</div><div><span class="nm">The system draws its own surfaces.</span> Lock screen, Control Center, the Android shade, the Windows volume flyout and taskbar thumbnail, GNOME and KDE media controls, and media keys are all drawn by the system from the metadata the app supplies: title, artist, cover, position and commands. The app never imitates them and never depends on them.</div></div><div class="sr"><div class="no">6</div><div><span class="nm">One behaviour, two looks.</span> Structure, wording, gestures, haptic meanings, handoff and accessibility are the same everywhere; only the material changes. Liquid Glass on iPhone, iPad and Mac. Material 3 Expressive on Android and, rebuilt as a small Flutter theme, on Windows and Linux. A behaviour change is made once and applied to every platform.</div></div><div class="sr"><div class="no">7</div><div><span class="nm">Motion.</span> Springs only. A change of class animates panes with a short spring of about 350 ms, and with Reduce Motion or Reduce animations it becomes a cross-fade. The lyric sweep, the gradient drift and the wavy progress stop under the same setting.</div></div><div class="sr"><div class="no">8</div><div><span class="nm">Accessibility floor.</span> Labels and roles on every control, Dynamic Type and font scale up to 200 percent without clipping, contrast of at least 4.5 to 1, and a solid fallback for every glass or translucent surface with Reduce Transparency or Increase Contrast. VoiceOver, TalkBack, Narrator and Orca all read the same label text.</div></div></div>
+<div class="st"><b>Where each is drawn.</b> The Mac, iPad, Android tablet and Windows and Linux boards show each family at every width with the system pieces around it. The phone boards are the Compact class. <b>Not drawn.</b> Apple TV, watchOS, Wear OS, car displays and web are outside this version.</div>
+
+</div>
+</body></html>

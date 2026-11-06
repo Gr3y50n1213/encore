@@ -1,0 +1,52 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0}</style>
+
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;color:#16181D}
+h2{margin:0 0 12px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#4A5160;font-weight:600}
+table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.4}
+th{text-align:left;font-weight:600;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#4A5160;padding:6px 10px 6px 0;border-bottom:2px solid #16181D}
+td{padding:7px 10px 7px 0;border-bottom:1px solid #DDE1E8;vertical-align:top;color:#2B3140}
+td:first-child{font-weight:500;color:#16181D}
+code{font-family:'DejaVu Sans Mono',monospace;font-size:11.5px;color:#1E3FA8}
+.r{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid #DDE1E8;font-size:13.5px;line-height:1.45;color:#2B3140}
+.r b{min-width:132px;font-weight:600;color:#16181D}
+</style>
+</head><body>
+
+<div style="width:1500px;height:1040px;box-sizing:border-box;background:#EEF0F3;padding:48px 56px;display:flex;flex-direction:column;gap:28px">
+<div>
+<h1 style="margin:0 0 8px;font-size:34px;font-weight:600;letter-spacing:-.02em">Gestures and accidental presses</h1>
+<p style="margin:0;font-size:15px;line-height:1.5;max-width:920px;color:#2B3140">One gesture vocabulary on both platforms so a screen never surprises anyone. Anything that changes playback, deletes, or leaves the screen is either undoable for 5 seconds or needs a deliberate second action.</p>
+</div>
+<div style="display:flex;gap:48px;align-items:flex-start">
+<div style="width:700px">
+<h2>Gesture vocabulary</h2>
+<table>
+<tr><th>Gesture</th><th>Timing and distance</th><th>Means</th></tr>
+<tr><td>Tap</td><td>Release within 300 ms, under 10 pt of drift</td><td>Primary action: play, open, toggle</td></tr>
+<tr><td>Double tap</td><td>Two taps within 250 ms, same spot</td><td>Only on artwork: like. Never on rows or buttons.</td></tr>
+<tr><td>Long press</td><td>Android 400 ms (follows the system setting). iOS the system menu timing, about 0.5 s</td><td>Context menu for that item. Haptic when it opens, menu opens with the item lifted.</td></tr>
+<tr><td>Horizontal swipe on a row</td><td>Past 25% of row width arms, past 60% commits</td><td>Leading: Play Next. Trailing: Add to Queue, Remove.</td></tr>
+<tr><td>Vertical swipe on a player</td><td>Velocity and distance, follows the finger</td><td>Down: collapse. Up on mini player: expand. Sideways on the mini player or artwork: skip, board 42.</td></tr>
+<tr><td>Drag handle</td><td>Starts on touch of the handle only</td><td>Reorder queue and playlists. With a mouse or trackpad the whole row drags, board 43.</td></tr>
+<tr><td>Scrub</td><td>Drag the progress bar, vertical drift slows it</td><td>Seek. Drift down to 50% or 25% speed for fine scrub.</td></tr>
+<tr><td>Edge swipe from left</td><td>Starts within 24 pt of the edge</td><td>Back. Predictive on Android.</td></tr>
+<tr><td>Pull down</td><td>Armed at 72 pt</td><td>Refresh library from the server</td></tr>
+</table>
+</div>
+<div style="flex:1;min-width:0">
+<h2>Accidental-press protection</h2>
+<div class="r"><b>Targets</b><span>Every control is at least 44 pt on iOS and 48 dp on Android. Icon buttons that sit close together keep 8 pt between hit areas.</span></div>
+<div class="r"><b>Cancel by sliding off</b><span>Touch down highlights, the action runs on release inside the control. Sliding out cancels with no haptic.</span></div>
+<div class="r"><b>Transport debounce</b><span>Play, pause, next and previous ignore a second tap for 200 ms after a first, so a bouncing thumb does not skip two songs.</span></div>
+<div class="r"><b>Skip is reversible</b><span>A skip pushes the song onto History. Previous within 3 s of a new track returns to the one just skipped, never two back.</span></div>
+<div class="r"><b>Destructive actions</b><span>Remove from library, delete playlist, sign out and clear downloads need a confirm sheet with the destructive button separated from Cancel. Remove from queue and remove from a playlist show an Undo toast for 5 s instead.</span></div>
+<div class="r"><b>Pocket and bag</b><span>The lock screen controls and headphone buttons keep working. In-app, a touch that lands during the first 150 ms after the screen wakes is ignored.</span></div>
+<div class="r"><b>Scrub lock</b><span>While the finger is on the progress bar, edge-back, collapse-swipe and tab taps are ignored so a slip never closes the player.</span></div>
+<div class="r"><b>Menus</b><span>A long-press menu opens under the finger. Releasing without moving never triggers an item; the first item needs a second tap.</span></div>
+<div class="r"><b>Blocked actions</b><span>A tap that cannot work (offline, not downloaded) shakes the control 4 pt, fires the warning haptic, and shows a one-line reason.</span></div>
+<div class="r"><b>Unsent changes</b><span>Likes and playlist edits apply instantly on the device and sync later. A failed sync shows a small badge, never a blocking error.</span></div>
+</div>
+</div>
+</div>
+</body></html>

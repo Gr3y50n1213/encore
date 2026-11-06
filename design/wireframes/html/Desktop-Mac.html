@@ -1,0 +1,162 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="./wf.css"><style>html,body{margin:0}</style>
+
+<style>
+
+.dsk{position:relative;overflow:hidden;background:linear-gradient(135deg,#BCCDF0 0%,#D8CCEE 48%,#F3D9CA 100%)}
+.menubar{position:absolute;left:0;right:0;top:0;height:26px;background:rgba(255,255,255,.4);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);display:flex;align-items:center;gap:18px;padding:0 14px;font-size:12px;color:#16181D;z-index:3}
+.menubar b{font-weight:700}
+.menubar .r{margin-left:auto;display:flex;align-items:center;gap:12px}
+.menubar .ex{display:flex;align-items:center;justify-content:center;width:26px;height:20px;border-radius:6px;background:rgba(0,0,0,.14)}
+.menubar .ex .ic{width:15px;height:15px}
+.mw{position:absolute;border-radius:26px;overflow:hidden;background:linear-gradient(180deg,#F7F8FC,#ECEFF7);box-shadow:0 28px 70px rgba(20,25,40,.4),0 0 0 1px rgba(0,0,0,.16),inset 0 0 0 1px rgba(255,255,255,.55)}
+.sbp{position:absolute;left:8px;top:8px;bottom:8px;width:216px;border-radius:20px;padding:14px 10px 10px;display:flex;flex-direction:column;gap:2px;z-index:2}
+.sbp .top{display:flex;align-items:center;justify-content:space-between;padding:0 6px 0 8px;margin-bottom:22px}
+.sbp .top .ic{width:17px;height:17px;color:#6B7280}
+.si2{display:flex;align-items:center;gap:9px;height:32px;padding:0 10px;border-radius:10px;font-size:13px;color:#16181D;white-space:nowrap}
+.si2 .ic{width:18px;height:18px;color:#4A5160}
+.si2.on{background:rgba(47,107,255,.15);color:#1B4FD8;font-weight:600}
+.si2.on .ic{color:#1B4FD8}
+.sbh{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#6B7280;font-weight:600;padding:14px 10px 4px}
+.tbr{position:absolute;display:flex;align-items:center;gap:10px;height:36px;z-index:2}
+.tbr .cp{height:34px;border-radius:17px;display:flex;align-items:center;justify-content:center;color:#2B3140;font-size:13px}
+.tbr .ic{width:18px;height:18px}
+.grd{display:grid;grid-template-columns:repeat(4,1fr);gap:20px 24px}
+.grd .t{font-size:12.5px;line-height:1.3}
+.grd .t b{display:block;font-weight:600;margin-top:7px}
+.grd .t span{color:#4A5160;font-size:11.5px}
+.pbar{position:absolute;bottom:14px;height:68px;border-radius:34px;display:flex;align-items:center;gap:16px;padding:0 20px 0 11px;z-index:2}
+.pbar .ic{width:19px;height:19px;color:#2B3140}
+.pbar .pl{width:36px;height:36px;border-radius:50%;background:#16181D;display:flex;align-items:center;justify-content:center}
+.pbar .pl .ic{color:#fff;width:20px;height:20px}
+.scrub{height:4px;border-radius:2px;background:rgba(20,25,40,.18);position:relative;flex:1}
+.scrub:after{content:"";position:absolute;left:0;top:0;bottom:0;width:38%;border-radius:2px;background:#2B3140}
+.vol{width:62px}
+.lines{position:absolute;left:440px;right:26px;top:64px;bottom:20px;display:flex;flex-direction:column;justify-content:center;gap:20px;font-size:31px;font-weight:700;letter-spacing:-.015em;line-height:1.15;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 20%,#000 80%,transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 20%,#000 80%,transparent 100%)}
+.lines div{color:rgba(255,255,255,.4)}
+.lines .cur{background:linear-gradient(90deg,#fff 0,#fff 56%,rgba(255,255,255,.42) 64%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.seg{display:flex;align-items:center;padding:3px;border-radius:19px;font-size:12.5px;font-weight:600}
+.seg span{padding:0 14px;height:30px;border-radius:15px;display:flex;align-items:center;color:rgba(255,255,255,.8)}
+.seg span.on{background:rgba(255,255,255,.3);color:#fff}
+.ps{position:absolute;display:flex;align-items:center;justify-content:center}
+.pop{position:absolute;border-radius:20px;padding:16px}
+
+</style>
+</head><body>
+
+<div class="lgb" style="height:2040px">
+
+<div><h1>Mac · macOS 26 · Liquid Glass</h1>
+<p class="intro">The Mac app is the iPhone and iPad app on a resizable window, with the same glass and the same gradients. It adds what a Mac window needs: a sidebar that floats, a toolbar, a menu bar, shortcuts, hover, right-click, a mini player and a menu bar item. Every window can be any size above 360 by 480 pt, and the layout follows the width, not the device.</p></div>
+<div class="cols">
+<div><div class="lt">Main window · wide</div>
+<div class="win dsk" style="width:1000px;height:690px;border-radius:14px">
+<div class="menubar"><b>Encore</b><span>File</span><span>Edit</span><span>View</span><span>Controls</span><span>Window</span><span>Help</span>
+<div class="r"><div class="ex"><i class="ic m-note"></i></div><span>Thu 5 Nov&nbsp;&nbsp;9:41</span></div></div>
+<div class="mw" style="left:20px;top:40px;width:960px;height:630px">
+<div style="position:absolute;left:236px;right:0;top:0;bottom:0;padding:66px 24px 0 8px;overflow:hidden">
+<div style="display:flex;align-items:baseline;justify-content:space-between"><div style="font-size:28px;font-weight:700;letter-spacing:-.02em">Albums</div><div class="tx2">1,248 albums</div></div>
+<div class="grd" style="margin-top:14px"><div class="t"><div class="art cv-a" style="width:100%;aspect-ratio:1;border-radius:10px;;box-shadow:0 4px 14px rgba(20,25,40,.18)"></div><b>Golden Hour Static</b><span>Ember Cove</span></div>
+<div class="t"><div class="art cv-b" style="width:100%;aspect-ratio:1;border-radius:10px;;box-shadow:0 4px 14px rgba(20,25,40,.18)"></div><b>Night Market</b><span>Pale Harbor</span></div>
+<div class="t"><div class="art cv-c" style="width:100%;aspect-ratio:1;border-radius:10px;;box-shadow:0 4px 14px rgba(20,25,40,.18)"></div><b>Salt and Signal</b><span>Moth Choir</span></div>
+<div class="t"><div class="art cv-d" style="width:100%;aspect-ratio:1;border-radius:10px;;box-shadow:0 4px 14px rgba(20,25,40,.18)"></div><b>Terminal Bloom</b><span>Juno Weft</span></div>
+<div class="t"><div class="art cv-b" style="width:100%;aspect-ratio:1;border-radius:10px;filter:hue-rotate(35deg);box-shadow:0 4px 14px rgba(20,25,40,.18)"></div><b>Tidewater</b><span>Pale Harbor</span></div>
+<div class="t"><div class="art cv-c" style="width:100%;aspect-ratio:1;border-radius:10px;filter:hue-rotate(-40deg);box-shadow:0 4px 14px rgba(20,25,40,.18)"></div><b>Brass Arches</b><span>Moth Choir</span></div>
+<div class="t"><div class="art cv-d" style="width:100%;aspect-ratio:1;border-radius:10px;filter:hue-rotate(30deg);box-shadow:0 4px 14px rgba(20,25,40,.18)"></div><b>Paper Moon</b><span>Juno Weft</span></div>
+<div class="t"><div class="art cv-a" style="width:100%;aspect-ratio:1;border-radius:10px;filter:hue-rotate(-35deg);box-shadow:0 4px 14px rgba(20,25,40,.18)"></div><b>Slow Static</b><span>Ember Cove</span></div>
+<div class="t"><div class="art cv-a" style="width:100%;aspect-ratio:1;border-radius:10px;filter:hue-rotate(60deg);box-shadow:0 4px 14px rgba(20,25,40,.18)"></div><b>Low Orbit</b><span>Ember Cove</span></div>
+<div class="t"><div class="art cv-b" style="width:100%;aspect-ratio:1;border-radius:10px;filter:hue-rotate(-30deg);box-shadow:0 4px 14px rgba(20,25,40,.18)"></div><b>Harbor Lights</b><span>Pale Harbor</span></div>
+<div class="t"><div class="art cv-c" style="width:100%;aspect-ratio:1;border-radius:10px;filter:hue-rotate(20deg);box-shadow:0 4px 14px rgba(20,25,40,.18)"></div><b>Field Notes</b><span>Moth Choir</span></div>
+<div class="t"><div class="art cv-d" style="width:100%;aspect-ratio:1;border-radius:10px;filter:hue-rotate(-25deg);box-shadow:0 4px 14px rgba(20,25,40,.18)"></div><b>Glass Hours</b><span>Juno Weft</span></div></div>
+</div>
+<div class="sbp gp"><div class="top"><div class="tl3"><i></i><i></i><i></i></div><i class="ic m-sidebar"></i></div>
+<div class="si2"><i class="ic m-home"></i>Home</div>
+<div class="si2"><i class="ic m-mixes"></i>Mixes</div>
+<div class="si2 on"><i class="ic m-library"></i>Library</div>
+<div class="sbh">Pinned</div>
+<div class="si2"><div class="art cv-a" style="width:20px;height:20px;border-radius:5px"></div>Evening Drive</div>
+<div class="si2"><div class="art cv-b" style="width:20px;height:20px;border-radius:5px"></div>Rainy Focus</div>
+<div class="si2"><div class="art cv-c" style="width:20px;height:20px;border-radius:5px"></div>Drive Home</div>
+<div class="sbh">Playlists</div>
+<div class="si2"><i class="ic m-queue"></i>Road trip</div>
+<div class="si2"><i class="ic m-queue"></i>Study</div>
+<div style="flex:1"></div>
+<div class="si2" style="height:40px"><div class="art circ" style="width:26px;height:26px;font-size:8px">You</div><span style="flex:1">You</span><i class="ic m-gear"></i></div>
+</div>
+<div class="tbr" style="left:236px;right:16px;top:10px">
+<div class="cp gp" style="width:76px;gap:14px"><i class="ic m-back"></i><i class="ic m-back flip" style="opacity:.4"></i></div>
+<div style="font-size:17px;font-weight:700;margin-left:6px">Library</div>
+<div style="flex:1"></div>
+<div class="cp gp" style="width:78px;padding:3px;gap:2px"><span class="cap" style="flex:1;height:28px;border-radius:14px;background:#fff;box-shadow:0 1px 3px rgba(20,25,40,.2)"><i class="ic m-grid"></i></span><span class="cap" style="flex:1;height:28px"><i class="ic m-list"></i></span></div>
+<div class="cp gp" style="width:34px"><i class="ic m-sort"></i></div>
+<div class="cp gp" style="width:196px;justify-content:flex-start;gap:8px;padding:0 12px;color:#6B7280"><i class="ic m-search"></i>Search</div>
+</div>
+<div class="pbar gp" style="left:236px;right:14px">
+<div style="display:flex;align-items:center;gap:11px;width:232px"><div class="art cv-a" style="width:46px;height:46px;border-radius:9px"></div><div style="min-width:0;flex:1"><div class="tx1">Slow Tide</div><div class="tx2">Ember Cove</div></div><i class="ic m-heart"></i></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px">
+<div style="display:flex;align-items:center;gap:20px"><i class="ic m-shuffle"></i><i class="ic m-prev"></i><div class="pl"><i class="ic m-pause"></i></div><i class="ic m-next"></i><i class="ic m-repeat"></i></div>
+<div style="display:flex;align-items:center;gap:8px;width:100%;font-size:10.5px;color:#4A5160">1:24<div class="scrub"></div>3:41</div>
+</div>
+<div style="display:flex;align-items:center;gap:14px;width:150px;justify-content:flex-end"><i class="ic m-lyrics"></i><i class="ic m-queue"></i><i class="ic m-vol"></i></div>
+</div>
+</div>
+<div class="n" style="top:160px;left:246px">1</div><div class="n" style="top:52px;left:246px">2</div><div class="n" style="top:210px;left:246px">3</div><div class="n" style="top:614px;left:246px">4</div>
+</div></div>
+<div><div class="lt">Same window, dragged narrow</div>
+<div class="win dsk" style="width:388px;height:540px;border-radius:14px">
+<div class="mw" style="left:14px;top:12px;width:360px;height:516px;border-radius:22px">
+<div class="tl3" style="position:absolute;left:18px;top:19px"><i></i><i></i><i></i></div>
+<div class="ps gp" style="left:88px;top:10px;width:34px;height:34px;border-radius:50%"><i class="ic m-sidebar"></i></div>
+<div style="position:absolute;left:0;right:0;top:14px;text-align:center;font-size:15px;font-weight:700;padding-left:60px">Library</div>
+<div class="ps gp" style="right:14px;top:10px;width:34px;height:34px;border-radius:50%"><i class="ic m-search"></i></div>
+<div style="position:absolute;left:18px;right:18px;top:64px"><div style="font-size:24px;font-weight:700;letter-spacing:-.02em;margin-bottom:10px">Albums</div>
+<div class="grd" style="grid-template-columns:1fr 1fr;gap:16px 16px"><div class="t"><div class="art cv-a" style="width:100%;aspect-ratio:1;border-radius:10px;;box-shadow:0 4px 14px rgba(20,25,40,.18)"></div><b>Golden Hour Static</b><span>Ember Cove</span></div>
+<div class="t"><div class="art cv-b" style="width:100%;aspect-ratio:1;border-radius:10px;;box-shadow:0 4px 14px rgba(20,25,40,.18)"></div><b>Night Market</b><span>Pale Harbor</span></div>
+<div class="t"><div class="art cv-c" style="width:100%;aspect-ratio:1;border-radius:10px;;box-shadow:0 4px 14px rgba(20,25,40,.18)"></div><b>Salt and Signal</b><span>Moth Choir</span></div>
+<div class="t"><div class="art cv-d" style="width:100%;aspect-ratio:1;border-radius:10px;;box-shadow:0 4px 14px rgba(20,25,40,.18)"></div><b>Terminal Bloom</b><span>Juno Weft</span></div>
+<div class="t"><div class="art cv-b" style="width:100%;aspect-ratio:1;border-radius:10px;filter:hue-rotate(35deg);box-shadow:0 4px 14px rgba(20,25,40,.18)"></div><b>Tidewater</b><span>Pale Harbor</span></div>
+<div class="t"><div class="art cv-c" style="width:100%;aspect-ratio:1;border-radius:10px;filter:hue-rotate(-40deg);box-shadow:0 4px 14px rgba(20,25,40,.18)"></div><b>Brass Arches</b><span>Moth Choir</span></div></div></div>
+<div class="pbar gp" style="left:10px;right:10px;bottom:10px;height:58px;border-radius:29px;gap:10px;padding:0 14px 0 9px"><div class="art cv-a" style="width:40px;height:40px;border-radius:8px"></div><div style="flex:1;min-width:0"><div class="tx1">Slow Tide</div><div class="tx2">Ember Cove</div></div><i class="ic m-pause"></i><i class="ic m-next"></i></div>
+</div>
+<div class="n" style="top:20px;left:138px">6</div>
+</div></div>
+</div>
+<div class="cols">
+<div><div class="lt">Now Playing window</div>
+<div class="win dsk" style="width:1000px;height:600px;border-radius:14px">
+<div class="mw pal-a" style="left:20px;top:20px;width:960px;height:560px;color:#fff"><div class="bgm" style="position:absolute;left:0;right:0;top:0;bottom:0"></div>
+<div class="tl3" style="position:absolute;left:22px;top:20px"><i></i><i></i><i></i></div>
+<div class="ps gd" style="left:104px;top:12px;width:34px;height:34px;border-radius:50%"><i class="ic m-down"></i></div>
+<div class="seg gd" style="position:absolute;right:20px;top:12px"><span class="on">Lyrics</span><span>Up Next</span><span>Info</span></div>
+<div class="art cv-a" style="position:absolute;left:70px;top:84px;width:300px;height:300px;border-radius:14px;box-shadow:0 22px 54px rgba(0,0,0,.5)"></div>
+<div style="position:absolute;left:70px;top:404px;width:300px;display:flex;align-items:center;gap:10px"><div style="flex:1;min-width:0"><div style="font-size:21px;font-weight:700;letter-spacing:-.01em">Golden Hour Static</div><div style="font-size:14.5px;color:rgba(255,255,255,.76)">Ember Cove</div></div><div class="ps gd" style="position:relative;width:34px;height:34px;border-radius:50%"><i class="ic m-heart"></i></div><div class="ps gd" style="position:relative;width:34px;height:34px;border-radius:50%"><div class="i-dots"></div></div></div>
+<div style="position:absolute;left:70px;top:474px;width:300px"><div style="height:5px;border-radius:3px;background:rgba(255,255,255,.28);position:relative"><div style="position:absolute;left:0;top:0;bottom:0;width:38%;border-radius:3px;background:#fff"></div></div><div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.74);margin-top:5px"><span>1:24</span><span>-2:18</span></div></div>
+<div style="position:absolute;left:70px;top:506px;width:300px;display:flex;align-items:center;justify-content:center;gap:14px"><div class="ps gd" style="position:relative;width:58px;height:40px;border-radius:20px"><i class="ic m-prev"></i></div><div class="ps gd" style="position:relative;width:76px;height:44px;border-radius:22px;background:rgba(255,255,255,.34)"><i class="ic l m-pause"></i></div><div class="ps gd" style="position:relative;width:58px;height:40px;border-radius:20px"><i class="ic m-next"></i></div></div>
+<div class="lines"><div>Slow tide pulling at the lights</div><div>paper lanterns drift away</div><div class="cur">count the hours as they glow</div><div>golden hour, static in the air</div><div>hold the sky a little longer</div></div>
+</div>
+<div class="n" style="top:300px;left:30px">5</div>
+</div></div>
+<div><div class="lt">Mini player window</div>
+<div class="win dsk" style="width:388px;height:110px;border-radius:14px">
+<div class="pop gp" style="left:14px;top:14px;width:360px;height:82px;border-radius:24px;padding:0 16px 0 12px;display:flex;align-items:center;gap:12px">
+<div class="art cv-a" style="width:58px;height:58px;border-radius:10px"></div>
+<div style="flex:1;min-width:0"><div class="tx1">Slow Tide</div><div class="tx2">Ember Cove</div><div class="scrub" style="margin-top:9px;height:3px"></div></div>
+<i class="ic m-prev"></i><div style="width:34px;height:34px;border-radius:50%;background:#16181D;display:flex;align-items:center;justify-content:center"><i class="ic m-pause" style="color:#fff"></i></div><i class="ic m-next"></i>
+</div>
+<div class="n" style="top:44px;left:0px">7</div>
+</div><div class="lt" style="margin-top:20px">Menu bar item and popover</div>
+<div class="win dsk" style="width:388px;height:318px;border-radius:14px">
+<div class="menubar"><div class="r" style="gap:14px"><div class="ex"><i class="ic m-note"></i></div><span>Thu 5 Nov&nbsp;&nbsp;9:41</span></div></div>
+<div class="pop gp" style="right:18px;top:34px;width:312px;padding:16px 16px 8px">
+<div style="display:flex;gap:12px;align-items:center"><div class="art cv-a" style="width:62px;height:62px;border-radius:10px"></div><div style="flex:1;min-width:0"><div class="tx1" style="font-size:14px">Slow Tide</div><div class="tx2">Ember Cove · Golden Hour Static</div></div></div>
+<div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px;font-size:10.5px;color:#4A5160">1:24<div class="scrub"></div>3:41</div>
+<div style="display:flex;justify-content:center;align-items:center;gap:26px;margin-bottom:10px"><i class="ic m-prev" style="width:22px;height:22px"></i><div style="width:38px;height:38px;border-radius:50%;background:#16181D;display:flex;align-items:center;justify-content:center"><i class="ic m-pause" style="color:#fff"></i></div><i class="ic m-next" style="width:22px;height:22px"></i></div>
+<div style="border-top:1px solid rgba(20,25,40,.1);font-size:13px"><div style="padding:8px 4px">Open Encore</div><div style="padding:8px 4px">Mini player</div><div style="padding:8px 4px">Quit Encore</div></div>
+</div>
+<div class="n" style="top:5px;left:222px">8</div>
+</div></div>
+</div>
+<div class="specg"><div class="sr"><div class="no">1</div><div><span class="nm">Window and sidebar.</span> The window and its 26 pt corners belong to the system. The sidebar is a floating Liquid Glass panel inset 8 pt, with concentric 20 pt corners, and the traffic lights sit inside it. Home, Mixes, Library, then Pinned mixes and Playlists, with the profile and settings at the foot. Selection is a tinted capsule. Drag the edge to resize from 180 to 300 pt, or hide it with the toolbar button or Cmd+Opt+S.</div></div><div class="sr"><div class="no">2</div><div><span class="nm">Toolbar.</span> Glass is used only for the controls: back and forward (Cmd+[ and Cmd+]), the grid and list switch, sort, and the search field. The title stays plain. Search grows to 320 pt on focus (Cmd+F) and drops a results panel under it. Content scrolls under the toolbar with a soft edge, never a hard line.</div></div><div class="sr"><div class="no">3</div><div><span class="nm">Library grid.</span> Tiles are at least 150 pt wide, so the grid goes from 2 to 8 columns as the window changes, with one 10 pt corner on every cover. Hover lifts a tile and shows a glass play button. Click selects, double-click plays, right-click opens the song menu, and arrow keys move a visible focus ring. Dragging songs or an album onto a playlist in the sidebar adds them; the full rules are on board 43.</div></div><div class="sr"><div class="no">4</div><div><span class="nm">Player bar.</span> A floating glass capsule over the content, not over the sidebar. Left: cover, title, like. Centre: transport and a draggable scrubber with a time tooltip. Right: lyrics, queue, volume (scroll over it to change). Clicking the cover opens the Now Playing window; the lyrics and queue buttons open a right-hand panel, which squeezes the grid rather than covering it.</div></div><div class="sr"><div class="no">5</div><div><span class="nm">Now Playing window.</span> Its own window, built from the album the way the phone is: a mesh gradient with glass controls. Lyrics, Up Next and Info are one segmented control. Lyrics sweep word by word, and clicking a line seeks. The green button enters full screen for a large display; Esc leaves. Text flips to dark on light artwork, as on the phone.</div></div><div class="sr"><div class="no">6</div><div><span class="nm">Narrow window.</span> Below 600 pt the sidebar hides behind a toolbar button and opens as an overlay, the grid drops to two columns, and the player becomes the mini capsule. The smallest window is 360 by 480 pt. Size and position are remembered per window, and nothing is lost when the user drags the corner mid-song.</div></div><div class="sr"><div class="no">7</div><div><span class="nm">Mini player.</span> Opt+Cmd+M. A small floating glass window that stays above other windows, with the cover, title, scrubber and transport. Hovering shows close and expand. It never takes keyboard focus from the app underneath unless clicked.</div></div><div class="sr"><div class="no">8</div><div><span class="nm">Menu bar and Dock.</span> An optional menu bar item with a popover for now playing, transport and quick actions; it can be hidden in Settings. The Dock menu has the same controls. Control Center, the lock screen and media keys come from the system Now Playing integration.</div></div></div>
+<div class="st"><b>Menus.</b> Encore (About, Settings, Servers, Profiles, Quit) · File (New Playlist, Add a server, Export my data) · Edit · View (Show Sidebar, Show Queue, Show Lyrics, as Grid or List, Enter Full Screen) · Controls (Play or Pause Space, Next Cmd+Right, Previous Cmd+Left, Volume Cmd+Up and Down, Like Opt+Cmd+L, Shuffle, Repeat) · Window · Help. Every action in the UI also has a menu item and, where sensible, a shortcut. <b>Material.</b> The Mac, iPad and iPhone share one Liquid Glass look: glass for floating controls, plain surfaces for content. With Reduce Transparency or Increase Contrast the glass becomes solid and gets a clear outline. <b>Accessibility.</b> Full keyboard access, VoiceOver labels on every control, Reduce Motion stops the gradient drift and the lyric sweep becomes a plain highlight.</div>
+
+</div>
+</body></html>

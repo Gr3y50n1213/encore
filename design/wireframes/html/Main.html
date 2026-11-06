@@ -1,0 +1,42 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0}</style>
+
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;color:#16181D}
+.h{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#4A5160;font-weight:600;margin:0 0 10px}
+.row{display:flex;gap:10px;align-items:baseline;font-size:14px;line-height:1.45;padding:7px 0;border-top:1px solid #DDE1E8}
+.row b{font-weight:600;min-width:150px}
+.row span{color:#3A4150}
+.tag{font-family:'DejaVu Sans Mono',monospace;font-size:12px;color:#3A4150}
+</style>
+</head><body>
+
+<div style="width:1200px;height:960px;box-sizing:border-box;background:#EEF0F3;padding:56px;display:flex;flex-direction:column;gap:32px">
+<div style="display:flex;flex-direction:column;gap:12px">
+<h1 style="margin:0;font-size:44px;line-height:1.05;font-weight:600;letter-spacing:-.02em">Encore wireframes</h1>
+<p style="margin:0;font-size:17px;line-height:1.5;max-width:820px;color:#2B3140">Every phone screen is drawn twice with the same structure: iOS 26 with Liquid Glass on the left, Android 16 with Material 3 Expressive on the right. Tablets and desktop windows have their own boards, because every window is resizable. A spec column beside each pair lists what every control does on tap, double tap, long press and swipe, how it guards against accidental presses, which haptic fires, and how it moves.</p>
+</div>
+<div style="display:flex;gap:56px;align-items:flex-start">
+<div style="flex:1;min-width:0">
+<p class="h">How to read a screen board</p>
+<div class="row"><b>Left phone</b><span>iOS: SwiftUI, glass tab bar and mini player, spring motion, UIKit haptics</span></div>
+<div class="row"><b>Right phone</b><span>Android: Jetpack Compose, M3 Expressive shapes, springs and haptic constants</span></div>
+<div class="row"><b>Numbered marks</b><span>Match the numbered rows in the spec column</span></div>
+<div class="row"><b>Spec rows</b><span><span class="tag">TAP</span> <span class="tag">2×TAP</span> <span class="tag">HOLD</span> <span class="tag">SWIPE</span> <span class="tag">GUARD</span> <span class="tag">HAPTIC</span> <span class="tag">MOTION</span></span></div>
+<div class="row"><b>States</b><span>Loading, empty, offline, error and signed-out states are listed under each screen</span></div>
+<p class="h" style="margin-top:28px">Decision made</p>
+<p style="margin:0;font-size:14px;line-height:1.5;color:#2B3140;max-width:520px">Liquid Glass on iPhone, iPad and Mac. Android uses native Jetpack Compose, which ships the Material 3 Expressive components. Flutter has said it is not building them, so Windows and Linux use Flutter with a small Encore theme in the same Expressive look.</p>
+</div>
+<div style="width:470px">
+<p class="h">Boards on this canvas</p>
+<div class="row"><b>System</b><span>Motion and haptics, gestures and accidental-press rules, album gradients, platform design languages</span></div>
+<div class="row"><b>Browse</b><span>Home, Library, Search, Album</span></div>
+<div class="row"><b>Playback</b><span>Now Playing, Lyrics, Queue, Output and handoff</span></div>
+<div class="row"><b>Menus and special</b><span>Song long-press menu, profile switcher, Made-for-you playlist, year recap</span></div>
+<div class="row"><b>Settings and setup</b><span>Settings, servers and sources, privacy and data, empty, error and offline states, connect a server, welcome, Mixes tab, permissions and system prompts</span></div>
+<div class="row"><b>Tablet and desktop</b><span>Size classes and platform rules, then Mac, iPad, Android tablet, and Windows and Linux: sidebar or rail, panes, player bar, system media controls</span></div>
+<div class="row"><b>Lock screen and widgets</b><span>Live surfaces and rules, the sleep timer, lock screen and Live Activities, widgets and controls on Apple devices, and widgets and media surfaces on Android, Windows and Linux</span></div>
+<div class="row"><b>Polish and smart picks</b><span>Buttons, states and haptics; notch, Dynamic Island, cutouts and foldables; how smart tracks and playlists are chosen; and the screens that explain and control them</span></div>
+</div>
+</div>
+</div>
+</body></html>

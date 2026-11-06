@@ -1,0 +1,68 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="./wf.css"><style>html,body{margin:0}</style>
+
+<style>
+.scrim{background:linear-gradient(180deg,#8C95A8,#4A5160)}
+.sheet-i{position:absolute;left:8px;right:8px;bottom:8px;top:250px;border-radius:34px;background:rgba(255,255,255,.9);border:1px solid #fff;box-shadow:0 8px 30px rgba(10,10,30,.3);padding:14px 20px;display:flex;flex-direction:column;gap:2px}
+.sheet-a{position:absolute;left:0;right:0;bottom:0;top:250px;border-radius:28px 28px 0 0;background:#F3EDF7;padding:12px 20px;display:flex;flex-direction:column;gap:2px}
+.sel{background:#DCE4FF;border-radius:14px;margin:0 -8px;padding:0 8px}
+.and .sel{background:#E8DEF8;border-radius:20px}
+.lk{font-size:10.5px;border:1px solid #AEB5C4;border-radius:999px;padding:1px 7px;color:#4A5160}
+.wn{color:#B3261E}
+</style>
+</head><body>
+
+<div class="board">
+<div class="col">
+<div class="lbl">iOS 26 · Liquid Glass</div>
+<div class="phone ios scrim">
+<div class="sheet-i">
+<div style="width:40px;height:5px;border-radius:3px;background:#AEB5C4;align-self:center"></div>
+<div class="h3" style="margin:8px 0 4px">Who's listening?</div>
+<div class="rw sel"><div class="art circ" style="width:44px;height:44px">You</div><div class="g"><div class="t" style="font-weight:600">You</div><div class="s">home-server · active</div></div><i class="ic sm m-check" style="color:var(--acc)"></i></div>
+<div class="rw"><div class="art circ" style="width:44px;height:44px">Sam</div><div class="g"><div class="t" style="font-weight:600">Sam</div><div class="s">home-server</div></div><span class="lk">PIN</span></div>
+<div class="rw"><div class="art circ" style="width:44px;height:44px">Kit</div><div class="g"><div class="t" style="font-weight:600">Kit</div><div class="s wn">Session ended. Sign in again</div></div></div>
+<div class="rw"><div class="art circ" style="width:44px;height:44px"><i class="ic m-add"></i></div><div class="g"><div class="t" style="font-weight:600">Add account</div></div></div>
+<div class="rw"><div class="art circ" style="width:44px;height:44px">G</div><div class="g"><div class="t" style="font-weight:600">Guest</div><div class="s">Nothing is saved</div></div></div>
+<button class="t on" style="text-align:left;margin-top:8px;font-weight:600">Manage profiles</button>
+</div>
+<div class="n" style="top:262px;left:1px">1</div>
+<div class="n" style="top:330px;left:1px">2</div>
+<div class="n" style="top:388px;left:1px">3</div>
+<div class="n" style="top:444px;left:1px">4</div>
+<div class="n" style="top:512px;left:1px">5</div>
+<div class="n" style="top:578px;left:1px">6</div>
+</div>
+</div>
+<div class="col">
+<div class="lbl">Android 16 · Material 3 Expressive</div>
+<div class="phone and scrim">
+<div class="sheet-a">
+<div style="width:32px;height:4px;border-radius:2px;background:#CAC4D0;align-self:center"></div>
+<div class="h3" style="margin:8px 0 4px;font-weight:500">Who's listening?</div>
+<div class="rw sel"><div class="art circ" style="width:48px;height:48px">You</div><div class="g"><div class="t" style="font-weight:600">You</div><div class="s">home-server · active</div></div><i class="ic sm m-check" style="color:var(--acc)"></i></div>
+<div class="rw"><div class="art circ" style="width:48px;height:48px">Sam</div><div class="g"><div class="t" style="font-weight:600">Sam</div><div class="s">home-server</div></div><span class="lk">PIN</span></div>
+<div class="rw"><div class="art circ" style="width:48px;height:48px">Kit</div><div class="g"><div class="t" style="font-weight:600">Kit</div><div class="s wn">Session ended. Sign in again</div></div></div>
+<div class="rw"><div class="art circ" style="width:48px;height:48px"><i class="ic m-add"></i></div><div class="g"><div class="t" style="font-weight:600">Add account</div></div></div>
+<div class="rw"><div class="art circ" style="width:48px;height:48px">G</div><div class="g"><div class="t" style="font-weight:600">Guest</div><div class="s">Nothing is saved</div></div></div>
+<button class="pill on" style="margin-top:8px;font-weight:600;align-self:flex-start">Manage profiles</button>
+</div>
+<div class="n" style="top:262px;left:1px">1</div>
+<div class="n" style="top:330px;left:1px">2</div>
+<div class="n" style="top:388px;left:1px">3</div>
+<div class="n" style="top:444px;left:1px">4</div>
+<div class="n" style="top:512px;left:1px">5</div>
+<div class="n" style="top:578px;left:1px">6</div>
+</div>
+</div>
+<div class="spec">
+<div class="lbl" style="margin-bottom:10px">Profile switcher</div>
+<div class="sr"><div class="no">1</div><div><span class="nm">Opening.</span> <span class="k">TAP</span>the avatar on Home or Library. <span class="k">HOLD</span>the avatar for a short list that switches in one tap. The sheet lists every profile signed in on this device, active first. <span class="k">SWIPE</span>down closes.</div></div>
+<div class="sr"><div class="no">2</div><div><span class="nm">Switching.</span> <span class="k">TAP</span>a profile. If music is playing, an inline choice appears: "Keep playing" or "Stop and switch". Locked profiles ask for biometrics, then a 4 to 6 digit PIN. Then the content cross-fades, the tab resets to Home, and the new profile's last queue loads paused. <span class="k">HAPTIC</span>success. <span class="k">GUARD</span>switching never deletes or signs out anything.</div></div>
+<div class="sr"><div class="no">3</div><div><span class="nm">Row actions.</span> <span class="k">HOLD</span>a row: Lock with PIN, Sign out, Remove from this device. Sign out and remove need a confirm sheet; removal keeps the profile's data on the server and deletes only the local copy. Removing is not deleting: deleting a profile and its data lives in Privacy and data, and is the in-app account deletion path.</div></div>
+<div class="sr"><div class="no">4</div><div><span class="nm">Add account.</span> <span class="k">TAP</span>starts sign-in for the same server or a new one, using the onboarding flow. The new profile becomes active when sign-in succeeds.</div></div>
+<div class="sr"><div class="no">5</div><div><span class="nm">Guest.</span> <span class="k">TAP</span>starts a temporary profile that records no history, makes no recommendations and syncs nothing. A banner reads "Guest, nothing is saved". It ends with a tap, or after 4 hours idle, and returns to the previous profile.</div></div>
+<div class="sr"><div class="no">6</div><div><span class="nm">Manage profiles.</span> Rename the display name, change the avatar, set or remove a PIN, reorder, sign out. Avatars come from the media server's user image, with initials as the fallback. Biometric locks use Face ID or Touch ID through the system prompt, with the PIN as the fallback.</div></div>
+<div class="st"><b>Isolation.</b> Each profile has its own database, caches, downloads list, recommender state and settings. Downloaded audio files may be shared on disk by checksum to save space, but never the lists that point to them.<br><b>States.</b> One profile only: the sheet shows just that profile, Add account and Guest. Session ended: the row shows "Sign in again" and keeps local data until the user removes it. PIN: five wrong tries lock for 30 s, then longer. Biometrics changed on the device: PIN is required once.</div>
+</div>
+</div>
+</body></html>

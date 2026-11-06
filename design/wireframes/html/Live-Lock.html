@@ -1,0 +1,284 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="./wf.css"><style>html,body{margin:0}</style>
+
+<style>
+
+.adev{position:relative;flex:none;background:#1D1B20;border-radius:34px;box-shadow:0 24px 60px rgba(20,25,40,.32),inset 0 0 0 2px #3A383E}
+.ascr{position:absolute;left:8px;top:8px;right:8px;bottom:8px;border-radius:27px;overflow:hidden;background:#FEF7FF;color:#1D1B20}
+.ast{position:absolute;left:0;right:0;top:0;height:28px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:12px;font-weight:500;z-index:4}
+.abat{display:inline-block;width:22px;height:11px;border-radius:3px;background:#1D1B20;vertical-align:middle;margin-left:8px;opacity:.85}
+.wallA{position:relative;overflow:hidden;background:linear-gradient(160deg,#B9C8F2 0%,#DCCCF2 55%,#F6D1C1 100%)}
+.rail{position:absolute;left:0;top:28px;bottom:0;background:#F7F2FA;display:flex;flex-direction:column;padding:8px 12px 12px;gap:2px;z-index:2}
+.rb{width:48px;height:48px;border-radius:24px;display:flex;align-items:center;justify-content:center;margin-bottom:6px}
+.rb .ic,.ri .ic{width:24px;height:24px;color:#49454F}
+.ri{display:flex;align-items:center;gap:12px;height:52px;padding:0 16px;border-radius:26px;font-size:14px;font-weight:500;color:#49454F;white-space:nowrap}
+.ri.sel{background:#E8DEF8;color:#1D192B}.ri.sel .ic{color:#1D192B}
+.rh2{font-size:12px;font-weight:500;color:#49454F;padding:14px 16px 4px}
+.rs{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:500;color:#49454F;padding:6px 0}
+.rs .pi{width:56px;height:32px;border-radius:16px;display:flex;align-items:center;justify-content:center}
+.rs .pi .ic{width:24px;height:24px;color:#49454F}
+.rs.sel{color:#1D192B}.rs.sel .pi{background:#E8DEF8}.rs.sel .pi .ic{color:#1D192B}
+.pane{position:absolute;border-radius:28px;overflow:hidden}
+.chp{height:32px;padding:0 14px;border-radius:8px;border:1px solid #79747E;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:#49454F}
+.chp.sel{background:#E8DEF8;border-color:transparent;color:#1D192B}
+.li{display:flex;align-items:center;gap:14px;height:68px;padding:0 12px;border-radius:20px}
+.li.sel{background:#E8DEF8}
+.li .tt{font-size:15px;font-weight:500;line-height:1.25}
+.li .ss{font-size:12.5px;color:#49454F}
+.grp{display:flex;gap:2px}
+.grp>div{height:48px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:600;border-radius:8px;padding:0 22px}
+.grp>div .ic{width:20px;height:20px}
+.gl{border-radius:24px 8px 8px 24px!important}.gr{border-radius:8px 24px 24px 8px!important}
+.fl{background:#6750A4;color:#fff}.fl .ic{color:#fff}
+.tn{background:#E8DEF8;color:#1D192B}
+.ag>div{display:flex;align-items:center;gap:14px;height:52px;padding:0 18px;background:#F3EDF7;border-radius:6px;margin-bottom:2px;font-size:14.5px}
+.ag>div:first-child{border-radius:24px 24px 6px 6px}
+.ag>div:last-child{border-radius:6px 6px 24px 24px;margin-bottom:0}
+.ag .nn{width:20px;text-align:center;color:#49454F;font-size:13px}
+.ag .tt{flex:1;min-width:0}
+.ag .d{font-size:12.5px;color:#49454F}
+.ag .cur{background:#E8DEF8;font-weight:600}
+.eqa{display:inline-block;width:3px;height:13px;border-radius:2px;background:#6750A4;box-shadow:-6px 4px #6750A4,6px 2px #6750A4;margin:0 5px}
+.nbar{position:absolute;height:80px;border-radius:28px;background:#ECE6F0;display:flex;align-items:center;gap:14px;padding:0 22px 0 12px;z-index:3;box-shadow:0 2px 10px rgba(29,27,32,.14)}
+.nbar .ic{width:24px;height:24px;color:#49454F}
+.pb{width:52px;height:52px;border-radius:17px;background:#6750A4;display:flex;align-items:center;justify-content:center;flex:none}
+.pb .ic{color:#fff}
+.ib{width:48px;height:48px;border-radius:24px;display:flex;align-items:center;justify-content:center;flex:none}
+.sup{position:absolute;overflow:hidden;color:#fff}
+.sgm{display:flex;gap:2px;position:absolute}
+.sgm span{flex:1;height:36px;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:13px;font-weight:600;background:rgba(255,255,255,.18);color:#fff}
+.sgm span:first-child{border-radius:18px 8px 8px 18px}.sgm span:last-child{border-radius:8px 18px 18px 8px}
+.sgm span.act{background:#fff;color:#1D192B;border-radius:18px}
+.lns{position:absolute;display:flex;flex-direction:column;justify-content:center;gap:16px;font-weight:700;letter-spacing:-.012em;line-height:1.15;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 18%,#000 82%,transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 18%,#000 82%,transparent 100%)}
+.lns div{color:rgba(255,255,255,.42)}
+.lns .cur{background:linear-gradient(90deg,#fff 0,#fff 55%,rgba(255,255,255,.44) 64%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.gridA{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 14px}
+.gridA .t{font-size:13.5px;line-height:1.3}
+.gridA .t b{display:block;font-weight:500;margin-top:8px}
+.gridA .t span{color:#49454F;font-size:12px}
+.scrimA{position:absolute;left:0;right:0;top:0;bottom:0;background:rgba(29,27,32,.36);z-index:5}
+.ps{position:absolute;display:flex;align-items:center;justify-content:center}
+.cap{position:absolute;left:0;right:0;top:0;height:40px;background:#E6E0E9;display:flex;align-items:center;gap:10px;padding:0 10px 0 14px;font-size:13px;font-weight:500;z-index:3}
+.cap .ic{width:18px;height:18px;color:#49454F}
+.nvb{position:absolute;left:0;right:0;bottom:0;height:76px;background:#F3EDF7;display:flex;align-items:center;justify-content:space-around;z-index:3}
+.nvb div{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:500;color:#49454F;width:72px}
+.nvb .pi{width:56px;height:30px;border-radius:15px;display:flex;align-items:center;justify-content:center}
+.nvb .pi .ic{width:22px;height:22px;color:#49454F}
+.nvb .sel{color:#1D192B}.nvb .sel .pi{background:#E8DEF8}.nvb .sel .pi .ic{color:#1D192B}
+.rhA{position:absolute;right:6px;bottom:6px;width:20px;height:20px;border-right:4px solid rgba(29,27,32,.4);border-bottom:4px solid rgba(29,27,32,.4);border-radius:0 0 16px 0;z-index:6}
+.szc{display:flex;flex-direction:column;align-items:center;gap:6px}
+.szc .bx{position:relative;border:1.5px solid #8E97A8;border-radius:10px;background:#fff;height:76px;display:flex;gap:4px;padding:5px;overflow:hidden}
+.szc .bx i{display:block;border-radius:5px;background:#CBD1DB}
+.szc .bx i.a{background:#D8C8F4}
+.szc .bx i.g{background:linear-gradient(135deg,#F2784B,#B8337E)}
+.szc .bx i.dash{background:transparent;border:1.5px dashed #6B7280}
+.szc .cp2{font-size:11px;line-height:1.3;text-align:center;color:#2B3140;white-space:nowrap}
+.szc .cp2 b{display:block;font-weight:600;color:#16181D}
+.hinge{position:absolute;background:#0E0D11;z-index:4}
+.fh{position:absolute;overflow:hidden}
+.pt{width:100%;border-collapse:collapse;font-size:12px;line-height:1.35;color:#2B3140}
+.pt th{text-align:left;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#4A5160;font-weight:600;padding:5px 8px 5px 0;border-bottom:1.5px solid #16181D}
+.pt td{vertical-align:top;padding:7px 8px 7px 0;border-bottom:1px solid #CBD1DB}
+.pt td:first-child{font-weight:600;color:#16181D;white-space:nowrap}
+
+.xph{position:relative;flex:none;width:292px;height:620px;border-radius:46px;background:#0B0B0E;padding:7px;box-shadow:0 22px 56px rgba(20,25,40,.34)}
+.xps{position:relative;width:100%;height:100%;border-radius:39px;overflow:hidden;color:#fff}
+.xwall{background:linear-gradient(172deg,#1E2C5C 0%,#4A3490 46%,#C0607C 100%)}
+.xwall2{background:linear-gradient(160deg,#16394F 0%,#1F6B78 50%,#E8A06C 100%)}
+.xisl{position:absolute;left:50%;top:9px;transform:translateX(-50%);width:88px;height:26px;border-radius:14px;background:#000;z-index:8}
+.xsb{position:absolute;left:0;right:0;top:11px;display:flex;justify-content:space-between;padding:0 26px;font-size:11px;font-weight:600;z-index:7;letter-spacing:.02em}
+.xhome{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);width:100px;height:4px;border-radius:2px;background:rgba(255,255,255,.7);z-index:7}
+.xdate{position:absolute;left:0;right:0;top:44px;text-align:center;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;color:rgba(255,255,255,.92)}
+.xdate .ic{width:13px;height:13px}
+.xclk{position:absolute;left:0;right:0;top:60px;text-align:center;font-size:72px;font-weight:600;letter-spacing:-.035em;line-height:1;color:rgba(255,255,255,.94)}
+.xglass{background:rgba(255,255,255,.2);-webkit-backdrop-filter:blur(22px) saturate(1.4);backdrop-filter:blur(22px) saturate(1.4);border:1px solid rgba(255,255,255,.3)}
+.xsysd{outline:1.5px dashed rgba(255,255,255,.78);outline-offset:3px}
+.xrow{position:absolute;left:0;right:0;display:flex;justify-content:center;gap:7px}
+.xacr{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative}
+.xacr .ic{width:22px;height:22px}
+.xacx{width:119px;height:56px;border-radius:16px;padding:7px 10px;font-size:11px;line-height:1.25;display:flex;align-items:center;gap:8px;overflow:hidden}
+.xacx b{display:block;font-weight:600;font-size:11.5px;white-space:nowrap}
+.xacx span{opacity:.78;font-size:10.5px;white-space:nowrap}
+.xacx .ic{width:20px;height:20px}
+.xring{position:absolute;inset:3px;border-radius:50%;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-right-color:#fff;transform:rotate(-30deg)}
+.xsys{position:absolute;left:12px;right:12px;border-radius:26px;padding:12px 14px}
+.xsys .tt{font-size:13px;font-weight:600;line-height:1.2}
+.xsys .ss{font-size:11.5px;opacity:.78}
+.xscrub{height:4px;border-radius:2px;background:rgba(255,255,255,.3);position:relative;margin-top:9px}
+.xscrub:after{content:"";position:absolute;left:0;top:0;bottom:0;width:38%;border-radius:2px;background:#fff}
+.xtr{display:flex;align-items:center;justify-content:center;gap:34px;margin-top:6px}
+.xtr .ic{width:22px;height:22px}
+.xtag{position:absolute;font-size:9.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:rgba(255,255,255,.86);white-space:nowrap}
+.xctl{position:absolute;bottom:28px;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.xctl .ic,.xctl svg{width:20px;height:20px}
+.xmoon{width:34px;height:34px;border-radius:50%;background:linear-gradient(145deg,#8E7CFF,#5B47E0);display:flex;align-items:center;justify-content:center;color:#fff;flex:none}
+.xmoon svg{width:19px;height:19px}
+.xmoon.sm{width:24px;height:24px}.xmoon.sm svg{width:14px;height:14px}
+.xla{position:absolute;left:12px;right:12px;border-radius:24px;background:rgba(22,20,40,.72);-webkit-backdrop-filter:blur(26px);backdrop-filter:blur(26px);border:1px solid rgba(255,255,255,.16);padding:12px 14px;display:flex;align-items:center;gap:12px}
+.xla .mid{flex:1;min-width:0}
+.xla .tl{display:flex;align-items:baseline;justify-content:space-between;font-size:12px;color:rgba(255,255,255,.72)}
+.xla .tl b{font-size:13px;color:#fff;font-weight:600}
+.xla .nn{font-size:32px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1;margin-top:2px}
+.xbar{height:6px;border-radius:3px;background:rgba(255,255,255,.22);margin-top:6px;overflow:hidden}
+.xbar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#9D8CFF,#6F5BF0)}
+.xbar.bl i{background:linear-gradient(90deg,#5AB0FF,#2F6BFF)}
+.xbtn{flex:none;height:34px;padding:0 14px;border-radius:17px;background:#6F5BF0;color:#fff;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center}
+.xxb{flex:none;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center}
+.xxb .ic{width:14px;height:14px}
+.xdi{background:#000;color:#fff;border-radius:32px;position:relative}
+.xdi .sens{position:absolute;left:50%;top:50%;width:0}
+.xcrop{position:relative;border-radius:22px;overflow:hidden;background:linear-gradient(160deg,#243060,#573C96 60%,#B65C80);display:flex;align-items:flex-start;justify-content:center}
+.xcap{font-size:11px;line-height:1.3;color:#2B3140;margin-top:6px}
+.xcap b{color:#16181D;font-weight:600}
+.xlbl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:#4A5160;margin:0 0 6px}
+.xcol{display:flex;flex-direction:column;gap:18px;min-width:0}
+.xmat{width:100%;border-collapse:collapse;font-size:12px;line-height:1.35;color:#2B3140}
+.xmat th{text-align:left;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#4A5160;font-weight:600;padding:6px 10px 6px 0;border-bottom:1.5px solid #16181D;vertical-align:bottom}
+.xmat td{vertical-align:top;padding:8px 10px 8px 0;border-bottom:1px solid #CBD1DB}
+.xmat td:first-child{font-weight:600;color:#16181D;width:128px}
+.xmat th.ap,.xmat td.ap{background:rgba(47,107,255,.06);padding-left:8px}
+.xmat th.an,.xmat td.an{background:rgba(103,80,164,.07);padding-left:8px}
+.xmat th.dk,.xmat td.dk{background:rgba(22,24,29,.04);padding-left:8px}
+.xmat .no2{color:#7A8190}
+
+.xnote{position:absolute;left:12px;right:12px;border-radius:28px;background:rgba(247,242,250,.94);color:#1D1B20;padding:12px 16px 12px 14px;box-shadow:0 2px 8px rgba(29,27,32,.12)}
+.xnote .hd2{display:flex;align-items:center;gap:8px;font-size:11.5px;color:#49454F;margin-bottom:6px}
+.xnote .hd2 .ai{width:18px;height:18px;border-radius:9px;background:#6750A4;color:#fff;display:flex;align-items:center;justify-content:center}
+.xnote .hd2 .ai svg{width:11px;height:11px}
+.xnote .tt{font-size:14.5px;font-weight:500;line-height:1.25}
+.xnote .ss{font-size:12.5px;color:#49454F}
+.xnote .chr{font-size:20px;font-weight:500;font-variant-numeric:tabular-nums;color:#1D192B}
+.xpb{height:8px;border-radius:4px;background:#E6E0E9;position:relative;margin-top:8px;display:flex;gap:3px}
+.xpb i{display:block;height:100%;border-radius:4px;background:#6750A4}
+.xpb i.t{background:#E6E0E9}
+.xpb .dot{position:absolute;top:-6px;width:20px;height:20px;border-radius:50%;background:#6750A4;color:#fff;display:flex;align-items:center;justify-content:center}
+.xpb .dot svg{width:12px;height:12px}
+.xact{display:inline-flex;align-items:center;height:36px;padding:0 16px;border-radius:18px;background:#E8DEF8;color:#1D192B;font-size:13px;font-weight:600;margin-top:10px}
+.xchip{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 6px;border-radius:12px;background:#6750A4;color:#fff;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.xchip svg,.xchip .ic{width:13px;height:13px}
+.xsbar{display:flex;align-items:center;gap:10px;height:32px;padding:0 16px;border-radius:14px;background:#2A2830;color:#fff;font-size:12px;font-weight:500}
+.xmed{position:absolute;left:12px;right:12px;border-radius:28px;background:rgba(247,242,250,.94);color:#1D1B20;padding:14px 16px}
+.xmed .tt{font-size:14.5px;font-weight:500}
+.xmed .ss{font-size:12.5px;color:#49454F}
+.xsysA{outline:1.5px dashed #6750A4;outline-offset:3px}
+.xgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px 20px}
+.xstrip{display:flex;gap:20px;align-items:flex-start}
+.xlock{position:absolute;left:0;right:0;text-align:center}
+
+</style>
+</head><body>
+
+<div class="lgb" style="height:2392px">
+
+<div><h1>Lock screen and Live Activities</h1>
+<p class="intro">Music already has a player on every lock screen, drawn by the system from the Now Playing data, so Encore feeds it and does not draw a second one. Live Activities and Live Updates are for timed tasks the person starts: the sleep timer, a download and the first sync. Everything is updated by the app on the device. Dashed outlines mark what the system draws.</p></div>
+<div class="cols" style="gap:16px">
+<div class="xcol" style="gap:6px"><div class="xlbl">iPhone · Lock Screen with music</div><div class="xph" style="width:292px;height:620px;"><div class="xps xwall"><div class="xisl"></div><div class="xsb"><span>Encore</span><span>100%</span></div>
+<div class="xdate"><span>Thu 5 Nov</span><span style="display:flex;align-items:center;gap:4px"><i class="ic m-note"></i>Evening Drive</span></div>
+<div class="xclk">9:41</div>
+<div class="xrow" style="top:150px">
+<div class="xacx xglass" style="justify-content:space-between"><div><b>Slow Tide</b><span>Ember Cove</span></div><i class="ic m-pause" style="width:18px;height:18px"></i></div>
+<div class="xacr xglass"><i class="ic m-mixes"></i></div>
+<div class="xacr xglass"><i class="xring"></i><i class="ic m-pause"></i></div>
+</div>
+<div class="xtag" style="left:20px;top:304px">Drawn by iOS from Now Playing</div>
+<div class="xsys xglass xsysd" style="top:322px">
+<div style="display:flex;align-items:center;gap:10px"><div class="art cv-a" style="width:46px;height:46px;border-radius:10px"></div><div style="flex:1;min-width:0"><div class="tt">Slow Tide</div><div class="ss">Ember Cove</div></div><i class="ic m-airplay" style="width:20px;height:20px"></i></div>
+<div class="xscrub"></div>
+<div style="display:flex;justify-content:space-between;font-size:10px;opacity:.78;margin-top:4px"><span>1:24</span><span>-2:18</span></div>
+<div class="xtr"><i class="ic m-prev"></i><i class="ic m-pause" style="width:28px;height:28px"></i><i class="ic m-next"></i></div>
+</div>
+<div class="xctl xglass" style="left:32px"><div style="display:flex"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5 8.6 8.6 0 1 0 20.5 14.6z" fill="currentColor"/></svg></div></div>
+<div class="xctl" style="right:32px;background:#fff;color:#E0245E"><i class="ic m-heart-fill"></i></div>
+<div class="n" style="top:324px;left:2px;z-index:9">1</div><div class="n" style="top:150px;left:2px;z-index:9">2</div>
+<div class="xhome"></div></div></div></div>
+<div class="xcol" style="gap:6px"><div class="xlbl">iPhone · Lock Screen with timed tasks</div><div class="xph" style="width:292px;height:620px;"><div class="xps xwall"><div class="xisl"></div><div class="xsb"><span>Encore</span><span>100%</span></div>
+<div class="xdate"><span>Thu 5 Nov</span></div>
+<div class="xclk">9:41</div>
+<div class="xla" style="top:146px"><div style="zoom:1;flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px;white-space:nowrap"><div class="xmoon sm"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5 8.6 8.6 0 1 0 20.5 14.6z" fill="currentColor"/></svg></div><b style="font-size:13px;color:#fff;font-weight:600">Sleep timer</b><span style="margin-left:auto;font-size:12px;color:rgba(255,255,255,.72)">Ends 10:05 PM</span></div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:3px"><div class="nn" style="font-size:34px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1">24:10</div><div class="xbtn">+15 min</div></div><div class="xbar "><i style="width:38%"></i></div></div></div>
+<div class="xtag" style="left:20px;top:276px">Drawn by iOS (continued task)</div>
+<div class="xla xsysd" style="top:294px;padding:10px 14px"><div class="xmoon" style="background:linear-gradient(145deg,#5AB0FF,#2F6BFF)"><i class="ic m-download" style="width:18px;height:18px"></i></div><div class="mid"><div class="tl"><b>Downloading Road trip</b></div><div style="font-size:12px;color:rgba(255,255,255,.72)">15 of 24 songs</div><div class="xbar bl"><i style="width:62%"></i></div></div><div class="xxb"><i class="ic m-close"></i></div></div>
+<div class="xsys xglass xsysd" style="top:412px;padding:10px 14px">
+<div style="display:flex;align-items:center;gap:10px"><div class="art cv-a" style="width:40px;height:40px;border-radius:9px"></div><div style="flex:1;min-width:0"><div class="tt">Slow Tide</div><div class="ss">Ember Cove</div></div><i class="ic m-pause" style="width:24px;height:24px"></i><i class="ic m-next" style="width:24px;height:24px"></i></div>
+</div>
+<div class="n" style="top:150px;left:2px;z-index:9">3</div><div class="n" style="top:298px;left:2px;z-index:9">5</div>
+<div class="xhome"></div></div></div></div>
+<div class="xcol" style="gap:16px"><div><div class="xlbl">Dynamic Island · sleep timer and downloads</div></div><div class="xgrid" style="width:780px">
+<div class="xcol" style="gap:12px">
+<div><div class="xlbl">Compact</div><div class="xcrop" style="width:380px;height:62px;"><div class="xdi" style="margin-top:12px;width:236px;height:37px"><div style="position:absolute;left:8px;top:6px"><div class="xmoon sm"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5 8.6 8.6 0 1 0 20.5 14.6z" fill="currentColor"/></svg></div></div><div style="position:absolute;right:14px;top:0;line-height:37px;font-size:14px;font-weight:600;color:#B7ABFF;font-variant-numeric:tabular-nums">24:10</div></div></div><div class="xcap"><b>Moon, then time.</b> Tap opens the sleep timer sheet.</div></div>
+<div><div class="xlbl">Minimal · two activities</div><div class="xcrop" style="width:380px;height:62px;"><div class="xdi" style="margin-top:12px;width:37px;height:37px;display:flex;align-items:center;justify-content:center;color:#B7ABFF"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5 8.6 8.6 0 1 0 20.5 14.6z" fill="currentColor"/></svg></div><div class="xdi" style="margin:12px 0 0 8px;width:37px;height:37px;display:flex;align-items:center;justify-content:center;color:#7CC0FF"><i class="ic m-download" style="width:17px;height:17px"></i></div></div><div class="xcap"><b>Moon and the download ring.</b> Touch and hold expands.</div></div>
+<div><div class="xlbl">Narrow island (landscape)</div><div class="xcrop" style="width:380px;height:48px;"><div class="xdi" style="margin-top:10px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:#B7ABFF"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5 8.6 8.6 0 1 0 20.5 14.6z" fill="currentColor"/></svg></div></div><div class="xcap"><b>One 28 pt circle,</b> so only the moon.</div></div>
+</div>
+<div class="xcol" style="gap:12px">
+<div><div class="xlbl">Expanded · sleep timer</div><div class="xcrop" style="width:380px;height:182px;"><div class="xdi" style="margin-top:12px;width:360px;height:158px;border-radius:42px;padding:16px 20px">
+<div style="display:flex;align-items:center;gap:8px;height:30px"><div class="xmoon sm"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5 8.6 8.6 0 1 0 20.5 14.6z" fill="currentColor"/></svg></div><b style="font-size:13px">Sleep timer</b><span style="margin-left:auto;font-size:12px;color:rgba(255,255,255,.7)">Ends 10:05 PM</span></div>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px"><div style="font-size:42px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:#fff;line-height:1.1">24:10</div><div class="xbtn">+15 min</div></div>
+<div class="xbar" style="margin-top:8px"><i style="width:38%"></i></div></div><div class="n" style="left:8px;top:8px;z-index:9">4</div></div><div class="xcap"><b>Title and end time</b> beside the camera, countdown and one button below.</div></div>
+<div><div class="xlbl">Expanded · download (drawn by iOS)</div><div class="xcrop" style="width:380px;height:130px;"><div class="xdi xsysd" style="margin-top:12px;width:360px;height:104px;border-radius:40px;padding:16px 20px;outline-color:rgba(255,255,255,.8)">
+<div style="display:flex;align-items:center;gap:10px"><div class="xmoon sm" style="background:linear-gradient(145deg,#5AB0FF,#2F6BFF)"><i class="ic m-download" style="width:13px;height:13px"></i></div><div style="flex:1"><b style="font-size:13px">Downloading Road trip</b><div style="font-size:12px;color:rgba(255,255,255,.7)">15 of 24 songs</div></div><div class="xxb"><i class="ic m-close"></i></div></div>
+<div class="xbar bl" style="margin-top:8px"><i style="width:62%"></i></div></div></div></div>
+</div></div><div><div class="xlbl">StandBy · Lock Screen view scaled 2×, and Night Mode</div>
+<div style="display:flex;gap:16px"><div class="xcrop" style="width:560px;height:190px;background:#000;align-items:center"><div style="width:480px;border-radius:40px;background:rgba(32,28,60,.9);padding:20px 26px;display:flex;align-items:center;gap:20px;color:#fff;border:1px solid rgba(255,255,255,.14)">
+<div class="xmoon" style="width:62px;height:62px"><svg viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5 8.6 8.6 0 1 0 20.5 14.6z" fill="currentColor"/></svg></div><div style="flex:1"><div style="display:flex;justify-content:space-between;font-size:15px;color:rgba(255,255,255,.72)"><b style="color:#fff">Sleep timer</b><span>Ends 10:05 PM</span></div><div style="font-size:58px;font-weight:700;letter-spacing:-.02em;line-height:1.05;font-variant-numeric:tabular-nums">24:10</div><div class="xbar" style="height:9px;margin-top:6px"><i style="width:38%"></i></div></div></div></div>
+<div class="xcrop" style="width:204px;height:190px;background:#000;align-items:center"><div style="width:176px;border-radius:26px;background:#2A0808;padding:14px;color:#FF6A5C;border:1px solid #5A1A14"><div style="font-size:11px;opacity:.8">Sleep timer</div><div style="font-size:34px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1">24:10</div><div style="height:6px;border-radius:3px;background:#4A1410;margin-top:6px"><i style="display:block;height:100%;width:38%;border-radius:3px;background:#FF6A5C"></i></div></div></div></div>
+<div class="xcap"><b>Minimal view first, a tap scales the Lock Screen view.</b> Night Mode tints it red, so the text and the bar carry the meaning, not the indigo.</div></div></div>
+</div>
+<div><div class="xlbl" style="margin-bottom:8px">The same Live Activity on other Apple devices</div><div class="xstrip"><div><div class="xlbl">iPad · Lock Screen (425 pt wide)</div><div class="xcrop" style="width:420px;height:128px;align-items:center"><div style="width:372px;border-radius:24px;background:rgba(22,20,40,.8);border:1px solid rgba(255,255,255,.16);padding:12px 14px;color:#fff;box-sizing:border-box"><div style="zoom:0.96;flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px;white-space:nowrap"><div class="xmoon sm"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5 8.6 8.6 0 1 0 20.5 14.6z" fill="currentColor"/></svg></div><b style="font-size:13px;color:#fff;font-weight:600">Sleep timer</b><span style="margin-left:auto;font-size:12px;color:rgba(255,255,255,.72)">Ends 10:05 PM</span></div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:3px"><div class="nn" style="font-size:34px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1">24:10</div><div class="xbtn">+15 min</div></div><div class="xbar "><i style="width:38%"></i></div></div></div><div class="n" style="left:8px;top:8px;z-index:9">6</div></div><div class="xcap"><b>Same Lock Screen view.</b> Live Activities run on iPad too.</div></div><div><div class="xlbl">Mac · menu bar (from the iPhone)</div><div class="xcrop" style="width:380px;height:128px;background:linear-gradient(135deg,#BCCDF0,#D8CCEE 50%,#F3D9CA);align-items:flex-start">
+<div style="position:absolute;left:0;right:0;top:0;height:24px;background:rgba(255,255,255,.5);display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 12px;font-size:11.5px;color:#16181D"><div style="display:flex;align-items:center;gap:6px;background:#000;color:#fff;border-radius:10px;padding:0 9px;height:18px"><span style="color:#B7ABFF;display:flex"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5 8.6 8.6 0 1 0 20.5 14.6z" fill="currentColor"/></svg></span><span style="font-variant-numeric:tabular-nums;font-weight:600">24:10</span></div><span>Thu 5 Nov&nbsp;&nbsp;9:41</span></div>
+<div style="position:absolute;right:10px;top:32px;width:250px;border-radius:18px;background:rgba(22,20,40,.92);color:#fff;padding:10px 12px;box-sizing:border-box"><div style="zoom:0.72;flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px;white-space:nowrap"><div class="xmoon sm"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5 8.6 8.6 0 1 0 20.5 14.6z" fill="currentColor"/></svg></div><b style="font-size:13px;color:#fff;font-weight:600">Sleep timer</b><span style="margin-left:auto;font-size:12px;color:rgba(255,255,255,.72)">Ends 10:05 PM</span></div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:3px"><div class="nn" style="font-size:34px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1">24:10</div></div><div class="xbar "><i style="width:38%"></i></div></div></div></div>
+<div class="xcap"><b>Compact, minimal and expanded.</b> A click opens iPhone Mirroring.</div></div><div><div class="xlbl">CarPlay Dashboard</div><div class="xcrop" style="width:260px;height:128px;background:#0B0E14;align-items:center"><div style="width:240px;height:78px;border-radius:20px;background:#1C1C24;color:#fff;display:flex;align-items:center;gap:12px;padding:0 16px;box-sizing:border-box"><div class="xmoon"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5 8.6 8.6 0 1 0 20.5 14.6z" fill="currentColor"/></svg></div><div><div style="font-size:12px;color:rgba(255,255,255,.7)">Sleep timer</div><div style="font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1">24:10</div></div></div></div><div class="xcap"><b>240 by 78 pt,</b> controls switched off.</div></div><div><div class="xlbl">Apple Watch · Smart Stack</div><div class="xcrop" style="width:220px;height:128px;background:#0B0E14;align-items:center"><div style="width:184px;height:80px;border-radius:20px;background:#1C1C24;color:#fff;display:flex;align-items:center;gap:10px;padding:0 14px;box-sizing:border-box"><div class="xmoon sm"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5 8.6 8.6 0 1 0 20.5 14.6z" fill="currentColor"/></svg></div><div><div style="font-size:11px;color:rgba(255,255,255,.7)">Sleep timer</div><div style="font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1">24:10</div></div></div></div><div class="xcap"><b>Compact view, merged.</b> No watch app needed.</div></div></div></div>
+<div class="cols" style="gap:16px">
+<div class="xcol" style="gap:6px"><div class="xlbl">Android · Lock screen</div><div class="adev" style="width:292px;height:620px"><div class="ascr" style="background:linear-gradient(160deg,#B9C8F2 0%,#DCCCF2 55%,#F6D1C1 100%)">
+<div class="ast" style="color:#1D1B20"><span style="display:flex;align-items:center">9:41<span class="xchip" style="margin-left:6px;height:20px;font-size:11px"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5 8.6 8.6 0 1 0 20.5 14.6z" fill="currentColor"/></svg>24m</span></span><span>100%<span class="abat"></span></span></div>
+<div class="xlock" style="top:44px;font-size:78px;font-weight:400;letter-spacing:-.03em;line-height:1;color:#1D1B20">9:41</div>
+<div class="xlock" style="top:128px;font-size:14px;font-weight:500;color:#1D1B20">Thursday, 5 Nov</div>
+<div class="xmed" style="top:158px;padding:12px 14px;background:rgba(247,242,250,.96)">
+<div style="display:flex;align-items:center;gap:12px"><div class="art cv-a" style="width:58px;height:58px;border-radius:18px"></div><div style="flex:1;min-width:0"><div class="tt">Slow Tide</div><div class="ss">Ember Cove</div></div><div style="width:44px;height:44px;border-radius:15px;background:#6750A4;display:flex;align-items:center;justify-content:center"><i class="ic m-pause" style="color:#fff"></i></div></div>
+<div style="margin-top:8px"><svg width="226" height="14" aria-hidden="true" style="display:block"><defs><pattern id="wy4" width="20" height="14" patternUnits="userSpaceOnUse"><path d="M0 7.0 Q5 2.0 10 7.0 T20 7.0" fill="none" stroke="#6750A4" stroke-width="3" stroke-linecap="round"/></pattern></defs><rect width="86" height="14" fill="url(#wy4)"/><line x1="86" y1="7.0" x2="226" y2="7.0" stroke="rgba(73,69,79,.3)" stroke-width="3" stroke-linecap="round"/></svg></div></div>
+<div style="position:absolute;left:14px;top:300px;font-size:9.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#49454F">Drawn by Android from the media session</div>
+<div class="xmed xsysA" style="top:318px;padding:12px 14px">
+<div style="display:flex;align-items:center;gap:12px"><div class="art cv-a" style="width:46px;height:46px;border-radius:14px"></div><div style="flex:1;min-width:0"><div class="tt">Slow Tide</div><div class="ss">Ember Cove · Encore</div></div></div>
+<div style="margin-top:6px"><svg width="226" height="14" aria-hidden="true" style="display:block"><defs><pattern id="wy5" width="20" height="14" patternUnits="userSpaceOnUse"><path d="M0 7.0 Q5 2.0 10 7.0 T20 7.0" fill="none" stroke="#6750A4" stroke-width="3" stroke-linecap="round"/></pattern></defs><rect width="86" height="14" fill="url(#wy5)"/><line x1="86" y1="7.0" x2="226" y2="7.0" stroke="rgba(73,69,79,.3)" stroke-width="3" stroke-linecap="round"/></svg></div>
+<div style="display:flex;justify-content:center;gap:10px;margin-top:2px"><div class="ib"><i class="ic m-prev"></i></div><div class="ib" style="background:#E8DEF8;border-radius:16px;width:60px"><i class="ic m-pause"></i></div><div class="ib"><i class="ic m-next"></i></div></div></div>
+<div class="xnote" style="top:468px"><div class="hd2"><span class="ai"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5 8.6 8.6 0 1 0 20.5 14.6z" fill="currentColor"/></svg></span>Encore · Sleep timer<span style="margin-left:auto" class="chr">24:10</span></div>
+<div class="tt">Music fades out at 10:05 PM</div><div class="xpb"><i style="width:38%"></i><i class="t" style="flex:1;background:#E6E0E9"></i></div></div>
+<div class="n" style="top:162px;left:4px;z-index:9">7</div><div class="n" style="top:322px;left:4px;z-index:9">8</div><div class="n" style="top:472px;left:4px;z-index:9">9</div>
+</div></div></div>
+<div class="xcol" style="gap:6px"><div class="xlbl">Android · Notification shade</div><div class="adev" style="width:292px;height:620px"><div class="ascr" style="background:#F3EDF7">
+<div class="ast" style="color:#1D1B20"><span style="display:flex;align-items:center">9:41<span class="xchip" style="margin-left:6px;height:20px;font-size:11px"><i class="ic m-download" style="width:12px;height:12px"></i>62%</span></span><span>100%<span class="abat"></span></span></div>
+<div style="position:absolute;left:12px;right:12px;top:40px;display:grid;grid-template-columns:1fr 1fr;gap:6px">
+<div style="height:60px;border-radius:30px;background:#6750A4;color:#fff;display:flex;align-items:center;gap:10px;padding:0 14px;font-size:12.5px;font-weight:500"><i class="ic m-mixes" style="width:22px;height:22px"></i>Start a mix</div>
+<div style="height:60px;border-radius:30px;background:#E8DEF8;display:flex;align-items:center;gap:10px;padding:0 14px;font-size:12.5px;font-weight:500"><i class="ic m-cast" style="width:22px;height:22px"></i>Cast</div>
+</div>
+<div class="xmed xsysA" style="top:118px;padding:12px 14px;background:#fff">
+<div style="display:flex;align-items:center;gap:12px"><div class="art cv-a" style="width:46px;height:46px;border-radius:14px"></div><div style="flex:1;min-width:0"><div class="tt">Slow Tide</div><div class="ss">Ember Cove</div></div><div class="ib" style="background:#E8DEF8;border-radius:16px;width:52px"><i class="ic m-pause"></i></div></div>
+<div style="margin-top:6px"><svg width="226" height="14" aria-hidden="true" style="display:block"><defs><pattern id="wy6" width="20" height="14" patternUnits="userSpaceOnUse"><path d="M0 7.0 Q5 2.0 10 7.0 T20 7.0" fill="none" stroke="#6750A4" stroke-width="3" stroke-linecap="round"/></pattern></defs><rect width="86" height="14" fill="url(#wy6)"/><line x1="86" y1="7.0" x2="226" y2="7.0" stroke="rgba(73,69,79,.3)" stroke-width="3" stroke-linecap="round"/></svg></div></div>
+<div class="xnote" style="top:232px;background:#fff"><div class="hd2"><span class="ai"><i class="ic m-download" style="width:11px;height:11px"></i></span>Encore · Downloads<span style="margin-left:auto;font-size:11.5px">62%</span></div>
+<div class="tt">Downloading Road trip</div><div class="ss">15 of 24 songs</div><div class="xpb"><i style="width:62%"></i><i class="t" style="flex:1"></i></div><div class="xact">Cancel</div></div>
+<div class="xnote" style="top:394px;background:#fff"><div class="hd2"><span class="ai"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5 8.6 8.6 0 1 0 20.5 14.6z" fill="currentColor"/></svg></span>Encore · Sleep timer<span style="margin-left:auto" class="chr">24:10</span></div>
+<div class="tt">Music fades out at 10:05 PM</div><div class="xpb"><i style="width:38%"></i><i class="t" style="flex:1"></i></div><div class="xact">Add 15 min</div></div>
+<div class="n" style="top:236px;left:4px;z-index:9">9</div>
+</div></div></div>
+<div class="xcol" style="width:788px;gap:20px"><div><div class="xlbl">Status bar chip</div>
+<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+<div class="xsbar"><span>9:41</span><span class="xchip"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5 8.6 8.6 0 1 0 20.5 14.6z" fill="currentColor"/></svg>24m</span><span style="opacity:.6">LTE ▲ 100%</span></div>
+<div class="xsbar"><span>9:41</span><span class="xchip"><i class="ic m-download" style="width:13px;height:13px"></i>62%</span><span style="opacity:.6">LTE ▲ 100%</span></div>
+<div class="xsbar"><span>9:41</span><span class="xchip" style="padding:0 6px"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5 8.6 8.6 0 1 0 20.5 14.6z" fill="currentColor"/></svg></span><span style="opacity:.6">LTE ▲ 100%</span></div></div>
+<div class="xcap"><b>96 dp at most.</b> Under 7 characters the whole text shows. If less than half fits, only the icon shows. A time 2 minutes or more ahead counts down on its own.</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:20px"><div class="xcol" style="gap:12px"><div><div class="xlbl">Live Update, expanded</div>
+<div style="position:relative;height:150px"><div class="xnote" style="top:0;left:0;right:0;background:#F7F2FA;border:1px solid #CAC4D0;box-shadow:none"><div class="hd2"><span class="ai"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5 8.6 8.6 0 1 0 20.5 14.6z" fill="currentColor"/></svg></span>Encore · Sleep timer<span style="margin-left:auto" class="chr">24:10</span></div>
+<div class="tt">Music fades out at 10:05 PM</div><div class="xpb"><i style="width:38%"></i><i class="t" style="flex:1"></i><span class="dot" style="left:calc(38% - 10px)"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5 8.6 8.6 0 1 0 20.5 14.6z" fill="currentColor"/></svg></span></div><div class="xact">Add 15 min</div></div></div>
+<div class="xcap"><b>Progress style with a tracker icon.</b> Pinned above other notifications, on the lock screen and in a status bar chip. The person can demote it.</div></div>
+<div><div class="xlbl">Before Android 16 QPR1, or Live Updates off</div>
+<div style="position:relative;height:104px"><div class="xnote" style="top:0;left:0;right:0;background:#F7F2FA;border:1px solid #CAC4D0;box-shadow:none"><div class="hd2"><span class="ai"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5 8.6 8.6 0 1 0 20.5 14.6z" fill="currentColor"/></svg></span>Encore · Sleep timer<span style="margin-left:auto;font-size:11.5px">24:10</span></div>
+<div class="tt">Music fades out at 10:05 PM</div><div class="xact" style="margin-top:6px;height:32px">Add 15 min</div></div></div>
+<div class="xcap"><b>Same text and action,</b> as a normal ongoing notification in the low-importance channel.</div></div></div><div class="xcol" style="gap:12px"><div><div class="xlbl">Live Update, download</div>
+<div style="position:relative;height:150px"><div class="xnote" style="top:0;left:0;right:0;background:#F7F2FA;border:1px solid #CAC4D0;box-shadow:none"><div class="hd2"><span class="ai"><i class="ic m-download" style="width:11px;height:11px"></i></span>Encore · Downloads<span style="margin-left:auto;font-size:11.5px">62%</span></div>
+<div class="tt">Downloading Road trip</div><div class="ss">15 of 24 songs</div><div class="xpb"><i style="width:62%"></i><i class="t" style="flex:1"></i></div><div class="xact" style="margin-top:8px;height:32px">Cancel</div></div></div>
+<div class="xcap"><b>Only for a download the person started,</b> as a user-initiated transfer. Automatic downloads use a quiet progress notification.</div></div>
+<div><div class="xlbl">What is never promoted</div>
+<div class="xcap" style="margin-top:0;font-size:12px;line-height:1.5">Playback (the media style cannot be promoted), Recap ready, new mixes, sync finished, anything the person did not start. Each of those is a normal notification, if allowed at all.</div></div></div></div></div>
+</div>
+<div class="specg"><div class="sr"><div class="no">1</div><div><span class="nm">Player on the lock screen.</span> Encore does not draw it. iOS builds the Lock Screen, Dynamic Island, StandBy, Control Center and CarPlay player from the Now Playing data: title, artist, album, artwork, duration, position, rate and the enabled commands (play, pause, next, previous, seek, like). The core updates it when the track or the state changes, not every second; the system keeps the clock moving, so nothing runs while the screen is locked.</div></div><div class="sr"><div class="no">2</div><div><span class="nm">Lock Screen widgets and controls.</span> Circular, rectangular and inline widgets, drawn on the next board, and the two buttons at the bottom, which are Controls (Sleep timer and Like). They read the local snapshot and update when the song changes. The defaults are controls and the pinned mix name; nothing from the listening history shows while the phone is locked. A play or pause tap works without unlocking; opening the app asks for Face ID as usual.</div></div><div class="sr"><div class="no">3</div><div><span class="nm">Sleep timer Live Activity.</span> Starts only when the person picks a time. Shows the time left, which counts down by itself with no updates, and one button, +15 min. Ends when the fade-out finishes and the music pauses, and is removed at once. A tap anywhere else opens the sleep timer sheet. Swiping it away ends the Live Activity only; the timer keeps running and can be changed or cancelled in the app. An accidental tap adds 15 minutes, which the countdown shows straight away.</div></div><div class="sr"><div class="no">4</div><div><span class="nm">Dynamic Island.</span> Compact: moon on the left, time on the right, snug to the camera and balanced. Minimal: the moon alone when another activity runs; the system shows up to three. Expanded (touch and hold): title and end time on the top row beside the camera, then the countdown and the button. Tap opens the sleep timer sheet. On a narrow island both views shrink to one 28 pt circle. The key line takes the indigo tint. Animations last under two seconds and stop on Always-On and under Reduce Motion.</div></div><div class="sr"><div class="no">5</div><div><span class="nm">Downloads and first sync.</span> On iOS 26 and iPadOS 26 a download or first sync that the person starts runs as a continued processing task, and the system draws its own Live Activity from a title, a subtitle and progress, with Cancel. Encore supplies Downloading Road trip and 15 of 24 songs, and reports real progress, because the system stops tasks that show little. It ends with Road trip is ready and stays 15 minutes. Automatic downloads and background syncs show nothing. Earlier iOS versions use a background session and one local notification at the end, if allowed.</div></div><div class="sr"><div class="no">6</div><div><span class="nm">Same activity elsewhere.</span> Nothing extra to build. The system reuses the compact view on the Mac menu bar (a click opens iPhone Mirroring), on the CarPlay Dashboard (240 by 78 pt, with controls switched off) and in the Apple Watch Smart Stack. iPad shows the Lock Screen view at 425 pt wide. In StandBy the minimal view shows and a tap scales the Lock Screen view 2×. Night Mode tints everything red, so a symbol and text carry the meaning, never the color alone.</div></div><div class="sr"><div class="no">7</div><div><span class="nm">Android lock screen widget.</span> Phones from Android 16 QPR1 and the Pixel Tablet can show widgets on the lock screen. Only the Now Playing widget is allowed there, with play, pause and next, and no history. Widgets that show history declare not_keyguard. A widget that would open the app asks the person to unlock first, because the main activity is not marked showWhenLocked.</div></div><div class="sr"><div class="no">8</div><div><span class="nm">Android player.</span> Media3 builds the media session, and Android draws the lock screen player, the quick settings player and the notification from it, with the same controls everywhere. Metadata and artwork are set on track change only. The player is not a Live Update: the media style cannot be promoted, and a second card for the same song would just crowd the shade.</div></div><div class="sr"><div class="no">9</div><div><span class="nm">Live Update.</span> The sleep timer and downloads the person started post one: an ongoing notification with a title, no custom view, not colorized, progress style, a short chip text such as 24m and the permission POST_PROMOTED_NOTIFICATIONS. If the person turned Live Updates off, or the phone is older than Android 16 QPR1, it is a normal ongoing notification with the same words. A dismissed one is not posted again, and it ends when the task ends.</div></div><div class="sr"><div class="no">10</div><div><span class="nm">Nothing leaves the device.</span> A Live Activity or Live Update is started and updated only by the app, on the device, while it is running for another reason: playing audio or a task the system granted. No push token is created or sent, so there is no push-to-start and no update from another device. A stale date lets the system grey out an activity that stopped updating. What a passer-by sees on a locked phone: that a timer or download runs, and the song the system player shows anyway. Nothing from the listening history.</div></div></div>
+<div class="st"><b>Drawn here.</b> iPhone, iPad, Mac, CarPlay and Apple Watch for iOS, and Android phones. Windows and Linux have no equivalent, so their timed-task and lock screen surfaces are on the last board. <b>Not drawn.</b> A watchOS app, Wear OS and Android Auto layouts; the Apple Watch and CarPlay views above come from the iPhone Live Activity.</div>
+
+</div>
+</body></html>
