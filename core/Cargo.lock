@@ -466,6 +466,8 @@ dependencies = [
  "encore-store",
  "encore-sync",
  "serde",
+ "thiserror",
+ "tokio",
  "ulid",
  "uniffi",
 ]

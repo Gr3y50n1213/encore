@@ -8,6 +8,7 @@
 //! Phase 1 offers only the hello-world calls that prove the bindings work.
 
 pub mod brand;
+pub mod library;
 pub mod playlog;
 pub mod queue;
 

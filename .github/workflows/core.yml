@@ -85,10 +85,12 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             ~/.cargo/bin/flutter_rust_bridge_codegen
+            # flutter_rust_bridge installs cargo-expand by itself when it is missing.
+            ~/.cargo/bin/cargo-expand
             core/target
             server/target
             tools/target
-          key: core-linux-${{ hashFiles('core/Cargo.lock', 'server/Cargo.lock', 'tools/Cargo.lock') }}-frb${{ env.FRB_VERSION }}
+          key: core-linux-${{ hashFiles('core/Cargo.lock', 'server/Cargo.lock', 'tools/Cargo.lock') }}-frb${{ env.FRB_VERSION }}-expand
           restore-keys: core-linux-
 
       - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1.8.1
@@ -163,10 +165,12 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             ~/.cargo/bin/flutter_rust_bridge_codegen
+            # flutter_rust_bridge installs cargo-expand by itself when it is missing.
+            ~/.cargo/bin/cargo-expand
             core/target
             server/target
             tools/target
-          key: core-linux-${{ hashFiles('core/Cargo.lock', 'server/Cargo.lock', 'tools/Cargo.lock') }}-frb${{ env.FRB_VERSION }}
+          key: core-linux-${{ hashFiles('core/Cargo.lock', 'server/Cargo.lock', 'tools/Cargo.lock') }}-frb${{ env.FRB_VERSION }}-expand
           restore-keys: core-linux-
 
       - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1.8.1
@@ -187,6 +191,12 @@ jobs:
 
       - name: Colour schemes in tokens.json match tools/palette
         run: python3 -I -B tools/palette/palette.py check design/tokens.json
+
+      # Board 07: search answers in under search.budgetMs (50 ms). 50,000 songs,
+      # release build; the timings are printed here. A runner is not a phone.
+      - name: Search budget on 50,000 songs
+        working-directory: core
+        run: cargo test --locked -p encore-store --release --test search_budget -- --ignored --nocapture
 
       # When the check finds stale bindings, this holds what CI generated, so the
       # difference can be read without a Dart SDK.

@@ -11,7 +11,7 @@
 
 use std::collections::HashMap;
 
-use rusqlite::params;
+use rusqlite::{OptionalExtension, params};
 use unicode_normalization::UnicodeNormalization;
 use unicode_normalization::char::is_combining_mark;
 
@@ -137,8 +137,12 @@ impl Store {
         } else {
             self.prefix_hits(&q, &mut hits)?;
         }
+        // Typo matches are for when nothing matched cleanly: an exact, prefix or
+        // word-prefix hit means the user typed it right, and the typo pass is the
+        // expensive part (it ranks every name sharing a trigram).
+        let clean_hit = hits.values().any(|(s, _)| *s <= 2);
         let wanted = (limits.songs + limits.albums + limits.artists + limits.playlists) as usize;
-        if qlen >= 4 && hits.len() < wanted {
+        if qlen >= 4 && !clean_hit && hits.len() < wanted {
             // Short words tolerate one typo, longer ones up to max_edits.
             let max = if qlen <= 5 { 1 } else { max_edits as usize };
             self.typo_hits(&q, max, &mut hits)?;
@@ -194,6 +198,10 @@ impl Store {
         Ok(())
     }
 
+    /// Names within `max` edits. A typo breaks at most a few of the query's
+    /// trigrams, so candidates come from the rarest trigrams that exist in the
+    /// index (a trigram the typo made up exists nowhere and is skipped). Ranking
+    /// every name that shares a common trigram is what made this slow.
     fn typo_hits(&self, q: &str, max: usize, hits: &mut Hits) -> Result<()> {
         let chars: Vec<char> = q.chars().collect();
         let mut grams: Vec<String> = chars
@@ -202,14 +210,31 @@ impl Store {
             .collect();
         grams.sort();
         grams.dedup();
-        let expr = grams
+        let mut counted: Vec<(i64, String)> = Vec::new();
+        {
+            let mut vocab = self
+                .conn
+                .prepare_cached("SELECT doc FROM search_vocab WHERE term = ?1")?;
+            for g in grams {
+                let docs: i64 = vocab.query_row([&g], |r| r.get(0)).optional()?.unwrap_or(0);
+                if docs > 0 {
+                    counted.push((docs, g));
+                }
+            }
+        }
+        counted.sort();
+        let rarest: Vec<String> = counted.into_iter().take(3).map(|(_, g)| g).collect();
+        if rarest.is_empty() {
+            return Ok(());
+        }
+        let expr = rarest
             .iter()
             .map(|g| format!("\"{}\"", g.replace('"', "\"\"")))
             .collect::<Vec<_>>()
             .join(" OR ");
-        let mut st = self
-            .conn
-            .prepare_cached("SELECT rowid, text FROM search_index WHERE search_index MATCH ?1 ORDER BY rank LIMIT 1000")?;
+        let mut st = self.conn.prepare_cached(
+            "SELECT rowid, text FROM search_index WHERE search_index MATCH ?1 LIMIT 3000",
+        )?;
         let rows = st.query_map([expr], |r| {
             Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?))
         })?;

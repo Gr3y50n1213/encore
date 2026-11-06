@@ -143,6 +143,8 @@ CREATE VIRTUAL TABLE search_index USING fts5 (
     text,
     tokenize = 'trigram remove_diacritics 1'
 );
+-- How many names hold each trigram, so the typo pass starts from the rarest ones.
+CREATE VIRTUAL TABLE search_vocab USING fts5vocab (search_index, 'row');
 
 CREATE TABLE recent_searches (
     query       TEXT    PRIMARY KEY,

@@ -24,7 +24,11 @@ encore-sources.workspace = true
 encore-store.workspace = true
 encore-sync.workspace = true
 serde.workspace = true
+thiserror.workspace = true
 ulid.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt", "macros"] }
 
 [lints]
 workspace = true
