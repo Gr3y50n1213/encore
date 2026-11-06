@@ -465,6 +465,8 @@ jobs:
           symbols="$(grep -oE '\b(uniffi_encore_core_fn_func_[a-z_]+|ffi_encore_core_uniffi_contract_version)\b' \
             bindings/swift/EncoreCoreFFI.h | sort -u)"
           test -n "$symbols"
+          # Plus the certificate-check setup the Android app calls (EncoreTls.kt).
+          symbols="$symbols Java_uk_gcartee_encore_core_EncoreTls_initialize"
           for t in $ANDROID_TARGETS; do
             case "$t" in
               aarch64-linux-android)   abi=arm64-v8a ;;

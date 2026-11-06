@@ -28,7 +28,8 @@ let dir = FileManager.default.temporaryDirectory
 let core = try EncoreCore(config: CoreConfig(
     dataDir: dir.path, deviceId: "smoke", deviceName: "CI", platform: "ci"))
 core.setListener(listener: Listener())
-precondition(try core.profiles().isEmpty)
+let profiles = try core.profiles()
+precondition(profiles.isEmpty)
 precondition(core.currentProfile() == nil)
 
 // A synchronous call with no profile open throws a typed error.

@@ -5,8 +5,34 @@
 //! fingerprint; once the user trusts that exact fingerprint (board 21, item 3) it is
 //! pinned for that server, and the handshake signature is still verified.
 //!
-//! Android: the platform verifier needs the app to call its init once with a
-//! Context (docs/requests: core to android).
+//! Android: the platform verifier calls into the JVM, so the app calls
+//! `EncoreTls.initialize(context)` once at start (docs/requests/core-0001-android-tls-init.md).
+//! Until it has, a certificate check fails with a message that says so; it never
+//! panics, and plain http on the local network keeps working.
+
+/// Android's one-time setup for certificate checks.
+#[cfg(target_os = "android")]
+pub mod android {
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    static READY: AtomicBool = AtomicBool::new(false);
+
+    /// Hand the verifier the JVM and an Android `Context`. Called by the core's JNI
+    /// entry point `EncoreTls.initialize`; calling it again is harmless.
+    pub fn init(
+        env: &mut jni::Env<'_>,
+        context: jni::objects::JObject<'_>,
+    ) -> Result<(), jni::errors::Error> {
+        rustls_platform_verifier::android::init_with_env(env, context)?;
+        READY.store(true, Ordering::SeqCst);
+        Ok(())
+    }
+
+    /// Whether `init` has run.
+    pub fn ready() -> bool {
+        READY.load(Ordering::SeqCst)
+    }
+}
 
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -48,6 +74,13 @@ impl ServerCertVerifier for PinningVerifier {
         let fingerprint = sha256_hex(end_entity.as_ref());
         if self.pinned.as_deref() == Some(fingerprint.as_str()) {
             return Ok(ServerCertVerified::assertion());
+        }
+        // Without the app's init, Android's verifier would panic: say what is missing.
+        #[cfg(target_os = "android")]
+        if !android::ready() {
+            return Err(rustls::Error::General(
+                "Android certificate checks are not set up: call EncoreTls.initialize(context) when the app starts".into(),
+            ));
         }
         self.platform
             .verify_server_cert(end_entity, intermediates, server_name, ocsp_response, now)

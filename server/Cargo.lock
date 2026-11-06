@@ -195,6 +195,7 @@ dependencies = [
  "encore-sources",
  "encore-store",
  "encore-sync",
+ "jni",
  "serde",
  "serde_json",
  "sha2",
@@ -221,6 +222,7 @@ dependencies = [
 name = "encore-sources"
 version = "0.1.0"
 dependencies = [
+ "jni",
  "reqwest",
  "rustls",
  "rustls-platform-verifier",

@@ -8,6 +8,8 @@
 //! Phase 1 added the hello-world calls that prove the bindings work; Phase 2 adds
 //! `api::EncoreCore` (connect, sync, browse, search, queue, play log, streams).
 
+#[cfg(target_os = "android")]
+mod android;
 pub mod api;
 pub mod brand;
 pub mod library;

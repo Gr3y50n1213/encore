@@ -1,7 +1,7 @@
 # Request: initialize the certificate verifier on Android
 
 - **From:** core
-- **To:** android (and the owner, for one dependency)
+- **To:** android
 - **Status:** open
 - **Date:** 6 November 2026
 - **Phase:** 2
@@ -13,18 +13,18 @@ The core checks server certificates with the operating system's verifier (`rustl
 1. **Its Kotlin component in the app build.** The crate ships a small Android library (a local Maven repository inside the crate's source folder, `rustls-platform-verifier-android`). The Android track adds it to the Gradle build. The crate's README, "Android" section, describes the Gradle lines.
 2. **One init call before the first connection**, with an Android `Context` (the Application context is fine), from the app's startup code.
 
-For item 2 the core will export one JNI function:
+For item 2 the core exports one JNI function, and the Kotlin side is ready to copy: `core/bindings/kotlin-android/uk/gcartee/encore/core/EncoreTls.kt`.
 
 ```kotlin
 package uk.gcartee.encore.core
 
 object EncoreTls {
     init { System.loadLibrary("encore_core") }
-    @JvmStatic external fun init(context: android.content.Context)
+    @JvmStatic external fun initialize(context: android.content.Context)
 }
 ```
 
-This calls `rustls_platform_verifier::android::init_with_env` inside the core. Without it, every https call fails on Android with `Unreachable` ("a secure connection couldn't be set up"); plain http on the local network still works.
+Call `EncoreTls.initialize(applicationContext)` once, early in `Application.onCreate`. It calls `rustls_platform_verifier::android::init_with_env` inside the core; calling it again is harmless. Until it runs, an https connection fails with "Android certificate checks are not set up: call EncoreTls.initialize(context) when the app starts" (an `Unreachable` error). It never crashes the app, and plain http on the local network keeps working.
 
 ## Why
 
@@ -32,7 +32,14 @@ Plan section 12: "TLS for every connection outside the home network." Board 21, 
 
 ## What I did meanwhile
 
-The core builds for all four Android ABIs, and CI checks them (16 KB aligned, symbols exported). The JNI function is **not added yet**. It needs the `jni` crate (MIT or Apache-2.0) in `encore-core` for Android builds only, and that crate was not on the dependency list the owner approved for Phase 2. The core track asks the owner before adding it. Until then, the Android track can build everything else and sign in over plain http on the local network.
+The owner left the choice to the core track on 6 November 2026, on condition that it breaks nothing elsewhere. The core added:
+- the `jni` crate 0.22.4 (MIT or Apache-2.0), built for Android only, and the same version the verifier already uses, so there is one copy;
+- the JNI function;
+- the guard described above.
+
+Other platforms build exactly as before. CI's `android` job builds all four ABIs and checks that `Java_uk_gcartee_encore_core_EncoreTls_initialize` is exported. Nothing has run on an Android device yet.
+
+What is left is the Android track's: add the verifier's Kotlin component to the Gradle build, copy `EncoreTls.kt`, and call it at start-up.
 
 ## Answer
 

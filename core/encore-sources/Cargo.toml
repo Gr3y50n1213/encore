@@ -17,6 +17,10 @@ reqwest.workspace = true
 rustls.workspace = true
 rustls-platform-verifier.workspace = true
 
+# Android only: the certificate verifier's one-time setup (docs/requests/core-0001).
+[target.'cfg(target_os = "android")'.dependencies]
+jni.workspace = true
+
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt", "macros"] }
 
