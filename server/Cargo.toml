@@ -1,0 +1,31 @@
+# encore-server: the optional companion server (plan section 5). Its own workspace,
+# so it locks its own dependencies; it shares crates with the apps by path.
+[workspace]
+resolver = "3"
+
+[package]
+name = "encore-server"
+description = "The Encore companion server: profiles, sync, handoff, heavy jobs. Never stores music."
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+publish = false
+# No licence field yet: AGPL-3.0 is a suggestion the owner has not confirmed.
+
+[dependencies]
+encore-core = { path = "../core/encore-core", default-features = false }
+axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "tokio"] }
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "net", "signal"] }
+serde = { version = "1.0.229", features = ["derive"] }
+
+[dev-dependencies]
+tower = { version = "0.5.3", features = ["util"] }
+http-body-util = "0.1"
+serde_json = "1.0.154"
+
+[lints.rust]
+missing_debug_implementations = "warn"
+unreachable_pub = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
