@@ -69,7 +69,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
                   String get codegenVersion => '2.13.0';
 
                   @override
-                  int get rustContentHash => -1055968928;
+                  int get rustContentHash => 329582823;
 
                   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
                     stem: 'encore_dart',
@@ -184,6 +184,8 @@ Future<void> crateApiCoreEncoreSignOut({required Encore that , required Platform
 Song crateApiCoreEncoreSong({required Encore that , required PlatformInt64 songId });
 
 List<Song> crateApiCoreEncoreSongs({required Encore that , required SongSort sort , required int offset , required int limit });
+
+void crateApiCoreEncoreStopEvents({required Encore that });
 
 StreamInfo crateApiCoreEncoreStreamFor({required Encore that , required PlatformInt64 songId , required Network network });
 
@@ -1588,13 +1590,38 @@ sse_encode_u_32(limit, serializer);
         );
         
 
+@override void crateApiCoreEncoreStopEvents({required Encore that })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 53)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreStopEventsConstMeta,
+            argValues: [that],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreStopEventsConstMeta => const TaskConstMeta(
+            debugName: "Encore_stop_events",
+            argNames: ["that"],
+        );
+        
+
 @override StreamInfo crateApiCoreEncoreStreamFor({required Encore that , required PlatformInt64 songId , required Network network })  { return handler.executeSync(SyncTask(
             callFfi: () {
               
             final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
 sse_encode_i_64(songId, serializer);
 sse_encode_network(network, serializer);
-            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 53)!;
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 54)!;
             
             },
             codec: 
@@ -1620,7 +1647,7 @@ sse_encode_network(network, serializer);
               
             final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
 sse_encode_network(network, serializer);
-            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 54)!;
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 55)!;
             
             },
             codec: 
@@ -1645,7 +1672,7 @@ sse_encode_network(network, serializer);
             callFfi: (port_) {
               
             final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
-            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 55, port: port_);
+            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 56, port: port_);
             
             },
             codec: 
@@ -1672,7 +1699,7 @@ sse_encode_network(network, serializer);
             final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
 sse_encode_String(address, serializer);
 sse_encode_String(sha256, serializer);
-            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 56)!;
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 57)!;
             
             },
             codec: 
@@ -1697,7 +1724,7 @@ sse_encode_String(sha256, serializer);
             callFfi: () {
               
             final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
-            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 57)!;
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 58)!;
             
             },
             codec: 
@@ -1722,7 +1749,7 @@ sse_encode_String(sha256, serializer);
             callFfi: () {
               
             final serializer = SseSerializer(generalizedFrbRustBinding);
-            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 58)!;
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 59)!;
             
             },
             codec: 
@@ -1747,7 +1774,7 @@ sse_encode_String(sha256, serializer);
             callFfi: () {
               
             final serializer = SseSerializer(generalizedFrbRustBinding);
-            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 59)!;
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 60)!;
             
             },
             codec: 
@@ -1772,7 +1799,7 @@ sse_encode_String(sha256, serializer);
             callFfi: () {
               
             final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_String(name, serializer);
-            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 60)!;
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 61)!;
             
             },
             codec: 
@@ -3384,7 +3411,8 @@ serializer.buffer.putBigUint64(self); }
  String?  currentProfile()=>RustLib.instance.api.crateApiCoreEncoreCurrentProfile(that: this, );
 
 
-/// Events: queue changed, now playing, preload, sync progress.
+/// Events: queue changed, now playing, preload, sync progress. One stream at a
+/// time: calling this again replaces the previous stream.
  Stream<CoreEvent>  events()=>RustLib.instance.api.crateApiCoreEncoreEvents(that: this, );
 
 
@@ -3497,6 +3525,11 @@ serializer.buffer.putBigUint64(self); }
 
 
  List<Song>  songs({required SongSort sort , required int offset , required int limit })=>RustLib.instance.api.crateApiCoreEncoreSongs(that: this, sort: sort, offset: offset, limit: limit);
+
+
+/// Close the events stream (it reports done). Cancelling a subscription alone
+/// does not end it, because the core still holds the stream's sink.
+ void  stopEvents()=>RustLib.instance.api.crateApiCoreEncoreStopEvents(that: this, );
 
 
  StreamInfo  streamFor({required PlatformInt64 songId , required Network network })=>RustLib.instance.api.crateApiCoreEncoreStreamFor(that: this, songId: songId, network: network);

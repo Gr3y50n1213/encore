@@ -59,7 +59,8 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  String?  currentProfile();
 
 
-/// Events: queue changed, now playing, preload, sync progress.
+/// Events: queue changed, now playing, preload, sync progress. One stream at a
+/// time: calling this again replaces the previous stream.
  Stream<CoreEvent>  events();
 
 
@@ -172,6 +173,11 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
 
 
  List<Song>  songs({required SongSort sort , required int offset , required int limit });
+
+
+/// Close the events stream (it reports done). Cancelling a subscription alone
+/// does not end it, because the core still holds the stream's sink.
+ void  stopEvents();
 
 
  StreamInfo  streamFor({required PlatformInt64 songId , required Network network });
