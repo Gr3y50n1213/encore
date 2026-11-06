@@ -13,7 +13,10 @@
 # they build comes from there. Run the workflow by hand to get the XCFramework and
 # jniLibs as artifacts, or with "regenerate" ticked to get fresh bindings.
 #
-# Actions are pinned to commit SHAs; the comment names the release.
+# Actions are pinned to commit SHAs; the comment names the release. Linux runs on
+# ubuntu-24.04, the image whose Kotlin, Swift and NDK this file relies on
+# (github.com/actions/runner-images, Ubuntu2404-Readme.md); ubuntu-latest is moving
+# to Ubuntu 26, so move this label on purpose after checking that image.
 name: core
 
 on:
@@ -65,7 +68,7 @@ jobs:
   regenerate:
     name: Regenerate bindings and tokens (Linux)
     if: ${{ inputs.regenerate }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -119,7 +122,7 @@ jobs:
   linux:
     name: "Linux: make check-core, then Swift, Kotlin and Dart call the core"
     if: ${{ !inputs.regenerate }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     outputs:
       apps: ${{ steps.changes.outputs.apps }}
@@ -377,7 +380,7 @@ jobs:
     name: "Android: four ABIs, 16 KB aligned"
     needs: linux
     if: ${{ needs.linux.outputs.apps == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     defaults:
       run:
