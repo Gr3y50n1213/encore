@@ -118,7 +118,7 @@ Generated from `design/tokens.json` by `tools/encore-tokens` (`make tokens` in `
 | `motion.timing.reduceMotionCrossfadeMs` | `EncoreTokens.Motion.Timing.reduceMotionCrossfadeMs` | `EncoreTokens.Motion.Timing.reduceMotionCrossfadeMs` | `EncoreTokens.motion.timing.reduceMotionCrossfadeMs` |
 | `smartPicks.explorationPercent.default` | ``EncoreTokens.SmartPicks.ExplorationPercent.`default` `` | `EncoreTokens.SmartPicks.ExplorationPercent.default` | `EncoreTokens.smartPicks.explorationPercent.defaultValue` |
 
-Types: whole numbers are `Int` (Swift and Kotlin; `Long` in Kotlin above 32 bits) or `int`; decimals are `Double` or `double`; text is `String`; lists are arrays or `List`. A list of objects (for example `albumGradient.exampleAlbums`) becomes a list of small records named `<Key>Item`. A Dart name that is a reserved word gets `Value` at the end.
+Types: whole numbers are `Int` (Swift and Kotlin; `Long` in Kotlin above 32 bits) or `int`; decimals are `Double` or `double`; text is `String`; lists are arrays or `List`. A list of objects (for example `albumGradient.exampleAlbums`) becomes a list of small records named `<Key>Item`. A Dart name that is a reserved word gets `Value` at the end. Swift and Kotlin escape reserved words with backticks. That includes a Swift group named `Type`, `Self`, `Protocol` or `Any`, so `recap.type` is ``EncoreTokens.Recap.`Type` `` in Swift. A group may not share a name with a built-in type the constants use (`String`, `Int`, `Double`, `Bool`, `Long`, `Boolean`, `List`, `Sendable`, `Equatable`); the generator refuses it.
 
 Not in the constants yet: the colour palette and the type scale (`$status: define-in-phase-1`). They are added after the owner approves the proposal.
 

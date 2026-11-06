@@ -104,7 +104,16 @@ fn parse_group(map: &Map<String, Value>, path: &str) -> Result<Group> {
             continue;
         }
         let entry = match value {
-            Value::Object(inner) => Entry::Group(parse_group(inner, &here)?),
+            Value::Object(inner) => {
+                let type_name = crate::names::pascal(key);
+                if crate::names::BUILTIN_TYPES.contains(&type_name.as_str()) {
+                    return Err(format!(
+                        "{here}: a group named {type_name} would hide the built-in type \
+                         {type_name} in the generated code; rename the group"
+                    ));
+                }
+                Entry::Group(parse_group(inner, &here)?)
+            }
             Value::Array(items) => parse_list(items, &here)?,
             other => Entry::Field(Field::One(scalar(other, &here)?)),
         };
@@ -343,6 +352,15 @@ mod tests {
     #[test]
     fn lists_of_lists_are_errors() {
         assert!(parse(r#"{"a":[[1],[2]]}"#).is_err());
+    }
+
+    #[test]
+    fn groups_that_would_hide_a_built_in_type_are_errors() {
+        let err = parse(r#"{"a":{"string":{"x":1}}}"#).unwrap_err();
+        assert!(err.contains("tokens.a.string"), "{err}");
+        assert!(parse(r#"{"a":{"strings":{"x":1}}}"#).is_ok());
+        // A plain value with that name is fine: members are camelCase.
+        assert!(parse(r#"{"a":{"string":1}}"#).is_ok());
     }
 
     #[test]

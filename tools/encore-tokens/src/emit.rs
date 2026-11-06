@@ -7,7 +7,7 @@
 //!   each group is a const class named after its path, e.g. `EncoreTokensBreakpoints`)
 
 use crate::model::{Entry, Field, FieldType, Group, Kind, Records, Scalar};
-use crate::names::{camel, dart_member, kotlin_member, pascal, swift_member};
+use crate::names::{camel, dart_member, kotlin_member, pascal, swift_member, swift_type_name};
 
 pub const ROOT: &str = "EncoreTokens";
 
@@ -151,7 +151,7 @@ fn swift_body(out: &mut Out, depth: usize, group: &Group) {
             }
             Entry::Group(g) => {
                 swift_docs(out, depth, &g.docs);
-                out.line(depth, &format!("public enum {} {{", pascal(key)));
+                out.line(depth, &format!("public enum {} {{", swift_type_name(key)));
                 swift_body(out, depth + 1, g);
                 out.line(depth, "}");
             }

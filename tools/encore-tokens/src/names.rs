@@ -143,6 +143,35 @@ pub fn swift_member(key: &str) -> String {
     }
 }
 
+/// Names Swift refuses for a nested type unless they are wrapped in backticks
+/// (`Type` would clash with the `Foo.Type` metatype expression).
+const SWIFT_RESERVED_TYPES: &[&str] = &["Any", "Protocol", "Self", "Type"];
+
+/// A Swift nested type name; `type` becomes `` `Type` ``, used as `` Recap.`Type` ``.
+pub fn swift_type_name(key: &str) -> String {
+    let name = pascal(key);
+    if SWIFT_RESERVED_TYPES.contains(&name.as_str()) {
+        format!("`{name}`")
+    } else {
+        name
+    }
+}
+
+/// Types the generated Swift, Kotlin and Dart refer to by name. A group with one of
+/// these names would shadow it inside its own body (`enum String` would turn every
+/// `String` constant in it into a reference to itself), so the model rejects it.
+pub const BUILTIN_TYPES: &[&str] = &[
+    "Bool",
+    "Boolean",
+    "Double",
+    "Equatable",
+    "Int",
+    "List",
+    "Long",
+    "Sendable",
+    "String",
+];
+
 /// A Kotlin member name; hard keywords are wrapped in backticks.
 pub fn kotlin_member(key: &str) -> String {
     let name = camel(key);
@@ -200,5 +229,13 @@ mod tests {
         assert_eq!(kotlin_member("object"), "`object`");
         assert_eq!(dart_member("default"), "defaultValue");
         assert_eq!(dart_member("min"), "min");
+    }
+
+    #[test]
+    fn swift_type_names_that_clash_get_backticks() {
+        assert_eq!(swift_type_name("type"), "`Type`");
+        assert_eq!(swift_type_name("self"), "`Self`");
+        assert_eq!(swift_type_name("types"), "Types");
+        assert_eq!(swift_type_name("recap"), "Recap");
     }
 }
