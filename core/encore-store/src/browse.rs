@@ -476,6 +476,7 @@ mod tests {
             src,
             &encore_sources::LibraryDelta {
                 removed_item_ids: vec!["t3".into()],
+                favorite_item_ids: None,
                 ..Default::default()
             },
         )

@@ -60,9 +60,12 @@ fn small(n: Option<i64>) -> Option<u32> {
 }
 
 pub(crate) fn has_primary_image(item: &BaseItem) -> bool {
-    item.image_tags
-        .as_ref()
-        .is_some_and(|t| t.get("Primary").is_some_and(|v| v.is_some()))
+    primary_image_tag(item).is_some()
+}
+
+/// The tag of the item's own cover; it changes whenever the cover does.
+pub(crate) fn primary_image_tag(item: &BaseItem) -> Option<String> {
+    item.image_tags.as_ref()?.get("Primary")?.clone()
 }
 
 /// The linked album artists, or the plain `AlbumArtist` name when none are linked.
@@ -138,6 +141,7 @@ pub(crate) fn to_album(item: &BaseItem) -> Option<Album> {
         genres: item.genres.clone().unwrap_or_default(),
         date_added_utc_ms: item.date_created.as_deref().and_then(parse_utc_ms),
         has_artwork: has_primary_image(item),
+        artwork_tag: primary_image_tag(item),
     })
 }
 
@@ -158,6 +162,8 @@ pub(crate) fn to_playlist(item: &BaseItem, entries: Vec<PlaylistEntry>) -> Optio
         name: name_or_unknown(&item.name),
         date_added_utc_ms: item.date_created.as_deref().and_then(parse_utc_ms),
         entries,
+        artwork_tag: primary_image_tag(item),
+        can_edit: true,
     })
 }
 

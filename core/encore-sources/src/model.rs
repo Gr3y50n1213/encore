@@ -68,6 +68,10 @@ pub struct Album {
     /// When the server added it, UTC milliseconds.
     pub date_added_utc_ms: Option<i64>,
     pub has_artwork: bool,
+    /// The server's tag for the current cover; it changes when the cover does, so a
+    /// palette made from the old cover is made again.
+    #[serde(default)]
+    pub artwork_tag: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -130,6 +134,15 @@ pub struct Playlist {
     pub name: String,
     pub date_added_utc_ms: Option<i64>,
     pub entries: Vec<PlaylistEntry>,
+    #[serde(default)]
+    pub artwork_tag: Option<String>,
+    /// Whether this user may change it (a playlist shared read-only may not).
+    #[serde(default = "yes")]
+    pub can_edit: bool,
+}
+
+fn yes() -> bool {
+    true
 }
 
 /// Where a library sync continues from. Opaque to everything but the adapter.
@@ -148,6 +161,11 @@ pub struct LibraryDelta {
     pub playlists: Vec<Playlist>,
     /// Source item IDs (of any type) that were removed on the server.
     pub removed_item_ids: Vec<String>,
+    /// Every song this user has marked as a favourite on the server, when the source
+    /// reported them (favourites are user data, so they come as a whole set each
+    /// sync, not in the delta). None: unknown, leave them as they are.
+    #[serde(default)]
+    pub favorite_item_ids: Option<Vec<String>>,
     /// Pass this back to the next sync.
     pub cursor: Option<Cursor>,
 }

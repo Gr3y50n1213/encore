@@ -210,8 +210,106 @@ CREATE INDEX tracks_by_artist ON tracks (artist_display COLLATE NOCASE, album_ti
 CREATE INDEX tracks_by_album ON tracks (album_title COLLATE NOCASE, disc_number, track_number);
 "#;
 
+/// Migration 3: Phase 3. Lyrics and palettes cached per item, the sync event log,
+/// the outbox of server writes, likes, undo, and the skip signal on each play.
+const V3: &str = r#"
+-- Artwork changes refresh the palette made from it; a shared playlist can be
+-- read-only; favourites come from the server's user data.
+ALTER TABLE albums    ADD COLUMN artwork_tag TEXT;
+ALTER TABLE playlists ADD COLUMN artwork_tag TEXT;
+ALTER TABLE playlists ADD COLUMN can_edit INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE tracks    ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0;
+CREATE INDEX tracks_favorite ON tracks (favorite) WHERE favorite = 1;
+
+-- Lyrics as parsed, so the lyrics view works offline once a song's lyrics were
+-- fetched. model_json NULL: the source has none for this song.
+CREATE TABLE lyrics_cache (
+    track_id       INTEGER PRIMARY KEY REFERENCES tracks(id) ON DELETE CASCADE,
+    origin         TEXT    NOT NULL,
+    format         TEXT    NOT NULL,
+    model_json     TEXT,
+    fetched_utc_ms INTEGER NOT NULL
+);
+CREATE TRIGGER lyrics_cache_stale AFTER UPDATE OF has_lyrics, duration_ms ON tracks
+WHEN OLD.has_lyrics IS NOT NEW.has_lyrics OR OLD.duration_ms IS NOT NEW.duration_ms
+BEGIN
+    DELETE FROM lyrics_cache WHERE track_id = NEW.id;
+END;
+
+-- One colour palette per album or playlist (board 04), made once from the artwork
+-- with the tag it was made from. palette_json NULL: no artwork.
+CREATE TABLE artwork_palettes (
+    item_kind    TEXT    NOT NULL,
+    item_id      INTEGER NOT NULL,
+    artwork_tag  TEXT,
+    palette_json TEXT,
+    made_utc_ms  INTEGER NOT NULL,
+    PRIMARY KEY (item_kind, item_id)
+);
+CREATE TRIGGER albums_palette_gone AFTER DELETE ON albums
+BEGIN
+    DELETE FROM artwork_palettes WHERE item_kind = 'album' AND item_id = OLD.id;
+END;
+CREATE TRIGGER playlists_palette_gone AFTER DELETE ON playlists
+BEGIN
+    DELETE FROM artwork_palettes WHERE item_kind = 'playlist' AND item_id = OLD.id;
+END;
+
+-- The local event log that Phase 4 syncs between devices (plan section 5): one
+-- row per user action, with a ULID, the device and a hybrid logical clock.
+CREATE TABLE events (
+    id             TEXT    PRIMARY KEY,
+    device_id      TEXT    NOT NULL,
+    hlc            TEXT    NOT NULL,
+    kind           TEXT    NOT NULL,
+    payload        TEXT    NOT NULL,
+    created_utc_ms INTEGER NOT NULL,
+    synced         INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX events_unsynced ON events (hlc) WHERE synced = 0;
+
+-- Writes to a media server that have not been accepted yet, in the order they
+-- must be sent. A write survives a crash or a closed app and is sent on the next
+-- chance; `edit_id` ties it to its event and undo entry.
+CREATE TABLE outbox (
+    seq             INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_id       INTEGER NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+    edit_id         TEXT    NOT NULL,
+    -- The playlist the write changes, if any: a sync leaves its songs alone until
+    -- the write is accepted.
+    playlist_id     INTEGER,
+    op              TEXT    NOT NULL,
+    attempts        INTEGER NOT NULL DEFAULT 0,
+    last_error      TEXT,
+    next_try_utc_ms INTEGER NOT NULL DEFAULT 0,
+    state           TEXT    NOT NULL DEFAULT 'pending'
+);
+CREATE INDEX outbox_pending ON outbox (source_id, seq) WHERE state = 'pending';
+
+-- Liked songs, by song key: the same song on two albums is liked once.
+CREATE TABLE likes (
+    song_key     TEXT    PRIMARY KEY,
+    liked_utc_ms INTEGER NOT NULL
+);
+
+-- What undoing an edit does, until it expires.
+CREATE TABLE undo_entries (
+    edit_id        TEXT    PRIMARY KEY,
+    kind           TEXT    NOT NULL,
+    inverse        TEXT    NOT NULL,
+    expires_utc_ms INTEGER NOT NULL,
+    undone         INTEGER NOT NULL DEFAULT 0
+);
+
+-- The skip signal (plan section 21): how the play is read, what moved on from it,
+-- and how many times the listener seeked. NULL for plays logged before Phase 3.
+ALTER TABLE play_events ADD COLUMN signal TEXT;
+ALTER TABLE play_events ADD COLUMN origin TEXT;
+ALTER TABLE play_events ADD COLUMN seeks INTEGER NOT NULL DEFAULT 0;
+"#;
+
 /// Every migration, oldest first. Append only.
-pub(crate) const MIGRATIONS: &[&str] = &[V1, V2];
+pub(crate) const MIGRATIONS: &[&str] = &[V1, V2, V3];
 
 /// Bring the database up to the newest schema. Returns the version it ended at.
 #[cfg(test)]

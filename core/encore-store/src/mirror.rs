@@ -70,6 +70,9 @@ impl Store {
         if d.full {
             stats.removed += remove_missing(&tx, source_id, d)?;
         }
+        if let Some(favorites) = &d.favorite_item_ids {
+            set_favorites(&tx, source_id, favorites)?;
+        }
         tx.commit()?;
         Ok(stats)
     }
@@ -132,13 +135,14 @@ fn upsert_album(tx: &Transaction<'_>, source_id: i64, a: &Album) -> Result<()> {
     let id: i64 = tx
         .prepare_cached(
             "INSERT INTO albums (source_id, source_item_id, title, sort_title, search_name, artist_display,
-                                 year, mbid, date_added_utc_ms, has_artwork)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+                                 year, mbid, date_added_utc_ms, has_artwork, artwork_tag)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
              ON CONFLICT (source_id, source_item_id) DO UPDATE SET
                  title = excluded.title, sort_title = excluded.sort_title,
                  search_name = excluded.search_name, artist_display = excluded.artist_display,
                  year = excluded.year, mbid = excluded.mbid,
-                 date_added_utc_ms = excluded.date_added_utc_ms, has_artwork = excluded.has_artwork
+                 date_added_utc_ms = excluded.date_added_utc_ms, has_artwork = excluded.has_artwork,
+                 artwork_tag = excluded.artwork_tag
              RETURNING id",
         )?
         .query_row(
@@ -152,7 +156,8 @@ fn upsert_album(tx: &Transaction<'_>, source_id: i64, a: &Album) -> Result<()> {
                 a.year,
                 a.mbid,
                 a.date_added_utc_ms,
-                a.has_artwork
+                a.has_artwork,
+                a.artwork_tag
             ],
             |r| r.get(0),
         )?;
@@ -246,17 +251,38 @@ fn upsert_track(tx: &Transaction<'_>, source_id: i64, t: &Track) -> Result<()> {
 fn upsert_playlist(tx: &Transaction<'_>, source_id: i64, p: &Playlist) -> Result<()> {
     let id: i64 = tx
         .prepare_cached(
-            "INSERT INTO playlists (source_id, source_item_id, name, search_name, date_added_utc_ms)
-             VALUES (?1, ?2, ?3, ?4, ?5)
+            "INSERT INTO playlists (source_id, source_item_id, name, search_name, date_added_utc_ms,
+                                    artwork_tag, can_edit)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
              ON CONFLICT (source_id, source_item_id) DO UPDATE SET
                  name = excluded.name, search_name = excluded.search_name,
-                 date_added_utc_ms = excluded.date_added_utc_ms
+                 date_added_utc_ms = excluded.date_added_utc_ms,
+                 artwork_tag = excluded.artwork_tag, can_edit = excluded.can_edit
              RETURNING id",
         )?
         .query_row(
-            params![source_id, p.source_item_id, p.name, fold_for_search(&p.name), p.date_added_utc_ms],
+            params![
+                source_id,
+                p.source_item_id,
+                p.name,
+                fold_for_search(&p.name),
+                p.date_added_utc_ms,
+                p.artwork_tag,
+                p.can_edit
+            ],
             |r| r.get(0),
         )?;
+    reindex(tx, id, KIND_PLAYLIST, &p.name)?;
+    // Edits made on this device and not yet accepted by the server win: the pull
+    // must not put back the songs as they were before them.
+    let unsent: bool = tx
+        .prepare_cached(
+            "SELECT EXISTS (SELECT 1 FROM outbox WHERE playlist_id = ?1 AND state = 'pending')",
+        )?
+        .query_row([id], |r| r.get(0))?;
+    if unsent {
+        return Ok(());
+    }
     tx.prepare_cached("DELETE FROM playlist_items WHERE playlist_id = ?1")?
         .execute([id])?;
     let mut ins = tx.prepare_cached(
@@ -265,7 +291,23 @@ fn upsert_playlist(tx: &Transaction<'_>, source_id: i64, p: &Playlist) -> Result
     for (i, e) in p.entries.iter().enumerate() {
         ins.execute(params![id, i as i64, e.track_item_id, e.entry_id])?;
     }
-    reindex(tx, id, KIND_PLAYLIST, &p.name)
+    Ok(())
+}
+
+/// The ID a playlist made on this device has until the server gives it its own.
+pub const LOCAL_ITEM_PREFIX: &str = "local:";
+
+/// Mark exactly `item_ids` as this source's favourites.
+fn set_favorites(tx: &Transaction<'_>, source_id: i64, item_ids: &[String]) -> Result<()> {
+    tx.prepare_cached("UPDATE tracks SET favorite = 0 WHERE source_id = ?1 AND favorite = 1")?
+        .execute([source_id])?;
+    let mut mark = tx.prepare_cached(
+        "UPDATE tracks SET favorite = 1 WHERE source_id = ?1 AND source_item_id = ?2",
+    )?;
+    for item in item_ids {
+        mark.execute(params![source_id, item])?;
+    }
+    Ok(())
 }
 
 const TABLES: [(&str, i64); 4] = [
@@ -314,7 +356,8 @@ fn remove_missing(tx: &Transaction<'_>, source_id: i64, d: &LibraryDelta) -> Res
         let ids = st.query_map([source_id], |r| r.get::<_, String>(0))?;
         for id in ids {
             let id = id?;
-            if !keep.contains(id.as_str()) {
+            // A playlist made on this device the server hasn't seen yet is not gone.
+            if !keep.contains(id.as_str()) && !id.starts_with(LOCAL_ITEM_PREFIX) {
                 gone.push(id);
             }
         }
@@ -379,6 +422,7 @@ pub(crate) mod tests {
                 genres: vec!["Ambient".into()],
                 date_added_utc_ms: Some(1_700_000_000_000),
                 has_artwork: true,
+                artwork_tag: Some("al-cover-1".into()),
             }],
             tracks: vec![
                 track("t1", "Slow Tide", "al1", 1),
@@ -399,8 +443,11 @@ pub(crate) mod tests {
                         track_item_id: "t1".into(),
                     },
                 ],
+                artwork_tag: Some("pl-cover-1".into()),
+                can_edit: true,
             }],
             removed_item_ids: vec![],
+            favorite_item_ids: None,
             cursor: None,
         }
     }
@@ -476,6 +523,7 @@ pub(crate) mod tests {
             full: false,
             tracks: vec![changed],
             removed_item_ids: vec!["t3".into(), "not-there".into()],
+            favorite_item_ids: None,
             ..LibraryDelta::default()
         };
         let stats = store.apply_delta(src, &delta).unwrap();
@@ -509,6 +557,76 @@ pub(crate) mod tests {
         assert_eq!(count(&store, "tracks"), 1);
         assert_eq!(count(&store, "playlists"), 0);
         assert_eq!(count(&store, "search_index"), 3);
+    }
+
+    #[test]
+    fn artwork_tags_and_favourites_are_mirrored() {
+        let (store, src) = store_with_source();
+        let mut d = sample_delta();
+        d.favorite_item_ids = Some(vec!["t1".into(), "t3".into(), "not-mirrored".into()]);
+        store.apply_delta(src, &d).unwrap();
+        let fav = |s: &Store| -> Vec<String> {
+            let mut st = s
+                .conn
+                .prepare("SELECT source_item_id FROM tracks WHERE favorite = 1 ORDER BY 1")
+                .unwrap();
+            st.query_map([], |r| r.get(0))
+                .unwrap()
+                .map(|r| r.unwrap())
+                .collect()
+        };
+        assert_eq!(fav(&store), ["t1", "t3"]);
+        let tags: (Option<String>, Option<String>) = store
+            .conn
+            .query_row(
+                "SELECT (SELECT artwork_tag FROM albums), (SELECT artwork_tag FROM playlists)",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(tags, (Some("al-cover-1".into()), Some("pl-cover-1".into())));
+
+        // Favourites arrive as the whole set: one cleared on the server is cleared
+        // here; None (not reported) leaves them alone.
+        d.full = false;
+        d.favorite_item_ids = Some(vec!["t2".into()]);
+        store.apply_delta(src, &d).unwrap();
+        assert_eq!(fav(&store), ["t2"]);
+        d.favorite_item_ids = None;
+        store.apply_delta(src, &d).unwrap();
+        assert_eq!(fav(&store), ["t2"]);
+    }
+
+    #[test]
+    fn a_pull_keeps_unsent_playlist_edits_and_playlists_made_offline() {
+        let (store, src) = store_with_source();
+        store.apply_delta(src, &sample_delta()).unwrap();
+        let pl: i64 = store
+            .conn
+            .query_row("SELECT id FROM playlists", [], |r| r.get(0))
+            .unwrap();
+        // An edit on this device (a third song) still waiting for the server, and a
+        // playlist made offline that the server has never seen.
+        store
+            .conn
+            .execute_batch(&format!(
+                "INSERT INTO playlist_items (playlist_id, position, track_item_id) VALUES ({pl}, 2, 't2');
+                 INSERT INTO outbox (source_id, edit_id, playlist_id, op) VALUES ({src}, 'e', {pl}, '{{}}');
+                 INSERT INTO playlists (source_id, source_item_id, name, search_name)
+                     VALUES ({src}, 'local:01J', 'Made offline', 'made offline');"
+            ))
+            .unwrap();
+        store.apply_delta(src, &sample_delta()).unwrap();
+        assert_eq!(count(&store, "playlist_items"), 3, "the unsent edit stays");
+        assert_eq!(count(&store, "playlists"), 2, "the offline playlist stays");
+
+        // Once the write is accepted, the server's version is the truth again.
+        store
+            .conn
+            .execute("UPDATE outbox SET state = 'done'", [])
+            .unwrap();
+        store.apply_delta(src, &sample_delta()).unwrap();
+        assert_eq!(count(&store, "playlist_items"), 2);
     }
 
     #[test]

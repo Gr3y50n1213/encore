@@ -77,6 +77,7 @@ fn library() -> LibraryDelta {
                 genres: vec![],
                 date_added_utc_ms: Some(i as i64),
                 has_artwork: true,
+                artwork_tag: None,
             }
         })
         .collect();
@@ -121,6 +122,7 @@ fn library() -> LibraryDelta {
         tracks,
         playlists: vec![],
         removed_item_ids: vec![],
+        favorite_item_ids: None,
         cursor: None,
     }
 }

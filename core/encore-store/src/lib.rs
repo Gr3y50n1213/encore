@@ -19,7 +19,7 @@ mod search;
 
 pub use backup::{BackupInfo, migration_copies};
 pub use browse::*;
-pub use mirror::ApplyStats;
+pub use mirror::{ApplyStats, LOCAL_ITEM_PREFIX};
 pub use playlog::*;
 pub use search::{SearchLimits, SearchResults, TopResult, fold_for_search};
 
@@ -300,7 +300,7 @@ mod tests {
             .unwrap();
         }
         let s = Store::open(&path).unwrap();
-        assert_eq!(s.schema_version().unwrap(), 2);
+        assert_eq!(s.schema_version().unwrap(), Store::latest_schema_version());
         assert_eq!(s.setting("kept").unwrap().as_deref(), Some("yes"));
         let indexes: i64 = s
             .conn
@@ -312,6 +312,86 @@ mod tests {
             )
             .unwrap();
         assert_eq!(indexes, 4);
+        drop(s);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Migration 3 adds columns to tables that already hold a library and history:
+    /// the rows stay, the new columns get their defaults, and the new tables work.
+    #[test]
+    fn a_version_2_database_with_a_library_and_history_upgrades() {
+        let dir = std::env::temp_dir().join(format!("encore-store-v2-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("profile.sqlite");
+        let _ = std::fs::remove_file(&path);
+        {
+            let mut conn = Connection::open(&path).unwrap();
+            schema::migrate_with(&mut conn, &schema::MIGRATIONS[..2]).unwrap();
+            conn.execute_batch(
+                "INSERT INTO sources (id, kind, name, base_url, server_id, user_id, user_name, created_utc_ms)
+                     VALUES (1, 'jellyfin', 'Home', 'http://h', 's', 'u', 'Ana', 0);
+                 INSERT INTO albums (id, source_id, source_item_id, title, sort_title, search_name,
+                                     artist_display, has_artwork)
+                     VALUES (1, 1, 'al', 'Golden Hour Static', 'golden', 'golden', 'Ember Cove', 1);
+                 INSERT INTO tracks (id, source_id, source_item_id, title, sort_title, search_name,
+                                     album_id, artist_display, album_artist_display, duration_ms,
+                                     song_key, has_lyrics)
+                     VALUES (1, 1, 't', 'Kiln', 'kiln', 'kiln', 1, 'Ember Cove', 'Ember Cove', 222400,
+                             't1:5a0ab3d41d0b7ae62cddb08fa411c1f1:222', 1);
+                 INSERT INTO playlists (id, source_id, source_item_id, name, search_name)
+                     VALUES (1, 1, 'pl', 'Road', 'road');
+                 INSERT INTO play_events (id, device_id, hlc, song_key, source_kind, source_item_id,
+                     title, artist, duration_ms, started_utc_ms, utc_offset_minutes, local_hour,
+                     local_weekday, listened_ms, end_reason, started_from, chosen_by, updated_utc_ms)
+                     VALUES ('01J', 'd', '0000000000001-00000', 'k', 'jellyfin', 't', 'Kiln', 'Ember Cove',
+                             222400, 1, 0, 0, 1, 1000, 'skipped', 'album', 'user', 1);",
+            )
+            .unwrap();
+        }
+        let s = Store::open(&path).unwrap();
+        assert_eq!(s.schema_version().unwrap(), Store::latest_schema_version());
+        let (signal, seeks, origin): (Option<String>, i64, Option<String>) = s
+            .conn
+            .query_row("SELECT signal, seeks, origin FROM play_events", [], |r| {
+                Ok((r.get(0)?, r.get(1)?, r.get(2)?))
+            })
+            .unwrap();
+        assert_eq!((signal, seeks, origin), (None, 0, None));
+        let (fav, can_edit, tag): (i64, i64, Option<String>) = s
+            .conn
+            .query_row(
+                "SELECT t.favorite, p.can_edit, a.artwork_tag FROM tracks t, playlists p, albums a",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
+            .unwrap();
+        assert_eq!((fav, can_edit, tag), (0, 1, None));
+
+        // The new tables hold rows, and their clean-up rules fire.
+        s.conn
+            .execute_batch(
+                "INSERT INTO lyrics_cache VALUES (1, 'mediaServer', 'jellyfin', '{}', 5);
+                 INSERT INTO artwork_palettes VALUES ('album', 1, 'tag', '{}', 5);
+                 UPDATE tracks SET has_lyrics = 0 WHERE id = 1;",
+            )
+            .unwrap();
+        let cached: i64 = s
+            .conn
+            .query_row("SELECT count(*) FROM lyrics_cache", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(
+            cached, 0,
+            "lyrics are fetched again when the song's lyrics change"
+        );
+        s.conn
+            .execute("DELETE FROM albums WHERE id = 1", [])
+            .unwrap();
+        let palettes: i64 = s
+            .conn
+            .query_row("SELECT count(*) FROM artwork_palettes", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(palettes, 0, "a removed album's palette goes with it");
+        assert_eq!(migration_copies(&path).len(), 1);
         drop(s);
         let _ = std::fs::remove_dir_all(&dir);
     }

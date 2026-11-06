@@ -183,6 +183,7 @@ pub async fn sync_library(
         tracks: tracks.iter().filter_map(map::to_track).collect(),
         playlists,
         removed_item_ids,
+        favorite_item_ids: None,
         cursor,
     })
 }
