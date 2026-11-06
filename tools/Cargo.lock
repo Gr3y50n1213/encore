@@ -133,6 +133,7 @@ dependencies = [
 name = "encore-sources"
 version = "0.1.0"
 dependencies = [
+ "jni",
  "reqwest",
  "rustls",
  "rustls-platform-verifier",
