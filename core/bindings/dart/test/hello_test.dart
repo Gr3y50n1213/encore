@@ -1,6 +1,7 @@
 // Smoke test: Dart calls the Rust core through the generated bindings.
 // Run with ENCORE_DART_LIB set to the built encore_dart library
 // (core/target/debug/libencore_dart.so on Linux, encore_dart.dll on Windows).
+import 'dart:async';
 import 'dart:io';
 
 import 'package:encore_core/encore_core.dart';
@@ -63,9 +64,13 @@ void main() {
       );
     }, timeout: const Timeout(Duration(seconds: 20)));
 
-    test('events can be listened to and cancelled', () async {
-      final subscription = core.events().listen((_) {});
-      await subscription.cancel();
+    test('the events stream opens and stopEvents closes it', () async {
+      final closed = Completer<void>();
+      core.events().listen((_) {}, onDone: closed.complete);
+      // Let the stream reach the core before stopping it.
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      core.stopEvents();
+      await closed.future;
     }, timeout: const Timeout(Duration(seconds: 20)));
   });
 

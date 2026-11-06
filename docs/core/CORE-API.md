@@ -161,7 +161,7 @@ Each play event stores the song key, the source and its item ID, the title, arti
 
 ## Events
 
-`set_listener(listener)` in Swift and Kotlin (implement `CoreListener.on_event`), `events()` in Dart (a `Stream<CoreEvent>`). One `CoreEvent` record; only the fields its `kind` names are set.
+`set_listener(listener)` in Swift and Kotlin (implement `CoreListener.on_event`), `events()` in Dart (a `Stream<CoreEvent>`). One listener at a time: setting a new one replaces the old. `clear_listener()` (Swift, Kotlin) and `stopEvents()` (Dart) stop events. In Dart, `stopEvents()` is what ends the stream: cancelling a subscription alone does not, because the core still holds the stream. One `CoreEvent` record; only the fields its `kind` names are set.
 
 | `kind` | Set fields | When |
 | --- | --- | --- |

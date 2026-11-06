@@ -436,9 +436,17 @@ impl Encore {
         })
     }
 
-    /// Events: queue changed, now playing, preload, sync progress.
+    /// Events: queue changed, now playing, preload, sync progress. One stream at a
+    /// time: calling this again replaces the previous stream.
     pub fn events(&self, sink: StreamSink<CoreEvent>) {
         self.core.set_listener(Arc::new(SinkListener(sink)));
+    }
+
+    /// Close the events stream (it reports done). Cancelling a subscription alone
+    /// does not end it, because the core still holds the stream's sink.
+    #[frb(sync)]
+    pub fn stop_events(&self) {
+        self.core.clear_listener()
     }
 
     // connect

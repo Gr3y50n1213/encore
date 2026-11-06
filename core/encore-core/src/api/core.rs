@@ -496,6 +496,14 @@ impl EncoreCore {
         }
     }
 
+    /// Stop sending events and let go of the listener (in Dart this closes the
+    /// events stream). Events after this are dropped until `set_listener`.
+    pub fn clear_listener(&self) {
+        if let Ok(mut l) = self.inner.listener.lock() {
+            *l = None;
+        }
+    }
+
     // ------------------------------------------------------------ connect
 
     /// Check what the user typed (board 21, item 3). Async.

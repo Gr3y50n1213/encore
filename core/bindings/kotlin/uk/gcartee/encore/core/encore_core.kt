@@ -728,6 +728,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_check_address(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_clear_listener(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_clear_recent_searches(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_clear_up_next(
@@ -871,6 +873,8 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_check_address(`ptr`: Long,`address`: RustBuffer.ByValue,
     ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_clear_listener(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     external fun uniffi_encore_core_fn_method_encorecore_clear_recent_searches(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_encore_core_fn_method_encorecore_clear_up_next(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -1132,6 +1136,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_check_address() and 0xFFFF) != 58361) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_clear_listener() and 0xFFFF) != 63216) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_clear_recent_searches() and 0xFFFF) != 39148) {
@@ -2155,6 +2162,12 @@ public interface EncoreCoreInterface {
      */
     suspend fun `checkAddress`(`address`: kotlin.String): ServerCheck
     
+    /**
+     * Stop sending events and let go of the listener (in Dart this closes the
+     * events stream). Events after this are dropped until `set_listener`.
+     */
+    fun `clearListener`()
+    
     fun `clearRecentSearches`()
     
     /**
@@ -2620,6 +2633,22 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
         EncoreException.ErrorHandler,
     )
     }
+
+    
+    /**
+     * Stop sending events and let go of the listener (in Dart this closes the
+     * events stream). Events after this are dropped until `set_listener`.
+     */override fun `clearListener`()
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_clear_listener(
+        it,
+        _status)
+}
+    }
+    
+    
 
     
     @Throws(EncoreException::class)override fun `clearRecentSearches`()

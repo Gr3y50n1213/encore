@@ -319,6 +319,11 @@ RustBuffer uniffi_encore_core_fn_method_encorecore_artwork(uint64_t ptr, RustBuf
 uint64_t uniffi_encore_core_fn_method_encorecore_check_address(uint64_t ptr, RustBuffer address
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_CLEAR_LISTENER
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_CLEAR_LISTENER
+void uniffi_encore_core_fn_method_encorecore_clear_listener(uint64_t ptr, RustCallStatus *_Nonnull out_status
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_CLEAR_RECENT_SEARCHES
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_CLEAR_RECENT_SEARCHES
 void uniffi_encore_core_fn_method_encorecore_clear_recent_searches(uint64_t ptr, RustCallStatus *_Nonnull out_status
@@ -920,6 +925,12 @@ uint16_t uniffi_encore_core_checksum_method_encorecore_artwork(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_CHECK_ADDRESS
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_CHECK_ADDRESS
 uint16_t uniffi_encore_core_checksum_method_encorecore_check_address(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_CLEAR_LISTENER
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_CLEAR_LISTENER
+uint16_t uniffi_encore_core_checksum_method_encorecore_clear_listener(void
     
 );
 #endif
