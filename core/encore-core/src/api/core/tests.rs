@@ -412,6 +412,56 @@ fn a_backup_taken_while_playing_restores_on_another_device() {
 }
 
 #[test]
+fn lyrics_are_read_cached_and_shown_offline() {
+    let dir = temp_dir("lyrics");
+    let (core, _) = core_on_recording(&dir);
+    let s = signed_in(&core);
+    block(core.sync_library()).unwrap();
+    let songs = core.songs(SongSort::Title, 0, 1000).unwrap();
+    let with: Vec<i64> = songs
+        .iter()
+        .filter(|x| x.has_lyrics)
+        .map(|x| x.id)
+        .collect();
+    let without = songs.iter().find(|x| !x.has_lyrics).unwrap().id;
+    assert!(!with.is_empty());
+
+    // The recording holds lyrics for one song: line-synced, every line timed and
+    // ended, in order. Songs whose lyrics weren't recorded fail to fetch.
+    let mut found = None;
+    for id in &with {
+        if let Ok(Some(l)) = block(core.lyrics(*id)) {
+            found = Some(l);
+            break;
+        }
+    }
+    let l = found.expect("the recorded song's lyrics");
+    assert_eq!(l.sync, LyricsSync::Line);
+    assert_eq!(l.format, LyricsFormat::Jellyfin);
+    assert_eq!(l.origin, LyricsOrigin::MediaServer);
+    assert!(l.lines.len() > 10);
+    assert!(
+        l.lines
+            .iter()
+            .all(|x| x.start_ms.is_some() && x.end_ms >= x.start_ms)
+    );
+    assert!(l.lines.windows(2).all(|w| w[0].start_ms <= w[1].start_ms));
+
+    // A song the server says has no lyrics: None, without asking.
+    assert_eq!(block(core.lyrics(without)).unwrap(), None);
+
+    // Offline (reopened without a token, so the server can't be asked): the kept
+    // copy still shows.
+    core.close_profile().unwrap();
+    core.open_profile(s.profile_id, vec![]).unwrap();
+    assert_eq!(block(core.lyrics(l.song_id)).unwrap(), Some(l.clone()));
+    assert!(matches!(
+        block(core.lyrics(999_999)),
+        Err(EncoreError::NotFound { .. })
+    ));
+}
+
+#[test]
 fn a_profile_reopens_with_the_token_from_the_keychain() {
     let dir = temp_dir("reopen");
     let (core, _) = core_on_recording(&dir);

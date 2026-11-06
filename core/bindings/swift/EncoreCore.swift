@@ -899,8 +899,17 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     func lyricLineTapped(lineIndex: UInt32, lineStartMs: Int64) throws 
     
     /**
-     * The song's lyrics as the server sent them (Jellyfin's JSON); None when it has
-     * none. Phase 3 adds the parsed model. Async.
+     * A song's lyrics, read and ready to draw (board 10); None when it has none.
+     * Kept per song: once fetched they show offline. They are fetched again after
+     * `lyrics.refreshAfterDays`, or sooner when the server's copy of the song
+     * changes. When the server can't be reached the kept copy is used, however old.
+     * A file that can't be read counts as no lyrics, so the view never fails. Async.
+     */
+    func lyrics(songId: Int64) async throws  -> SongLyrics?
+    
+    /**
+     * The song's lyrics exactly as the server sent them (Jellyfin's JSON); None
+     * when it has none. For diagnostics; draw `lyrics` instead. Async.
      */
     func lyricsRaw(songId: Int64) async throws  -> String?
     
@@ -1365,8 +1374,31 @@ open func lyricLineTapped(lineIndex: UInt32, lineStartMs: Int64)throws   {try ru
 }
     
     /**
-     * The song's lyrics as the server sent them (Jellyfin's JSON); None when it has
-     * none. Phase 3 adds the parsed model. Async.
+     * A song's lyrics, read and ready to draw (board 10); None when it has none.
+     * Kept per song: once fetched they show offline. They are fetched again after
+     * `lyrics.refreshAfterDays`, or sooner when the server's copy of the song
+     * changes. When the server can't be reached the kept copy is used, however old.
+     * A file that can't be read counts as no lyrics, so the view never fails. Async.
+     */
+open func lyrics(songId: Int64)async throws  -> SongLyrics?  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_lyrics(
+                        self.uniffiCloneHandle(),FfiConverterInt64.lower(songId)
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_rust_buffer,
+            completeFunc: ffi_encore_core_rust_future_complete_rust_buffer,
+            freeFunc: ffi_encore_core_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterOptionTypeSongLyrics.lift,
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
+}
+    
+    /**
+     * The song's lyrics exactly as the server sent them (Jellyfin's JSON); None
+     * when it has none. For diagnostics; draw `lyrics` instead. Async.
      */
 open func lyricsRaw(songId: Int64)async throws  -> String?  {
     return
@@ -2578,6 +2610,317 @@ public func FfiConverterTypeHttpHeader_lower(_ value: HttpHeader) -> RustBuffer 
 }
 
 
+/**
+ * Background vocals under a line: smaller and dimmer (board 10, item 5).
+ */
+public struct LyricBackground: Equatable, Hashable {
+    public var text: String
+    public var startMs: Int64?
+    public var endMs: Int64?
+    public var words: [LyricWord]
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(text: String, startMs: Int64?, endMs: Int64?, words: [LyricWord]) {
+        self.text = text
+        self.startMs = startMs
+        self.endMs = endMs
+        self.words = words
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension LyricBackground: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeLyricBackground: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> LyricBackground {
+        return
+            try LyricBackground(
+                text: FfiConverterString.read(from: &buf), 
+                startMs: FfiConverterOptionInt64.read(from: &buf), 
+                endMs: FfiConverterOptionInt64.read(from: &buf), 
+                words: FfiConverterSequenceTypeLyricWord.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: LyricBackground, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.text, into: &buf)
+        FfiConverterOptionInt64.write(value.startMs, into: &buf)
+        FfiConverterOptionInt64.write(value.endMs, into: &buf)
+        FfiConverterSequenceTypeLyricWord.write(value.words, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLyricBackground_lift(_ buf: RustBuffer) throws -> LyricBackground {
+    return try FfiConverterTypeLyricBackground.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLyricBackground_lower(_ value: LyricBackground) -> RustBuffer {
+    return FfiConverterTypeLyricBackground.lower(value)
+}
+
+
+/**
+ * A silence long enough for the breathing dots (board 10, item 6;
+ * `lyrics.instrumentalGapSeconds`).
+ */
+public struct LyricGap: Equatable, Hashable {
+    /**
+     * The line it follows; None before the first line.
+     */
+    public var afterLine: UInt32?
+    public var startMs: Int64
+    public var endMs: Int64
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * The line it follows; None before the first line.
+         */afterLine: UInt32?, startMs: Int64, endMs: Int64) {
+        self.afterLine = afterLine
+        self.startMs = startMs
+        self.endMs = endMs
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension LyricGap: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeLyricGap: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> LyricGap {
+        return
+            try LyricGap(
+                afterLine: FfiConverterOptionUInt32.read(from: &buf), 
+                startMs: FfiConverterInt64.read(from: &buf), 
+                endMs: FfiConverterInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: LyricGap, into buf: inout [UInt8]) {
+        FfiConverterOptionUInt32.write(value.afterLine, into: &buf)
+        FfiConverterInt64.write(value.startMs, into: &buf)
+        FfiConverterInt64.write(value.endMs, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLyricGap_lift(_ buf: RustBuffer) throws -> LyricGap {
+    return try FfiConverterTypeLyricGap.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLyricGap_lower(_ value: LyricGap) -> RustBuffer {
+    return FfiConverterTypeLyricGap.lower(value)
+}
+
+
+public struct LyricLine: Equatable, Hashable {
+    public var text: String
+    /**
+     * None only when the lyrics are unsynced. The core always fills `end_ms` for
+     * synced lines, and every word's end.
+     */
+    public var startMs: Int64?
+    public var endMs: Int64?
+    /**
+     * Empty: the line lights up whole.
+     */
+    public var words: [LyricWord]
+    /**
+     * Index into `SongLyrics::singers`.
+     */
+    public var singer: UInt32?
+    public var side: LyricSide
+    public var background: [LyricBackground]
+    /**
+     * 0 to 1; 1 for lyrics read from a file or a server.
+     */
+    public var confidence: Double
+    public var translation: String?
+    public var pronunciation: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(text: String, 
+        /**
+         * None only when the lyrics are unsynced. The core always fills `end_ms` for
+         * synced lines, and every word's end.
+         */startMs: Int64?, endMs: Int64?, 
+        /**
+         * Empty: the line lights up whole.
+         */words: [LyricWord], 
+        /**
+         * Index into `SongLyrics::singers`.
+         */singer: UInt32?, side: LyricSide, background: [LyricBackground], 
+        /**
+         * 0 to 1; 1 for lyrics read from a file or a server.
+         */confidence: Double, translation: String?, pronunciation: String?) {
+        self.text = text
+        self.startMs = startMs
+        self.endMs = endMs
+        self.words = words
+        self.singer = singer
+        self.side = side
+        self.background = background
+        self.confidence = confidence
+        self.translation = translation
+        self.pronunciation = pronunciation
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension LyricLine: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeLyricLine: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> LyricLine {
+        return
+            try LyricLine(
+                text: FfiConverterString.read(from: &buf), 
+                startMs: FfiConverterOptionInt64.read(from: &buf), 
+                endMs: FfiConverterOptionInt64.read(from: &buf), 
+                words: FfiConverterSequenceTypeLyricWord.read(from: &buf), 
+                singer: FfiConverterOptionUInt32.read(from: &buf), 
+                side: FfiConverterTypeLyricSide.read(from: &buf), 
+                background: FfiConverterSequenceTypeLyricBackground.read(from: &buf), 
+                confidence: FfiConverterDouble.read(from: &buf), 
+                translation: FfiConverterOptionString.read(from: &buf), 
+                pronunciation: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: LyricLine, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.text, into: &buf)
+        FfiConverterOptionInt64.write(value.startMs, into: &buf)
+        FfiConverterOptionInt64.write(value.endMs, into: &buf)
+        FfiConverterSequenceTypeLyricWord.write(value.words, into: &buf)
+        FfiConverterOptionUInt32.write(value.singer, into: &buf)
+        FfiConverterTypeLyricSide.write(value.side, into: &buf)
+        FfiConverterSequenceTypeLyricBackground.write(value.background, into: &buf)
+        FfiConverterDouble.write(value.confidence, into: &buf)
+        FfiConverterOptionString.write(value.translation, into: &buf)
+        FfiConverterOptionString.write(value.pronunciation, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLyricLine_lift(_ buf: RustBuffer) throws -> LyricLine {
+    return try FfiConverterTypeLyricLine.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLyricLine_lower(_ value: LyricLine) -> RustBuffer {
+    return FfiConverterTypeLyricLine.lower(value)
+}
+
+
+/**
+ * A timed word or syllable. A line's text is its words' texts, with a space after
+ * those whose `space_after` is set; syllables of one word have none between them.
+ */
+public struct LyricWord: Equatable, Hashable {
+    public var text: String
+    public var startMs: Int64
+    public var endMs: Int64
+    public var spaceAfter: Bool
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(text: String, startMs: Int64, endMs: Int64, spaceAfter: Bool) {
+        self.text = text
+        self.startMs = startMs
+        self.endMs = endMs
+        self.spaceAfter = spaceAfter
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension LyricWord: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeLyricWord: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> LyricWord {
+        return
+            try LyricWord(
+                text: FfiConverterString.read(from: &buf), 
+                startMs: FfiConverterInt64.read(from: &buf), 
+                endMs: FfiConverterInt64.read(from: &buf), 
+                spaceAfter: FfiConverterBool.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: LyricWord, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.text, into: &buf)
+        FfiConverterInt64.write(value.startMs, into: &buf)
+        FfiConverterInt64.write(value.endMs, into: &buf)
+        FfiConverterBool.write(value.spaceAfter, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLyricWord_lift(_ buf: RustBuffer) throws -> LyricWord {
+    return try FfiConverterTypeLyricWord.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLyricWord_lower(_ value: LyricWord) -> RustBuffer {
+    return FfiConverterTypeLyricWord.lower(value)
+}
+
+
 public struct PlaylistDetail: Equatable, Hashable {
     public var playlist: PlaylistSummary
     public var entries: [PlaylistEntry]
@@ -3335,6 +3678,64 @@ public func FfiConverterTypeSignedIn_lower(_ value: SignedIn) -> RustBuffer {
 }
 
 
+public struct Singer: Equatable, Hashable {
+    public var id: String
+    public var name: String?
+    public var kind: SingerKind
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(id: String, name: String?, kind: SingerKind) {
+        self.id = id
+        self.name = name
+        self.kind = kind
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension Singer: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSinger: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Singer {
+        return
+            try Singer(
+                id: FfiConverterString.read(from: &buf), 
+                name: FfiConverterOptionString.read(from: &buf), 
+                kind: FfiConverterTypeSingerKind.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: Singer, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.id, into: &buf)
+        FfiConverterOptionString.write(value.name, into: &buf)
+        FfiConverterTypeSingerKind.write(value.kind, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSinger_lift(_ buf: RustBuffer) throws -> Singer {
+    return try FfiConverterTypeSinger.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSinger_lower(_ value: Singer) -> RustBuffer {
+    return FfiConverterTypeSinger.lower(value)
+}
+
+
 public struct Song: Equatable, Hashable {
     public var id: Int64
     public var sourceId: Int64
@@ -3438,6 +3839,101 @@ public func FfiConverterTypeSong_lift(_ buf: RustBuffer) throws -> Song {
 #endif
 public func FfiConverterTypeSong_lower(_ value: Song) -> RustBuffer {
     return FfiConverterTypeSong.lower(value)
+}
+
+
+/**
+ * A song's lyrics, ready to draw. Lines are in the order they are sung.
+ */
+public struct SongLyrics: Equatable, Hashable {
+    public var songId: Int64
+    public var sync: LyricsSync
+    public var origin: LyricsOrigin
+    public var format: LyricsFormat
+    public var lines: [LyricLine]
+    public var singers: [Singer]
+    public var gaps: [LyricGap]
+    /**
+     * The song is instrumental: the dots and the title only.
+     */
+    public var instrumental: Bool
+    public var language: String?
+    public var fetchedUtcMs: Int64
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(songId: Int64, sync: LyricsSync, origin: LyricsOrigin, format: LyricsFormat, lines: [LyricLine], singers: [Singer], gaps: [LyricGap], 
+        /**
+         * The song is instrumental: the dots and the title only.
+         */instrumental: Bool, language: String?, fetchedUtcMs: Int64) {
+        self.songId = songId
+        self.sync = sync
+        self.origin = origin
+        self.format = format
+        self.lines = lines
+        self.singers = singers
+        self.gaps = gaps
+        self.instrumental = instrumental
+        self.language = language
+        self.fetchedUtcMs = fetchedUtcMs
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension SongLyrics: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSongLyrics: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SongLyrics {
+        return
+            try SongLyrics(
+                songId: FfiConverterInt64.read(from: &buf), 
+                sync: FfiConverterTypeLyricsSync.read(from: &buf), 
+                origin: FfiConverterTypeLyricsOrigin.read(from: &buf), 
+                format: FfiConverterTypeLyricsFormat.read(from: &buf), 
+                lines: FfiConverterSequenceTypeLyricLine.read(from: &buf), 
+                singers: FfiConverterSequenceTypeSinger.read(from: &buf), 
+                gaps: FfiConverterSequenceTypeLyricGap.read(from: &buf), 
+                instrumental: FfiConverterBool.read(from: &buf), 
+                language: FfiConverterOptionString.read(from: &buf), 
+                fetchedUtcMs: FfiConverterInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: SongLyrics, into buf: inout [UInt8]) {
+        FfiConverterInt64.write(value.songId, into: &buf)
+        FfiConverterTypeLyricsSync.write(value.sync, into: &buf)
+        FfiConverterTypeLyricsOrigin.write(value.origin, into: &buf)
+        FfiConverterTypeLyricsFormat.write(value.format, into: &buf)
+        FfiConverterSequenceTypeLyricLine.write(value.lines, into: &buf)
+        FfiConverterSequenceTypeSinger.write(value.singers, into: &buf)
+        FfiConverterSequenceTypeLyricGap.write(value.gaps, into: &buf)
+        FfiConverterBool.write(value.instrumental, into: &buf)
+        FfiConverterOptionString.write(value.language, into: &buf)
+        FfiConverterInt64.write(value.fetchedUtcMs, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSongLyrics_lift(_ buf: RustBuffer) throws -> SongLyrics {
+    return try FfiConverterTypeSongLyrics.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSongLyrics_lower(_ value: SongLyrics) -> RustBuffer {
+    return FfiConverterTypeSongLyrics.lower(value)
 }
 
 
@@ -4618,6 +5114,340 @@ public func FfiConverterTypeListeningMode_lower(_ value: ListeningMode) -> RustB
 
 
 
+/**
+ * Which side a line aligns to: a second singer's lines sit opposite (board 10, item 4).
+ */
+
+public enum LyricSide: Equatable, Hashable {
+    
+    case main
+    case opposite
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension LyricSide: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeLyricSide: FfiConverterRustBuffer {
+    typealias SwiftType = LyricSide
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> LyricSide {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .main
+        
+        case 2: return .opposite
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: LyricSide, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .main:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .opposite:
+            writeInt(&buf, Int32(2))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLyricSide_lift(_ buf: RustBuffer) throws -> LyricSide {
+    return try FfiConverterTypeLyricSide.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLyricSide_lower(_ value: LyricSide) -> RustBuffer {
+    return FfiConverterTypeLyricSide.lower(value)
+}
+
+
+
+
+public enum LyricsFormat: Equatable, Hashable {
+    
+    case jellyfin
+    case lrc
+    case enhancedLrc
+    case ttml
+    case plain
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension LyricsFormat: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeLyricsFormat: FfiConverterRustBuffer {
+    typealias SwiftType = LyricsFormat
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> LyricsFormat {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .jellyfin
+        
+        case 2: return .lrc
+        
+        case 3: return .enhancedLrc
+        
+        case 4: return .ttml
+        
+        case 5: return .plain
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: LyricsFormat, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .jellyfin:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .lrc:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .enhancedLrc:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .ttml:
+            writeInt(&buf, Int32(4))
+        
+        
+        case .plain:
+            writeInt(&buf, Int32(5))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLyricsFormat_lift(_ buf: RustBuffer) throws -> LyricsFormat {
+    return try FfiConverterTypeLyricsFormat.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLyricsFormat_lower(_ value: LyricsFormat) -> RustBuffer {
+    return FfiConverterTypeLyricsFormat.lower(value)
+}
+
+
+
+/**
+ * Where lyrics came from. The UI never assumes the source of word timings.
+ */
+
+public enum LyricsOrigin: Equatable, Hashable {
+    
+    case mediaServer
+    case embeddedTag
+    case sidecar
+    case provider
+    /**
+     * Word timing generated by the companion server (later; not built yet).
+     */
+    case generated
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension LyricsOrigin: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeLyricsOrigin: FfiConverterRustBuffer {
+    typealias SwiftType = LyricsOrigin
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> LyricsOrigin {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .mediaServer
+        
+        case 2: return .embeddedTag
+        
+        case 3: return .sidecar
+        
+        case 4: return .provider
+        
+        case 5: return .generated
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: LyricsOrigin, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .mediaServer:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .embeddedTag:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .sidecar:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .provider:
+            writeInt(&buf, Int32(4))
+        
+        
+        case .generated:
+            writeInt(&buf, Int32(5))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLyricsOrigin_lift(_ buf: RustBuffer) throws -> LyricsOrigin {
+    return try FfiConverterTypeLyricsOrigin.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLyricsOrigin_lower(_ value: LyricsOrigin) -> RustBuffer {
+    return FfiConverterTypeLyricsOrigin.lower(value)
+}
+
+
+
+/**
+ * How finely a song's lyrics are timed (board 10's three states).
+ */
+
+public enum LyricsSync: Equatable, Hashable {
+    
+    /**
+     * At least one line has per-word timing; lines without words light up whole.
+     */
+    case word
+    /**
+     * Lines are timed, words are not.
+     */
+    case line
+    /**
+     * No timing: a plain page that scrolls, with a "Not synced" tag.
+     */
+    case unsynced
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension LyricsSync: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeLyricsSync: FfiConverterRustBuffer {
+    typealias SwiftType = LyricsSync
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> LyricsSync {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .word
+        
+        case 2: return .line
+        
+        case 3: return .unsynced
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: LyricsSync, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .word:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .line:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .unsynced:
+            writeInt(&buf, Int32(3))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLyricsSync_lift(_ buf: RustBuffer) throws -> LyricsSync {
+    return try FfiConverterTypeLyricsSync.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLyricsSync_lower(_ value: LyricsSync) -> RustBuffer {
+    return FfiConverterTypeLyricsSync.lower(value)
+}
+
+
+
 
 public enum Network: Equatable, Hashable {
     
@@ -4905,6 +5735,82 @@ public func FfiConverterTypeResultKind_lift(_ buf: RustBuffer) throws -> ResultK
 #endif
 public func FfiConverterTypeResultKind_lower(_ value: ResultKind) -> RustBuffer {
     return FfiConverterTypeResultKind.lower(value)
+}
+
+
+
+
+public enum SingerKind: Equatable, Hashable {
+    
+    case person
+    /**
+     * Several singers together.
+     */
+    case group
+    case other
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension SingerKind: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSingerKind: FfiConverterRustBuffer {
+    typealias SwiftType = SingerKind
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SingerKind {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .person
+        
+        case 2: return .group
+        
+        case 3: return .other
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: SingerKind, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .person:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .group:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .other:
+            writeInt(&buf, Int32(3))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSingerKind_lift(_ buf: RustBuffer) throws -> SingerKind {
+    return try FfiConverterTypeSingerKind.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSingerKind_lower(_ value: SingerKind) -> RustBuffer {
+    return FfiConverterTypeSingerKind.lower(value)
 }
 
 
@@ -5530,6 +6436,30 @@ fileprivate struct FfiConverterOptionTypeSong: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterOptionTypeSongLyrics: FfiConverterRustBuffer {
+    typealias SwiftType = SongLyrics?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeSongLyrics.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeSongLyrics.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterOptionTypeTopResult: FfiConverterRustBuffer {
     typealias SwiftType = TopResult?
 
@@ -5729,6 +6659,106 @@ fileprivate struct FfiConverterSequenceTypeHttpHeader: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterSequenceTypeLyricBackground: FfiConverterRustBuffer {
+    typealias SwiftType = [LyricBackground]
+
+    public static func write(_ value: [LyricBackground], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeLyricBackground.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [LyricBackground] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [LyricBackground]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeLyricBackground.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeLyricGap: FfiConverterRustBuffer {
+    typealias SwiftType = [LyricGap]
+
+    public static func write(_ value: [LyricGap], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeLyricGap.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [LyricGap] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [LyricGap]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeLyricGap.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeLyricLine: FfiConverterRustBuffer {
+    typealias SwiftType = [LyricLine]
+
+    public static func write(_ value: [LyricLine], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeLyricLine.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [LyricLine] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [LyricLine]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeLyricLine.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeLyricWord: FfiConverterRustBuffer {
+    typealias SwiftType = [LyricWord]
+
+    public static func write(_ value: [LyricWord], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeLyricWord.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [LyricWord] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [LyricWord]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeLyricWord.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterSequenceTypePlaylistEntry: FfiConverterRustBuffer {
     typealias SwiftType = [PlaylistEntry]
 
@@ -5846,6 +6876,31 @@ fileprivate struct FfiConverterSequenceTypeServerRow: FfiConverterRustBuffer {
         seq.reserveCapacity(Int(len))
         for _ in 0 ..< len {
             seq.append(try FfiConverterTypeServerRow.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeSinger: FfiConverterRustBuffer {
+    typealias SwiftType = [Singer]
+
+    public static func write(_ value: [Singer], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeSinger.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [Singer] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [Singer]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeSinger.read(from: &buf))
         }
         return seq
     }
@@ -6090,7 +7145,10 @@ private let initializationResult: InitializationResult = {
     if (uniffi_encore_core_checksum_method_encorecore_lyric_line_tapped() != 50507) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_encore_core_checksum_method_encorecore_lyrics_raw() != 8258) {
+    if (uniffi_encore_core_checksum_method_encorecore_lyrics() != 53568) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_lyrics_raw() != 18296) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_move_in_queue() != 44822) {

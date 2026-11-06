@@ -1,0 +1,5 @@
+<tt xmlns="http://www.w3.org/ns/ttml" xmlns:itunes="http://music.apple.com/lyric-ttml-internal" itunes:timing="Word">
+<body><div>
+<p begin="10s" end="13s"><span begin="0s" end="1s">Wide</span> <span begin="1s" end="3s">open</span></p>
+<p begin="20s" dur="2s">No words here</p>
+</div></body></tt>

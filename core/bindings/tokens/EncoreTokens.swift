@@ -1590,4 +1590,13 @@ public enum EncoreTokens {
         public static let recentSearchesMax: Int = 20
         public static let typoMaxEdits: Int = 2
     }
+
+    /// Source: plan section 4, board 10 (Lyrics)
+    /// Status: Starting values chosen for the plan, not measurements. Tune against real word-timed lyrics on devices.
+    public enum Lyrics {
+        public static let instrumentalGapSeconds: Int = 5
+        public static let lastLineSeconds: Int = 5
+        public static let refreshAfterDays: Int = 7
+        public static let generatedWordTimingMinConfidence: Double = 0.8
+    }
 }

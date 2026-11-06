@@ -748,6 +748,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_lyric_line_tapped(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_lyrics(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_lyrics_raw(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_move_in_queue(
@@ -897,6 +899,8 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_lyric_line_tapped(`ptr`: Long,`lineIndex`: Int,`lineStartMs`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_lyrics(`ptr`: Long,`songId`: Long,
+    ): Long
     external fun uniffi_encore_core_fn_method_encorecore_lyrics_raw(`ptr`: Long,`songId`: Long,
     ): Long
     external fun uniffi_encore_core_fn_method_encorecore_move_in_queue(`ptr`: Long,`uid`: Long,`toIndex`: Int,uniffi_out_err: UniffiRustCallStatus, 
@@ -1176,7 +1180,10 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_encore_core_checksum_method_encorecore_lyric_line_tapped() and 0xFFFF) != 50507) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if ((lib.uniffi_encore_core_checksum_method_encorecore_lyrics_raw() and 0xFFFF) != 8258) {
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_lyrics() and 0xFFFF) != 53568) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_lyrics_raw() and 0xFFFF) != 18296) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_move_in_queue() and 0xFFFF) != 44822) {
@@ -2216,8 +2223,17 @@ public interface EncoreCoreInterface {
     fun `lyricLineTapped`(`lineIndex`: kotlin.UInt, `lineStartMs`: kotlin.Long)
     
     /**
-     * The song's lyrics as the server sent them (Jellyfin's JSON); None when it has
-     * none. Phase 3 adds the parsed model. Async.
+     * A song's lyrics, read and ready to draw (board 10); None when it has none.
+     * Kept per song: once fetched they show offline. They are fetched again after
+     * `lyrics.refreshAfterDays`, or sooner when the server's copy of the song
+     * changes. When the server can't be reached the kept copy is used, however old.
+     * A file that can't be read counts as no lyrics, so the view never fails. Async.
+     */
+    suspend fun `lyrics`(`songId`: kotlin.Long): SongLyrics?
+    
+    /**
+     * The song's lyrics exactly as the server sent them (Jellyfin's JSON); None
+     * when it has none. For diagnostics; draw `lyrics` instead. Async.
      */
     suspend fun `lyricsRaw`(`songId`: kotlin.Long): kotlin.String?
     
@@ -2827,8 +2843,37 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
 
     
     /**
-     * The song's lyrics as the server sent them (Jellyfin's JSON); None when it has
-     * none. Phase 3 adds the parsed model. Async.
+     * A song's lyrics, read and ready to draw (board 10); None when it has none.
+     * Kept per song: once fetched they show offline. They are fetched again after
+     * `lyrics.refreshAfterDays`, or sooner when the server's copy of the song
+     * changes. When the server can't be reached the kept copy is used, however old.
+     * A file that can't be read counts as no lyrics, so the view never fails. Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `lyrics`(`songId`: kotlin.Long) : SongLyrics? {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_lyrics(
+                uniffiHandle,
+                
+        FfiConverterLong.lower(`songId`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterOptionalTypeSongLyrics.lift(it) },
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * The song's lyrics exactly as the server sent them (Jellyfin's JSON); None
+     * when it has none. For diagnostics; draw `lyrics` instead. Async.
      */
     @Throws(EncoreException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -4071,6 +4116,250 @@ public object FfiConverterTypeHttpHeader: FfiConverterRustBuffer<HttpHeader> {
 
 
 
+/**
+ * Background vocals under a line: smaller and dimmer (board 10, item 5).
+ */
+data class LyricBackground (
+    var `text`: kotlin.String
+    , 
+    var `startMs`: kotlin.Long?
+    , 
+    var `endMs`: kotlin.Long?
+    , 
+    var `words`: List<LyricWord>
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeLyricBackground: FfiConverterRustBuffer<LyricBackground> {
+    override fun read(buf: ByteBuffer): LyricBackground {
+        return LyricBackground(
+            FfiConverterString.read(buf),
+            FfiConverterOptionalLong.read(buf),
+            FfiConverterOptionalLong.read(buf),
+            FfiConverterSequenceTypeLyricWord.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: LyricBackground) = (
+            FfiConverterString.allocationSize(value.`text`) +
+            FfiConverterOptionalLong.allocationSize(value.`startMs`) +
+            FfiConverterOptionalLong.allocationSize(value.`endMs`) +
+            FfiConverterSequenceTypeLyricWord.allocationSize(value.`words`)
+    )
+
+    override fun write(value: LyricBackground, buf: ByteBuffer) {
+            FfiConverterString.write(value.`text`, buf)
+            FfiConverterOptionalLong.write(value.`startMs`, buf)
+            FfiConverterOptionalLong.write(value.`endMs`, buf)
+            FfiConverterSequenceTypeLyricWord.write(value.`words`, buf)
+    }
+}
+
+
+
+/**
+ * A silence long enough for the breathing dots (board 10, item 6;
+ * `lyrics.instrumentalGapSeconds`).
+ */
+data class LyricGap (
+    /**
+     * The line it follows; None before the first line.
+     */
+    var `afterLine`: kotlin.UInt?
+    , 
+    var `startMs`: kotlin.Long
+    , 
+    var `endMs`: kotlin.Long
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeLyricGap: FfiConverterRustBuffer<LyricGap> {
+    override fun read(buf: ByteBuffer): LyricGap {
+        return LyricGap(
+            FfiConverterOptionalUInt.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterLong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: LyricGap) = (
+            FfiConverterOptionalUInt.allocationSize(value.`afterLine`) +
+            FfiConverterLong.allocationSize(value.`startMs`) +
+            FfiConverterLong.allocationSize(value.`endMs`)
+    )
+
+    override fun write(value: LyricGap, buf: ByteBuffer) {
+            FfiConverterOptionalUInt.write(value.`afterLine`, buf)
+            FfiConverterLong.write(value.`startMs`, buf)
+            FfiConverterLong.write(value.`endMs`, buf)
+    }
+}
+
+
+
+data class LyricLine (
+    var `text`: kotlin.String
+    , 
+    /**
+     * None only when the lyrics are unsynced. The core always fills `end_ms` for
+     * synced lines, and every word's end.
+     */
+    var `startMs`: kotlin.Long?
+    , 
+    var `endMs`: kotlin.Long?
+    , 
+    /**
+     * Empty: the line lights up whole.
+     */
+    var `words`: List<LyricWord>
+    , 
+    /**
+     * Index into `SongLyrics::singers`.
+     */
+    var `singer`: kotlin.UInt?
+    , 
+    var `side`: LyricSide
+    , 
+    var `background`: List<LyricBackground>
+    , 
+    /**
+     * 0 to 1; 1 for lyrics read from a file or a server.
+     */
+    var `confidence`: kotlin.Double
+    , 
+    var `translation`: kotlin.String?
+    , 
+    var `pronunciation`: kotlin.String?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeLyricLine: FfiConverterRustBuffer<LyricLine> {
+    override fun read(buf: ByteBuffer): LyricLine {
+        return LyricLine(
+            FfiConverterString.read(buf),
+            FfiConverterOptionalLong.read(buf),
+            FfiConverterOptionalLong.read(buf),
+            FfiConverterSequenceTypeLyricWord.read(buf),
+            FfiConverterOptionalUInt.read(buf),
+            FfiConverterTypeLyricSide.read(buf),
+            FfiConverterSequenceTypeLyricBackground.read(buf),
+            FfiConverterDouble.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: LyricLine) = (
+            FfiConverterString.allocationSize(value.`text`) +
+            FfiConverterOptionalLong.allocationSize(value.`startMs`) +
+            FfiConverterOptionalLong.allocationSize(value.`endMs`) +
+            FfiConverterSequenceTypeLyricWord.allocationSize(value.`words`) +
+            FfiConverterOptionalUInt.allocationSize(value.`singer`) +
+            FfiConverterTypeLyricSide.allocationSize(value.`side`) +
+            FfiConverterSequenceTypeLyricBackground.allocationSize(value.`background`) +
+            FfiConverterDouble.allocationSize(value.`confidence`) +
+            FfiConverterOptionalString.allocationSize(value.`translation`) +
+            FfiConverterOptionalString.allocationSize(value.`pronunciation`)
+    )
+
+    override fun write(value: LyricLine, buf: ByteBuffer) {
+            FfiConverterString.write(value.`text`, buf)
+            FfiConverterOptionalLong.write(value.`startMs`, buf)
+            FfiConverterOptionalLong.write(value.`endMs`, buf)
+            FfiConverterSequenceTypeLyricWord.write(value.`words`, buf)
+            FfiConverterOptionalUInt.write(value.`singer`, buf)
+            FfiConverterTypeLyricSide.write(value.`side`, buf)
+            FfiConverterSequenceTypeLyricBackground.write(value.`background`, buf)
+            FfiConverterDouble.write(value.`confidence`, buf)
+            FfiConverterOptionalString.write(value.`translation`, buf)
+            FfiConverterOptionalString.write(value.`pronunciation`, buf)
+    }
+}
+
+
+
+/**
+ * A timed word or syllable. A line's text is its words' texts, with a space after
+ * those whose `space_after` is set; syllables of one word have none between them.
+ */
+data class LyricWord (
+    var `text`: kotlin.String
+    , 
+    var `startMs`: kotlin.Long
+    , 
+    var `endMs`: kotlin.Long
+    , 
+    var `spaceAfter`: kotlin.Boolean
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeLyricWord: FfiConverterRustBuffer<LyricWord> {
+    override fun read(buf: ByteBuffer): LyricWord {
+        return LyricWord(
+            FfiConverterString.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: LyricWord) = (
+            FfiConverterString.allocationSize(value.`text`) +
+            FfiConverterLong.allocationSize(value.`startMs`) +
+            FfiConverterLong.allocationSize(value.`endMs`) +
+            FfiConverterBoolean.allocationSize(value.`spaceAfter`)
+    )
+
+    override fun write(value: LyricWord, buf: ByteBuffer) {
+            FfiConverterString.write(value.`text`, buf)
+            FfiConverterLong.write(value.`startMs`, buf)
+            FfiConverterLong.write(value.`endMs`, buf)
+            FfiConverterBoolean.write(value.`spaceAfter`, buf)
+    }
+}
+
+
+
 data class PlaylistDetail (
     var `playlist`: PlaylistSummary
     , 
@@ -4654,6 +4943,49 @@ public object FfiConverterTypeSignedIn: FfiConverterRustBuffer<SignedIn> {
 
 
 
+data class Singer (
+    var `id`: kotlin.String
+    , 
+    var `name`: kotlin.String?
+    , 
+    var `kind`: SingerKind
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSinger: FfiConverterRustBuffer<Singer> {
+    override fun read(buf: ByteBuffer): Singer {
+        return Singer(
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterTypeSingerKind.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: Singer) = (
+            FfiConverterString.allocationSize(value.`id`) +
+            FfiConverterOptionalString.allocationSize(value.`name`) +
+            FfiConverterTypeSingerKind.allocationSize(value.`kind`)
+    )
+
+    override fun write(value: Singer, buf: ByteBuffer) {
+            FfiConverterString.write(value.`id`, buf)
+            FfiConverterOptionalString.write(value.`name`, buf)
+            FfiConverterTypeSingerKind.write(value.`kind`, buf)
+    }
+}
+
+
+
 data class Song (
     var `id`: kotlin.Long
     , 
@@ -4752,6 +5084,90 @@ public object FfiConverterTypeSong: FfiConverterRustBuffer<Song> {
             FfiConverterBoolean.write(value.`hasLyrics`, buf)
             FfiConverterOptionalDouble.write(value.`trackGainDb`, buf)
             FfiConverterOptionalDouble.write(value.`albumGainDb`, buf)
+    }
+}
+
+
+
+/**
+ * A song's lyrics, ready to draw. Lines are in the order they are sung.
+ */
+data class SongLyrics (
+    var `songId`: kotlin.Long
+    , 
+    var `sync`: LyricsSync
+    , 
+    var `origin`: LyricsOrigin
+    , 
+    var `format`: LyricsFormat
+    , 
+    var `lines`: List<LyricLine>
+    , 
+    var `singers`: List<Singer>
+    , 
+    var `gaps`: List<LyricGap>
+    , 
+    /**
+     * The song is instrumental: the dots and the title only.
+     */
+    var `instrumental`: kotlin.Boolean
+    , 
+    var `language`: kotlin.String?
+    , 
+    var `fetchedUtcMs`: kotlin.Long
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSongLyrics: FfiConverterRustBuffer<SongLyrics> {
+    override fun read(buf: ByteBuffer): SongLyrics {
+        return SongLyrics(
+            FfiConverterLong.read(buf),
+            FfiConverterTypeLyricsSync.read(buf),
+            FfiConverterTypeLyricsOrigin.read(buf),
+            FfiConverterTypeLyricsFormat.read(buf),
+            FfiConverterSequenceTypeLyricLine.read(buf),
+            FfiConverterSequenceTypeSinger.read(buf),
+            FfiConverterSequenceTypeLyricGap.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterLong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: SongLyrics) = (
+            FfiConverterLong.allocationSize(value.`songId`) +
+            FfiConverterTypeLyricsSync.allocationSize(value.`sync`) +
+            FfiConverterTypeLyricsOrigin.allocationSize(value.`origin`) +
+            FfiConverterTypeLyricsFormat.allocationSize(value.`format`) +
+            FfiConverterSequenceTypeLyricLine.allocationSize(value.`lines`) +
+            FfiConverterSequenceTypeSinger.allocationSize(value.`singers`) +
+            FfiConverterSequenceTypeLyricGap.allocationSize(value.`gaps`) +
+            FfiConverterBoolean.allocationSize(value.`instrumental`) +
+            FfiConverterOptionalString.allocationSize(value.`language`) +
+            FfiConverterLong.allocationSize(value.`fetchedUtcMs`)
+    )
+
+    override fun write(value: SongLyrics, buf: ByteBuffer) {
+            FfiConverterLong.write(value.`songId`, buf)
+            FfiConverterTypeLyricsSync.write(value.`sync`, buf)
+            FfiConverterTypeLyricsOrigin.write(value.`origin`, buf)
+            FfiConverterTypeLyricsFormat.write(value.`format`, buf)
+            FfiConverterSequenceTypeLyricLine.write(value.`lines`, buf)
+            FfiConverterSequenceTypeSinger.write(value.`singers`, buf)
+            FfiConverterSequenceTypeLyricGap.write(value.`gaps`, buf)
+            FfiConverterBoolean.write(value.`instrumental`, buf)
+            FfiConverterOptionalString.write(value.`language`, buf)
+            FfiConverterLong.write(value.`fetchedUtcMs`, buf)
     }
 }
 
@@ -5667,6 +6083,170 @@ public object FfiConverterTypeListeningMode: FfiConverterRustBuffer<ListeningMod
 
 
 
+/**
+ * Which side a line aligns to: a second singer's lines sit opposite (board 10, item 4).
+ */
+
+enum class LyricSide {
+    
+    MAIN,
+    OPPOSITE;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeLyricSide: FfiConverterRustBuffer<LyricSide> {
+    override fun read(buf: ByteBuffer) = try {
+        LyricSide.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: LyricSide) = 4UL
+
+    override fun write(value: LyricSide, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+
+enum class LyricsFormat {
+    
+    JELLYFIN,
+    LRC,
+    ENHANCED_LRC,
+    TTML,
+    PLAIN;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeLyricsFormat: FfiConverterRustBuffer<LyricsFormat> {
+    override fun read(buf: ByteBuffer) = try {
+        LyricsFormat.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: LyricsFormat) = 4UL
+
+    override fun write(value: LyricsFormat, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+/**
+ * Where lyrics came from. The UI never assumes the source of word timings.
+ */
+
+enum class LyricsOrigin {
+    
+    MEDIA_SERVER,
+    EMBEDDED_TAG,
+    SIDECAR,
+    PROVIDER,
+    /**
+     * Word timing generated by the companion server (later; not built yet).
+     */
+    GENERATED;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeLyricsOrigin: FfiConverterRustBuffer<LyricsOrigin> {
+    override fun read(buf: ByteBuffer) = try {
+        LyricsOrigin.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: LyricsOrigin) = 4UL
+
+    override fun write(value: LyricsOrigin, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+/**
+ * How finely a song's lyrics are timed (board 10's three states).
+ */
+
+enum class LyricsSync {
+    
+    /**
+     * At least one line has per-word timing; lines without words light up whole.
+     */
+    WORD,
+    /**
+     * Lines are timed, words are not.
+     */
+    LINE,
+    /**
+     * No timing: a plain page that scrolls, with a "Not synced" tag.
+     */
+    UNSYNCED;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeLyricsSync: FfiConverterRustBuffer<LyricsSync> {
+    override fun read(buf: ByteBuffer) = try {
+        LyricsSync.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: LyricsSync) = 4UL
+
+    override fun write(value: LyricsSync, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
 
 enum class Network {
     
@@ -5804,6 +6384,44 @@ public object FfiConverterTypeResultKind: FfiConverterRustBuffer<ResultKind> {
     override fun allocationSize(value: ResultKind) = 4UL
 
     override fun write(value: ResultKind, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+
+enum class SingerKind {
+    
+    PERSON,
+    /**
+     * Several singers together.
+     */
+    GROUP,
+    OTHER;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSingerKind: FfiConverterRustBuffer<SingerKind> {
+    override fun read(buf: ByteBuffer) = try {
+        SingerKind.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: SingerKind) = 4UL
+
+    override fun write(value: SingerKind, buf: ByteBuffer) {
         buf.putInt(value.ordinal + 1)
     }
 }
@@ -6317,6 +6935,38 @@ public object FfiConverterOptionalTypeSong: FfiConverterRustBuffer<Song?> {
 /**
  * @suppress
  */
+public object FfiConverterOptionalTypeSongLyrics: FfiConverterRustBuffer<SongLyrics?> {
+    override fun read(buf: ByteBuffer): SongLyrics? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeSongLyrics.read(buf)
+    }
+
+    override fun allocationSize(value: SongLyrics?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeSongLyrics.allocationSize(value)
+        }
+    }
+
+    override fun write(value: SongLyrics?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeSongLyrics.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalTypeTopResult: FfiConverterRustBuffer<TopResult?> {
     override fun read(buf: ByteBuffer): TopResult? {
         if (buf.get().toInt() == 0) {
@@ -6545,6 +7195,118 @@ public object FfiConverterSequenceTypeHttpHeader: FfiConverterRustBuffer<List<Ht
 /**
  * @suppress
  */
+public object FfiConverterSequenceTypeLyricBackground: FfiConverterRustBuffer<List<LyricBackground>> {
+    override fun read(buf: ByteBuffer): List<LyricBackground> {
+        val len = buf.getInt()
+        return List<LyricBackground>(len) {
+            FfiConverterTypeLyricBackground.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<LyricBackground>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeLyricBackground.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<LyricBackground>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeLyricBackground.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeLyricGap: FfiConverterRustBuffer<List<LyricGap>> {
+    override fun read(buf: ByteBuffer): List<LyricGap> {
+        val len = buf.getInt()
+        return List<LyricGap>(len) {
+            FfiConverterTypeLyricGap.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<LyricGap>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeLyricGap.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<LyricGap>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeLyricGap.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeLyricLine: FfiConverterRustBuffer<List<LyricLine>> {
+    override fun read(buf: ByteBuffer): List<LyricLine> {
+        val len = buf.getInt()
+        return List<LyricLine>(len) {
+            FfiConverterTypeLyricLine.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<LyricLine>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeLyricLine.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<LyricLine>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeLyricLine.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeLyricWord: FfiConverterRustBuffer<List<LyricWord>> {
+    override fun read(buf: ByteBuffer): List<LyricWord> {
+        val len = buf.getInt()
+        return List<LyricWord>(len) {
+            FfiConverterTypeLyricWord.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<LyricWord>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeLyricWord.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<LyricWord>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeLyricWord.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterSequenceTypePlaylistEntry: FfiConverterRustBuffer<List<PlaylistEntry>> {
     override fun read(buf: ByteBuffer): List<PlaylistEntry> {
         val len = buf.getInt()
@@ -6675,6 +7437,34 @@ public object FfiConverterSequenceTypeServerRow: FfiConverterRustBuffer<List<Ser
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeServerRow.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeSinger: FfiConverterRustBuffer<List<Singer>> {
+    override fun read(buf: ByteBuffer): List<Singer> {
+        val len = buf.getInt()
+        return List<Singer>(len) {
+            FfiConverterTypeSinger.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<Singer>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeSinger.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<Singer>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeSinger.write(it, buf)
         }
     }
 }

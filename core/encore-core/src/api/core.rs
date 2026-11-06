@@ -16,7 +16,9 @@ use encore_sources::jellyfin::{
     self, DeviceInfo, JellyfinClient, ServerInfo, Session, StreamCodec, StreamRequest,
 };
 use encore_sources::{JellyfinSource, MediaSource, Transport};
-use encore_store::{NewSource, Page, SearchLimits, SourceRecord, Store, TopResult as StoreTop};
+use encore_store::{
+    CachedLyrics, NewSource, Page, SearchLimits, SourceRecord, Store, TopResult as StoreTop,
+};
 use sha2::{Digest, Sha256};
 
 use super::types::*;
@@ -1429,8 +1431,91 @@ impl EncoreCore {
         })
     }
 
-    /// The song's lyrics as the server sent them (Jellyfin's JSON); None when it has
-    /// none. Phase 3 adds the parsed model. Async.
+    /// A song's lyrics, read and ready to draw (board 10); None when it has none.
+    /// Kept per song: once fetched they show offline. They are fetched again after
+    /// `lyrics.refreshAfterDays`, or sooner when the server's copy of the song
+    /// changes. When the server can't be reached the kept copy is used, however old.
+    /// A file that can't be read counts as no lyrics, so the view never fails. Async.
+    pub async fn lyrics(&self, song_id: i64) -> Result<Option<SongLyrics>, EncoreError> {
+        let inner = self.inner.clone();
+        self.spawn(async move {
+            let p = inner.profile()?;
+            let t = tokens();
+            let (track, cached) = {
+                let store = lock(&p.store)?;
+                (store.track(song_id)?, store.cached_lyrics(song_id)?)
+            };
+            let now = now_ms();
+            let from_cache = |c: &CachedLyrics| -> Result<Option<SongLyrics>, EncoreError> {
+                let Some(json) = &c.model_json else {
+                    return Ok(None);
+                };
+                let model: encore_lyrics::Lyrics =
+                    serde_json::from_str(json).map_err(EncoreError::internal)?;
+                Ok(Some(SongLyrics::from_model(
+                    song_id,
+                    model,
+                    c.fetched_utc_ms,
+                )))
+            };
+            if let Some(c) = &cached
+                && now - c.fetched_utc_ms < t.lyrics_refresh_after_ms
+            {
+                return from_cache(c);
+            }
+            if !track.has_lyrics {
+                // The server says it has none: no request.
+                return Ok(None);
+            }
+            let fetched = match inner.source(&p, track.source_id) {
+                Ok(source) => source
+                    .lyrics(&track.source_item_id)
+                    .await
+                    .map_err(EncoreError::from),
+                Err(e) => Err(e),
+            };
+            let fetched = match (fetched, &cached) {
+                (Ok(f), _) => f,
+                // Offline or signed out: the kept copy, however old.
+                (Err(_), Some(c)) => return from_cache(c),
+                (Err(e), None) => return Err(e),
+            };
+            let rules = encore_lyrics::Rules {
+                instrumental_gap_ms: t.lyrics_gap_ms,
+                last_line_ms: t.lyrics_last_line_ms,
+                song_duration_ms: Some(track.duration_ms as i64).filter(|d| *d > 0),
+            };
+            let parsed = fetched.and_then(|raw| {
+                encore_lyrics::parse(&raw.body, encore_lyrics::Origin::MediaServer, &rules)
+                    .ok()
+                    .flatten()
+            });
+            let (format, model_json) = match &parsed {
+                Some(l) => (
+                    serde_json::to_value(l.format)
+                        .ok()
+                        .and_then(|v| v.as_str().map(str::to_owned))
+                        .unwrap_or_default(),
+                    Some(serde_json::to_string(l).map_err(EncoreError::internal)?),
+                ),
+                None => ("none".to_owned(), None),
+            };
+            lock(&p.store)?.save_lyrics(
+                song_id,
+                &CachedLyrics {
+                    origin: "mediaServer".into(),
+                    format,
+                    model_json,
+                    fetched_utc_ms: now,
+                },
+            )?;
+            Ok(parsed.map(|l| SongLyrics::from_model(song_id, l, now)))
+        })
+        .await
+    }
+
+    /// The song's lyrics exactly as the server sent them (Jellyfin's JSON); None
+    /// when it has none. For diagnostics; draw `lyrics` instead. Async.
     pub async fn lyrics_raw(&self, song_id: i64) -> Result<Option<String>, EncoreError> {
         let inner = self.inner.clone();
         self.spawn(async move {

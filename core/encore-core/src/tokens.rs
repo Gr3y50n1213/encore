@@ -29,6 +29,9 @@ pub struct Tokens {
     pub search_playlists: u32,
     pub recent_searches_max: u32,
     pub typo_max_edits: u32,
+    pub lyrics_gap_ms: i64,
+    pub lyrics_last_line_ms: i64,
+    pub lyrics_refresh_after_ms: i64,
 }
 
 fn at<'a>(v: &'a Value, path: &str) -> &'a Value {
@@ -81,6 +84,9 @@ fn parse() -> Tokens {
         search_playlists: num(&v, "search.limits.playlists") as u32,
         recent_searches_max: num(&v, "search.recentSearchesMax") as u32,
         typo_max_edits: num(&v, "search.typoMaxEdits") as u32,
+        lyrics_gap_ms: num(&v, "lyrics.instrumentalGapSeconds") as i64 * 1000,
+        lyrics_last_line_ms: num(&v, "lyrics.lastLineSeconds") as i64 * 1000,
+        lyrics_refresh_after_ms: num(&v, "lyrics.refreshAfterDays") as i64 * 86_400_000,
     }
 }
 

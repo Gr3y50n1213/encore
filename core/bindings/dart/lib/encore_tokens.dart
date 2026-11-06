@@ -26,6 +26,7 @@ abstract final class EncoreTokens {
   static const EncoreTokensPlayLog playLog = EncoreTokensPlayLog._();
   static const EncoreTokensLibrary library = EncoreTokensLibrary._();
   static const EncoreTokensSearch search = EncoreTokensSearch._();
+  static const EncoreTokensLyrics lyrics = EncoreTokensLyrics._();
 }
 
 final class EncoreTokensMeta {
@@ -2112,4 +2113,15 @@ final class EncoreTokensSearchLimits {
   final int albums = 10;
   final int artists = 10;
   final int playlists = 10;
+}
+
+/// Source: plan section 4, board 10 (Lyrics)
+/// Status: Starting values chosen for the plan, not measurements. Tune against real word-timed lyrics on devices.
+final class EncoreTokensLyrics {
+  const EncoreTokensLyrics._();
+
+  final int instrumentalGapSeconds = 5;
+  final int lastLineSeconds = 5;
+  final int refreshAfterDays = 7;
+  final double generatedWordTimingMinConfidence = 0.8;
 }

@@ -12,6 +12,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 
 mod backup;
 mod browse;
+mod cache;
 mod mirror;
 mod playlog;
 mod schema;
@@ -19,6 +20,7 @@ mod search;
 
 pub use backup::{BackupInfo, migration_copies};
 pub use browse::*;
+pub use cache::{CachedLyrics, CachedPalette};
 pub use mirror::{ApplyStats, LOCAL_ITEM_PREFIX};
 pub use playlog::*;
 pub use search::{SearchLimits, SearchResults, TopResult, fold_for_search};

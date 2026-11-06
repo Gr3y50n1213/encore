@@ -369,6 +369,11 @@ RustBuffer uniffi_encore_core_fn_method_encorecore_jump_to(uint64_t ptr, int64_t
 void uniffi_encore_core_fn_method_encorecore_lyric_line_tapped(uint64_t ptr, uint32_t line_index, int64_t line_start_ms, RustCallStatus *_Nonnull out_status
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_LYRICS
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_LYRICS
+uint64_t uniffi_encore_core_fn_method_encorecore_lyrics(uint64_t ptr, int64_t song_id
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_LYRICS_RAW
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_LYRICS_RAW
 uint64_t uniffi_encore_core_fn_method_encorecore_lyrics_raw(uint64_t ptr, int64_t song_id
@@ -995,6 +1000,12 @@ uint16_t uniffi_encore_core_checksum_method_encorecore_jump_to(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_LYRIC_LINE_TAPPED
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_LYRIC_LINE_TAPPED
 uint16_t uniffi_encore_core_checksum_method_encorecore_lyric_line_tapped(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_LYRICS
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_LYRICS
+uint16_t uniffi_encore_core_checksum_method_encorecore_lyrics(void
     
 );
 #endif

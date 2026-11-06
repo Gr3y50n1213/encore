@@ -1618,4 +1618,15 @@ object EncoreTokens {
         const val recentSearchesMax: Int = 20
         const val typoMaxEdits: Int = 2
     }
+
+    /**
+     * Source: plan section 4, board 10 (Lyrics)
+     * Status: Starting values chosen for the plan, not measurements. Tune against real word-timed lyrics on devices.
+     */
+    object Lyrics {
+        const val instrumentalGapSeconds: Int = 5
+        const val lastLineSeconds: Int = 5
+        const val refreshAfterDays: Int = 7
+        const val generatedWordTimingMinConfidence: Double = 0.8
+    }
 }
