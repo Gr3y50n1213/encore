@@ -143,15 +143,16 @@ pub fn swift_member(key: &str) -> String {
     }
 }
 
-/// Names Swift refuses for a nested type unless they are wrapped in backticks
-/// (`Type` would clash with the `Foo.Type` metatype expression).
+/// Names a Swift nested type cannot usefully have: `Foo.Type` and `Foo.Protocol` always
+/// mean the metatype, even when the declaration is escaped with backticks, so the group
+/// could be declared but never read.
 const SWIFT_RESERVED_TYPES: &[&str] = &["Any", "Protocol", "Self", "Type"];
 
-/// A Swift nested type name; `type` becomes `` `Type` ``, used as `` Recap.`Type` ``.
+/// A Swift nested type name; `type` becomes `TypeGroup`, read as `Recap.TypeGroup`.
 pub fn swift_type_name(key: &str) -> String {
     let name = pascal(key);
     if SWIFT_RESERVED_TYPES.contains(&name.as_str()) {
-        format!("`{name}`")
+        format!("{name}Group")
     } else {
         name
     }
@@ -232,9 +233,9 @@ mod tests {
     }
 
     #[test]
-    fn swift_type_names_that_clash_get_backticks() {
-        assert_eq!(swift_type_name("type"), "`Type`");
-        assert_eq!(swift_type_name("self"), "`Self`");
+    fn swift_type_names_that_clash_get_a_suffix() {
+        assert_eq!(swift_type_name("type"), "TypeGroup");
+        assert_eq!(swift_type_name("self"), "SelfGroup");
         assert_eq!(swift_type_name("types"), "Types");
         assert_eq!(swift_type_name("recap"), "Recap");
     }

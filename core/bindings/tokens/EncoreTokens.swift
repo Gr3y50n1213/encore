@@ -1473,7 +1473,7 @@ public enum EncoreTokens {
             public static let editorial: String = "slow wipes and rolling numerals"
         }
 
-        public enum `Type` {
+        public enum TypeGroup {
             public static let editorial: String = "bundled open-licence serif for numerals and names, small-caps sans for labels"
             public static let tide: String = "Inter, heavy"
             public static let bloom: String = "Inter, heavy"

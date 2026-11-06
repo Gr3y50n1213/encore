@@ -12,5 +12,5 @@ precondition(!coreVersion().isEmpty)
 precondition(EncoreTokens.Breakpoints.railWidth == 80)
 precondition(EncoreTokens.Color.Accents.Iris.Light.primary == "#6146CB")
 precondition(EncoreTokens.Typography.Scale.Compact.PageTitle.size == 28)
-precondition(EncoreTokens.Recap.`Type`.tide == "Inter, heavy") // a group Swift escapes
+precondition(EncoreTokens.Recap.TypeGroup.tide == "Inter, heavy") // recap.type, renamed for Swift
 print("Swift -> Rust: \(greeting) (core \(coreVersion()))")
