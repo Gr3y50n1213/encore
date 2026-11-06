@@ -1,5 +1,19 @@
 # CI for the core and server track (core/, server/, tools/, design/tokens.json).
-# The platform tracks own their own workflow files.
+# The platform tracks own their own workflow files (apple.yml, android.yml, flutter.yml).
+#
+# Every target the plan ships is built here (PLAN-CORE-SERVER.md section 1: "every PR
+# builds every target"):
+#   linux    make check-core, then Swift, Kotlin (JVM) and Dart call the core on Linux
+#   apple    iOS, iOS Simulator and macOS: build, link the Swift bindings, run on macOS
+#            and in an iOS Simulator, package an XCFramework
+#   android  arm64-v8a, armeabi-v7a, x86_64 and x86: build, check 16 KB alignment and
+#            the exported symbols
+#   windows  core and server tests, then Dart calls the core on Windows
+# apple and android are skipped when a change touches only server/, because nothing
+# they build comes from there. Run the workflow by hand to get the XCFramework and
+# jniLibs as artifacts, or with "regenerate" ticked to get fresh bindings.
+#
+# Actions are pinned to commit SHAs; the comment names the release.
 name: core
 
 on:
@@ -7,7 +21,9 @@ on:
     branches: [main]
     paths:
       - "core/**"
+      - "!core/**/*.md"
       - "server/**"
+      - "!server/**/*.md"
       - "tools/**"
       - "design/tokens.json"
       - "Makefile"
@@ -15,7 +31,9 @@ on:
   pull_request:
     paths:
       - "core/**"
+      - "!core/**/*.md"
       - "server/**"
+      - "!server/**/*.md"
       - "tools/**"
       - "design/tokens.json"
       - "Makefile"
@@ -31,60 +49,34 @@ permissions:
   contents: read
 
 concurrency:
-  group: core-${{ github.ref }}
-  cancel-in-progress: true
+  group: core-${{ github.ref }}-${{ github.event_name }}-${{ inputs.regenerate }}
+  # A new push to a pull request replaces its running checks; runs on main each finish.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
   FRB_VERSION: 2.13.0
   JNA_VERSION: 5.17.0
-  JNA_SHA1: 33d12735bef894440780fce64f9758d420c7bae2
+  # SHA-256 of jna-5.17.0.jar from Maven Central; its published SHA-1 is 33d12735bef894440780fce64f9758d420c7bae2.
+  JNA_SHA256: b3a9408e7c51e08ef0e3bfcc08f443f6ec0f6191ba8cd7c18d53d2b22e5bdbc0
 
 jobs:
   regenerate:
     name: Regenerate bindings and tokens (Linux)
     if: ${{ inputs.regenerate }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
       - name: Rust (stable, with rustfmt)
         run: |
           rustup toolchain install stable --profile minimal --component rustfmt
           rustup default stable
-      - uses: dart-lang/setup-dart@v1
-        with:
-          sdk: stable
-      - name: flutter_rust_bridge_codegen ${{ env.FRB_VERSION }}
-        run: cargo install flutter_rust_bridge_codegen --version "$FRB_VERSION" --locked
-      - name: Generate
-        run: |
-          (cd core/bindings/dart && dart pub get)
-          make -C core tokens bindings
-      - name: Upload the generated files
-        uses: actions/upload-artifact@v4
-        with:
-          name: encore-core-generated
-          path: |
-            core/bindings/
-            core/encore-dart/src/frb_generated.rs
-            !core/bindings/dart/.dart_tool/
-            !core/bindings/dart/pubspec.lock
-          if-no-files-found: error
 
-  check:
-    name: make check-core (Linux)
-    if: ${{ !inputs.regenerate }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Rust (stable, with rustfmt and clippy)
-        run: |
-          rustup toolchain install stable --profile minimal --component rustfmt,clippy
-          rustup default stable
-          rustc --version
-
-      - uses: actions/cache@v4
+      # Restore only: the linux job owns this cache and saves it.
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ~/.cargo/registry
@@ -93,16 +85,94 @@ jobs:
             core/target
             server/target
             tools/target
-          key: core-${{ runner.os }}-${{ hashFiles('core/Cargo.lock', 'server/Cargo.lock', 'tools/Cargo.lock') }}-frb${{ env.FRB_VERSION }}
-          restore-keys: core-${{ runner.os }}-
+          key: core-linux-${{ hashFiles('core/Cargo.lock', 'server/Cargo.lock', 'tools/Cargo.lock') }}-frb${{ env.FRB_VERSION }}
+          restore-keys: core-linux-
 
-      - uses: dart-lang/setup-dart@v1
+      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1.8.1
         with:
           sdk: stable
 
       - name: flutter_rust_bridge_codegen ${{ env.FRB_VERSION }}
         run: |
-          if ! flutter_rust_bridge_codegen --version 2>/dev/null | grep -q "$FRB_VERSION"; then
+          if ! flutter_rust_bridge_codegen --version 2>/dev/null | grep -qF "$FRB_VERSION"; then
+            cargo install flutter_rust_bridge_codegen --version "$FRB_VERSION" --locked --force
+          fi
+          flutter_rust_bridge_codegen --version
+
+      - name: Generate
+        run: |
+          (cd core/bindings/dart && dart pub get)
+          make -C core tokens bindings
+
+      - name: Upload the generated files
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: encore-core-generated
+          path: |
+            core/bindings/
+            core/encore-dart/src/frb_generated.rs
+            !core/bindings/dart/.dart_tool/
+            !core/bindings/dart/pubspec.lock
+          retention-days: 3
+          if-no-files-found: error
+
+  linux:
+    name: "Linux: make check-core, then Swift, Kotlin and Dart call the core"
+    if: ${{ !inputs.regenerate }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    outputs:
+      apps: ${{ steps.changes.outputs.apps }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # apps=false only when we can prove every changed file is in server/ or is a .md
+      # file; anything uncertain (a new branch, a force push, a manual run) builds all.
+      - name: Which apps does this change touch
+        id: changes
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          case "$GITHUB_EVENT_NAME" in
+            pull_request) base="$PR_BASE" ;;
+            push) base="$PUSH_BEFORE" ;;
+            *) base="" ;;
+          esac
+          apps=true
+          if [ -n "${base//0/}" ] && git fetch -q --depth=1 origin "$base"; then
+            changed="$(git diff --name-only "$base" HEAD)"
+            printf 'Changed:\n%s\n' "$changed"
+            relevant="$(grep -vE '\.md$' <<<"$changed" | grep -vE '^server/' || true)"
+            if [ -z "$relevant" ]; then apps=false; fi
+          fi
+          echo "apps=$apps" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Rust (stable, with rustfmt and clippy)
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt,clippy
+          rustup default stable
+          rustc --version
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin/flutter_rust_bridge_codegen
+            core/target
+            server/target
+            tools/target
+          key: core-linux-${{ hashFiles('core/Cargo.lock', 'server/Cargo.lock', 'tools/Cargo.lock') }}-frb${{ env.FRB_VERSION }}
+          restore-keys: core-linux-
+
+      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1.8.1
+        with:
+          sdk: stable
+
+      - name: flutter_rust_bridge_codegen ${{ env.FRB_VERSION }}
+        run: |
+          if ! flutter_rust_bridge_codegen --version 2>/dev/null | grep -qF "$FRB_VERSION"; then
             cargo install flutter_rust_bridge_codegen --version "$FRB_VERSION" --locked --force
           fi
           flutter_rust_bridge_codegen --version
@@ -112,47 +182,31 @@ jobs:
           (cd core/bindings/dart && dart pub get)
           make check-core REQUIRE_DART=1
 
-      - name: Upload the generated bindings
-        uses: actions/upload-artifact@v4
+      # When the check finds stale bindings, this holds what CI generated, so the
+      # difference can be read without a Dart SDK.
+      - name: Upload the bindings CI generated (only when the check fails)
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: encore-core-bindings
+          name: encore-core-bindings-on-failure
           path: |
             core/bindings/
+            core/target/bindings-check/
             core/encore-dart/src/frb_generated.rs
             !core/bindings/dart/.dart_tool/
             !core/bindings/dart/pubspec.lock
-          if-no-files-found: error
-
-  smoke:
-    name: Swift, Kotlin and Dart call the core (Linux)
-    runs-on: ubuntu-latest
-    needs: check
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Rust (stable)
-        run: |
-          rustup toolchain install stable --profile minimal
-          rustup default stable
-
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            core/target
-          key: core-${{ runner.os }}-${{ hashFiles('core/Cargo.lock', 'server/Cargo.lock', 'tools/Cargo.lock') }}-frb${{ env.FRB_VERSION }}
-          restore-keys: core-${{ runner.os }}-
+          retention-days: 3
+          if-no-files-found: ignore
 
       - name: Build the core libraries
         working-directory: core
         run: cargo build --locked -p encore-core -p encore-dart
 
-      - name: Swift
+      - name: Swift (Swift 6 mode)
         working-directory: core
         run: |
           swiftc --version
-          swiftc -module-name SmokeSwift \
+          swiftc -swift-version 6 -module-name SmokeSwift \
             -I bindings/swift -Xcc -fmodule-map-file=bindings/swift/EncoreCoreFFI.modulemap \
             -L target/debug -lencore_core \
             bindings/swift/EncoreCore.swift bindings/tokens/EncoreTokens.swift smoke/swift/main.swift \
@@ -163,32 +217,28 @@ jobs:
         working-directory: core
         run: |
           kotlinc -version
-          curl -fsSL -o target/jna.jar "https://repo1.maven.org/maven2/net/java/dev/jna/jna/$JNA_VERSION/jna-$JNA_VERSION.jar"
-          echo "$JNA_SHA1  target/jna.jar" | sha1sum -c -
+          curl -fsSL --retry 3 -o target/jna.jar \
+            "https://repo1.maven.org/maven2/net/java/dev/jna/jna/$JNA_VERSION/jna-$JNA_VERSION.jar"
+          echo "$JNA_SHA256  target/jna.jar" | sha256sum -c -
           kotlinc -cp target/jna.jar -include-runtime -d target/smoke-kotlin.jar \
             bindings/kotlin/uk/gcartee/encore/core/encore_core.kt bindings/tokens/EncoreTokens.kt smoke/kotlin/Main.kt
           java -Djna.library.path=target/debug -cp target/smoke-kotlin.jar:target/jna.jar MainKt
-
-      - uses: dart-lang/setup-dart@v1
-        with:
-          sdk: stable
 
       - name: Dart
         working-directory: core/bindings/dart
         run: |
           dart --version
-          dart pub get
           dart analyze
           ENCORE_DART_LIB="$GITHUB_WORKSPACE/core/target/debug/libencore_dart.so" dart test
 
   apple:
-    # Builds the core for every Apple target, links the Swift bindings against it in
-    # Swift 6 language mode, runs the result on macOS and in an iOS Simulator, and
-    # packages an XCFramework. An iPhone or iPad can't be reached from CI, so the
-    # iOS device slice is built and linked but not run.
-    name: Swift calls the core (macOS, iOS Simulator, iOS device link)
+    # A real iPhone or iPad can't be reached from CI, so the iOS device slice is built
+    # and linked but not run. The Apple track runs it on devices.
+    name: "Apple: iOS, iOS Simulator and macOS"
+    needs: linux
+    if: ${{ needs.linux.outputs.apps == 'true' }}
     runs-on: macos-latest
-    needs: check
+    timeout-minutes: 30
     defaults:
       run:
         shell: bash
@@ -199,7 +249,7 @@ jobs:
       MACOSX_DEPLOYMENT_TARGET: "14.0"
       APPLE_TARGETS: aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios aarch64-apple-darwin x86_64-apple-darwin
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Rust (stable, with the Apple targets) and Xcode
         run: |
@@ -210,14 +260,14 @@ jobs:
           xcodebuild -version
           uname -m
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             core/target
-          key: core-apple-${{ runner.os }}-${{ hashFiles('core/Cargo.lock') }}
-          restore-keys: core-apple-${{ runner.os }}-
+          key: core-apple-${{ hashFiles('core/Cargo.lock') }}
+          restore-keys: core-apple-
 
       - name: Build libencore_core.a for each Apple target
         run: |
@@ -264,7 +314,7 @@ jobs:
           esac
           out="$("$bin")"
           echo "$out"
-          grep -q 'Hello, CI, from the Encore core.' <<<"$out"
+          grep -qF 'Hello, CI, from the Encore core.' <<<"$out"
 
       - name: Run in an iOS Simulator
         run: |
@@ -286,7 +336,7 @@ jobs:
           xcrun simctl shutdown "$udid" || true
           echo "$out"
           test "$status" -eq 0
-          grep -q 'Hello, CI, from the Encore core.' <<<"$out"
+          grep -qF 'Hello, CI, from the Encore core.' <<<"$out"
 
       - name: Package an XCFramework
         run: |
@@ -305,31 +355,160 @@ jobs:
             -library "$out/macos/libencore_core.a" -headers "$out/headers" \
             -output "$out/EncoreCoreFFI.xcframework"
           cp bindings/swift/EncoreCore.swift bindings/tokens/EncoreTokens.swift "$out/"
-          cat "$out/EncoreCoreFFI.xcframework/Info.plist"
+          plutil -p "$out/EncoreCoreFFI.xcframework/Info.plist"
+          du -sh "$out/EncoreCoreFFI.xcframework"
 
-      - name: Upload the XCFramework
-        uses: actions/upload-artifact@v4
+      # Only on a manual run, to keep within the private repo's artifact storage.
+      - name: Upload the XCFramework (manual runs only)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: encore-core-apple
           path: |
             core/target/apple/EncoreCoreFFI.xcframework
             core/target/apple/EncoreCore.swift
             core/target/apple/EncoreTokens.swift
-          retention-days: 14
+          retention-days: 7
+          if-no-files-found: error
+
+  android:
+    # Builds and inspects the libraries; running them needs an emulator or a phone,
+    # which the Android track does.
+    name: "Android: four ABIs, 16 KB aligned"
+    needs: linux
+    if: ${{ needs.linux.outputs.apps == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: core
+    env:
+      # Plan section 15: Android 9 (API 28).
+      ANDROID_API: "28"
+      ANDROID_TARGETS: aarch64-linux-android armv7-linux-androideabi x86_64-linux-android i686-linux-android
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Rust (stable, with the Android targets) and the NDK
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add $ANDROID_TARGETS
+          rustc --version
+          # The image's default NDK (ANDROID_NDK_HOME) is r27, which does not align to
+          # 16 KB by default; use the newest one it has.
+          echo "NDK=$ANDROID_NDK_LATEST_HOME" >> "$GITHUB_ENV"
+          grep Pkg.Revision "$ANDROID_NDK_LATEST_HOME/source.properties"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            core/target
+          key: core-android-${{ hashFiles('core/Cargo.lock') }}
+          restore-keys: core-android-
+
+      - name: Build libencore_core.so for each ABI
+        run: |
+          bin="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          for t in $ANDROID_TARGETS; do
+            echo "::group::$t"
+            case "$t" in
+              armv7-linux-androideabi) clang="armv7a-linux-androideabi$ANDROID_API-clang" ;;
+              *)                       clang="$t$ANDROID_API-clang" ;;
+            esac
+            upper="$(tr 'a-z-' 'A-Z_' <<<"$t")"
+            lower="${t//-/_}"
+            # 16 KB pages: the NDK r28+ default, passed explicitly so an older NDK
+            # cannot quietly produce 4 KB-aligned libraries
+            # (developer.android.com/guide/practices/page-sizes).
+            env "CARGO_TARGET_${upper}_LINKER=$bin/$clang" \
+                "CC_$lower=$bin/$clang" "AR_$lower=$bin/llvm-ar" \
+                "CARGO_TARGET_${upper}_RUSTFLAGS=-C link-arg=-Wl,-z,max-page-size=16384 -C link-arg=-Wl,-z,common-page-size=16384" \
+              cargo rustc --locked --release -p encore-core --target "$t" --crate-type cdylib
+            echo "::endgroup::"
+          done
+
+      - name: Check alignment and exported symbols, and lay out jniLibs
+        run: |
+          bin="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          symbols="$(grep -oE '\b(uniffi_encore_core_fn_func_[a-z_]+|ffi_encore_core_uniffi_contract_version)\b' \
+            bindings/swift/EncoreCoreFFI.h | sort -u)"
+          test -n "$symbols"
+          for t in $ANDROID_TARGETS; do
+            case "$t" in
+              aarch64-linux-android)   abi=arm64-v8a ;;
+              armv7-linux-androideabi) abi=armeabi-v7a ;;
+              x86_64-linux-android)    abi=x86_64 ;;
+              i686-linux-android)      abi=x86 ;;
+            esac
+            so="target/$t/release/libencore_core.so"
+            # shellcheck disable=SC2086 # one argument per symbol
+            python3 -I ../tools/ci/check_android_elf.py "$bin/llvm-readelf" "$bin/llvm-nm" "$so" $symbols
+            mkdir -p "target/android/jniLibs/$abi"
+            cp "$so" "target/android/jniLibs/$abi/"
+          done
+          du -sh target/android/jniLibs/*
+
+      - name: Upload jniLibs and the Kotlin bindings (manual runs only)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: encore-core-android
+          path: |
+            core/target/android/jniLibs
+            core/bindings/kotlin
+            core/bindings/tokens/EncoreTokens.kt
+          retention-days: 7
           if-no-files-found: error
 
   windows:
-    name: core tests (Windows)
+    name: "Windows: core and server tests, then Dart calls the core"
+    needs: linux
     runs-on: windows-latest
-    needs: check
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
       - name: Rust (stable)
         run: |
           rustup toolchain install stable --profile minimal
           rustup default stable
+          rustc --version
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            core/target
+            server/target
+          key: core-windows-${{ hashFiles('core/Cargo.lock', 'server/Cargo.lock') }}
+          restore-keys: core-windows-
+
       - name: Test core and server
-        shell: bash
         run: |
           (cd core && cargo test --workspace --locked)
           (cd server && cargo test --locked)
+
+      - name: Build the Dart library
+        if: ${{ needs.linux.outputs.apps == 'true' }}
+        working-directory: core
+        run: cargo build --locked -p encore-dart
+
+      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1.8.1
+        if: ${{ needs.linux.outputs.apps == 'true' }}
+        with:
+          sdk: stable
+
+      - name: Dart
+        if: ${{ needs.linux.outputs.apps == 'true' }}
+        working-directory: core/bindings/dart
+        run: |
+          dart --version
+          dart pub get
+          ENCORE_DART_LIB="$GITHUB_WORKSPACE/core/target/debug/encore_dart.dll" dart test

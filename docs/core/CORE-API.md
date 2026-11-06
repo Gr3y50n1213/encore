@@ -27,6 +27,7 @@ Rules for every platform:
 - Build the library from the **same commit** as the generated code you use. UniFFI checks API checksums when the library loads and fails if they differ.
 - Never edit generated files. When something is missing, write a request (`docs/requests/`).
 - Each platform builds the core for its own targets inside its own folder, with `cargo build --release` from `core/` (`--target <triple>`). The Rust source stays in `core/`.
+- Android: link with NDK r28 or later, which aligns to 16 KB by default, or pass `-Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384`. The `android` job in `core.yml` shows a working setup.
 - Regenerate everything with `make bindings tokens` in `core/`. The Dart bindings need flutter_rust_bridge_codegen 2.13.0 and a Dart SDK; without them, run the `core` workflow by hand with "regenerate" ticked and take the files from its artifact.
 
 ## Calls
@@ -124,5 +125,13 @@ Not in the constants yet: the colour palette and the type scale (`$status: defin
 ## Proven so far
 
 - Rust unit tests for every call (`cargo test` in `core/`).
-- CI (`.github/workflows/core.yml`) compiles each binding and calls all three functions from Swift, from Kotlin on a JVM with JNA, and from Dart, on Linux. These prove the bindings, not the platforms: the Apple, Android and Windows and Linux tracks prove them on their own devices in their Phase 1.
-- CI's `apple` job, on a macOS runner, builds `libencore_core.a` for iOS (arm64), the iOS Simulator (arm64 and x86_64) and macOS (arm64 and x86_64) with the plan's minimums (iOS 17, macOS 14). It links the Swift bindings for all five in Swift 6 language mode and calls the core on macOS and in an iOS Simulator. The iOS device build is linked but not run, because CI has no iPhone. It also packages an XCFramework of the three platforms and uploads it as `encore-core-apple` for 14 days, so the Apple track can try it before setting up its own Xcode build.
+CI (`.github/workflows/core.yml`) builds every target on every pull request and every push to `main`. These jobs prove the bindings and the builds, not the platforms. The Apple, Android, and Windows and Linux tracks prove them on their own devices in their Phase 1.
+
+| Job | Runner | What it proves |
+| --- | --- | --- |
+| `linux` | Ubuntu | `make check-core`: fmt, clippy and tests for `core/`, `tools/` and `server/`, plus proof that the committed bindings and token constants match what the generators produce. Then it calls all three functions from Swift (Swift 6 mode), from Kotlin on a JVM with JNA, and from Dart. |
+| `apple` | macOS | Builds `libencore_core.a` for iOS (arm64), the iOS Simulator (arm64, x86_64) and macOS (arm64, x86_64) with the plan's minimums (iOS 17, macOS 14). Links the Swift bindings for all five in Swift 6 mode and calls the core on macOS and in an iOS Simulator. The iOS device build is linked but not run, because CI has no iPhone. Packages an XCFramework of the three platforms. |
+| `android` | Ubuntu | Builds `libencore_core.so` for arm64-v8a, armeabi-v7a, x86_64 and x86 at API 28 (Android 9). Checks that every one is 16 KB page aligned, as Google Play will require for app updates from 1 February 2027 ([Android docs](https://developer.android.com/guide/practices/page-sizes)), and that it exports every symbol the Kotlin bindings call. Nothing runs, because that needs an emulator or a phone. |
+| `windows` | Windows | Core and server tests, then calls the core from Dart through `encore_dart.dll`. |
+
+A run started by hand (Actions, `core`, "Run workflow") also uploads the XCFramework (`encore-core-apple`) and the Android `jniLibs` folder (`encore-core-android`) for 7 days. A platform track can try them before its own build is set up. `apple` and `android` are skipped when a change touches only `server/`.

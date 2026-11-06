@@ -79,6 +79,7 @@ uniffi-check: core-lib
 dart:
 	@command -v $(FRB) >/dev/null 2>&1 || { echo "$(FRB) $(FRB_VERSION) is not installed (cargo install flutter_rust_bridge_codegen --version $(FRB_VERSION) --locked)" >&2; exit 1; }
 	@command -v dart >/dev/null 2>&1 || { echo "flutter_rust_bridge needs the Dart SDK on PATH" >&2; exit 1; }
+	@$(FRB) --version | grep -qF "$(FRB_VERSION)" || { echo "$(FRB) must be version $(FRB_VERSION), found: $$($(FRB) --version)" >&2; exit 1; }
 	$(FRB) generate $(FRB_ARGS)
 
 # frb writes its output in place, so the check regenerates and compares against git.
@@ -87,6 +88,7 @@ dart-check:
 	  if [ "$(REQUIRE_DART)" = "1" ]; then echo "Dart check needs $(FRB) $(FRB_VERSION) and the Dart SDK" >&2; exit 1; fi; \
 	  echo "SKIPPED: Dart bindings check ($(FRB) or dart not installed here; CI runs it)" >&2; \
 	else \
+	  { $(FRB) --version | grep -qF "$(FRB_VERSION)" || { echo "$(FRB) must be version $(FRB_VERSION)" >&2; exit 1; }; } && \
 	  $(FRB) generate $(FRB_ARGS) && \
 	  git diff --exit-code --stat -- $(FRB_OUT) && \
 	  test -z "$$(git status --porcelain -- $(FRB_OUT))" && \
