@@ -185,6 +185,9 @@ jobs:
           (cd core/bindings/dart && dart pub get)
           make check-core REQUIRE_DART=1
 
+      - name: Colour schemes in tokens.json match tools/palette
+        run: python3 -I -B tools/palette/palette.py check design/tokens.json
+
       # When the check finds stale bindings, this holds what CI generated, so the
       # difference can be read without a Dart SDK.
       - name: Upload the bindings CI generated (only when the check fails)

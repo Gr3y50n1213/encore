@@ -120,7 +120,17 @@ Generated from `design/tokens.json` by `tools/encore-tokens` (`make tokens` in `
 
 Types: whole numbers are `Int` (Swift and Kotlin; `Long` in Kotlin above 32 bits) or `int`; decimals are `Double` or `double`; text is `String`; lists are arrays or `List`. A list of objects (for example `albumGradient.exampleAlbums`) becomes a list of small records named `<Key>Item`. A Dart name that is a reserved word gets `Value` at the end. Swift and Kotlin escape reserved words with backticks. That includes a Swift group named `Type`, `Self`, `Protocol` or `Any`, so `recap.type` is ``EncoreTokens.Recap.`Type` `` in Swift. A group may not share a name with a built-in type the constants use (`String`, `Int`, `Double`, `Bool`, `Long`, `Boolean`, `List`, `Sendable`, `Equatable`); the generator refuses it.
 
-Not in the constants yet: the colour palette and the type scale (`$status: define-in-phase-1`). They are added after the owner approves the proposal.
+**Colours** (`color`, approved 6 November 2026). `color.accents.<name>.light` and `.dark` hold the 33 Material 3 colour roles (`primary`, `onPrimary`, `primaryContainer` and the rest, through `scrim`) as `#RRGGBB` strings, for the eight profile accents. `color.defaultAccent` is `iris` on Android and desktop. Android and the Windows and Linux app use them when no album colour applies. Apple devices use Apple's system colours and do not read these. `tools/palette/palette.py` generates the schemes, and CI checks that `tokens.json` matches it.
+
+| | Swift | Kotlin | Dart |
+| --- | --- | --- | --- |
+| Iris, light, primary | `EncoreTokens.Color.Accents.Iris.Light.primary` | `EncoreTokens.Color.Accents.Iris.Light.primary` | `EncoreTokens.color.accents.iris.light.primary` |
+
+**Type** (`typography.scale`, approved 6 November 2026, measured from the renders). Pick the scale by window width, never by device: `compact` under 600 and `wide` from 600. Each role has `size`, `weight` and `lineHeight` (sp on Android, logical px in Flutter); `navLabel` and `buttonLabel` add `selectedWeight`. The family is Inter. Apple devices use Dynamic Type and do not read this scale.
+
+| | Kotlin | Dart |
+| --- | --- | --- |
+| Compact page title (28, weight 500) | `EncoreTokens.Typography.Scale.Compact.PageTitle.size` | `EncoreTokens.typography.scale.compact.pageTitle.size` |
 
 ## Proven so far
 

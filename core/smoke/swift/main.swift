@@ -10,4 +10,7 @@ precondition(hello(name: "") == "Hello from the Encore core.")
 precondition(appName() == "Encore")
 precondition(!coreVersion().isEmpty)
 precondition(EncoreTokens.Breakpoints.railWidth == 80)
+precondition(EncoreTokens.Color.Accents.Iris.Light.primary == "#6146CB")
+precondition(EncoreTokens.Typography.Scale.Compact.PageTitle.size == 28)
+precondition(EncoreTokens.Recap.`Type`.tide == "Inter, heavy") // a group Swift escapes
 print("Swift -> Rust: \(greeting) (core \(coreVersion()))")

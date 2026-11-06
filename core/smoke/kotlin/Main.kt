@@ -14,5 +14,8 @@ fun main() {
     check(appName() == "Encore")
     check(coreVersion().isNotEmpty())
     check(EncoreTokens.Breakpoints.railWidth == 80)
+    check(EncoreTokens.Color.Accents.Iris.Light.primary == "#6146CB")
+    check(EncoreTokens.Typography.Scale.Compact.PageTitle.size == 28.0)
+    check(EncoreTokens.Recap.Type.tide == "Inter, heavy")
     println("Kotlin -> Rust: $greeting (core ${coreVersion()})")
 }

@@ -30,5 +30,8 @@ void main() {
   test('token constants are usable', () {
     expect(EncoreTokens.breakpoints.railWidth, 80);
     expect(EncoreTokens.motion.timing.reduceMotionCrossfadeMs, 120);
+    expect(EncoreTokens.color.accents.iris.light.primary, '#6146CB');
+    expect(EncoreTokens.typography.scale.compact.pageTitle.size, 28);
+    expect(EncoreTokens.recap.type.tide, 'Inter, heavy');
   });
 }

@@ -2,7 +2,7 @@
 
 Status of every decision in this project. Claude Code: build on "Decided" and "Chosen for the owner" rows. Treat "Assumed" rows as defaults you may change when the owner says so, and ask before building anything that is hard to undo on top of them. Never treat "Unverified" rows as fact.
 
-Last updated: 5 November 2026, after the plan was split into four tracks (core and server, Apple, Android, Windows and Linux; `docs/ROADMAP.md`), on top of the year recap engine, swipe gestures and drag and drop (plan sections 25 and 26, boards 39 to 43).
+Last updated: 6 November 2026, when the owner approved the colours and the type scale (section 1). Before that: 5 November 2026, after the plan was split into four tracks (core and server, Apple, Android, Windows and Linux; `docs/ROADMAP.md`), on top of the year recap engine, swipe gestures and drag and drop (plan sections 25 and 26, boards 39 to 43).
 
 ## 1. Decided by the owner
 
@@ -20,6 +20,8 @@ Last updated: 5 November 2026, after the plan was split into four tracks (core a
 | Layout | Every window on every platform is resizable; one layout engine with four size classes |
 | Features | Word-by-word synced lyrics, YouTube Music-style recommendations that learn from skips, local and private personalization, a Wrapped-style year recap that differs each year, multiple profiles that swap on one device with data synced to the server, account-based handoff, five mood mixes |
 | Live surfaces | Widgets, lock screen and Live Activities (or the platform equivalent) planned for every supported platform (plan section 20) |
+| Colours (6 November 2026) | Iris (`#5B3FC4`) is the default accent on Android and on Windows and Linux. Eight profile accents (Iris, Cobalt, Lagoon, Fern, Amber, Coral, Rose, Graphite), each with light and dark Material 3 schemes that pass 4.5:1 for text. Album colours still come first. Apple devices use Apple's own system colours and design system; the core does not generate them. `design/tokens.json` `color` |
+| Type (6 November 2026) | Android, Windows and Linux follow the type drawn on the boards: a compact scale under 600 wide and a wide scale from 600, by window width. Every Android page title is 28 sp, weight 500, as on the Home board. Apple devices use the system text styles. `design/tokens.json` `typography.scale` |
 
 ## 2. Chosen for the owner (the owner delegated these)
 

@@ -190,6 +190,8 @@ Rule: nothing linked into the apps may be copyleft stronger than MPL-2.0. The se
 | encore-tokens (this repository) | 0.1.0 | this project's licence | `make tokens`, `make check`, CI |
 | serde_json (encore-tokens) | 1.0.154 | MIT or Apache-2.0 | `make tokens` |
 | tower, http-body-util (server tests) | 0.5.3, 0.1 | MIT | `cargo test` in `server/` |
+| tools/palette/palette.py (this repository) | | this project's licence; the HCT colour maths follows google/material-color-utilities (Apache-2.0), reimplemented, no code copied beyond published constants | Generates and checks `color.accents` in `design/tokens.json`; CI. Its output (hex colours) is data, not code |
+| tools/ci/check_android_elf.py (this repository) | | this project's licence | CI Android job |
 | JNA | 5.17.0 | Apache-2.0 or LGPL-2.1 (Apache-2.0 used) | CI Kotlin smoke test only. The Android app's own JNA dependency is the Android track's choice |
 | Dart SDK, Swift and Kotlin compilers | runner's stable | BSD-3-Clause, Apache-2.0, Apache-2.0 | CI smoke tests only |
 | GNU make (ezwinports build, owner's PC) | 4.4.1 | GPL-3.0-or-later | Runs the Makefiles; never linked or shipped |

@@ -72,7 +72,7 @@ Button groups Outer corners fully round, facing corners 10 dp. The selected item
 
 Motion Expressive springs. Wavy progress with a pill handle, a loading indicator that turns and morphs between shapes, and a navigation pill that slides under the chosen tab.
 
-Type Emphasized styles: bigger, heavier titles (34 sp, weight 500 to 600) and compact body text.
+Type Emphasized styles: medium-weight titles (28 sp, weight 500) and compact body text. The full scale is `typography.scale` in `design/tokens.json`. (Owner, 6 November 2026: page titles are 28 sp as on the Home board; boards 17, 18 and 23 still draw 34.)
 
 Built with Jetpack Compose Material 3 expressive APIs: MotionScheme.expressive(), ButtonGroup, MaterialShapes, LoadingIndicator and the wavy progress indicators.
 
