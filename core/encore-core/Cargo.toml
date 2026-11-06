@@ -35,7 +35,7 @@ url.workspace = true
 jni.workspace = true
 
 [dev-dependencies]
-tokio = { workspace = true, features = ["rt", "macros"] }
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros"] }
 
 [lints]
 workspace = true

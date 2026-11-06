@@ -28,29 +28,45 @@ void main() {
   });
 
   // No network: signing in, syncing and playing are tested in Rust on a real
-  // Jellyfin recording. This proves the Encore handle, async calls and errors.
-  test('the Encore handle works without a server', () async {
-    final dir = Directory.systemTemp.createTempSync('encore-dart-smoke');
-    final core = Encore.create(
-      config: CoreConfig(
-          dataDir: dir.path, deviceId: 'smoke', deviceName: 'CI', platform: 'ci'),
-    );
-    final subscription = core.events().listen((_) {});
-    expect(core.profiles(), isEmpty);
-    expect(core.currentProfile(), isNull);
-    expect(
-      () => core.servers(),
-      throwsA(isA<ApiError>().having((e) => e.kind, 'kind', ErrorKind.noProfile)),
-    );
-    await expectLater(
-      core.checkAddress(address: 'http://music.example.org'),
-      throwsA(isA<ApiError>()
-          .having((e) => e.kind, 'kind', ErrorKind.insecureAddress)
-          .having((e) => e.message, 'message', contains('https'))),
-    );
-    await subscription.cancel();
-    core.dispose();
-    dir.deleteSync(recursive: true);
+  // Jellyfin recording. These prove the Encore handle, async calls, errors and
+  // events, one step per test so a failure names its step.
+  group('the Encore handle, without a server', () {
+    late Directory dir;
+    late Encore core;
+    setUp(() {
+      dir = Directory.systemTemp.createTempSync('encore-dart-smoke');
+      core = Encore.create(
+        config: CoreConfig(
+            dataDir: dir.path, deviceId: 'smoke', deviceName: 'CI', platform: 'ci'),
+      );
+    });
+    tearDown(() {
+      core.dispose();
+      dir.deleteSync(recursive: true);
+    });
+
+    test('synchronous calls and a typed error', () {
+      expect(core.profiles(), isEmpty);
+      expect(core.currentProfile(), isNull);
+      expect(
+        () => core.servers(),
+        throwsA(isA<ApiError>().having((e) => e.kind, 'kind', ErrorKind.noProfile)),
+      );
+    }, timeout: const Timeout(Duration(seconds: 20)));
+
+    test('an async call fails with a typed error', () async {
+      await expectLater(
+        core.checkAddress(address: 'http://music.example.org'),
+        throwsA(isA<ApiError>()
+            .having((e) => e.kind, 'kind', ErrorKind.insecureAddress)
+            .having((e) => e.message, 'message', contains('https'))),
+      );
+    }, timeout: const Timeout(Duration(seconds: 20)));
+
+    test('events can be listened to and cancelled', () async {
+      final subscription = core.events().listen((_) {});
+      await subscription.cancel();
+    }, timeout: const Timeout(Duration(seconds: 20)));
   });
 
   test('token constants are usable', () {

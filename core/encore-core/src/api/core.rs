@@ -88,7 +88,6 @@ struct Profile {
 
 struct Inner {
     config: CoreConfig,
-    rt: tokio::runtime::Runtime,
     listener: Mutex<Option<Arc<dyn CoreListener>>>,
     profile: Mutex<Option<Arc<Profile>>>,
     pins: Mutex<HashMap<String, String>>,
@@ -104,6 +103,19 @@ struct Inner {
 #[cfg_attr(feature = "uniffi", derive(uniffi::Object))]
 pub struct EncoreCore {
     inner: Arc<Inner>,
+    /// The core's own runtime. Kept here, not in `Inner`, because tasks hold
+    /// `Inner`: the runtime must never be dropped by a task running on it.
+    rt: Option<tokio::runtime::Runtime>,
+}
+
+impl Drop for EncoreCore {
+    /// `shutdown_background` is allowed anywhere, even inside another runtime's
+    /// task (where Dart can release the last reference); a plain drop would panic.
+    fn drop(&mut self) {
+        if let Some(rt) = self.rt.take() {
+            rt.shutdown_background();
+        }
+    }
 }
 
 impl std::fmt::Debug for EncoreCore {
@@ -423,11 +435,11 @@ impl EncoreCore {
         &self,
         fut: impl std::future::Future<Output = Result<T, EncoreError>> + Send + 'static,
     ) -> Result<T, EncoreError> {
-        self.inner
+        let rt = self
             .rt
-            .spawn(fut)
-            .await
-            .map_err(EncoreError::internal)?
+            .as_ref()
+            .ok_or_else(|| EncoreError::internal("runtime stopped"))?;
+        rt.spawn(fut).await.map_err(EncoreError::internal)?
     }
 }
 
@@ -459,9 +471,9 @@ impl EncoreCore {
             }
         })?;
         Ok(Arc::new(EncoreCore {
+            rt: Some(rt),
             inner: Arc::new(Inner {
                 config,
-                rt,
                 listener: Mutex::new(None),
                 profile: Mutex::new(None),
                 pins: Mutex::new(HashMap::new()),

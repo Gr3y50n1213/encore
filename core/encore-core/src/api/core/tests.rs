@@ -80,6 +80,20 @@ fn signed_in(core: &EncoreCore) -> SignedIn {
     block(core.quick_connect_wait()).unwrap()
 }
 
+/// Dart can release the last reference on another runtime's worker; dropping a
+/// tokio runtime there panics unless it is shut down in the background.
+#[test]
+fn dropping_the_core_inside_another_runtime_does_not_panic() {
+    let dir = temp_dir("drop");
+    let (core, _) = core_on_recording(&dir);
+    block(core.check_address("http://music.example.org".into())).unwrap_err();
+    tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(1)
+        .build()
+        .unwrap()
+        .block_on(async move { drop(core) });
+}
+
 #[test]
 fn quick_connect_creates_a_profile_and_hands_the_token_to_the_app() {
     let dir = temp_dir("signin");
