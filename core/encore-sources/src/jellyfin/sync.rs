@@ -4,17 +4,23 @@
 //! - Later syncs: only items saved since the cursor (`minDateLastSaved`), plus an
 //!   ID-only listing to find what was removed, plus every playlist again (they are
 //!   few, and an edit to a playlist's songs is not guaranteed to touch its date).
-//! - The cursor is the newest `DateLastSaved` the server reported, so it is in the
-//!   server's own clock and a wrong clock on the phone cannot skip changes.
+//! - The cursor is the server's own clock (its HTTP `Date` header) when the sync
+//!   began, minus a margin, so a wrong clock on the phone cannot skip changes and
+//!   an item saved while the sync ran is fetched again next time. Jellyfin does not
+//!   return `DateLastSaved` on items (it is not in BaseItemDto in 12.0), so the
+//!   newest-item approach is not available; the recording showed this.
 
 use std::collections::HashSet;
 
 use super::client::JellyfinClient;
 use super::dto::BaseItem;
 use super::map;
-use super::time::parse_utc_ms;
+use super::time::format_utc;
 use crate::error::Result;
 use crate::model::{Cursor, LibraryDelta};
+
+/// How far before the server's clock at the start the next delta begins.
+pub const CURSOR_MARGIN_MS: i64 = 60_000;
 
 /// Progress for "Indexing 3,200 of 12,480" (board 18).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -23,29 +29,18 @@ pub struct SyncProgress {
     pub total: u64,
 }
 
-const FIELDS: &str = "SortName,Genres,ProviderIds,DateCreated,DateLastSaved";
+const FIELDS: &str = "SortName,Genres,ProviderIds,DateCreated";
 
 struct Pager<'a> {
     client: &'a JellyfinClient,
     page_size: u32,
-    newest_saved: Option<(i64, String)>,
+    /// The server's clock on the first reply of this sync.
+    started_at: Option<i64>,
     done: u64,
     total: u64,
 }
 
 impl Pager<'_> {
-    fn note_saved(&mut self, item: &BaseItem) {
-        if let Some(s) = item.date_last_saved.as_deref()
-            && let Some(ms) = parse_utc_ms(s)
-            && self
-                .newest_saved
-                .as_ref()
-                .is_none_or(|(best, _)| ms > *best)
-        {
-            self.newest_saved = Some((ms, s.to_owned()));
-        }
-    }
-
     /// Every item of `kind`, optionally only those saved since `since`.
     async fn all(
         &mut self,
@@ -76,15 +71,15 @@ impl Pager<'_> {
                 q.push(("minDateLastSaved", s));
             }
             let page = self.client.items(&q).await?;
+            if self.started_at.is_none() {
+                self.started_at = page.server_date_utc_ms;
+            }
             if !counted {
                 self.total += page.total_record_count.unwrap_or(0).max(0) as u64;
                 counted = true;
             }
             let items = page.items.unwrap_or_default();
             let n = items.len() as u64;
-            for item in &items {
-                self.note_saved(item);
-            }
             out.extend(items);
             self.done += n;
             progress(SyncProgress {
@@ -144,7 +139,7 @@ pub async fn sync_library(
     let mut pager = Pager {
         client,
         page_size: page_size.max(1),
-        newest_saved: None,
+        started_at: None,
         done: 0,
         total: 0,
     };
@@ -177,10 +172,10 @@ pub async fn sync_library(
     } else {
         Vec::new()
     };
+    // Without a server clock the next sync is a full one: slower, never wrong.
     let cursor = pager
-        .newest_saved
-        .map(|(_, s)| Cursor(s))
-        .or_else(|| since.cloned());
+        .started_at
+        .map(|ms| Cursor(format_utc(ms - CURSOR_MARGIN_MS)));
     Ok(LibraryDelta {
         full: since.is_none(),
         artists: artists.iter().filter_map(map::to_artist).collect(),

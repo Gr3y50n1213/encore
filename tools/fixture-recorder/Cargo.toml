@@ -1,0 +1,17 @@
+[package]
+name = "fixture-recorder"
+description = "Records the Jellyfin adapter's HTTP exchanges from a real server, anonymized, as test fixtures."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+encore-sources = { path = "../../core/encore-sources" }
+serde_json = { version = "=1.0.154", features = ["preserve_order"] }
+sha2 = "0.11.0"
+tokio = { version = "1.54.1", default-features = false, features = ["rt-multi-thread", "macros", "time"] }
+url = "2.5.8"
+
+[lints]
+workspace = true

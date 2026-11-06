@@ -60,6 +60,9 @@ impl fmt::Debug for Request {
 pub struct Response {
     pub status: u16,
     pub body: Vec<u8>,
+    /// The server's clock from the HTTP `Date` header, UTC milliseconds. The sync
+    /// cursor uses it, so a wrong clock on the phone cannot skip changes.
+    pub server_date_utc_ms: Option<i64>,
 }
 
 impl Response {
@@ -100,29 +103,35 @@ pub struct FixtureExchange {
     /// "certificateUntrusted:<sha256>".
     #[serde(default)]
     pub error: Option<String>,
+    /// The reply's HTTP `Date` header, as sent ("Thu, 06 Nov 2026 15:04:05 GMT") or
+    /// in ISO 8601 form.
+    #[serde(default)]
+    pub date: Option<String>,
 }
 
-/// Replays fixture exchanges and remembers every request it was sent.
+/// Replays fixture exchanges and remembers every request it was sent. When several
+/// recorded exchanges match a request, they are replayed in recorded order (the
+/// last one repeats), so a polled endpoint answers "not yet" until it said "yes".
 #[derive(Debug)]
 pub struct FixtureTransport {
     exchanges: Vec<FixtureExchange>,
     sent: Mutex<Vec<Request>>,
+    used: Mutex<Vec<bool>>,
 }
 
 impl FixtureTransport {
     pub fn from_json(json: &str) -> Result<FixtureTransport> {
         let exchanges: Vec<FixtureExchange> = serde_json::from_str(json)
             .map_err(|e| SourceError::Protocol(format!("fixture: {e}")))?;
-        Ok(FixtureTransport {
-            exchanges,
-            sent: Mutex::new(Vec::new()),
-        })
+        Ok(FixtureTransport::new(exchanges))
     }
 
     pub fn new(exchanges: Vec<FixtureExchange>) -> FixtureTransport {
+        let used = Mutex::new(vec![false; exchanges.len()]);
         FixtureTransport {
             exchanges,
             sent: Mutex::new(Vec::new()),
+            used,
         }
     }
 
@@ -138,16 +147,30 @@ impl FixtureTransport {
             .map(|(k, v)| (k.into_owned(), v.into_owned()))
             .collect();
         let origin = req.url.origin().ascii_serialization();
-        self.exchanges.iter().find(|x| {
-            x.origin.as_deref().is_none_or(|o| o == origin)
-                && x.method.eq_ignore_ascii_case(req.method.as_str())
-                && x.path == req.url.path()
-                && x.query.iter().all(|(k, v)| {
-                    pairs
-                        .iter()
-                        .any(|(pk, pv)| pk.eq_ignore_ascii_case(k) && pv == v)
-                })
-        })
+        let matching: Vec<usize> = self
+            .exchanges
+            .iter()
+            .enumerate()
+            .filter(|(_, x)| {
+                x.origin.as_deref().is_none_or(|o| o == origin)
+                    && x.method.eq_ignore_ascii_case(req.method.as_str())
+                    && x.path == req.url.path()
+                    && x.query.iter().all(|(k, v)| {
+                        pairs
+                            .iter()
+                            .any(|(pk, pv)| pk.eq_ignore_ascii_case(k) && pv == v)
+                    })
+            })
+            .map(|(i, _)| i)
+            .collect();
+        let mut used = self.used.lock().ok()?;
+        let pick = matching
+            .iter()
+            .copied()
+            .find(|&i| !used[i])
+            .or_else(|| matching.last().copied())?;
+        used[pick] = true;
+        self.exchanges.get(pick)
     }
 }
 
@@ -181,6 +204,10 @@ impl Transport for FixtureTransport {
             Ok(Response {
                 status: if x.status == 0 { 200 } else { x.status },
                 body,
+                server_date_utc_ms: x.date.as_deref().and_then(|d| {
+                    crate::jellyfin::time::parse_http_date(d)
+                        .or_else(|| crate::jellyfin::time::parse_utc_ms(d))
+                }),
             })
         })
     }

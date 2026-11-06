@@ -1,8 +1,11 @@
 //! Adapter tests on fixture replies, with no server.
 //!
 //! STAND-INS: these replies were written by hand from the Jellyfin 12.0.0 OpenAPI
-//! document, not recorded. Task 7 of Phase 2 replaces them with recordings from a
-//! real server (tools/fixtures/jellyfin/), anonymized before they are committed.
+//! document, not recorded. The normal paths are also tested on a real recording in
+//! recorded_tests.rs; these stay for what a recording cannot safely or reliably
+//! contain: a wrong password, Quick Connect turned off or expired, unreachable
+//! addresses, an untrusted certificate, an expired session, an old server and
+//! paging edge cases.
 
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
@@ -38,7 +41,13 @@ fn x(method: &str, path: &str, query: &[(&str, &str)], body: serde_json::Value) 
         body: Some(body),
         body_text: None,
         error: None,
+        date: None,
     }
+}
+
+fn dated(mut e: FixtureExchange, http_date: &str) -> FixtureExchange {
+    e.date = Some(http_date.into());
+    e
 }
 
 fn status(mut e: FixtureExchange, s: u16) -> FixtureExchange {
@@ -61,6 +70,7 @@ fn fails(origin: &str, path: &str, error: &str) -> FixtureExchange {
         body: None,
         body_text: None,
         error: Some(error.into()),
+        date: None,
     }
 }
 
@@ -328,13 +338,17 @@ fn track_json(id: &str, name: &str, n: i64, saved: &str) -> serde_json::Value {
 
 fn library(delta_since: Option<&str>) -> Vec<FixtureExchange> {
     let mut v = vec![
-        x(
-            "GET",
-            "/Items",
-            &[("includeItemTypes", "MusicArtist")],
-            json!({"Items": [
-            {"Id": "ar1", "Name": "Ember Cove", "SortName": "Ember Cove", "Type": "MusicArtist", "DateLastSaved": "2026-01-01T00:00:00Z"}
-        ], "TotalRecordCount": 1, "StartIndex": 0}),
+        // The first reply carries the server's clock; the cursor comes from it.
+        dated(
+            x(
+                "GET",
+                "/Items",
+                &[("includeItemTypes", "MusicArtist")],
+                json!({"Items": [
+                {"Id": "ar1", "Name": "Ember Cove", "SortName": "Ember Cove", "Type": "MusicArtist"}
+            ], "TotalRecordCount": 1, "StartIndex": 0}),
+            ),
+            "Fri, 06 Mar 2026 05:06:07 GMT",
         ),
         x(
             "GET",
@@ -424,8 +438,8 @@ async fn a_first_sync_reads_everything_page_by_page() {
     assert_eq!(d.tracks[1].duration_ms, 202_000);
     assert_eq!(d.playlists[0].entries[0].track_item_id, "t3");
     assert!(d.removed_item_ids.is_empty());
-    // The cursor is the newest save time the server reported, in its own clock.
-    assert_eq!(d.cursor, Some(Cursor("2026-03-04T05:06:07.5Z".into())));
+    // The cursor is the server's clock at the start, a minute early.
+    assert_eq!(d.cursor, Some(Cursor("2026-03-06T05:05:07Z".into())));
     let seen = seen.lock().unwrap();
     // 1 artist + 1 album + 3 songs + 1 playlist.
     assert_eq!(*seen.last().unwrap(), SyncProgress { done: 6, total: 6 });
@@ -470,6 +484,47 @@ async fn a_later_sync_asks_for_changes_and_finds_removals() {
         })
         .count();
     assert_eq!(asked_for_changes, 4); // artists, albums and two pages of songs
+}
+
+#[tokio::test]
+async fn without_a_server_clock_the_next_sync_is_a_full_one() {
+    let mut lib = library(None);
+    lib[0].date = None;
+    let t = Arc::new(FixtureTransport::new(lib));
+    let d = sync_library(&signed_in(t), None, &HashSet::new(), 2, &|_| {})
+        .await
+        .unwrap();
+    assert_eq!(d.cursor, None);
+}
+
+#[tokio::test]
+async fn repeated_requests_replay_in_recorded_order() {
+    let t = Arc::new(FixtureTransport::new(vec![
+        x(
+            "GET",
+            "/QuickConnect/Connect",
+            &[],
+            json!({"Authenticated": false}),
+        ),
+        x(
+            "GET",
+            "/QuickConnect/Connect",
+            &[],
+            json!({"Authenticated": false}),
+        ),
+        x(
+            "GET",
+            "/QuickConnect/Connect",
+            &[],
+            json!({"Authenticated": true}),
+        ),
+    ]));
+    let c = client(t);
+    let mut answers = Vec::new();
+    for _ in 0..4 {
+        answers.push(c.quick_connect_poll("s").await.unwrap());
+    }
+    assert_eq!(answers, [false, false, true, true]);
 }
 
 #[tokio::test]

@@ -33,3 +33,5 @@ pub fn capabilities(quick_connect: bool) -> Capabilities {
 
 #[cfg(test)]
 mod fixture_tests;
+#[cfg(test)]
+mod recorded_tests;

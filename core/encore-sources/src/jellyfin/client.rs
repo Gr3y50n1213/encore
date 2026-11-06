@@ -356,12 +356,30 @@ impl JellyfinClient {
         Self::session_from(checked.json()?)
     }
 
+    /// `POST /Sessions/Logout`: the server forgets this device's token (board 18,
+    /// "Sign out"). An already-expired session counts as signed out.
+    pub async fn sign_out(&self) -> Result<()> {
+        let resp = self
+            .send(Method::Post, self.url("/Sessions/Logout", &[])?, None)
+            .await?;
+        match Self::check(resp, SourceError::SessionExpired) {
+            Ok(_) | Err(SourceError::SessionExpired) => Ok(()),
+            Err(e) => Err(e),
+        }
+    }
+
     /// One page of `GET /Items` for the signed-in user.
     pub async fn items(&self, query: &[(&str, &str)]) -> Result<ItemsResult> {
         let user = self.user_id()?.to_owned();
         let mut q: Vec<(&str, &str)> = vec![("userId", user.as_str())];
         q.extend_from_slice(query);
-        self.get_json("/Items", &q).await
+        let resp = self
+            .send(Method::Get, self.url("/Items", &q)?, None)
+            .await?;
+        let resp = Self::check(resp, SourceError::SessionExpired)?;
+        let mut page: ItemsResult = resp.json()?;
+        page.server_date_utc_ms = resp.server_date_utc_ms;
+        Ok(page)
     }
 
     /// `GET /Playlists/{id}/Items`: a playlist's songs with their entry IDs.

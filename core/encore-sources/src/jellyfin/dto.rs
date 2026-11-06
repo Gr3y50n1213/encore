@@ -69,8 +69,6 @@ pub struct BaseItem {
     pub genres: Option<Vec<String>>,
     pub provider_ids: Option<HashMap<String, Option<String>>>,
     pub date_created: Option<String>,
-    /// Requested with `fields=DateLastSaved`; the sync cursor is the newest one seen.
-    pub date_last_saved: Option<String>,
     pub has_lyrics: Option<bool>,
     pub normalization_gain: Option<f64>,
     pub album_normalization_gain: Option<f64>,
@@ -84,4 +82,7 @@ pub struct ItemsResult {
     pub items: Option<Vec<BaseItem>>,
     pub total_record_count: Option<i64>,
     pub start_index: Option<i64>,
+    /// Not in the JSON: the server's clock when it answered (HTTP `Date`).
+    #[serde(skip)]
+    pub server_date_utc_ms: Option<i64>,
 }

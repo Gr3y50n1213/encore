@@ -184,8 +184,17 @@ impl Transport for HttpTransport {
                 .await
                 .map_err(|e| self.map_error(e))?;
             let status = resp.status().as_u16();
+            let server_date_utc_ms = resp
+                .headers()
+                .get("date")
+                .and_then(|v| v.to_str().ok())
+                .and_then(crate::jellyfin::time::parse_http_date);
             let body = resp.bytes().await.map_err(|e| self.map_error(e))?.to_vec();
-            Ok(Response { status, body })
+            Ok(Response {
+                status,
+                body,
+                server_date_utc_ms,
+            })
         })
     }
 }
