@@ -273,16 +273,21 @@ jobs:
           restore-keys: core-apple-
 
       - name: Build libencore_core.a for each Apple target
+        env:
+          # Plain text, so the line with the system libraries can be read back.
+          CARGO_TERM_COLOR: never
         run: |
           # Touch the crate so rustc prints the system libraries the static library
           # needs even when the cache already holds a build.
           touch encore-core/src/lib.rs
+          mkdir -p target # tee opens its log before cargo creates target/
           for t in $APPLE_TARGETS; do
             echo "::group::$t"
             cargo rustc --locked --release -p encore-core --target "$t" --crate-type staticlib \
               -- --print native-static-libs 2>&1 | tee "target/$t.build.log"
-            grep -o 'native-static-libs: .*' "target/$t.build.log" | tail -n 1 \
-              | sed 's/^native-static-libs: //' > "target/$t.native-libs"
+            # -a: macOS grep calls the log binary if anything coloured slips in.
+            grep -a -o 'native-static-libs: .*' "target/$t.build.log" | tail -n 1 \
+              | sed -e 's/^native-static-libs: //' -e $'s/\x1b\\[[0-9;]*m//g' > "target/$t.native-libs"
             echo "links: $(cat "target/$t.native-libs")"
             test -s "target/$t.native-libs"
             test -f "target/$t/release/libencore_core.a"
