@@ -36,16 +36,16 @@ precondition(core.currentProfile() == nil)
 do {
     _ = try core.servers()
     preconditionFailure("servers() should need a profile")
-} catch EncoreError.NoProfile(let message) {
-    precondition(!message.isEmpty)
+} catch EncoreError.NoProfile(let reason) {
+    precondition(!reason.isEmpty)
 }
 
 // An async call: plain http to a public address is refused before any network use.
 do {
     _ = try await core.checkAddress(address: "http://music.example.org")
     preconditionFailure("plain http to a public address must be refused")
-} catch EncoreError.InsecureAddress(let message) {
-    precondition(message.contains("https"), message)
+} catch EncoreError.InsecureAddress(let reason) {
+    precondition(reason.contains("https"), reason)
 }
 
 print("Swift -> Rust: \(greeting) (core \(coreVersion())); EncoreCore async and errors OK")

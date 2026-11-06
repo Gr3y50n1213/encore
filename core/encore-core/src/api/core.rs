@@ -182,7 +182,7 @@ impl Inner {
         base_url: &str,
     ) -> Result<(JellyfinClient, ServerInfo), EncoreError> {
         let url = url::Url::parse(base_url).map_err(|e| EncoreError::InvalidAddress {
-            message: e.to_string(),
+            reason: e.to_string(),
         })?;
         let transport = self.transport_for(self.pin_for(base_url).as_deref())?;
         let client = JellyfinClient::new(transport, url, self.device(), REQUEST_TIMEOUT);
@@ -201,7 +201,7 @@ impl Inner {
         let path = self.store_path(&id);
         if let Some(dir) = path.parent() {
             std::fs::create_dir_all(dir).map_err(|e| EncoreError::Storage {
-                message: format!("couldn't create the profile folder ({e})"),
+                reason: format!("couldn't create the profile folder ({e})"),
             })?;
         }
         let pin = self.pin_for(info.base_url.as_str());
@@ -248,7 +248,7 @@ impl Inner {
         token: &str,
     ) -> Result<JellyfinSource, EncoreError> {
         let url = url::Url::parse(&record.base_url).map_err(|e| EncoreError::InvalidAddress {
-            message: e.to_string(),
+            reason: e.to_string(),
         })?;
         let transport = self.transport_for(record.pinned_cert_sha256.as_deref())?;
         let client = JellyfinClient::new(transport, url, self.device(), REQUEST_TIMEOUT)
@@ -264,7 +264,7 @@ impl Inner {
         let path = self.store_path(id);
         if !path.exists() {
             return Err(EncoreError::NotFound {
-                message: "That profile isn't on this device".into(),
+                reason: "That profile isn't on this device".into(),
             });
         }
         let store = Store::open(&path)?;
@@ -393,7 +393,7 @@ impl Inner {
             .get(&source_id)
             .cloned()
             .ok_or_else(|| EncoreError::SessionExpired {
-                message: "Sign in to this server again to play from it".into(),
+                reason: "Sign in to this server again to play from it".into(),
             })
     }
 
@@ -455,7 +455,7 @@ impl EncoreCore {
             .map_err(EncoreError::internal)?;
         std::fs::create_dir_all(Path::new(&config.data_dir).join("profiles")).map_err(|e| {
             EncoreError::Storage {
-                message: format!("couldn't use the data folder ({e})"),
+                reason: format!("couldn't use the data folder ({e})"),
             }
         })?;
         Ok(Arc::new(EncoreCore {
@@ -528,7 +528,7 @@ impl EncoreCore {
             let (client, info) = inner.client_for(&base_url).await?;
             if !client.quick_connect_enabled().await? {
                 return Err(EncoreError::QuickConnectDisabled {
-                    message: "Quick Connect is turned off on this server".into(),
+                    reason: "Quick Connect is turned off on this server".into(),
                 });
             }
             let code = client.quick_connect_start().await?;
@@ -557,7 +557,7 @@ impl EncoreCore {
                 if inner.cancel_quick.load(Ordering::SeqCst) {
                     *inner.quick.lock().await = None;
                     return Err(EncoreError::QuickConnectCancelled {
-                        message: "Quick Connect was cancelled".into(),
+                        reason: "Quick Connect was cancelled".into(),
                     });
                 }
                 let approved = {
@@ -566,11 +566,11 @@ impl EncoreCore {
                         guard
                             .as_ref()
                             .ok_or_else(|| EncoreError::QuickConnectExpired {
-                                message: "Start Quick Connect again".into(),
+                                reason: "Start Quick Connect again".into(),
                             })?;
                     if pending.started.elapsed() > expiry {
                         return Err(EncoreError::QuickConnectExpired {
-                            message: "The code expired. Start again for a new one".into(),
+                            reason: "The code expired. Start again for a new one".into(),
                         });
                     }
                     pending.client.quick_connect_poll(&pending.secret).await?
@@ -603,7 +603,7 @@ impl EncoreCore {
         let dir = self.inner.profiles_dir();
         let mut out = Vec::new();
         let entries = std::fs::read_dir(&dir).map_err(|e| EncoreError::Storage {
-            message: e.to_string(),
+            reason: e.to_string(),
         })?;
         let mut ids: Vec<String> = entries
             .filter_map(|e| e.ok())
@@ -1091,7 +1091,7 @@ impl EncoreCore {
             .filter(|i| i.uid == uid as u64)
             .cloned()
             .ok_or_else(|| EncoreError::NotFound {
-                message: "That song isn't the current one in the queue".into(),
+                reason: "That song isn't the current one in the queue".into(),
             })?;
         let track = store.track(item.track_id)?;
         let source = store.source(track.source_id)?;

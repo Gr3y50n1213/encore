@@ -733,7 +733,7 @@ mod tests {
     fn errors_flatten_with_their_details() {
         let e: ApiError = EncoreError::CertificateUntrusted {
             sha256: "ab".into(),
-            message: "m".into(),
+            reason: "m".into(),
         }
         .into();
         assert_eq!(
@@ -742,7 +742,7 @@ mod tests {
         );
         let e: ApiError = EncoreError::Server {
             status: 503,
-            message: "m".into(),
+            reason: "m".into(),
             detail: "d".into(),
         }
         .into();

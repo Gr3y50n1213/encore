@@ -4982,26 +4982,26 @@ sealed class EncoreException: kotlin.Exception() {
     
     class InvalidAddress(
         
-        val `message`: kotlin.String
+        val `reason`: kotlin.String
         ) : EncoreException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "reason=${ `reason` }"
     }
     
     class InsecureAddress(
         
-        val `message`: kotlin.String
+        val `reason`: kotlin.String
         ) : EncoreException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "reason=${ `reason` }"
     }
     
     class Unreachable(
         
-        val `message`: kotlin.String
+        val `reason`: kotlin.String
         ) : EncoreException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "reason=${ `reason` }"
     }
     
     /**
@@ -5011,74 +5011,74 @@ sealed class EncoreException: kotlin.Exception() {
         
         val `sha256`: kotlin.String, 
         
-        val `message`: kotlin.String
+        val `reason`: kotlin.String
         ) : EncoreException() {
         override val message
-            get() = "sha256=${ `sha256` }, message=${ `message` }"
+            get() = "sha256=${ `sha256` }, reason=${ `reason` }"
     }
     
     class NotJellyfin(
         
-        val `message`: kotlin.String
+        val `reason`: kotlin.String
         ) : EncoreException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "reason=${ `reason` }"
     }
     
     class UnsupportedVersion(
         
-        val `message`: kotlin.String
+        val `reason`: kotlin.String
         ) : EncoreException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "reason=${ `reason` }"
     }
     
     class WrongCredentials(
         
-        val `message`: kotlin.String
+        val `reason`: kotlin.String
         ) : EncoreException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "reason=${ `reason` }"
     }
     
     class SessionExpired(
         
-        val `message`: kotlin.String
+        val `reason`: kotlin.String
         ) : EncoreException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "reason=${ `reason` }"
     }
     
     class QuickConnectDisabled(
         
-        val `message`: kotlin.String
+        val `reason`: kotlin.String
         ) : EncoreException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "reason=${ `reason` }"
     }
     
     class QuickConnectExpired(
         
-        val `message`: kotlin.String
+        val `reason`: kotlin.String
         ) : EncoreException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "reason=${ `reason` }"
     }
     
     class QuickConnectCancelled(
         
-        val `message`: kotlin.String
+        val `reason`: kotlin.String
         ) : EncoreException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "reason=${ `reason` }"
     }
     
     class NotFound(
         
-        val `message`: kotlin.String
+        val `reason`: kotlin.String
         ) : EncoreException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "reason=${ `reason` }"
     }
     
     /**
@@ -5088,36 +5088,36 @@ sealed class EncoreException: kotlin.Exception() {
         
         val `status`: kotlin.UShort, 
         
-        val `message`: kotlin.String, 
+        val `reason`: kotlin.String, 
         
         val `detail`: kotlin.String
         ) : EncoreException() {
         override val message
-            get() = "status=${ `status` }, message=${ `message` }, detail=${ `detail` }"
+            get() = "status=${ `status` }, reason=${ `reason` }, detail=${ `detail` }"
     }
     
     class NoProfile(
         
-        val `message`: kotlin.String
+        val `reason`: kotlin.String
         ) : EncoreException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "reason=${ `reason` }"
     }
     
     class Storage(
         
-        val `message`: kotlin.String
+        val `reason`: kotlin.String
         ) : EncoreException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "reason=${ `reason` }"
     }
     
     class Internal(
         
-        val `message`: kotlin.String
+        val `reason`: kotlin.String
         ) : EncoreException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "reason=${ `reason` }"
     }
     
 
@@ -5199,85 +5199,85 @@ public object FfiConverterTypeEncoreError : FfiConverterRustBuffer<EncoreExcepti
             is EncoreException.InvalidAddress -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`reason`)
             )
             is EncoreException.InsecureAddress -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`reason`)
             )
             is EncoreException.Unreachable -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`reason`)
             )
             is EncoreException.CertificateUntrusted -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
                 + FfiConverterString.allocationSize(value.`sha256`)
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`reason`)
             )
             is EncoreException.NotJellyfin -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`reason`)
             )
             is EncoreException.UnsupportedVersion -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`reason`)
             )
             is EncoreException.WrongCredentials -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`reason`)
             )
             is EncoreException.SessionExpired -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`reason`)
             )
             is EncoreException.QuickConnectDisabled -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`reason`)
             )
             is EncoreException.QuickConnectExpired -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`reason`)
             )
             is EncoreException.QuickConnectCancelled -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`reason`)
             )
             is EncoreException.NotFound -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`reason`)
             )
             is EncoreException.Server -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
                 + FfiConverterUShort.allocationSize(value.`status`)
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`reason`)
                 + FfiConverterString.allocationSize(value.`detail`)
             )
             is EncoreException.NoProfile -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`reason`)
             )
             is EncoreException.Storage -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`reason`)
             )
             is EncoreException.Internal -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`reason`)
             )
         }
     }
@@ -5286,85 +5286,85 @@ public object FfiConverterTypeEncoreError : FfiConverterRustBuffer<EncoreExcepti
         when(value) {
             is EncoreException.InvalidAddress -> {
                 buf.putInt(1)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`reason`, buf)
                 Unit
             }
             is EncoreException.InsecureAddress -> {
                 buf.putInt(2)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`reason`, buf)
                 Unit
             }
             is EncoreException.Unreachable -> {
                 buf.putInt(3)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`reason`, buf)
                 Unit
             }
             is EncoreException.CertificateUntrusted -> {
                 buf.putInt(4)
                 FfiConverterString.write(value.`sha256`, buf)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`reason`, buf)
                 Unit
             }
             is EncoreException.NotJellyfin -> {
                 buf.putInt(5)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`reason`, buf)
                 Unit
             }
             is EncoreException.UnsupportedVersion -> {
                 buf.putInt(6)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`reason`, buf)
                 Unit
             }
             is EncoreException.WrongCredentials -> {
                 buf.putInt(7)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`reason`, buf)
                 Unit
             }
             is EncoreException.SessionExpired -> {
                 buf.putInt(8)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`reason`, buf)
                 Unit
             }
             is EncoreException.QuickConnectDisabled -> {
                 buf.putInt(9)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`reason`, buf)
                 Unit
             }
             is EncoreException.QuickConnectExpired -> {
                 buf.putInt(10)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`reason`, buf)
                 Unit
             }
             is EncoreException.QuickConnectCancelled -> {
                 buf.putInt(11)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`reason`, buf)
                 Unit
             }
             is EncoreException.NotFound -> {
                 buf.putInt(12)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`reason`, buf)
                 Unit
             }
             is EncoreException.Server -> {
                 buf.putInt(13)
                 FfiConverterUShort.write(value.`status`, buf)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`reason`, buf)
                 FfiConverterString.write(value.`detail`, buf)
                 Unit
             }
             is EncoreException.NoProfile -> {
                 buf.putInt(14)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`reason`, buf)
                 Unit
             }
             is EncoreException.Storage -> {
                 buf.putInt(15)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`reason`, buf)
                 Unit
             }
             is EncoreException.Internal -> {
                 buf.putInt(16)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`reason`, buf)
                 Unit
             }
         }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }

@@ -3874,43 +3874,43 @@ enum EncoreError: Swift.Error, Equatable, Hashable, Foundation.LocalizedError {
 
     
     
-    case InvalidAddress(message: String
+    case InvalidAddress(reason: String
     )
-    case InsecureAddress(message: String
+    case InsecureAddress(reason: String
     )
-    case Unreachable(message: String
+    case Unreachable(reason: String
     )
     /**
      * Show the fingerprint and ask once whether to trust it (board 21).
      */
-    case CertificateUntrusted(sha256: String, message: String
+    case CertificateUntrusted(sha256: String, reason: String
     )
-    case NotJellyfin(message: String
+    case NotJellyfin(reason: String
     )
-    case UnsupportedVersion(message: String
+    case UnsupportedVersion(reason: String
     )
-    case WrongCredentials(message: String
+    case WrongCredentials(reason: String
     )
-    case SessionExpired(message: String
+    case SessionExpired(reason: String
     )
-    case QuickConnectDisabled(message: String
+    case QuickConnectDisabled(reason: String
     )
-    case QuickConnectExpired(message: String
+    case QuickConnectExpired(reason: String
     )
-    case QuickConnectCancelled(message: String
+    case QuickConnectCancelled(reason: String
     )
-    case NotFound(message: String
+    case NotFound(reason: String
     )
     /**
      * `detail` is the server's own text, for a "Details" disclosure.
      */
-    case Server(status: UInt16, message: String, detail: String
+    case Server(status: UInt16, reason: String, detail: String
     )
-    case NoProfile(message: String
+    case NoProfile(reason: String
     )
-    case Storage(message: String
+    case Storage(reason: String
     )
-    case Internal(message: String
+    case Internal(reason: String
     )
 
     
@@ -3942,55 +3942,55 @@ public struct FfiConverterTypeEncoreError: FfiConverterRustBuffer {
 
         
         case 1: return .InvalidAddress(
-            message: try FfiConverterString.read(from: &buf)
+            reason: try FfiConverterString.read(from: &buf)
             )
         case 2: return .InsecureAddress(
-            message: try FfiConverterString.read(from: &buf)
+            reason: try FfiConverterString.read(from: &buf)
             )
         case 3: return .Unreachable(
-            message: try FfiConverterString.read(from: &buf)
+            reason: try FfiConverterString.read(from: &buf)
             )
         case 4: return .CertificateUntrusted(
             sha256: try FfiConverterString.read(from: &buf), 
-            message: try FfiConverterString.read(from: &buf)
+            reason: try FfiConverterString.read(from: &buf)
             )
         case 5: return .NotJellyfin(
-            message: try FfiConverterString.read(from: &buf)
+            reason: try FfiConverterString.read(from: &buf)
             )
         case 6: return .UnsupportedVersion(
-            message: try FfiConverterString.read(from: &buf)
+            reason: try FfiConverterString.read(from: &buf)
             )
         case 7: return .WrongCredentials(
-            message: try FfiConverterString.read(from: &buf)
+            reason: try FfiConverterString.read(from: &buf)
             )
         case 8: return .SessionExpired(
-            message: try FfiConverterString.read(from: &buf)
+            reason: try FfiConverterString.read(from: &buf)
             )
         case 9: return .QuickConnectDisabled(
-            message: try FfiConverterString.read(from: &buf)
+            reason: try FfiConverterString.read(from: &buf)
             )
         case 10: return .QuickConnectExpired(
-            message: try FfiConverterString.read(from: &buf)
+            reason: try FfiConverterString.read(from: &buf)
             )
         case 11: return .QuickConnectCancelled(
-            message: try FfiConverterString.read(from: &buf)
+            reason: try FfiConverterString.read(from: &buf)
             )
         case 12: return .NotFound(
-            message: try FfiConverterString.read(from: &buf)
+            reason: try FfiConverterString.read(from: &buf)
             )
         case 13: return .Server(
             status: try FfiConverterUInt16.read(from: &buf), 
-            message: try FfiConverterString.read(from: &buf), 
+            reason: try FfiConverterString.read(from: &buf), 
             detail: try FfiConverterString.read(from: &buf)
             )
         case 14: return .NoProfile(
-            message: try FfiConverterString.read(from: &buf)
+            reason: try FfiConverterString.read(from: &buf)
             )
         case 15: return .Storage(
-            message: try FfiConverterString.read(from: &buf)
+            reason: try FfiConverterString.read(from: &buf)
             )
         case 16: return .Internal(
-            message: try FfiConverterString.read(from: &buf)
+            reason: try FfiConverterString.read(from: &buf)
             )
 
          default: throw UniffiInternalError.unexpectedEnumCase
@@ -4004,87 +4004,87 @@ public struct FfiConverterTypeEncoreError: FfiConverterRustBuffer {
 
         
         
-        case let .InvalidAddress(message):
+        case let .InvalidAddress(reason):
             writeInt(&buf, Int32(1))
-            FfiConverterString.write(message, into: &buf)
+            FfiConverterString.write(reason, into: &buf)
             
         
-        case let .InsecureAddress(message):
+        case let .InsecureAddress(reason):
             writeInt(&buf, Int32(2))
-            FfiConverterString.write(message, into: &buf)
+            FfiConverterString.write(reason, into: &buf)
             
         
-        case let .Unreachable(message):
+        case let .Unreachable(reason):
             writeInt(&buf, Int32(3))
-            FfiConverterString.write(message, into: &buf)
+            FfiConverterString.write(reason, into: &buf)
             
         
-        case let .CertificateUntrusted(sha256,message):
+        case let .CertificateUntrusted(sha256,reason):
             writeInt(&buf, Int32(4))
             FfiConverterString.write(sha256, into: &buf)
-            FfiConverterString.write(message, into: &buf)
+            FfiConverterString.write(reason, into: &buf)
             
         
-        case let .NotJellyfin(message):
+        case let .NotJellyfin(reason):
             writeInt(&buf, Int32(5))
-            FfiConverterString.write(message, into: &buf)
+            FfiConverterString.write(reason, into: &buf)
             
         
-        case let .UnsupportedVersion(message):
+        case let .UnsupportedVersion(reason):
             writeInt(&buf, Int32(6))
-            FfiConverterString.write(message, into: &buf)
+            FfiConverterString.write(reason, into: &buf)
             
         
-        case let .WrongCredentials(message):
+        case let .WrongCredentials(reason):
             writeInt(&buf, Int32(7))
-            FfiConverterString.write(message, into: &buf)
+            FfiConverterString.write(reason, into: &buf)
             
         
-        case let .SessionExpired(message):
+        case let .SessionExpired(reason):
             writeInt(&buf, Int32(8))
-            FfiConverterString.write(message, into: &buf)
+            FfiConverterString.write(reason, into: &buf)
             
         
-        case let .QuickConnectDisabled(message):
+        case let .QuickConnectDisabled(reason):
             writeInt(&buf, Int32(9))
-            FfiConverterString.write(message, into: &buf)
+            FfiConverterString.write(reason, into: &buf)
             
         
-        case let .QuickConnectExpired(message):
+        case let .QuickConnectExpired(reason):
             writeInt(&buf, Int32(10))
-            FfiConverterString.write(message, into: &buf)
+            FfiConverterString.write(reason, into: &buf)
             
         
-        case let .QuickConnectCancelled(message):
+        case let .QuickConnectCancelled(reason):
             writeInt(&buf, Int32(11))
-            FfiConverterString.write(message, into: &buf)
+            FfiConverterString.write(reason, into: &buf)
             
         
-        case let .NotFound(message):
+        case let .NotFound(reason):
             writeInt(&buf, Int32(12))
-            FfiConverterString.write(message, into: &buf)
+            FfiConverterString.write(reason, into: &buf)
             
         
-        case let .Server(status,message,detail):
+        case let .Server(status,reason,detail):
             writeInt(&buf, Int32(13))
             FfiConverterUInt16.write(status, into: &buf)
-            FfiConverterString.write(message, into: &buf)
+            FfiConverterString.write(reason, into: &buf)
             FfiConverterString.write(detail, into: &buf)
             
         
-        case let .NoProfile(message):
+        case let .NoProfile(reason):
             writeInt(&buf, Int32(14))
-            FfiConverterString.write(message, into: &buf)
+            FfiConverterString.write(reason, into: &buf)
             
         
-        case let .Storage(message):
+        case let .Storage(reason):
             writeInt(&buf, Int32(15))
-            FfiConverterString.write(message, into: &buf)
+            FfiConverterString.write(reason, into: &buf)
             
         
-        case let .Internal(message):
+        case let .Internal(reason):
             writeInt(&buf, Int32(16))
-            FfiConverterString.write(message, into: &buf)
+            FfiConverterString.write(reason, into: &buf)
             
         }
     }

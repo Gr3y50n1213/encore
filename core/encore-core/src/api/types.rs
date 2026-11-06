@@ -490,44 +490,44 @@ pub trait CoreListener: Send + Sync {
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[cfg_attr(feature = "uniffi", derive(uniffi::Error))]
 pub enum EncoreError {
-    #[error("{message}")]
-    InvalidAddress { message: String },
-    #[error("{message}")]
-    InsecureAddress { message: String },
-    #[error("{message}")]
-    Unreachable { message: String },
+    #[error("{reason}")]
+    InvalidAddress { reason: String },
+    #[error("{reason}")]
+    InsecureAddress { reason: String },
+    #[error("{reason}")]
+    Unreachable { reason: String },
     /// Show the fingerprint and ask once whether to trust it (board 21).
-    #[error("{message}")]
-    CertificateUntrusted { sha256: String, message: String },
-    #[error("{message}")]
-    NotJellyfin { message: String },
-    #[error("{message}")]
-    UnsupportedVersion { message: String },
-    #[error("{message}")]
-    WrongCredentials { message: String },
-    #[error("{message}")]
-    SessionExpired { message: String },
-    #[error("{message}")]
-    QuickConnectDisabled { message: String },
-    #[error("{message}")]
-    QuickConnectExpired { message: String },
-    #[error("{message}")]
-    QuickConnectCancelled { message: String },
-    #[error("{message}")]
-    NotFound { message: String },
+    #[error("{reason}")]
+    CertificateUntrusted { sha256: String, reason: String },
+    #[error("{reason}")]
+    NotJellyfin { reason: String },
+    #[error("{reason}")]
+    UnsupportedVersion { reason: String },
+    #[error("{reason}")]
+    WrongCredentials { reason: String },
+    #[error("{reason}")]
+    SessionExpired { reason: String },
+    #[error("{reason}")]
+    QuickConnectDisabled { reason: String },
+    #[error("{reason}")]
+    QuickConnectExpired { reason: String },
+    #[error("{reason}")]
+    QuickConnectCancelled { reason: String },
+    #[error("{reason}")]
+    NotFound { reason: String },
     /// `detail` is the server's own text, for a "Details" disclosure.
-    #[error("{message}")]
+    #[error("{reason}")]
     Server {
         status: u16,
-        message: String,
+        reason: String,
         detail: String,
     },
-    #[error("{message}")]
-    NoProfile { message: String },
-    #[error("{message}")]
-    Storage { message: String },
-    #[error("{message}")]
-    Internal { message: String },
+    #[error("{reason}")]
+    NoProfile { reason: String },
+    #[error("{reason}")]
+    Storage { reason: String },
+    #[error("{reason}")]
+    Internal { reason: String },
 }
 
 /// The kind of an `EncoreError`, for bindings that flatten errors (Dart).
@@ -581,45 +581,46 @@ impl EncoreError {
 
     pub(crate) fn no_profile() -> EncoreError {
         EncoreError::NoProfile {
-            message: "No profile is open. Sign in or pick a profile".into(),
+            reason: "No profile is open. Sign in or pick a profile".into(),
         }
     }
 
     pub(crate) fn internal(what: impl std::fmt::Display) -> EncoreError {
         EncoreError::Internal {
-            message: format!("Something went wrong inside the app ({what})"),
+            reason: format!("Something went wrong inside the app ({what})"),
         }
     }
 }
 
 impl From<SourceError> for EncoreError {
     fn from(e: SourceError) -> Self {
-        let message = e.to_string();
+        // `reason`, not `message`: Kotlin exceptions already have a `message`.
+        let reason = e.to_string();
         match e {
-            SourceError::InvalidAddress(_) => EncoreError::InvalidAddress { message },
-            SourceError::InsecureAddress => EncoreError::InsecureAddress { message },
-            SourceError::Unreachable(_) => EncoreError::Unreachable { message },
+            SourceError::InvalidAddress(_) => EncoreError::InvalidAddress { reason },
+            SourceError::InsecureAddress => EncoreError::InsecureAddress { reason },
+            SourceError::Unreachable(_) => EncoreError::Unreachable { reason },
             SourceError::CertificateUntrusted { sha256 } => {
-                EncoreError::CertificateUntrusted { sha256, message }
+                EncoreError::CertificateUntrusted { sha256, reason }
             }
-            SourceError::NotJellyfin => EncoreError::NotJellyfin { message },
-            SourceError::UnsupportedVersion { .. } => EncoreError::UnsupportedVersion { message },
-            SourceError::WrongCredentials => EncoreError::WrongCredentials { message },
-            SourceError::SessionExpired => EncoreError::SessionExpired { message },
-            SourceError::QuickConnectDisabled => EncoreError::QuickConnectDisabled { message },
-            SourceError::QuickConnectExpired => EncoreError::QuickConnectExpired { message },
-            SourceError::NotFound => EncoreError::NotFound { message },
+            SourceError::NotJellyfin => EncoreError::NotJellyfin { reason },
+            SourceError::UnsupportedVersion { .. } => EncoreError::UnsupportedVersion { reason },
+            SourceError::WrongCredentials => EncoreError::WrongCredentials { reason },
+            SourceError::SessionExpired => EncoreError::SessionExpired { reason },
+            SourceError::QuickConnectDisabled => EncoreError::QuickConnectDisabled { reason },
+            SourceError::QuickConnectExpired => EncoreError::QuickConnectExpired { reason },
+            SourceError::NotFound => EncoreError::NotFound { reason },
             SourceError::Server {
                 status,
                 message: detail,
             } => EncoreError::Server {
                 status,
-                message,
+                reason,
                 detail,
             },
             SourceError::Protocol(_) => EncoreError::Server {
                 status: 0,
-                message,
+                reason,
                 detail: String::new(),
             },
         }
@@ -630,10 +631,10 @@ impl From<StoreError> for EncoreError {
     fn from(e: StoreError) -> Self {
         match e {
             StoreError::NotFound(what) => EncoreError::NotFound {
-                message: format!("That {what} isn't in your library"),
+                reason: format!("That {what} isn't in your library"),
             },
             other => EncoreError::Storage {
-                message: format!("Your library on this device couldn't be read ({other})"),
+                reason: format!("Your library on this device couldn't be read ({other})"),
             },
         }
     }
