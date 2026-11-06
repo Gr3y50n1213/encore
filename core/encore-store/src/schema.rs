@@ -198,7 +198,6 @@ CREATE TABLE settings (
 );
 "#;
 
-/// Every migration, oldest first. Append only.
 /// Migration 2: an index for every browse order, so a deep page of a large library
 /// is read in index order instead of sorting all of it (measured in
 /// tests/search_budget.rs: songs by artist took seconds on 50,000 songs). Each
@@ -211,19 +210,26 @@ CREATE INDEX tracks_by_artist ON tracks (artist_display COLLATE NOCASE, album_ti
 CREATE INDEX tracks_by_album ON tracks (album_title COLLATE NOCASE, disc_number, track_number);
 "#;
 
+/// Every migration, oldest first. Append only.
 pub(crate) const MIGRATIONS: &[&str] = &[V1, V2];
 
 /// Bring the database up to the newest schema. Returns the version it ended at.
+#[cfg(test)]
 pub(crate) fn migrate(conn: &mut Connection) -> Result<u32> {
+    migrate_with(conn, MIGRATIONS)
+}
+
+/// `migrate` over a given list, so tests can prove what a failing migration does.
+pub(crate) fn migrate_with(conn: &mut Connection, migrations: &[&str]) -> Result<u32> {
     let current: u32 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
-    let target = MIGRATIONS.len() as u32;
+    let target = migrations.len() as u32;
     if current > target {
         return Err(crate::StoreError::NewerSchema {
             found: current,
             supported: target,
         });
     }
-    for (index, sql) in MIGRATIONS.iter().enumerate().skip(current as usize) {
+    for (index, sql) in migrations.iter().enumerate().skip(current as usize) {
         let tx = conn.transaction()?;
         tx.execute_batch(sql)?;
         tx.pragma_update(None, "user_version", (index + 1) as u32)?;

@@ -633,6 +633,13 @@ impl From<StoreError> for EncoreError {
             StoreError::NotFound(what) => EncoreError::NotFound {
                 reason: format!("That {what} isn't in your library"),
             },
+            StoreError::Backup(why) => EncoreError::Storage {
+                reason: format!("That backup can't be used: {why}"),
+            },
+            StoreError::NewerSchema { .. } => EncoreError::Storage {
+                reason: "This was saved by a newer version of Encore. Update the app to open it."
+                    .into(),
+            },
             other => EncoreError::Storage {
                 reason: format!("Your library on this device couldn't be read ({other})"),
             },

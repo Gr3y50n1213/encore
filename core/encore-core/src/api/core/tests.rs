@@ -341,6 +341,77 @@ fn streams_use_the_quality_setting_and_never_log_the_token() {
 }
 
 #[test]
+fn a_backup_taken_while_playing_restores_on_another_device() {
+    let dir = temp_dir("backup");
+    let (core, _) = core_on_recording(&dir);
+    let s = signed_in(&core);
+    block(core.sync_library()).unwrap();
+    let ids: Vec<i64> = core
+        .songs(SongSort::Title, 0, 3)
+        .unwrap()
+        .iter()
+        .map(|x| x.id)
+        .collect();
+    let state = core.play(ids, 0, StartedFrom::Songs, None).unwrap();
+    core.playback_started(state.current.unwrap().uid, 60)
+        .unwrap();
+    core.playback_ended(EndReason::Finished, 200_000).unwrap();
+    // The second song is still playing while the backup is taken.
+    core.playback_started(core.queue().unwrap().current.unwrap().uid, 60)
+        .unwrap();
+    let file = dir.0.join("encore-backup.sqlite");
+    core.backup_profile(s.profile_id.clone(), file.to_string_lossy().into_owned())
+        .unwrap();
+    let db = std::fs::read(&file).unwrap();
+    assert!(
+        !db.windows(b"anonymized-token".len())
+            .any(|w| w == b"anonymized-token"),
+        "a backup never holds the token"
+    );
+
+    // A new device: a fresh data folder, restored from the file, opened with the
+    // token from the keychain.
+    let other = temp_dir("restored");
+    let (core2, _) = core_on_recording(&other);
+    core2
+        .restore_profile(s.profile_id.clone(), file.to_string_lossy().into_owned())
+        .unwrap();
+    core2
+        .open_profile(
+            s.profile_id.clone(),
+            vec![SourceToken {
+                source_id: s.source_id,
+                token: s.token.clone(),
+            }],
+        )
+        .unwrap();
+    assert_eq!(core2.songs(SongSort::Title, 0, 1000).unwrap().len(), 150);
+    let p = core2.inner.profile().unwrap();
+    let log = p.store.lock().unwrap().recent_play_events(5).unwrap();
+    // The finished play, and the one that was playing, closed as ended by the system.
+    assert_eq!(log.len(), 2, "{log:?}");
+    assert!(log.iter().any(|e| e.end_reason == "finished"));
+    assert!(log.iter().any(|e| e.end_reason == "endedBySystem"));
+
+    // A bad file changes nothing, and an ID can't point outside the profiles folder.
+    let junk = dir.0.join("junk.sqlite");
+    std::fs::write(&junk, b"junk").unwrap();
+    assert!(matches!(
+        core2.restore_profile(s.profile_id.clone(), junk.to_string_lossy().into_owned()),
+        Err(EncoreError::Storage { .. })
+    ));
+    assert_eq!(core2.current_profile(), Some(s.profile_id.clone()));
+    for id in ["../escape", "a/b", "", "..", "x\\y"] {
+        assert!(
+            core2
+                .backup_profile(id.into(), file.to_string_lossy().into_owned())
+                .is_err()
+        );
+        assert!(core2.open_profile(id.into(), vec![]).is_err());
+    }
+}
+
+#[test]
 fn a_profile_reopens_with_the_token_from_the_keychain() {
     let dir = temp_dir("reopen");
     let (core, _) = core_on_recording(&dir);

@@ -314,6 +314,11 @@ RustBuffer uniffi_encore_core_fn_method_encorecore_artists(uint64_t ptr, uint32_
 RustBuffer uniffi_encore_core_fn_method_encorecore_artwork(uint64_t ptr, RustBuffer of, int64_t id, uint32_t size_px, RustCallStatus *_Nonnull out_status
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_BACKUP_PROFILE
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_BACKUP_PROFILE
+void uniffi_encore_core_fn_method_encorecore_backup_profile(uint64_t ptr, RustBuffer profile_id, RustBuffer dest_path, RustCallStatus *_Nonnull out_status
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_CHECK_ADDRESS
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_CHECK_ADDRESS
 uint64_t uniffi_encore_core_fn_method_encorecore_check_address(uint64_t ptr, RustBuffer address
@@ -472,6 +477,11 @@ void uniffi_encore_core_fn_method_encorecore_remove_server(uint64_t ptr, int64_t
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_REPLAY_FROM_HISTORY
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_REPLAY_FROM_HISTORY
 RustBuffer uniffi_encore_core_fn_method_encorecore_replay_from_history(uint64_t ptr, int64_t uid, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_RESTORE_PROFILE
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_RESTORE_PROFILE
+void uniffi_encore_core_fn_method_encorecore_restore_profile(uint64_t ptr, RustBuffer profile_id, RustBuffer from_path, RustCallStatus *_Nonnull out_status
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_SEARCH
@@ -922,6 +932,12 @@ uint16_t uniffi_encore_core_checksum_method_encorecore_artwork(void
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_BACKUP_PROFILE
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_BACKUP_PROFILE
+uint16_t uniffi_encore_core_checksum_method_encorecore_backup_profile(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_CHECK_ADDRESS
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_CHECK_ADDRESS
 uint16_t uniffi_encore_core_checksum_method_encorecore_check_address(void
@@ -1111,6 +1127,12 @@ uint16_t uniffi_encore_core_checksum_method_encorecore_remove_server(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_REPLAY_FROM_HISTORY
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_REPLAY_FROM_HISTORY
 uint16_t uniffi_encore_core_checksum_method_encorecore_replay_from_history(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_RESTORE_PROFILE
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_RESTORE_PROFILE
+uint16_t uniffi_encore_core_checksum_method_encorecore_restore_profile(void
     
 );
 #endif

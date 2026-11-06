@@ -10,12 +10,14 @@ use std::path::Path;
 
 use rusqlite::{Connection, OptionalExtension, params};
 
+mod backup;
 mod browse;
 mod mirror;
 mod playlog;
 mod schema;
 mod search;
 
+pub use backup::{BackupInfo, migration_copies};
 pub use browse::*;
 pub use mirror::ApplyStats;
 pub use playlog::*;
@@ -31,6 +33,8 @@ pub enum StoreError {
     NewerSchema { found: u32, supported: u32 },
     #[error("not found: {0}")]
     NotFound(String),
+    #[error("backup: {0}")]
+    Backup(String),
 }
 
 pub type Result<T> = std::result::Result<T, StoreError>;
@@ -73,23 +77,26 @@ pub struct NewSource<'a> {
 }
 
 impl Store {
-    /// Open (or create) a profile database and bring it to the newest schema.
+    /// Open (or create) a profile database and bring it to the newest schema. An
+    /// existing database below the newest schema is copied to
+    /// `<path>.before-v<N>` first (the newest two copies are kept), so a failed or
+    /// faulty migration never loses data.
     pub fn open(path: &Path) -> Result<Store> {
-        Self::setup(Connection::open(path)?)
+        backup::open_migrating(path, schema::MIGRATIONS)
     }
 
     /// A private database in memory, for tests and for Guest sessions that must
     /// leave nothing behind.
     pub fn open_in_memory() -> Result<Store> {
-        Self::setup(Connection::open_in_memory()?)
+        Self::setup_with(Connection::open_in_memory()?, schema::MIGRATIONS)
     }
 
-    fn setup(mut conn: Connection) -> Result<Store> {
+    fn setup_with(mut conn: Connection, migrations: &[&str]) -> Result<Store> {
         conn.pragma_update(None, "journal_mode", "WAL")?;
         conn.pragma_update(None, "foreign_keys", true)?;
         conn.pragma_update(None, "synchronous", "NORMAL")?;
         conn.busy_timeout(std::time::Duration::from_secs(5))?;
-        schema::migrate(&mut conn)?;
+        schema::migrate_with(&mut conn, migrations)?;
         Ok(Store { conn })
     }
 

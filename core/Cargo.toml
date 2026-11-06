@@ -45,7 +45,7 @@ url = "2.5.8"
 ulid = "3.0.0"
 unicode-normalization = "0.1.26"
 sha2 = "0.11.0"
-rusqlite = { version = "0.41.1", features = ["bundled"] }
+rusqlite = { version = "0.41.1", features = ["bundled", "backup"] }
 # HTTP: reqwest without its default aws-lc-rs backend, which needs CMake to
 # cross-compile for iOS and Android. rustls runs on ring instead, and certificates
 # are checked by the operating system's verifier (docs/adr/core-0005).

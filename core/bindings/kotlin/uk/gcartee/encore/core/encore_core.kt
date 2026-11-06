@@ -726,6 +726,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_artwork(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_backup_profile(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_check_address(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_clear_listener(
@@ -789,6 +791,8 @@ internal object IntegrityCheckingUniffiLib {
     external fun uniffi_encore_core_checksum_method_encorecore_remove_server(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_replay_from_history(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_restore_profile(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_search(
     ): Int
@@ -871,6 +875,8 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_artwork(`ptr`: Long,`of`: RustBuffer.ByValue,`id`: Long,`sizePx`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_backup_profile(`ptr`: Long,`profileId`: RustBuffer.ByValue,`destPath`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     external fun uniffi_encore_core_fn_method_encorecore_check_address(`ptr`: Long,`address`: RustBuffer.ByValue,
     ): Long
     external fun uniffi_encore_core_fn_method_encorecore_clear_listener(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -935,6 +941,8 @@ internal object UniffiLib {
     ): Unit
     external fun uniffi_encore_core_fn_method_encorecore_replay_from_history(`ptr`: Long,`uid`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_restore_profile(`ptr`: Long,`profileId`: RustBuffer.ByValue,`fromPath`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     external fun uniffi_encore_core_fn_method_encorecore_search(`ptr`: Long,`query`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_servers(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -1135,6 +1143,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_encore_core_checksum_method_encorecore_artwork() and 0xFFFF) != 30857) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_backup_profile() and 0xFFFF) != 44215) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_check_address() and 0xFFFF) != 58361) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1229,6 +1240,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_replay_from_history() and 0xFFFF) != 13472) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_restore_profile() and 0xFFFF) != 53453) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_search() and 0xFFFF) != 19862) {
@@ -2158,6 +2172,14 @@ public interface EncoreCoreInterface {
     fun `artwork`(`of`: ArtworkOf, `id`: kotlin.Long, `sizePx`: kotlin.UInt): ArtworkRequest
     
     /**
+     * Write a consistent copy of a profile's database to `dest_path`, a file the
+     * app chose. Safe while the profile is open and playing. It holds the library
+     * mirror, history and settings; tokens are never in it (they stay in the
+     * keychain). Blocking: call off the main thread.
+     */
+    fun `backupProfile`(`profileId`: kotlin.String, `destPath`: kotlin.String)
+    
+    /**
      * Check what the user typed (board 21, item 3). Async.
      */
     suspend fun `checkAddress`(`address`: kotlin.String): ServerCheck
@@ -2285,6 +2307,15 @@ public interface EncoreCoreInterface {
     fun `removeServer`(`sourceId`: kotlin.Long)
     
     fun `replayFromHistory`(`uid`: kotlin.Long): QueueState
+    
+    /**
+     * Replace a profile's database with a backup made by `backup_profile`. The
+     * backup is checked first (intact, an Encore profile, not from a newer app); if
+     * it fails, nothing changes. The replaced database is kept beside it as
+     * `library.sqlite.before-restore`. The profile is closed if it was open; open it
+     * again with its tokens. Blocking: call off the main thread.
+     */
+    fun `restoreProfile`(`profileId`: kotlin.String, `fromPath`: kotlin.String)
     
     /**
      * Search the on-device mirror as the user types (board 07). Synchronous.
@@ -2607,6 +2638,27 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
     }
     )
     }
+    
+
+    
+    /**
+     * Write a consistent copy of a profile's database to `dest_path`, a file the
+     * app chose. Safe while the profile is open and playing. It holds the library
+     * mirror, history and settings; tokens are never in it (they stay in the
+     * keychain). Blocking: call off the main thread.
+     */
+    @Throws(EncoreException::class)override fun `backupProfile`(`profileId`: kotlin.String, `destPath`: kotlin.String)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_backup_profile(
+        it,
+        
+        FfiConverterString.lower(`profileId`),
+        FfiConverterString.lower(`destPath`),_status)
+}
+    }
+    
     
 
     
@@ -3168,6 +3220,28 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
     }
     )
     }
+    
+
+    
+    /**
+     * Replace a profile's database with a backup made by `backup_profile`. The
+     * backup is checked first (intact, an Encore profile, not from a newer app); if
+     * it fails, nothing changes. The replaced database is kept beside it as
+     * `library.sqlite.before-restore`. The profile is closed if it was open; open it
+     * again with its tokens. Blocking: call off the main thread.
+     */
+    @Throws(EncoreException::class)override fun `restoreProfile`(`profileId`: kotlin.String, `fromPath`: kotlin.String)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_restore_profile(
+        it,
+        
+        FfiConverterString.lower(`profileId`),
+        FfiConverterString.lower(`fromPath`),_status)
+}
+    }
+    
     
 
     

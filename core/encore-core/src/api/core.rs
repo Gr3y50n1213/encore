@@ -47,6 +47,23 @@ fn profile_id(server_id: &str, user_id: &str) -> String {
     format!("jf-{hex}")
 }
 
+/// A profile ID names a folder, so it must be a plain name: an ID from the app can
+/// never point outside the profiles folder.
+fn checked_profile_id(id: &str) -> Result<&str, EncoreError> {
+    let plain = !id.is_empty()
+        && id.len() <= 64
+        && id
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_');
+    if plain {
+        Ok(id)
+    } else {
+        Err(EncoreError::NotFound {
+            reason: "That profile isn't on this device".into(),
+        })
+    }
+}
+
 fn credential_key(profile_id: &str, source_id: i64) -> String {
     format!("{}/{profile_id}/{source_id}", APP_NAME.to_ascii_lowercase())
 }
@@ -273,7 +290,7 @@ impl Inner {
 
     fn open_profile(&self, id: &str, tokens_in: Vec<SourceToken>) -> Result<(), EncoreError> {
         self.close_profile()?;
-        let path = self.store_path(id);
+        let path = self.store_path(checked_profile_id(id)?);
         if !path.exists() {
             return Err(EncoreError::NotFound {
                 reason: "That profile isn't on this device".into(),
@@ -672,6 +689,52 @@ impl EncoreCore {
     /// The open profile's ID, if any.
     pub fn current_profile(&self) -> Option<String> {
         self.inner.profile().ok().map(|p| p.id.clone())
+    }
+
+    /// Write a consistent copy of a profile's database to `dest_path`, a file the
+    /// app chose. Safe while the profile is open and playing. It holds the library
+    /// mirror, history and settings; tokens are never in it (they stay in the
+    /// keychain). Blocking: call off the main thread.
+    pub fn backup_profile(&self, profile_id: String, dest_path: String) -> Result<(), EncoreError> {
+        let path = self.inner.store_path(checked_profile_id(&profile_id)?);
+        let dest = Path::new(&dest_path);
+        if let Ok(p) = self.inner.profile()
+            && p.id == profile_id
+        {
+            return Ok(lock(&p.store)?.backup_to(dest)?);
+        }
+        if !path.exists() {
+            return Err(EncoreError::NotFound {
+                reason: "That profile isn't on this device".into(),
+            });
+        }
+        Ok(Store::open(&path)?.backup_to(dest)?)
+    }
+
+    /// Replace a profile's database with a backup made by `backup_profile`. The
+    /// backup is checked first (intact, an Encore profile, not from a newer app); if
+    /// it fails, nothing changes. The replaced database is kept beside it as
+    /// `library.sqlite.before-restore`. The profile is closed if it was open; open it
+    /// again with its tokens. Blocking: call off the main thread.
+    pub fn restore_profile(
+        &self,
+        profile_id: String,
+        from_path: String,
+    ) -> Result<(), EncoreError> {
+        let id = checked_profile_id(&profile_id)?;
+        let from = Path::new(&from_path);
+        Store::check_backup(from)?;
+        if self.current_profile().as_deref() == Some(id) {
+            self.inner.close_profile()?;
+        }
+        let path = self.inner.store_path(id);
+        if let Some(dir) = path.parent() {
+            std::fs::create_dir_all(dir).map_err(|e| EncoreError::Storage {
+                reason: format!("couldn't use the data folder ({e})"),
+            })?;
+        }
+        drop(Store::restore(&path, from)?);
+        Ok(())
     }
 
     // ------------------------------------------------------------ servers and sync

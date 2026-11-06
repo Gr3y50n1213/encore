@@ -855,6 +855,14 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     func artwork(of: ArtworkOf, id: Int64, sizePx: UInt32) throws  -> ArtworkRequest
     
     /**
+     * Write a consistent copy of a profile's database to `dest_path`, a file the
+     * app chose. Safe while the profile is open and playing. It holds the library
+     * mirror, history and settings; tokens are never in it (they stay in the
+     * keychain). Blocking: call off the main thread.
+     */
+    func backupProfile(profileId: String, destPath: String) throws 
+    
+    /**
      * Check what the user typed (board 21, item 3). Async.
      */
     func checkAddress(address: String) async throws  -> ServerCheck
@@ -982,6 +990,15 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     func removeServer(sourceId: Int64) throws 
     
     func replayFromHistory(uid: Int64) throws  -> QueueState
+    
+    /**
+     * Replace a profile's database with a backup made by `backup_profile`. The
+     * backup is checked first (intact, an Encore profile, not from a newer app); if
+     * it fails, nothing changes. The replaced database is kept beside it as
+     * `library.sqlite.before-restore`. The profile is closed if it was open; open it
+     * again with its tokens. Blocking: call off the main thread.
+     */
+    func restoreProfile(profileId: String, fromPath: String) throws 
     
     /**
      * Search the on-device mirror as the user types (board 07). Synchronous.
@@ -1214,6 +1231,22 @@ open func artwork(of: ArtworkOf, id: Int64, sizePx: UInt32)throws  -> ArtworkReq
         FfiConverterUInt32.lower(sizePx),uniffiCallStatus
     )
 })
+}
+    
+    /**
+     * Write a consistent copy of a profile's database to `dest_path`, a file the
+     * app chose. Safe while the profile is open and playing. It holds the library
+     * mirror, history and settings; tokens are never in it (they stay in the
+     * keychain). Blocking: call off the main thread.
+     */
+open func backupProfile(profileId: String, destPath: String)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_backup_profile(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(profileId),
+        FfiConverterString.lower(destPath),uniffiCallStatus
+    )
+}
 }
     
     /**
@@ -1615,6 +1648,23 @@ open func replayFromHistory(uid: Int64)throws  -> QueueState  {
         FfiConverterInt64.lower(uid),uniffiCallStatus
     )
 })
+}
+    
+    /**
+     * Replace a profile's database with a backup made by `backup_profile`. The
+     * backup is checked first (intact, an Encore profile, not from a newer app); if
+     * it fails, nothing changes. The replaced database is kept beside it as
+     * `library.sqlite.before-restore`. The profile is closed if it was open; open it
+     * again with its tokens. Blocking: call off the main thread.
+     */
+open func restoreProfile(profileId: String, fromPath: String)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_restore_profile(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(profileId),
+        FfiConverterString.lower(fromPath),uniffiCallStatus
+    )
+}
 }
     
     /**
@@ -6007,6 +6057,9 @@ private let initializationResult: InitializationResult = {
     if (uniffi_encore_core_checksum_method_encorecore_artwork() != 30857) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_encore_core_checksum_method_encorecore_backup_profile() != 44215) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_encore_core_checksum_method_encorecore_check_address() != 58361) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -6101,6 +6154,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_replay_from_history() != 13472) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_restore_profile() != 53453) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_search() != 19862) {
