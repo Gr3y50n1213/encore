@@ -1,0 +1,13 @@
+[package]
+name = "recs-replay"
+description = "Offline replay of the smart-picks engine against plain shuffle, on generated listeners and (locally) the owner's own history."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+encore-recs = { path = "../../core/encore-recs" }
+
+[lints]
+workspace = true

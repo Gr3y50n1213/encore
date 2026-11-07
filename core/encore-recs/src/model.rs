@@ -64,6 +64,8 @@ pub struct Model {
     artist_skips: HashMap<String, (f64, f64)>,
     /// Each artist's enjoyed plays per (time bucket, weekend).
     artist_when: HashMap<String, [f64; 8]>,
+    /// Each artist's finished plays and (faded) early skips, for exploration.
+    artist_record: HashMap<String, (u32, u32)>,
 }
 
 fn add_pair(pairs: &mut HashMap<(usize, usize), f64>, a: usize, b: usize, w: f64) {
@@ -317,6 +319,17 @@ impl Model {
                 }
             }
         }
+        let mut artist_record: HashMap<String, (u32, u32)> = HashMap::new();
+        for (i, s) in catalog.songs().iter().enumerate() {
+            let f = &facts[i];
+            if f.finishes > 0 || f.app_early_skips > 0.0 {
+                for a in &s.artists {
+                    let e = artist_record.entry(a.clone()).or_default();
+                    e.0 += f.finishes;
+                    e.1 += f.app_early_skips.round() as u32;
+                }
+            }
+        }
         // Shrunk toward 0.5: one liked song doesn't make an artist a favourite.
         let shrink = |(s, c): (f64, u32)| (s + 0.5 * 2.0) / (f64::from(c) + 2.0);
         Model {
@@ -340,6 +353,7 @@ impl Model {
             wrong_moment_artists,
             artist_skips,
             artist_when,
+            artist_record,
         }
     }
 
@@ -367,6 +381,16 @@ impl Model {
             })
             .unwrap_or(0.5);
         0.5 + 0.6 * (artist - 0.5) + 0.4 * (genre - 0.5)
+    }
+
+    /// Finished plays and early skips of a song's artists (for Thompson sampling).
+    pub fn artist_record(&self, catalog: &Catalog, i: usize) -> (u32, u32) {
+        catalog
+            .get(i)
+            .artists
+            .iter()
+            .filter_map(|a| self.artist_record.get(a))
+            .fold((0, 0), |(w, l), (a, b)| (w + a, l + b))
     }
 
     /// How well a song fits a time of day, 0..1 (0.25 is "no idea": four buckets).

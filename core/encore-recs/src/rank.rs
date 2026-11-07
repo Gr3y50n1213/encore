@@ -137,14 +137,11 @@ fn candidates(
     pool.extend(same_genre.into_iter().take(p.candidates / 2));
     if seeds.is_empty() || pool.len() < 50 {
         // Nothing to go on: what the user likes most, then the rest by liking.
-        let mut by_liking: Vec<usize> = (0..cat.len()).collect();
-        by_liking.sort_by(|a, b| {
-            model
-                .liking(cat, *b)
-                .total_cmp(&model.liking(cat, *a))
-                .then(a.cmp(b))
-        });
-        pool.extend(by_liking.into_iter().take(p.candidates));
+        // Liking computed once per song, not once per comparison.
+        let mut by_liking: Vec<(f64, usize)> =
+            (0..cat.len()).map(|i| (model.liking(cat, i), i)).collect();
+        by_liking.sort_by(|a, b| b.0.total_cmp(&a.0).then(a.1.cmp(&b.1)));
+        pool.extend(by_liking.into_iter().take(p.candidates).map(|x| x.1));
     }
     let exclude: HashSet<&str> = ctx
         .exclude
@@ -347,7 +344,7 @@ fn pick(model: &Model, cat: &Catalog, ctx: &Context, n: usize, p: &Params) -> Ve
                 if f.plays > 1 || model.liking(cat, s.i) < 0.45 {
                     continue;
                 }
-                let (wins, losses) = artist_record(model, cat, s.i);
+                let (wins, losses) = model.artist_record(cat, s.i);
                 rng.beta(1 + wins, 1 + losses) * 0.5 + s.fit * 0.5
             } else if slot < 2
                 && let Some(pt) = pulled
@@ -386,24 +383,6 @@ fn pick(model: &Model, cat: &Catalog, ctx: &Context, n: usize, p: &Params) -> Ve
         });
     }
     picks
-}
-
-/// Finished and early-skipped plays of a song's artists.
-fn artist_record(model: &Model, cat: &Catalog, i: usize) -> (u32, u32) {
-    let artists = &cat.get(i).artists;
-    let mut wins = 0;
-    let mut losses = 0;
-    for (j, s) in cat.songs().iter().enumerate() {
-        if s.artists.iter().any(|a| artists.contains(a)) {
-            let f = &model.facts[j];
-            wins += f.finishes;
-            losses += f.app_early_skips.round() as u32;
-            if wins + losses > 60 {
-                break;
-            }
-        }
-    }
-    (wins, losses)
 }
 
 /// Autoplay: `n` songs seeded by the current song and the last ones finished

@@ -1,7 +1,7 @@
 # Build tools for the core track (codegen, fixtures). Not shipped in any app.
 [workspace]
 resolver = "3"
-members = ["encore-tokens", "fixture-recorder"]
+members = ["encore-tokens", "fixture-recorder", "recs-replay"]
 
 [workspace.package]
 version = "0.1.0"

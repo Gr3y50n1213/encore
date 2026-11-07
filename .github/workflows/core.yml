@@ -214,6 +214,13 @@ jobs:
           cargo test --locked -p encore-store --release --test search_budget -- --ignored --nocapture
           cargo test --locked -p encore-lyrics --release a_long_word_timed_song -- --nocapture
 
+      # Plan section 24, Smart picks: offline replay on three test histories beats
+      # plain shuffle (autoplay's early-skip rate at most 60% of shuffle's), and the
+      # mix-build and next-song budgets hold. The numbers are in the step's output.
+      - name: Smart picks replay against shuffle, and its budgets
+        working-directory: tools
+        run: cargo run --locked --release -q -p recs-replay -- --check
+
       # When the check finds stale bindings, this holds what CI generated, so the
       # difference can be read without a Dart SDK.
       - name: Upload the bindings CI generated (only when the check fails)
