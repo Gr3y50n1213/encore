@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -102,12 +103,15 @@ fun WelcomeScreen(onGetStarted: () -> Unit, onExistingProfile: (() -> Unit)?) {
 
     Box(Modifier.fillMaxSize().background(tokenColor(Iris.Dark.surfaceContainerLowest))) {
         DriftingField(still, Modifier.fillMaxSize().clearAndSetSemantics { })
+        // Tablet and desktop: a centred column 420 dp wide over the same background. The
+        // width cap comes before the fill, or the fill wins and the buttons span the screen.
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
-                .fillMaxSize()
+                .fillMaxHeight()
                 .safeDrawingPadding()
                 .widthIn(max = CENTRED_COLUMN_DP.dp)
+                .fillMaxWidth()
                 .padding(horizontal = (Grid.base * 3).dp, vertical = (Grid.base * 2).dp),
         ) {
             Spacer(Modifier.weight(0.6f))
