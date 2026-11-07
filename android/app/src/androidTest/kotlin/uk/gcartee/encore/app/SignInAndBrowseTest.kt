@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.printToString
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.espresso.Espresso
@@ -99,7 +100,7 @@ class SignInAndBrowseTest {
         rule.onNodeWithText("Lyrics").performClick()
         shot("05-lyrics")
         rule.onNodeWithText("Queue").performClick()
-        rule.waitUntilAtLeastOneExists(hasText("Up Next"), TIMEOUT)
+        rule.waitUntilAtLeastOneExists(hasText("Autoplay"), TIMEOUT)
         shot("06-queue")
         rule.onNodeWithContentDescription("Close Now Playing").performClick()
         rule.waitUntilDoesNotExist(hasContentDescription("Close Now Playing"), TIMEOUT)
@@ -122,6 +123,8 @@ class SignInAndBrowseTest {
         // Search, Mixes, Settings (boards 07, 23, 17).
         rule.onNodeWithText("Search").performClick()
         rule.onNode(hasSetTextAction()).performTextInput(album.title.split(" ").first())
+        // The search key saves the query and puts the keyboard away (board 07).
+        rule.onNode(hasSetTextAction()).performImeAction()
         rule.waitUntilAtLeastOneExists(hasText(album.title), TIMEOUT)
         shot("08-search")
         rule.onNodeWithText("Mixes").performClick()

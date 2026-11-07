@@ -83,7 +83,8 @@ fun SongRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         when {
-            showArtwork -> Artwork(ArtworkOf.SONG, song.id, ROW_ART_DP.dp)
+            // The cover is held to its row size; without it, it fills the row width.
+            showArtwork -> Artwork(ArtworkOf.SONG, song.id, ROW_ART_DP.dp, Modifier.size(ROW_ART_DP.dp))
             else -> Column(Modifier.width(NUMBER_DP.dp), horizontalAlignment = Alignment.Start) {
                 if (playing) LevelBars(contentColor) else Text(
                     trackNumber?.toString().orEmpty(),

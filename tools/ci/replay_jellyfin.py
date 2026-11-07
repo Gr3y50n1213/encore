@@ -10,7 +10,7 @@ this is the same matching over a socket, standard library only.
 It binds a free port, writes "http://127.0.0.1:<port>" to URL_FILE (atomically), and
 serves until killed. Matching follows FixtureTransport: method, path, and every
 recorded query parameter, replayed in recorded order with the last match repeating.
-Two differences, both so the apps' real settings work against a recording made with
+Three differences, all so the apps' real settings work against a recording made with
 test settings:
   - `limit` is ignored: the core asks for pages of library.syncPageSize (500) and
     advances by the number of items each page returns, so pages of 50 replay fine.
@@ -18,6 +18,10 @@ test settings:
     sign-in takes one poll instead of the 36 the recording needed. (Only those:
     other repeated requests, a playlist read before and after a write, say, keep
     their own replies.)
+  - A cover (GET .../Images/Primary) is served whatever its size parameters: the
+    recording holds each one at the 64 px the palette samples, and the apps ask for
+    the size they draw (fillWidth, fillHeight), so the end-to-end screenshots show
+    the covers, scaled.
 """
 
 import email.utils
@@ -69,15 +73,19 @@ class Replay:
 
     def find(self, method, path, query):
         pairs = [(k.lower(), v) for k, v in query]
+        any_size = method == "GET" and path.endswith("/Images/Primary")
         matching = [
             i
             for i, x in enumerate(self.exchanges)
             if x["method"].upper() == method
             and x["path"] == path
-            and all(
-                (k.lower(), v) in pairs
-                for k, v in x.get("query", {}).items()
-                if k.lower() not in IGNORED_PARAMS
+            and (
+                any_size
+                or all(
+                    (k.lower(), v) in pairs
+                    for k, v in x.get("query", {}).items()
+                    if k.lower() not in IGNORED_PARAMS
+                )
             )
         ]
         with self.lock:

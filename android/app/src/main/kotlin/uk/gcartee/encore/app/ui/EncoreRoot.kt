@@ -230,7 +230,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                             // Board 29, item 2: on expanded windows Library is a 340 dp list with the
                             // chosen album, artist or playlist open beside it, two panes 12 dp apart.
                             if (expanded && tab == Tab.Library && route != null && route !is Route.Settings) {
-                                Row(Modifier.fillMaxSize().padding(PANE_GAP_DP.dp)) {
+                                Row(Modifier.fillMaxSize().statusBarsPadding().padding(PANE_GAP_DP.dp)) {
                                     Surface(shape = androidx.compose.foundation.shape.RoundedCornerShape(PANE_RADIUS_DP.dp), color = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.width(LIST_PANE_DP.dp).fillMaxSize()) {
                                         LibraryScreen(host, actions.open, playingSongId, inner)
                                     }

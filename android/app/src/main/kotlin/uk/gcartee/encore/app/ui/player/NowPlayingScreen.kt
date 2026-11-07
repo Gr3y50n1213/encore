@@ -164,7 +164,8 @@ fun NowPlayingScreen(
                 }
             },
     ) {
-        val landscape = maxWidth > maxHeight && maxHeight < 500.dp
+        // Landscape (a turned phone, a tablet): artwork left, the rest right.
+        val landscape = maxWidth > maxHeight
         AlbumField(colours, Modifier.fillMaxSize())
         Column(Modifier.fillMaxSize().safeDrawingPadding().padding(horizontal = (Grid.base * 3).dp)) {
             // Item 1: collapse, "Playing from", More.
