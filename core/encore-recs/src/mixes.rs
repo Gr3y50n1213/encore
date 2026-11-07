@@ -381,6 +381,19 @@ pub fn build_mixes(model: &Model, cat: &Catalog, p: &Params, prev: &Previous<'_>
     };
     let mut row: Vec<String> = Vec::new();
     let mut used: Vec<HashSet<usize>> = Vec::new();
+    // A small library can't fill 25 songs at 2 per artist: its mixes are as long
+    // as the caps allow (at least 10), never made by relaxing the caps.
+    let mut per_artist: std::collections::HashMap<&str, usize> = std::collections::HashMap::new();
+    for s in cat.songs() {
+        if let Some(a) = s.artists.first() {
+            *per_artist.entry(a.as_str()).or_default() += 1;
+        }
+    }
+    let reachable: usize = per_artist
+        .values()
+        .map(|c| (*c).min(p.per_artist_in_mix))
+        .sum();
+    let min_songs = p.mix_min_songs.min(reachable).max(10);
     let no_new = HashSet::new();
     let push = |set: &mut MixSet,
                 slot: MixSlot,
@@ -390,7 +403,7 @@ pub fn build_mixes(model: &Model, cat: &Catalog, p: &Params, prev: &Previous<'_>
                 new: &HashSet<usize>,
                 row: &mut Vec<String>,
                 used: &mut Vec<HashSet<usize>>| {
-        if songs.len() < p.mix_min_songs.min(n) {
+        if songs.len() < min_songs {
             return;
         }
         let id = format!("mix-{day}-{}", slot.name());
@@ -530,7 +543,7 @@ pub fn build_mixes(model: &Model, cat: &Catalog, p: &Params, prev: &Previous<'_>
         .collect();
     enjoyed = by_liking(enjoyed);
     enjoyed.truncate(2000);
-    if enjoyed.len() < p.mix_min_songs {
+    if enjoyed.len() < min_songs {
         return set;
     }
     let points: Vec<(usize, [f64; DIMS], f64)> = enjoyed

@@ -45,6 +45,8 @@ pub enum StartedFrom {
     Radio,
     Mix,
     Autoplay,
+    /// A suggestion Smart shuffle put in a shuffled list.
+    SmartShuffle,
     Queue,
     History,
     Other,
@@ -62,6 +64,7 @@ impl StartedFrom {
             StartedFrom::Radio => "radio",
             StartedFrom::Mix => "mix",
             StartedFrom::Autoplay => "autoplay",
+            StartedFrom::SmartShuffle => "smartShuffle",
             StartedFrom::Queue => "queue",
             StartedFrom::History => "history",
             StartedFrom::Other => "other",

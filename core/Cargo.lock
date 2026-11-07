@@ -472,6 +472,7 @@ name = "encore-core"
 version = "0.1.0"
 dependencies = [
  "encore-lyrics",
+ "encore-recs",
  "encore-sources",
  "encore-store",
  "encore-sync",

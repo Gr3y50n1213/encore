@@ -125,6 +125,22 @@ impl Store {
         Ok(rows)
     }
 
+    /// Changes whenever anything smart picks learns from changes (plays, likes,
+    /// feedback, Not interested, the library, the epoch, play counts elsewhere).
+    pub fn recs_fingerprint(&self) -> Result<String> {
+        Ok(self.conn.query_row(
+            "SELECT (SELECT count(*) || ':' || coalesce(max(updated_utc_ms), 0) FROM play_events)
+                 || '|' || (SELECT count(*) || ':' || coalesce(max(liked_utc_ms), 0) FROM likes)
+                 || '|' || (SELECT count(*) FROM feedback)
+                 || '|' || (SELECT count(*) || ':' || coalesce(max(hlc), '') FROM not_interested)
+                 || '|' || (SELECT count(*) || ':' || coalesce(sum(server_play_count), 0) FROM tracks)
+                 || '|' || coalesce((SELECT value FROM recs_state WHERE key = 'epochUtcMs'), '')
+                 || '|' || (SELECT count(*) FROM events WHERE kind IN ('playlistAdd', 'playlistCreate'))",
+            [],
+            |r| r.get(0),
+        )?)
+    }
+
     /// The play log for the engine, oldest first.
     pub fn recs_plays(&self) -> Result<Vec<RecsPlayRow>> {
         let mut st = self.conn.prepare(
@@ -144,6 +160,33 @@ impl Store {
             })
         })?;
         Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
+    /// Most played (Home's fallback when learning is off): this profile's plays,
+    /// then the media server's counts from other apps. Track IDs, at most `limit`.
+    pub fn most_played(&self, limit: u32) -> Result<Vec<i64>> {
+        let mut st = self.conn.prepare(
+            "SELECT (SELECT min(t.id) FROM tracks t WHERE t.song_key = p.song_key), count(*) AS n
+             FROM play_events p
+             WHERE EXISTS (SELECT 1 FROM tracks t WHERE t.song_key = p.song_key)
+             GROUP BY p.song_key ORDER BY n DESC, p.song_key LIMIT ?1",
+        )?;
+        let mut ids: Vec<i64> = st
+            .query_map([limit], |r| r.get(0))?
+            .collect::<rusqlite::Result<_>>()?;
+        if (ids.len() as u32) < limit {
+            let mut st = self.conn.prepare(
+                "SELECT id FROM tracks WHERE server_play_count > 0
+                 ORDER BY server_play_count DESC, id LIMIT ?1",
+            )?;
+            for id in st.query_map([limit], |r| r.get::<_, i64>(0))? {
+                let id = id?;
+                if !ids.contains(&id) && (ids.len() as u32) < limit {
+                    ids.push(id);
+                }
+            }
+        }
+        Ok(ids)
     }
 
     /// Liked songs with when they were liked.

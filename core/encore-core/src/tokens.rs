@@ -43,6 +43,7 @@ pub struct Tokens {
     pub pin_lock_max_ms: i64,
     pub guest_idle_ms: i64,
     pub switch_flush: std::time::Duration,
+    pub private_ends_after_ms: i64,
     pub confirm_over_songs: u32,
 }
 
@@ -132,6 +133,8 @@ fn parse() -> Tokens {
         pin_lock_max_ms: num(&v, "profiles.pinLockMaxSeconds") as i64 * 1000,
         guest_idle_ms: num(&v, "profiles.guestIdleHours") as i64 * 3_600_000,
         switch_flush: std::time::Duration::from_secs(num(&v, "profiles.switchFlushSeconds")),
+        private_ends_after_ms: num(&v, "smartPicks.privateListeningEndsAfterHoursSilent") as i64
+            * 3_600_000,
         confirm_over_songs: num(&v, "gestures.dragAndDrop.confirmOverSongs") as u32,
         signal: crate::signal::Rules {
             early_skip_ms: num(&v, "smartPicks.earlySkipBoundarySeconds") * 1000,

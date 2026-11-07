@@ -104,6 +104,13 @@ struct Playback {
     pending_origin: Option<Moved>,
     /// The last unplug, output switch, call or assistant (UTC milliseconds).
     last_interruption_utc_ms: Option<i64>,
+    /// A radio's seed, held for the whole session (smart picks).
+    radio_seed: Option<String>,
+    /// The device's UTC offset, as the last `playback_started` reported it.
+    utc_offset_minutes: i32,
+    /// While Private listening is on: when something last played (it ends after
+    /// `smartPicks.privateListeningEndsAfterHoursSilent` of silence).
+    private_last_activity_utc_ms: Option<i64>,
 }
 
 impl Playback {
@@ -128,6 +135,8 @@ struct Profile {
     lyrics_ahead_failed: Mutex<std::collections::HashSet<i64>>,
     /// Sync with the companion server, when the profile has one.
     companion: Mutex<Option<Arc<sync_loop::Session>>>,
+    /// Smart picks' model, rebuilt when its inputs change.
+    recs: Mutex<Option<recs::RecsCache>>,
 }
 
 struct Inner {
@@ -358,6 +367,7 @@ impl Inner {
             edits_clock: Mutex::new(HlcClock::resume(last_edit)),
             lyrics_ahead_failed: Mutex::new(Default::default()),
             companion: Mutex::new(None),
+            recs: Mutex::new(None),
             store: Mutex::new(store),
             sources: Mutex::new(sources),
             playback: Mutex::new(Playback {
@@ -368,6 +378,9 @@ impl Inner {
                 preloaded_for: None,
                 pending_origin: None,
                 last_interruption_utc_ms: None,
+                radio_seed: None,
+                utc_offset_minutes: 0,
+                private_last_activity_utc_ms: None,
             }),
         };
         *lock(&self.profile)? = Some(Arc::new(profile));
@@ -1770,6 +1783,10 @@ impl EncoreCore {
         context_id: Option<String>,
     ) -> Result<QueueState, EncoreError> {
         self.inner.guest_tick(true)?;
+        // Anything played by hand ends a radio.
+        if let Ok(p) = self.inner.profile() {
+            lock(&p.playback)?.radio_seed = None;
+        }
         let items = Inner::new_items(&song_ids, started_from, context_id);
         Ok(self
             .inner
@@ -1958,6 +1975,20 @@ impl EncoreCore {
             .1)
     }
 
+    /// The queue's Autoplay switch (board 11). Off: the queue ends with its last
+    /// song, and the Autoplay section empties.
+    pub fn set_autoplay(&self, enabled: bool) -> Result<QueueState, EncoreError> {
+        Ok(self
+            .inner
+            .with_queue(|pb, _| {
+                pb.queue.set_autoplay_enabled(enabled);
+                if !enabled {
+                    pb.queue.set_autoplay(Vec::new());
+                }
+            })?
+            .1)
+    }
+
     // ------------------------------------------------------------ playback reports
 
     /// The player started the current song (`uid` from the queue). Writes the play
@@ -1968,6 +1999,19 @@ impl EncoreCore {
         let p = self.inner.profile()?;
         let mut pb = lock(&p.playback)?;
         let store = lock(&p.store)?;
+        // Private listening ends after 2 hours of silence (board 38): this play is
+        // recorded again if it started after that.
+        let now = now_ms();
+        if let Some(last) = pb.private_last_activity_utc_ms {
+            if now - last > tokens().private_ends_after_ms {
+                let listened = pb.last_listened_ms;
+                pb.log
+                    .set_mode(&store, crate::playlog::ListeningMode::Normal, listened, now)?;
+                pb.private_last_activity_utc_ms = None;
+            } else {
+                pb.private_last_activity_utc_ms = Some(now);
+            }
+        }
         let item = pb
             .queue
             .current()
@@ -1998,6 +2042,17 @@ impl EncoreCore {
         pb.playing_uid = Some(item.uid);
         pb.last_listened_ms = 0;
         pb.preloaded_for = None;
+        pb.utc_offset_minutes = utc_offset_minutes;
+        // Let go of both locks before the background refill takes them.
+        drop(store);
+        drop(pb);
+        // Keep Autoplay filled, in the background (the next-song decision reads it).
+        if let Some(rt) = &self.rt {
+            let inner = self.inner.clone();
+            rt.spawn(async move {
+                let _ = tokio::task::block_in_place(|| inner.refill_autoplay(false));
+            });
+        }
         Ok(())
     }
 
@@ -2103,6 +2158,7 @@ impl EncoreCore {
         let store = lock(&p.store)?;
         let listened = pb.last_listened_ms;
         pb.log.set_mode(&store, mode.into(), listened, now_ms())?;
+        pb.private_last_activity_utc_ms = (mode == ListeningMode::Private).then(now_ms);
         Ok(())
     }
 
@@ -2620,6 +2676,7 @@ impl EncoreCore {
 }
 
 mod profiles;
+mod recs;
 mod sync_loop;
 #[cfg(test)]
 mod tests;

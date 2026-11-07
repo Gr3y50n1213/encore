@@ -208,6 +208,7 @@ name = "encore-core"
 version = "0.1.0"
 dependencies = [
  "encore-lyrics",
+ "encore-recs",
  "encore-sources",
  "encore-store",
  "encore-sync",
@@ -230,6 +231,13 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+]
+
+[[package]]
+name = "encore-recs"
+version = "0.1.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

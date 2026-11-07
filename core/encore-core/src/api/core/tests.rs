@@ -720,6 +720,8 @@ fn swipes_headsets_and_interruptions_through_the_api() {
         .iter()
         .map(|x| x.id)
         .collect();
+    // Autoplay off: this test reaches the end of the queue.
+    core.set_autoplay(false).unwrap();
     let state = core.play(ids.clone(), 0, StartedFrom::Songs, None).unwrap();
     let wait = || std::thread::sleep(Duration::from_millis(700));
     let uid = |c: &EncoreCore| c.queue().unwrap().current.unwrap().uid;
@@ -1256,5 +1258,239 @@ fn guest_saves_nothing_and_gives_the_queue_back() {
     assert_eq!(
         core.queue().unwrap().current.map(|c| c.song.id),
         Some(songs[0].id)
+    );
+}
+
+/// Play `n` songs to the end (ids round robin), as the player would report them.
+fn listen(core: &EncoreCore, ids: &[i64], n: usize) {
+    for k in 0..n {
+        let start = k % ids.len();
+        let state = core
+            .play(vec![ids[start]], 0, StartedFrom::Songs, None)
+            .unwrap();
+        core.playback_started(state.current.unwrap().uid, 60)
+            .unwrap();
+        core.playback_ended(EndReason::Finished, 200_000).unwrap();
+    }
+}
+
+/// Phase 5 through the API on the recording: autoplay, radio, Smart shuffle, Why
+/// this song, Not interested, feedback.
+#[test]
+fn smart_picks_fill_autoplay_and_explain_themselves() {
+    let dir = temp_dir("recs");
+    let (core, _) = core_on_recording(&dir);
+    signed_in(&core);
+    block(core.sync_library()).unwrap();
+    let songs = core.songs(SongSort::Title, 0, 1000).unwrap();
+    let ids: Vec<i64> = songs.iter().map(|s| s.id).collect();
+    listen(&core, &ids[..20], 20);
+
+    // Autoplay: 10 app-chosen songs after the current one, none of them queued.
+    let state = core
+        .play(vec![ids[0]], 0, StartedFrom::Songs, None)
+        .unwrap();
+    core.playback_started(state.current.unwrap().uid, 60)
+        .unwrap();
+    let q = core.refresh_autoplay().unwrap();
+    assert_eq!(q.autoplay.len(), 10, "{:?}", q.autoplay.len());
+    assert!(q.autoplay.iter().all(|e| e.chosen_by == ChosenBy::App));
+    assert!(q.autoplay.iter().all(|e| e.song.id != ids[0]));
+    let why = core.why_this_song(q.autoplay[0].song.id).unwrap();
+    assert!(why.reasons.len() <= 2 && why.sounds_like.len() <= 2);
+
+    // Not interested in an artist: none of their songs are suggested.
+    let artist = songs
+        .iter()
+        .find(|s| s.id == q.autoplay[0].song.id)
+        .unwrap()
+        .artist
+        .clone();
+    let item = core
+        .not_interested_artist(artist.clone(), NotInterestedReason::NotMyTaste)
+        .unwrap();
+    let q = core.refresh_autoplay().unwrap();
+    assert!(
+        q.autoplay.iter().all(|e| e.song.artist != artist),
+        "{artist} still suggested"
+    );
+    assert_eq!(core.not_interested_list().unwrap().len(), 1);
+    core.remove_not_interested(item).unwrap();
+    assert!(core.not_interested_list().unwrap().is_empty(), "undone");
+
+    // Radio holds its seed; Smart shuffle adds one suggestion per 4 songs.
+    let q = core.start_radio(RadioSeed::Song, ids[5]).unwrap();
+    assert_eq!(q.current.as_ref().map(|c| c.song.id), Some(ids[5]));
+    assert_eq!(q.autoplay.len(), 10);
+    let q = core
+        .smart_shuffle(ids[30..42].to_vec(), StartedFrom::Songs, None)
+        .unwrap();
+    let all: Vec<&QueueEntry> = q.current.iter().chain(q.up_next.iter()).collect();
+    assert_eq!(
+        all.iter().filter(|e| e.chosen_by == ChosenBy::App).count(),
+        3
+    );
+    assert_eq!(
+        all.iter().filter(|e| e.chosen_by == ChosenBy::User).count(),
+        12
+    );
+
+    // Feedback is recorded and synced as events; Guest can't give any.
+    core.more_like_this(ids[1]).unwrap();
+    core.fewer_like_this(ids[2]).unwrap();
+    core.set_adventurousness(Adventurousness::Adventurous)
+        .unwrap();
+    assert_eq!(
+        core.adventurousness().unwrap(),
+        Adventurousness::Adventurous
+    );
+    core.set_listening_mode(ListeningMode::Guest).unwrap();
+    assert!(matches!(
+        core.more_like_this(ids[1]),
+        Err(EncoreError::NotAllowed { .. })
+    ));
+}
+
+/// The cold-start table through Home: under 50 plays "still learning" with
+/// starter or family mixes; from 50, the full shelf; Learning off falls back.
+#[test]
+fn home_follows_the_cold_start_table_and_the_mix_actions_work() {
+    let dir = temp_dir("home");
+    let (core, _) = core_on_recording(&dir);
+    signed_in(&core);
+    block(core.sync_library()).unwrap();
+    let ids: Vec<i64> = core
+        .songs(SongSort::Title, 0, 1000)
+        .unwrap()
+        .iter()
+        .map(|s| s.id)
+        .collect();
+
+    let home = block(core.home()).unwrap();
+    assert_eq!(home.made_for_you.state, MixState::NotEnoughPlays);
+    assert_eq!(home.made_for_you.plays_so_far, 0);
+    assert_eq!(home.made_for_you.plays_needed, 50);
+    assert!(home.recently_played.is_empty());
+    assert_eq!(home.recently_added.len(), 12);
+
+    listen(&core, &ids[..60], 60);
+    let home = block(core.regenerate_mixes()).unwrap();
+    assert_eq!(
+        home.made_for_you.state,
+        MixState::Fresh,
+        "{:?}",
+        home.made_for_you
+    );
+    assert!(!home.made_for_you.mixes.is_empty());
+    assert!(!home.recently_played.is_empty());
+    let first = home.made_for_you.mixes[0].clone();
+    assert!(first.cover_song_ids.len() <= 4 && !first.cover_song_ids.is_empty());
+    let page = core.mix(first.mix_id.clone()).unwrap();
+    assert_eq!(page.songs.len() as u32, first.song_count);
+
+    // Pin keeps it; Not in this mix removes a song; Hide drops it from today's set.
+    core.pin_mix(first.mix_id.clone(), true).unwrap();
+    let gone = page.songs[0].song.id;
+    core.not_in_this_mix(first.mix_id.clone(), gone).unwrap();
+    assert!(
+        core.mix(first.mix_id.clone())
+            .unwrap()
+            .songs
+            .iter()
+            .all(|s| s.song.id != gone)
+    );
+    let home = block(core.home()).unwrap();
+    assert!(home.made_for_you.mixes[0].pinned);
+    if let Some(other) = home.made_for_you.mixes.iter().find(|m| !m.pinned) {
+        core.hide_mix(other.mix_id.clone()).unwrap();
+        let home = block(core.home()).unwrap();
+        assert!(
+            home.made_for_you
+                .mixes
+                .iter()
+                .all(|m| m.mix_id != other.mix_id)
+        );
+    }
+    let saved = core.save_mix_as_playlist(first.mix_id.clone()).unwrap();
+    assert!(saved.playlist_id.is_some());
+
+    // Stats count where the app chose; Learning off falls back to plain shelves.
+    let stats = core.suggestion_stats().unwrap();
+    assert!(stats.shelves.iter().all(|s| s.plays > 0));
+    core.set_listening_mode(ListeningMode::LearningOff).unwrap();
+    let home = block(core.home()).unwrap();
+    assert_eq!(home.made_for_you.state, MixState::LearningOff);
+    assert!(
+        home.made_for_you.mixes.iter().all(|m| m.pinned),
+        "only pins, no new set"
+    );
+    assert!(!home.most_played.is_empty());
+}
+
+/// Reset forgets what was learned and keeps the history; Clear deletes the
+/// history. Different buttons, different results (section 24, Smart picks).
+#[test]
+fn reset_and_clear_behave_differently() {
+    let dir = temp_dir("reset");
+    let (core, _) = core_on_recording(&dir);
+    let s = signed_in(&core);
+    block(core.sync_library()).unwrap();
+    let ids: Vec<i64> = core
+        .songs(SongSort::Title, 0, 1000)
+        .unwrap()
+        .iter()
+        .map(|s| s.id)
+        .collect();
+    listen(&core, &ids[..55], 55);
+    let plays = |core: &EncoreCore| -> usize {
+        let f = dir.0.join("x.json");
+        core.export_profile(s.profile_id.clone(), f.to_string_lossy().into_owned())
+            .unwrap();
+        let v: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f).unwrap()).unwrap();
+        v["plays"].as_array().unwrap().len()
+    };
+    assert_eq!(block(core.home()).unwrap().made_for_you.plays_so_far, 50);
+    core.reset_suggestions().unwrap();
+    assert_eq!(plays(&core), 55, "Reset keeps the history");
+    let home = block(core.home()).unwrap();
+    assert_eq!(
+        home.made_for_you.plays_so_far, 0,
+        "but learns from none of it"
+    );
+    assert_eq!(home.made_for_you.state, MixState::NotEnoughPlays);
+    assert_eq!(core.clear_listening_history().unwrap(), 55);
+    assert_eq!(plays(&core), 0, "Clear deletes it");
+    assert!(block(core.home()).unwrap().recently_played.is_empty());
+}
+
+/// Board 38: Private listening ends after 2 hours of silence.
+#[test]
+fn private_listening_ends_after_two_hours_of_silence() {
+    let dir = temp_dir("private");
+    let (core, _) = core_on_recording(&dir);
+    let s = signed_in(&core);
+    block(core.sync_library()).unwrap();
+    let ids: Vec<i64> = core
+        .songs(SongSort::Title, 0, 10)
+        .unwrap()
+        .iter()
+        .map(|s| s.id)
+        .collect();
+    core.set_listening_mode(ListeningMode::Private).unwrap();
+    listen(&core, &ids[..2], 2);
+    // (Two hours and a minute of silence.)
+    lock(&core.inner.profile().unwrap().playback)
+        .unwrap()
+        .private_last_activity_utc_ms = Some(now_ms() - tokens().private_ends_after_ms - 60_000);
+    listen(&core, &ids[2..3], 1);
+    let f = dir.0.join("p.json");
+    core.export_profile(s.profile_id, f.to_string_lossy().into_owned())
+        .unwrap();
+    let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(f).unwrap()).unwrap();
+    assert_eq!(
+        v["plays"].as_array().unwrap().len(),
+        1,
+        "only the play after Private ended"
     );
 }

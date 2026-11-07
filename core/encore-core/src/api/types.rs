@@ -870,6 +870,229 @@ pub struct CompanionDevice {
     pub signed_out: bool,
     pub this_device: bool,
 }
+// ---------------------------------------------------------------- smart picks
+
+/// How many picks are new to the user (board 38): Familiar 5%, Balanced 10%,
+/// Adventurous 20% of slots.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum Adventurousness {
+    Familiar,
+    Balanced,
+    Adventurous,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum TimeOfDay {
+    /// 0:00 to 5:59.
+    Night,
+    Morning,
+    Afternoon,
+    /// 18:00 to 23:59.
+    Evening,
+}
+
+/// What a reason says; the fields it uses are set (board 38: plain facts the user
+/// can check, never mood, health or place).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum ReasonKind {
+    /// `song`, `count` of `of`: "You finished Night Market 9 of the last 10 times, and
+    /// this sounds like it."
+    FinishedOften,
+    /// `song`: "You often play this with Night Market."
+    PlayedTogether,
+    /// `time_of_day`: "You often play songs like this in the evening."
+    TimeOfDay,
+    /// "You liked this."
+    YouLikedIt,
+    /// `days`: "You loved this and haven't played it for 74 days."
+    Rediscover,
+    /// `artist`: "More from Ember Cove, whom you play often."
+    SameArtist,
+    /// `genre`: "Like the folk you play."
+    SameGenre,
+    /// `count`: "Played 14 times in your other apps."
+    PlayedElsewhere,
+    /// "New to you: picked so Encore keeps learning."
+    NewToYou,
+    /// "Added to your library recently."
+    RecentlyAdded,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct PickReason {
+    pub kind: ReasonKind,
+    pub song: Option<Song>,
+    pub count: Option<u32>,
+    pub of: Option<u32>,
+    pub days: Option<u32>,
+    pub time_of_day: Option<TimeOfDay>,
+    pub artist: Option<String>,
+    pub genre: Option<String>,
+}
+
+/// Why this song (board 38): one or two reasons, and up to two songs it sounds
+/// like (they open on tap).
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct WhyThisSong {
+    pub reasons: Vec<PickReason>,
+    pub sounds_like: Vec<Song>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum NotInterestedReason {
+    /// Lowers the song and its neighbours (also the default).
+    NotMyTaste,
+    /// Rests the song for 30 days only.
+    HeardTooMuch,
+    /// Lowers it at this time of day only.
+    WrongMoment,
+}
+
+/// One entry of Settings, Not interested.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct NotInterestedItem {
+    /// Set for a song (the song still plays when the user picks it).
+    pub song_id: Option<i64>,
+    /// Set for an artist.
+    pub artist: Option<String>,
+    /// The song's title or the artist's name, for the list.
+    pub label: String,
+    pub reason: NotInterestedReason,
+    pub added_utc_ms: i64,
+}
+
+/// A mix card's state (board 38); every state has a text label in the app.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum MixState {
+    Fresh,
+    /// No good build for 48 hours: show the age and Refresh, never an empty tile.
+    OutOfDate,
+    /// Under `smartPicks.coldStart.fullFromPlays`: "Encore is still learning",
+    /// with `plays_so_far` of `plays_needed`. Starter or family mixes may sit beside it.
+    NotEnoughPlays,
+    /// Learn from my listening is off: Recently added and Most played instead.
+    LearningOff,
+    /// Private listening or Guest is on: suggestions don't change from this session.
+    Private,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum MixKind {
+    Strongest,
+    Second,
+    TimeOfDay,
+    /// Where taste has drifted in the last 30 days.
+    Drift,
+    /// About 30% new to the user.
+    Stretch,
+    /// While still learning: a mix by mood family.
+    Family,
+    /// No plays yet: from the media server's favourites and most played.
+    Starter,
+}
+
+/// A mix tile (Home's Made for you, the Mixes tab).
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct MixSummary {
+    pub mix_id: String,
+    pub kind: MixKind,
+    /// 2 to 4 plain words (the section 7.1 rules, enforced in the core).
+    pub title: String,
+    /// "Mostly A, B and 12 more".
+    pub subtitle: String,
+    /// The songs for the 2×2 cover mosaic (up to 4, different albums).
+    pub cover_song_ids: Vec<i64>,
+    pub song_count: u32,
+    pub pinned: bool,
+    pub made_utc_ms: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct MixShelf {
+    pub state: MixState,
+    /// Pinned first, then today's set.
+    pub mixes: Vec<MixSummary>,
+    pub plays_so_far: u32,
+    pub plays_needed: u32,
+    /// When the set was made; None before the first build.
+    pub made_utc_ms: Option<i64>,
+}
+
+/// Home (boards 05 and 23; the surfaces table of section 21).
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct Home {
+    pub made_for_you: MixShelf,
+    /// Loved songs not heard for 60+ days (12), else random liked songs.
+    pub rediscover: Vec<Song>,
+    /// Plain history order, no smarts.
+    pub recently_played: Vec<Song>,
+    /// Never played, matching the user's taste.
+    pub deep_cuts: Vec<Song>,
+    pub recently_added: Vec<Song>,
+    /// The Learning-off fallback (also shown when there is little else).
+    pub most_played: Vec<Song>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct MixSong {
+    pub song: Song,
+    /// One short reason for the row (board 15, item 5).
+    pub reason: Option<PickReason>,
+    /// New to the user (the stretch mix's 30%).
+    pub new_to_you: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct MixPage {
+    pub summary: MixSummary,
+    pub songs: Vec<MixSong>,
+}
+
+/// One shelf of How suggestions are doing (board 38, note 7): the last 4 weeks.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct ShelfStat {
+    /// "autoplay", "mix", "radio", "smartShuffle".
+    pub shelf: String,
+    pub plays: u32,
+    /// Per 1,000 plays (show as a percentage: 123 is 12.3%).
+    pub early_skips_per_1000: u32,
+    pub finished_per_1000: u32,
+    /// Distinct artists in each run of 20 songs, times 10 (show 87 as 8.7).
+    pub artists_per_20_x10: u32,
+    pub repeats_per_1000: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct SuggestionStats {
+    pub since_utc_ms: i64,
+    pub shelves: Vec<ShelfStat>,
+}
+
+/// What a radio is started from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum RadioSeed {
+    Song,
+    Album,
+    Artist,
+    Playlist,
+}
 // ---------------------------------------------------------------- events
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -14,6 +14,15 @@ use std::sync::Arc;
 use flutter_rust_bridge::frb;
 
 pub use encore_core::api::{
+    Adventurousness, ArtworkPalette, CompanionDevice, DropPreview, DropRefusal, DropTarget,
+    DropTargetKind, EditResult, ExportSummary, GuestSession, Home, InterruptionKind,
+    LyricBackground, LyricGap, LyricLine, LyricMatch, LyricSide, LyricWord, LyricsFormat,
+    LyricsOrigin, LyricsSync, MixKind, MixPage, MixShelf, MixSong, MixState, MixSummary,
+    NotInterestedItem, NotInterestedReason, PaletteScheme, PaletteSwatch, PickReason, RadioSeed,
+    ReasonKind, SentEdits, ShelfStat, Singer, SingerKind, SkipOrigin, SkipTarget, SongLyrics,
+    SuggestionStats, TimeOfDay, WhyThisSong,
+};
+pub use encore_core::api::{
     AlbumDetail, AlbumSort, AlbumSummary, ArtistDetail, ArtistSummary, ArtworkOf, ArtworkRequest,
     ChosenBy, CoreConfig, CoreEvent, CredentialKey, EncoreError, EndReason, ErrorKind, EventKind,
     GenreSummary, HttpHeader, ListeningMode, Network, PlaylistDetail, PlaylistEntry,
@@ -21,13 +30,6 @@ pub use encore_core::api::{
     RemoteChange, RepeatMode, ResultKind, SearchResults, ServerCheck, ServerRow, SignedIn, Song,
     SongSort, SourceToken, StartedFrom, StreamInfo, StreamQuality, SyncResult, SyncState,
     SyncStatus, TopResult, TranscodeCodec,
-};
-pub use encore_core::api::{
-    ArtworkPalette, CompanionDevice, DropPreview, DropRefusal, DropTarget, DropTargetKind,
-    EditResult, ExportSummary, GuestSession, InterruptionKind, LyricBackground, LyricGap,
-    LyricLine, LyricMatch, LyricSide, LyricWord, LyricsFormat, LyricsOrigin, LyricsSync,
-    PaletteScheme, PaletteSwatch, SentEdits, Singer, SingerKind, SkipOrigin, SkipTarget,
-    SongLyrics,
 };
 use encore_core::api::{CoreListener, EncoreCore};
 
@@ -89,6 +91,157 @@ pub struct _ProfileSummary {
     pub locked: bool,
     pub active: bool,
     pub needs_sign_in: bool,
+}
+
+#[frb(mirror(Adventurousness))]
+pub enum _Adventurousness {
+    Familiar,
+    Balanced,
+    Adventurous,
+}
+
+#[frb(mirror(TimeOfDay))]
+pub enum _TimeOfDay {
+    Night,
+    Morning,
+    Afternoon,
+    Evening,
+}
+
+#[frb(mirror(ReasonKind))]
+pub enum _ReasonKind {
+    FinishedOften,
+    PlayedTogether,
+    TimeOfDay,
+    YouLikedIt,
+    Rediscover,
+    SameArtist,
+    SameGenre,
+    PlayedElsewhere,
+    NewToYou,
+    RecentlyAdded,
+}
+
+#[frb(mirror(PickReason))]
+pub struct _PickReason {
+    pub kind: ReasonKind,
+    pub song: Option<Song>,
+    pub count: Option<u32>,
+    pub of: Option<u32>,
+    pub days: Option<u32>,
+    pub time_of_day: Option<TimeOfDay>,
+    pub artist: Option<String>,
+    pub genre: Option<String>,
+}
+
+#[frb(mirror(WhyThisSong))]
+pub struct _WhyThisSong {
+    pub reasons: Vec<PickReason>,
+    pub sounds_like: Vec<Song>,
+}
+
+#[frb(mirror(NotInterestedReason))]
+pub enum _NotInterestedReason {
+    NotMyTaste,
+    HeardTooMuch,
+    WrongMoment,
+}
+
+#[frb(mirror(NotInterestedItem))]
+pub struct _NotInterestedItem {
+    pub song_id: Option<i64>,
+    pub artist: Option<String>,
+    pub label: String,
+    pub reason: NotInterestedReason,
+    pub added_utc_ms: i64,
+}
+
+#[frb(mirror(MixState))]
+pub enum _MixState {
+    Fresh,
+    OutOfDate,
+    NotEnoughPlays,
+    LearningOff,
+    Private,
+}
+
+#[frb(mirror(MixKind))]
+pub enum _MixKind {
+    Strongest,
+    Second,
+    TimeOfDay,
+    Drift,
+    Stretch,
+    Family,
+    Starter,
+}
+
+#[frb(mirror(MixSummary))]
+pub struct _MixSummary {
+    pub mix_id: String,
+    pub kind: MixKind,
+    pub title: String,
+    pub subtitle: String,
+    pub cover_song_ids: Vec<i64>,
+    pub song_count: u32,
+    pub pinned: bool,
+    pub made_utc_ms: i64,
+}
+
+#[frb(mirror(MixShelf))]
+pub struct _MixShelf {
+    pub state: MixState,
+    pub mixes: Vec<MixSummary>,
+    pub plays_so_far: u32,
+    pub plays_needed: u32,
+    pub made_utc_ms: Option<i64>,
+}
+
+#[frb(mirror(Home))]
+pub struct _Home {
+    pub made_for_you: MixShelf,
+    pub rediscover: Vec<Song>,
+    pub recently_played: Vec<Song>,
+    pub deep_cuts: Vec<Song>,
+    pub recently_added: Vec<Song>,
+    pub most_played: Vec<Song>,
+}
+
+#[frb(mirror(MixSong))]
+pub struct _MixSong {
+    pub song: Song,
+    pub reason: Option<PickReason>,
+    pub new_to_you: bool,
+}
+
+#[frb(mirror(MixPage))]
+pub struct _MixPage {
+    pub summary: MixSummary,
+    pub songs: Vec<MixSong>,
+}
+
+#[frb(mirror(ShelfStat))]
+pub struct _ShelfStat {
+    pub shelf: String,
+    pub plays: u32,
+    pub early_skips_per_1000: u32,
+    pub finished_per_1000: u32,
+    pub artists_per_20_x10: u32,
+    pub repeats_per_1000: u32,
+}
+
+#[frb(mirror(SuggestionStats))]
+pub struct _SuggestionStats {
+    pub since_utc_ms: i64,
+    pub shelves: Vec<ShelfStat>,
+}
+
+#[frb(mirror(RadioSeed))]
+pub enum _RadioSeed {
+    Song,
+    Album,
+    Artist,
+    Playlist,
 }
 
 #[frb(mirror(GuestSession))]
@@ -761,6 +914,113 @@ impl Encore {
         Ok(self.core.profiles()?)
     }
 
+    // Phase 5: smart picks
+    #[frb(sync)]
+    pub fn refresh_autoplay(&self) -> Result<QueueState, ApiError> {
+        Ok(self.core.refresh_autoplay()?)
+    }
+    #[frb(sync)]
+    pub fn start_radio(&self, seed: RadioSeed, id: i64) -> Result<QueueState, ApiError> {
+        Ok(self.core.start_radio(seed, id)?)
+    }
+    #[frb(sync)]
+    pub fn smart_shuffle(
+        &self,
+        song_ids: Vec<i64>,
+        started_from: StartedFrom,
+        context_id: Option<String>,
+    ) -> Result<QueueState, ApiError> {
+        Ok(self
+            .core
+            .smart_shuffle(song_ids, started_from, context_id)?)
+    }
+    #[frb(sync)]
+    pub fn why_this_song(&self, song_id: i64) -> Result<WhyThisSong, ApiError> {
+        Ok(self.core.why_this_song(song_id)?)
+    }
+    #[frb(sync)]
+    pub fn more_like_this(&self, song_id: i64) -> Result<(), ApiError> {
+        Ok(self.core.more_like_this(song_id)?)
+    }
+    #[frb(sync)]
+    pub fn fewer_like_this(&self, song_id: i64) -> Result<(), ApiError> {
+        Ok(self.core.fewer_like_this(song_id)?)
+    }
+    #[frb(sync)]
+    pub fn not_interested_song(
+        &self,
+        song_id: i64,
+        reason: NotInterestedReason,
+    ) -> Result<NotInterestedItem, ApiError> {
+        Ok(self.core.not_interested_song(song_id, reason)?)
+    }
+    #[frb(sync)]
+    pub fn not_interested_artist(
+        &self,
+        artist: String,
+        reason: NotInterestedReason,
+    ) -> Result<NotInterestedItem, ApiError> {
+        Ok(self.core.not_interested_artist(artist, reason)?)
+    }
+    #[frb(sync)]
+    pub fn remove_not_interested(&self, item: NotInterestedItem) -> Result<(), ApiError> {
+        Ok(self.core.remove_not_interested(item)?)
+    }
+    #[frb(sync)]
+    pub fn not_interested_list(&self) -> Result<Vec<NotInterestedItem>, ApiError> {
+        Ok(self.core.not_interested_list()?)
+    }
+    #[frb(sync)]
+    pub fn clear_not_interested(&self) -> Result<(), ApiError> {
+        Ok(self.core.clear_not_interested()?)
+    }
+    #[frb(sync)]
+    pub fn set_adventurousness(&self, level: Adventurousness) -> Result<(), ApiError> {
+        Ok(self.core.set_adventurousness(level)?)
+    }
+    #[frb(sync)]
+    pub fn adventurousness(&self) -> Result<Adventurousness, ApiError> {
+        Ok(self.core.adventurousness()?)
+    }
+    #[frb(sync)]
+    pub fn reset_suggestions(&self) -> Result<(), ApiError> {
+        Ok(self.core.reset_suggestions()?)
+    }
+    #[frb(sync)]
+    pub fn clear_listening_history(&self) -> Result<u32, ApiError> {
+        Ok(self.core.clear_listening_history()?)
+    }
+    pub async fn home(&self) -> Result<Home, ApiError> {
+        Ok(self.core.home().await?)
+    }
+    pub async fn regenerate_mixes(&self) -> Result<Home, ApiError> {
+        Ok(self.core.regenerate_mixes().await?)
+    }
+    #[frb(sync)]
+    pub fn mix(&self, mix_id: String) -> Result<MixPage, ApiError> {
+        Ok(self.core.mix(mix_id)?)
+    }
+    #[frb(sync)]
+    pub fn pin_mix(&self, mix_id: String, pinned: bool) -> Result<(), ApiError> {
+        Ok(self.core.pin_mix(mix_id, pinned)?)
+    }
+    #[frb(sync)]
+    pub fn hide_mix(&self, mix_id: String) -> Result<(), ApiError> {
+        Ok(self.core.hide_mix(mix_id)?)
+    }
+    #[frb(sync)]
+    pub fn not_in_this_mix(&self, mix_id: String, song_id: i64) -> Result<(), ApiError> {
+        Ok(self.core.not_in_this_mix(mix_id, song_id)?)
+    }
+    #[frb(sync)]
+    pub fn save_mix_as_playlist(&self, mix_id: String) -> Result<EditResult, ApiError> {
+        Ok(self.core.save_mix_as_playlist(mix_id)?)
+    }
+    #[frb(sync)]
+    pub fn suggestion_stats(&self) -> Result<SuggestionStats, ApiError> {
+        Ok(self.core.suggestion_stats()?)
+    }
+
     // Phase 4: profiles on this device (board 14)
     pub async fn switch_profile(
         &self,
@@ -1027,6 +1287,10 @@ impl Encore {
     #[frb(sync)]
     pub fn set_repeat(&self, mode: RepeatMode) -> Result<QueueState, ApiError> {
         Ok(self.core.set_repeat(mode)?)
+    }
+    #[frb(sync)]
+    pub fn set_autoplay(&self, enabled: bool) -> Result<QueueState, ApiError> {
+        Ok(self.core.set_autoplay(enabled)?)
     }
 
     // playback reports
