@@ -322,7 +322,7 @@ fun NowPlayingScreen(
                                     2 -> ButtonGroupDefaults.connectedTrailingButtonShapes()
                                     else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
                                 },
-                                colors = ToggleButtonDefaults.toggleButtonColors(
+                                colors = ToggleButtonDefaults.colors(
                                     containerColor = content.copy(alpha = 0.12f),
                                     contentColor = content,
                                     checkedContainerColor = content.copy(alpha = 0.3f),
@@ -405,7 +405,6 @@ private fun ArtworkArea(
                             onMenu()
                         },
                         onLongClickLabel = "More options",
-                        onDoubleClickLabel = if (liked) "Liked" else "Like",
                     ),
             ) {
                 Artwork(ArtworkOf.SONG, id, (if (wide > 600) ART_MAX_DP else wide).dp, Modifier.fillMaxSize(), cornerRadius = ART_RADIUS_DP.dp)
