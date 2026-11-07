@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The Iris seed (design/tokens.json color.accents.iris.seed). XML resources cannot
+         read the generated constants; ThemeTokensTest checks this value against them. -->
+    <color name="ic_launcher_background">#5B3FC4</color>
+</resources>

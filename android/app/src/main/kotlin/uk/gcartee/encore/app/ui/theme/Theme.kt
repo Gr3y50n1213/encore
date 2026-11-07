@@ -1,0 +1,119 @@
+package uk.gcartee.encore.app.ui.theme
+
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialExpressiveTheme
+import androidx.compose.material3.MotionScheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
+import uk.gcartee.encore.tokens.EncoreTokens.Color.Accents.Iris
+
+/** A `#RRGGBB` token as an opaque colour. */
+fun tokenColor(hex: String): Color {
+    require(hex.length == 7 && hex[0] == '#') { "Not a #RRGGBB token: $hex" }
+    return Color(0xFF000000 or hex.substring(1).toLong(16))
+}
+
+/**
+ * The Iris accent's light scheme (design/tokens.json `color.accents.iris.light`), the
+ * default on Android until a profile picks an accent or an album colour applies.
+ */
+fun irisLightScheme(): ColorScheme = with(Iris.Light) {
+    lightColorScheme(
+        primary = tokenColor(primary),
+        onPrimary = tokenColor(onPrimary),
+        primaryContainer = tokenColor(primaryContainer),
+        onPrimaryContainer = tokenColor(onPrimaryContainer),
+        inversePrimary = tokenColor(inversePrimary),
+        secondary = tokenColor(secondary),
+        onSecondary = tokenColor(onSecondary),
+        secondaryContainer = tokenColor(secondaryContainer),
+        onSecondaryContainer = tokenColor(onSecondaryContainer),
+        tertiary = tokenColor(tertiary),
+        onTertiary = tokenColor(onTertiary),
+        tertiaryContainer = tokenColor(tertiaryContainer),
+        onTertiaryContainer = tokenColor(onTertiaryContainer),
+        background = tokenColor(surface),
+        onBackground = tokenColor(onSurface),
+        surface = tokenColor(surface),
+        onSurface = tokenColor(onSurface),
+        surfaceVariant = tokenColor(surfaceContainerHighest),
+        onSurfaceVariant = tokenColor(onSurfaceVariant),
+        surfaceTint = tokenColor(primary),
+        inverseSurface = tokenColor(inverseSurface),
+        inverseOnSurface = tokenColor(inverseOnSurface),
+        error = tokenColor(error),
+        onError = tokenColor(onError),
+        errorContainer = tokenColor(errorContainer),
+        onErrorContainer = tokenColor(onErrorContainer),
+        outline = tokenColor(outline),
+        outlineVariant = tokenColor(outlineVariant),
+        scrim = tokenColor(scrim),
+        surfaceBright = tokenColor(surfaceBright),
+        surfaceContainer = tokenColor(surfaceContainer),
+        surfaceContainerHigh = tokenColor(surfaceContainerHigh),
+        surfaceContainerHighest = tokenColor(surfaceContainerHighest),
+        surfaceContainerLow = tokenColor(surfaceContainerLow),
+        surfaceContainerLowest = tokenColor(surfaceContainerLowest),
+        surfaceDim = tokenColor(surfaceDim),
+    )
+}
+
+/** The Iris accent's dark scheme (`color.accents.iris.dark`). */
+fun irisDarkScheme(): ColorScheme = with(Iris.Dark) {
+    darkColorScheme(
+        primary = tokenColor(primary),
+        onPrimary = tokenColor(onPrimary),
+        primaryContainer = tokenColor(primaryContainer),
+        onPrimaryContainer = tokenColor(onPrimaryContainer),
+        inversePrimary = tokenColor(inversePrimary),
+        secondary = tokenColor(secondary),
+        onSecondary = tokenColor(onSecondary),
+        secondaryContainer = tokenColor(secondaryContainer),
+        onSecondaryContainer = tokenColor(onSecondaryContainer),
+        tertiary = tokenColor(tertiary),
+        onTertiary = tokenColor(onTertiary),
+        tertiaryContainer = tokenColor(tertiaryContainer),
+        onTertiaryContainer = tokenColor(onTertiaryContainer),
+        background = tokenColor(surface),
+        onBackground = tokenColor(onSurface),
+        surface = tokenColor(surface),
+        onSurface = tokenColor(onSurface),
+        surfaceVariant = tokenColor(surfaceContainerHighest),
+        onSurfaceVariant = tokenColor(onSurfaceVariant),
+        surfaceTint = tokenColor(primary),
+        inverseSurface = tokenColor(inverseSurface),
+        inverseOnSurface = tokenColor(inverseOnSurface),
+        error = tokenColor(error),
+        onError = tokenColor(onError),
+        errorContainer = tokenColor(errorContainer),
+        onErrorContainer = tokenColor(onErrorContainer),
+        outline = tokenColor(outline),
+        outlineVariant = tokenColor(outlineVariant),
+        scrim = tokenColor(scrim),
+        surfaceBright = tokenColor(surfaceBright),
+        surfaceContainer = tokenColor(surfaceContainer),
+        surfaceContainerHigh = tokenColor(surfaceContainerHigh),
+        surfaceContainerHighest = tokenColor(surfaceContainerHighest),
+        surfaceContainerLow = tokenColor(surfaceContainerLow),
+        surfaceContainerLowest = tokenColor(surfaceContainerLowest),
+        surfaceDim = tokenColor(surfaceDim),
+    )
+}
+
+/**
+ * Material 3 Expressive with the expressive motion scheme (plan section 16: Android
+ * takes its springs from `MotionScheme.expressive()`) and the token colours.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun EncoreTheme(dark: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+    MaterialExpressiveTheme(
+        colorScheme = if (dark) irisDarkScheme() else irisLightScheme(),
+        motionScheme = MotionScheme.expressive(),
+        content = content,
+    )
+}

@@ -1,0 +1,45 @@
+# Every library the Android app uses, at an exact version (docs/adr/android-0001-project-and-core-build.md).
+# Check the licence again before adding a line, and add it to THIRD_PARTY_LICENSES.
+[versions]
+# Android Gradle plugin 9.5 needs Gradle 9.6 and JDK 17, builds up to API 37, and has Kotlin built in.
+agp = "9.5.1"
+kotlin = "2.4.21"
+# NDK r28 aligns native libraries to 16 KB pages by default (AGP 9.5's default NDK).
+ndk = "28.2.13676358"
+composeBom = "2026.09.00"
+# Material 3 Expressive: ButtonGroup, ToggleButton, wavy progress and the expressive
+# motion scheme became stable APIs in the 1.5.0 line (release notes, 1.5.0-alpha15 to
+# alpha22); the BOM's 1.4.0 predates that. Move to 1.5.0 once it is final.
+material3 = "1.5.0-rc01"
+activityCompose = "1.13.0"
+coreKtx = "1.19.1"
+# The core's Kotlin bindings: JNA (Android build) and coroutines, the versions core CI tests with.
+jna = "5.17.0"
+coroutines = "1.11.0"
+# The certificate verifier's Kotlin part must match rustls-platform-verifier-android in
+# core/Cargo.lock; app/build.gradle.kts checks that.
+rustlsPlatformVerifier = "0.2.0"
+junit = "4.13.2"
+androidxTestExt = "1.3.0"
+androidxTestRunner = "1.7.0"
+
+[libraries]
+compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+compose-ui = { group = "androidx.compose.ui", name = "ui" }
+compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
+activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+jna = { group = "net.java.dev.jna", name = "jna", version.ref = "jna" }
+coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+rustls-platform-verifier = { group = "org.rustls", name = "rustls-platform-verifier", version.ref = "rustlsPlatformVerifier" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestExt" }
+androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

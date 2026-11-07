@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Only the window before Compose draws; every colour on screen comes from the
+         token constants (EncoreTheme). Edge to edge is set in MainActivity. -->
+    <style name="Theme.Encore" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

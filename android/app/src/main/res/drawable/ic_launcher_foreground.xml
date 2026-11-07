@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Material Symbols "music_note" (Apache-2.0), centred in the 108 dp adaptive canvas. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="1728"
+    android:viewportHeight="1728">
+    <group android:translateX="384" android:translateY="1344">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M400,-120q-66,0 -113,-47t-47,-113q0,-66 47,-113t113,-47q23,0 42.5,5.5T480,-418v-422h240v160H560v400q0,66 -47,113t-113,47Z" />
+    </group>
+</vector>

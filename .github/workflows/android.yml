@@ -1,0 +1,148 @@
+# CI for the Android track (android/). The core track's core.yml proves the core's
+# libraries; this proves the app: it builds the Rust core inside android/ for all four
+# ABIs, runs `make check-android` (lint, unit tests, debug and release builds, 16 KB
+# alignment), then starts the app on emulators at the oldest and newest Android it
+# supports and checks that the first screen shows the core's words.
+#
+# Actions are pinned to commit SHAs; the comment names the release.
+name: android
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "android/**"
+      - "!android/**/*.md"
+      - "core/**"
+      - "!core/**/*.md"
+      - "design/tokens.json"
+      - ".github/workflows/android.yml"
+  pull_request:
+    paths:
+      - "android/**"
+      - "!android/**/*.md"
+      - "core/**"
+      - "!core/**/*.md"
+      - "design/tokens.json"
+      - ".github/workflows/android.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  # android/gradle/libs.versions.toml `ndk`; AGP 9.5's default NDK.
+  NDK_VERSION: 28.2.13676358
+
+jobs:
+  check:
+    name: "make check-android: lint, tests, debug and release, four ABIs"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Rust (stable, with the Android targets) and the NDK
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android i686-linux-android
+          rustc --version
+          # Material 3 1.5 compiles against API 37 (the app targets 36).
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION" "platforms;android-37.0" "build-tools;36.0.0" > /dev/null
+          grep Pkg.Revision "$ANDROID_HOME/ndk/$NDK_VERSION/source.properties"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            android/app/build/cargo
+          key: android-core-${{ hashFiles('core/Cargo.lock') }}
+          restore-keys: android-core-
+
+      # Checks the wrapper jar against Gradle's published checksums, and caches Gradle.
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+
+      - name: make check-android
+        run: make check-android
+
+      - name: Upload the APKs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: encore-android-apks
+          # The release APK is signed with the debug key (encore.signReleaseWithDebugKey):
+          # for trying on a phone only, never for a store.
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/release/app-release.apk
+            android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Upload the lint report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: encore-android-lint
+          path: android/app/build/reports
+          retention-days: 7
+
+  emulator:
+    name: "Emulator, API ${{ matrix.api }}: the core's words on screen"
+    needs: check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The oldest Android the app supports (plan section 15), and the one it targets
+          # with 16 KB memory pages, so the core's libraries are proven to load there.
+          - api: 28
+            target: default
+          - api: 36
+            target: google_apis_ps16k
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: encore-android-apks
+          path: apks
+
+      - name: Let the emulator use KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: ${{ matrix.api }}
+          target: ${{ matrix.target }}
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          script: bash android/ci/device-check.sh apks
+
+      - name: Upload screenshots and logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: encore-android-emulator-api${{ matrix.api }}
+          path: device-check
+          retention-days: 7
+          if-no-files-found: warn
