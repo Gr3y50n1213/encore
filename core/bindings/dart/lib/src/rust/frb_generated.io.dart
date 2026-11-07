@@ -76,11 +76,17 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected GuestSession dco_decode_box_autoadd_guest_session(dynamic raw);
 
+@protected HandoffInfo dco_decode_box_autoadd_handoff_info(dynamic raw);
+
 @protected int dco_decode_box_autoadd_i_32(dynamic raw);
 
 @protected PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
 
 @protected NotInterestedItem dco_decode_box_autoadd_not_interested_item(dynamic raw);
+
+@protected OutputDevice dco_decode_box_autoadd_output_device(dynamic raw);
+
+@protected OutputDevices dco_decode_box_autoadd_output_devices(dynamic raw);
 
 @protected PickReason dco_decode_box_autoadd_pick_reason(dynamic raw);
 
@@ -91,6 +97,12 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected QueueState dco_decode_box_autoadd_queue_state(dynamic raw);
 
 @protected RemoteChange dco_decode_box_autoadd_remote_change(dynamic raw);
+
+@protected RemoteCommand dco_decode_box_autoadd_remote_command(dynamic raw);
+
+@protected RemoteQueueItem dco_decode_box_autoadd_remote_queue_item(dynamic raw);
+
+@protected RemoteSong dco_decode_box_autoadd_remote_song(dynamic raw);
 
 @protected Song dco_decode_box_autoadd_song(dynamic raw);
 
@@ -118,6 +130,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected CredentialKey dco_decode_credential_key(dynamic raw);
 
+@protected DeviceState dco_decode_device_state(dynamic raw);
+
 @protected DropPreview dco_decode_drop_preview(dynamic raw);
 
 @protected DropRefusal dco_decode_drop_refusal(dynamic raw);
@@ -141,6 +155,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected GenreSummary dco_decode_genre_summary(dynamic raw);
 
 @protected GuestSession dco_decode_guest_session(dynamic raw);
+
+@protected HandoffInfo dco_decode_handoff_info(dynamic raw);
 
 @protected Home dco_decode_home(dynamic raw);
 
@@ -184,6 +200,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected List<NotInterestedItem> dco_decode_list_not_interested_item(dynamic raw);
 
+@protected List<OutputDevice> dco_decode_list_output_device(dynamic raw);
+
 @protected List<PaletteSwatch> dco_decode_list_palette_swatch(dynamic raw);
 
 @protected List<PickReason> dco_decode_list_pick_reason(dynamic raw);
@@ -203,6 +221,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected List<ProfileSummary> dco_decode_list_profile_summary(dynamic raw);
 
 @protected List<QueueEntry> dco_decode_list_queue_entry(dynamic raw);
+
+@protected List<RemoteQueueItem> dco_decode_list_remote_queue_item(dynamic raw);
 
 @protected List<ServerRow> dco_decode_list_server_row(dynamic raw);
 
@@ -268,9 +288,15 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected GuestSession? dco_decode_opt_box_autoadd_guest_session(dynamic raw);
 
+@protected HandoffInfo? dco_decode_opt_box_autoadd_handoff_info(dynamic raw);
+
 @protected int? dco_decode_opt_box_autoadd_i_32(dynamic raw);
 
 @protected PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
+
+@protected OutputDevice? dco_decode_opt_box_autoadd_output_device(dynamic raw);
+
+@protected OutputDevices? dco_decode_opt_box_autoadd_output_devices(dynamic raw);
 
 @protected PickReason? dco_decode_opt_box_autoadd_pick_reason(dynamic raw);
 
@@ -281,6 +307,12 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected QueueState? dco_decode_opt_box_autoadd_queue_state(dynamic raw);
 
 @protected RemoteChange? dco_decode_opt_box_autoadd_remote_change(dynamic raw);
+
+@protected RemoteCommand? dco_decode_opt_box_autoadd_remote_command(dynamic raw);
+
+@protected RemoteQueueItem? dco_decode_opt_box_autoadd_remote_queue_item(dynamic raw);
+
+@protected RemoteSong? dco_decode_opt_box_autoadd_remote_song(dynamic raw);
 
 @protected Song? dco_decode_opt_box_autoadd_song(dynamic raw);
 
@@ -297,6 +329,12 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected int? dco_decode_opt_box_autoadd_u_16(dynamic raw);
 
 @protected int? dco_decode_opt_box_autoadd_u_32(dynamic raw);
+
+@protected OutputDevice dco_decode_output_device(dynamic raw);
+
+@protected OutputDevices dco_decode_output_devices(dynamic raw);
+
+@protected OutputState dco_decode_output_state(dynamic raw);
 
 @protected PaletteScheme dco_decode_palette_scheme(dynamic raw);
 
@@ -325,6 +363,16 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected ReasonKind dco_decode_reason_kind(dynamic raw);
 
 @protected RemoteChange dco_decode_remote_change(dynamic raw);
+
+@protected RemoteCommand dco_decode_remote_command(dynamic raw);
+
+@protected RemoteCommandKind dco_decode_remote_command_kind(dynamic raw);
+
+@protected RemoteQueue dco_decode_remote_queue(dynamic raw);
+
+@protected RemoteQueueItem dco_decode_remote_queue_item(dynamic raw);
+
+@protected RemoteSong dco_decode_remote_song(dynamic raw);
 
 @protected RepeatMode dco_decode_repeat_mode(dynamic raw);
 
@@ -442,11 +490,17 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected GuestSession sse_decode_box_autoadd_guest_session(SseDeserializer deserializer);
 
+@protected HandoffInfo sse_decode_box_autoadd_handoff_info(SseDeserializer deserializer);
+
 @protected int sse_decode_box_autoadd_i_32(SseDeserializer deserializer);
 
 @protected PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
 
 @protected NotInterestedItem sse_decode_box_autoadd_not_interested_item(SseDeserializer deserializer);
+
+@protected OutputDevice sse_decode_box_autoadd_output_device(SseDeserializer deserializer);
+
+@protected OutputDevices sse_decode_box_autoadd_output_devices(SseDeserializer deserializer);
 
 @protected PickReason sse_decode_box_autoadd_pick_reason(SseDeserializer deserializer);
 
@@ -457,6 +511,12 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected QueueState sse_decode_box_autoadd_queue_state(SseDeserializer deserializer);
 
 @protected RemoteChange sse_decode_box_autoadd_remote_change(SseDeserializer deserializer);
+
+@protected RemoteCommand sse_decode_box_autoadd_remote_command(SseDeserializer deserializer);
+
+@protected RemoteQueueItem sse_decode_box_autoadd_remote_queue_item(SseDeserializer deserializer);
+
+@protected RemoteSong sse_decode_box_autoadd_remote_song(SseDeserializer deserializer);
 
 @protected Song sse_decode_box_autoadd_song(SseDeserializer deserializer);
 
@@ -484,6 +544,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected CredentialKey sse_decode_credential_key(SseDeserializer deserializer);
 
+@protected DeviceState sse_decode_device_state(SseDeserializer deserializer);
+
 @protected DropPreview sse_decode_drop_preview(SseDeserializer deserializer);
 
 @protected DropRefusal sse_decode_drop_refusal(SseDeserializer deserializer);
@@ -507,6 +569,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected GenreSummary sse_decode_genre_summary(SseDeserializer deserializer);
 
 @protected GuestSession sse_decode_guest_session(SseDeserializer deserializer);
+
+@protected HandoffInfo sse_decode_handoff_info(SseDeserializer deserializer);
 
 @protected Home sse_decode_home(SseDeserializer deserializer);
 
@@ -550,6 +614,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected List<NotInterestedItem> sse_decode_list_not_interested_item(SseDeserializer deserializer);
 
+@protected List<OutputDevice> sse_decode_list_output_device(SseDeserializer deserializer);
+
 @protected List<PaletteSwatch> sse_decode_list_palette_swatch(SseDeserializer deserializer);
 
 @protected List<PickReason> sse_decode_list_pick_reason(SseDeserializer deserializer);
@@ -569,6 +635,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected List<ProfileSummary> sse_decode_list_profile_summary(SseDeserializer deserializer);
 
 @protected List<QueueEntry> sse_decode_list_queue_entry(SseDeserializer deserializer);
+
+@protected List<RemoteQueueItem> sse_decode_list_remote_queue_item(SseDeserializer deserializer);
 
 @protected List<ServerRow> sse_decode_list_server_row(SseDeserializer deserializer);
 
@@ -634,9 +702,15 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected GuestSession? sse_decode_opt_box_autoadd_guest_session(SseDeserializer deserializer);
 
+@protected HandoffInfo? sse_decode_opt_box_autoadd_handoff_info(SseDeserializer deserializer);
+
 @protected int? sse_decode_opt_box_autoadd_i_32(SseDeserializer deserializer);
 
 @protected PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
+
+@protected OutputDevice? sse_decode_opt_box_autoadd_output_device(SseDeserializer deserializer);
+
+@protected OutputDevices? sse_decode_opt_box_autoadd_output_devices(SseDeserializer deserializer);
 
 @protected PickReason? sse_decode_opt_box_autoadd_pick_reason(SseDeserializer deserializer);
 
@@ -647,6 +721,12 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected QueueState? sse_decode_opt_box_autoadd_queue_state(SseDeserializer deserializer);
 
 @protected RemoteChange? sse_decode_opt_box_autoadd_remote_change(SseDeserializer deserializer);
+
+@protected RemoteCommand? sse_decode_opt_box_autoadd_remote_command(SseDeserializer deserializer);
+
+@protected RemoteQueueItem? sse_decode_opt_box_autoadd_remote_queue_item(SseDeserializer deserializer);
+
+@protected RemoteSong? sse_decode_opt_box_autoadd_remote_song(SseDeserializer deserializer);
 
 @protected Song? sse_decode_opt_box_autoadd_song(SseDeserializer deserializer);
 
@@ -663,6 +743,12 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected int? sse_decode_opt_box_autoadd_u_16(SseDeserializer deserializer);
 
 @protected int? sse_decode_opt_box_autoadd_u_32(SseDeserializer deserializer);
+
+@protected OutputDevice sse_decode_output_device(SseDeserializer deserializer);
+
+@protected OutputDevices sse_decode_output_devices(SseDeserializer deserializer);
+
+@protected OutputState sse_decode_output_state(SseDeserializer deserializer);
 
 @protected PaletteScheme sse_decode_palette_scheme(SseDeserializer deserializer);
 
@@ -691,6 +777,16 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected ReasonKind sse_decode_reason_kind(SseDeserializer deserializer);
 
 @protected RemoteChange sse_decode_remote_change(SseDeserializer deserializer);
+
+@protected RemoteCommand sse_decode_remote_command(SseDeserializer deserializer);
+
+@protected RemoteCommandKind sse_decode_remote_command_kind(SseDeserializer deserializer);
+
+@protected RemoteQueue sse_decode_remote_queue(SseDeserializer deserializer);
+
+@protected RemoteQueueItem sse_decode_remote_queue_item(SseDeserializer deserializer);
+
+@protected RemoteSong sse_decode_remote_song(SseDeserializer deserializer);
 
 @protected RepeatMode sse_decode_repeat_mode(SseDeserializer deserializer);
 
@@ -808,11 +904,17 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_box_autoadd_guest_session(GuestSession self, SseSerializer serializer);
 
+@protected void sse_encode_box_autoadd_handoff_info(HandoffInfo self, SseSerializer serializer);
+
 @protected void sse_encode_box_autoadd_i_32(int self, SseSerializer serializer);
 
 @protected void sse_encode_box_autoadd_i_64(PlatformInt64 self, SseSerializer serializer);
 
 @protected void sse_encode_box_autoadd_not_interested_item(NotInterestedItem self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_output_device(OutputDevice self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_output_devices(OutputDevices self, SseSerializer serializer);
 
 @protected void sse_encode_box_autoadd_pick_reason(PickReason self, SseSerializer serializer);
 
@@ -823,6 +925,12 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_box_autoadd_queue_state(QueueState self, SseSerializer serializer);
 
 @protected void sse_encode_box_autoadd_remote_change(RemoteChange self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_remote_command(RemoteCommand self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_remote_queue_item(RemoteQueueItem self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_remote_song(RemoteSong self, SseSerializer serializer);
 
 @protected void sse_encode_box_autoadd_song(Song self, SseSerializer serializer);
 
@@ -850,6 +958,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_credential_key(CredentialKey self, SseSerializer serializer);
 
+@protected void sse_encode_device_state(DeviceState self, SseSerializer serializer);
+
 @protected void sse_encode_drop_preview(DropPreview self, SseSerializer serializer);
 
 @protected void sse_encode_drop_refusal(DropRefusal self, SseSerializer serializer);
@@ -873,6 +983,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_genre_summary(GenreSummary self, SseSerializer serializer);
 
 @protected void sse_encode_guest_session(GuestSession self, SseSerializer serializer);
+
+@protected void sse_encode_handoff_info(HandoffInfo self, SseSerializer serializer);
 
 @protected void sse_encode_home(Home self, SseSerializer serializer);
 
@@ -916,6 +1028,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_list_not_interested_item(List<NotInterestedItem> self, SseSerializer serializer);
 
+@protected void sse_encode_list_output_device(List<OutputDevice> self, SseSerializer serializer);
+
 @protected void sse_encode_list_palette_swatch(List<PaletteSwatch> self, SseSerializer serializer);
 
 @protected void sse_encode_list_pick_reason(List<PickReason> self, SseSerializer serializer);
@@ -935,6 +1049,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_list_profile_summary(List<ProfileSummary> self, SseSerializer serializer);
 
 @protected void sse_encode_list_queue_entry(List<QueueEntry> self, SseSerializer serializer);
+
+@protected void sse_encode_list_remote_queue_item(List<RemoteQueueItem> self, SseSerializer serializer);
 
 @protected void sse_encode_list_server_row(List<ServerRow> self, SseSerializer serializer);
 
@@ -1000,9 +1116,15 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_opt_box_autoadd_guest_session(GuestSession? self, SseSerializer serializer);
 
+@protected void sse_encode_opt_box_autoadd_handoff_info(HandoffInfo? self, SseSerializer serializer);
+
 @protected void sse_encode_opt_box_autoadd_i_32(int? self, SseSerializer serializer);
 
 @protected void sse_encode_opt_box_autoadd_i_64(PlatformInt64? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_output_device(OutputDevice? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_output_devices(OutputDevices? self, SseSerializer serializer);
 
 @protected void sse_encode_opt_box_autoadd_pick_reason(PickReason? self, SseSerializer serializer);
 
@@ -1013,6 +1135,12 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_opt_box_autoadd_queue_state(QueueState? self, SseSerializer serializer);
 
 @protected void sse_encode_opt_box_autoadd_remote_change(RemoteChange? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_remote_command(RemoteCommand? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_remote_queue_item(RemoteQueueItem? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_remote_song(RemoteSong? self, SseSerializer serializer);
 
 @protected void sse_encode_opt_box_autoadd_song(Song? self, SseSerializer serializer);
 
@@ -1029,6 +1157,12 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_opt_box_autoadd_u_16(int? self, SseSerializer serializer);
 
 @protected void sse_encode_opt_box_autoadd_u_32(int? self, SseSerializer serializer);
+
+@protected void sse_encode_output_device(OutputDevice self, SseSerializer serializer);
+
+@protected void sse_encode_output_devices(OutputDevices self, SseSerializer serializer);
+
+@protected void sse_encode_output_state(OutputState self, SseSerializer serializer);
 
 @protected void sse_encode_palette_scheme(PaletteScheme self, SseSerializer serializer);
 
@@ -1057,6 +1191,16 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_reason_kind(ReasonKind self, SseSerializer serializer);
 
 @protected void sse_encode_remote_change(RemoteChange self, SseSerializer serializer);
+
+@protected void sse_encode_remote_command(RemoteCommand self, SseSerializer serializer);
+
+@protected void sse_encode_remote_command_kind(RemoteCommandKind self, SseSerializer serializer);
+
+@protected void sse_encode_remote_queue(RemoteQueue self, SseSerializer serializer);
+
+@protected void sse_encode_remote_queue_item(RemoteQueueItem self, SseSerializer serializer);
+
+@protected void sse_encode_remote_song(RemoteSong self, SseSerializer serializer);
 
 @protected void sse_encode_repeat_mode(RepeatMode self, SseSerializer serializer);
 

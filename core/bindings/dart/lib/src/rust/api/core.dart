@@ -82,6 +82,9 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
  Future<SyncStatus>  connectCompanion({required String url });
 
 
+ OutputDevice?  controlOnly({required String deviceId });
+
+
 /// Start the core. `config.data_dir` must be a folder the app can write.
 static Encore  create({required CoreConfig config })=>RustLib.instance.api.crateApiCoreEncoreCreate(config: config);
 
@@ -93,6 +96,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
 
 
  Future<void>  disconnectCompanion();
+
+
+ void  dismissContinue({required String deviceId });
 
 
  DropPreview  dropPreview({required DropTarget target , required Int64List songIds });
@@ -122,6 +128,15 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
 
 
  GuestSession?  guestSession();
+
+
+ Future<void>  handOffTo({required String deviceId });
+
+
+ void  handoffFailed({required String transferId , required String reason });
+
+
+ PlatformInt64  handoffReady({required String transferId });
 
 
  void  hideMix({required String mixId });
@@ -184,6 +199,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  void  openProfile({required String profileId , required List<SourceToken> tokens });
 
 
+ OutputDevices  outputDevices();
+
+
  int  pendingEdits();
 
 
@@ -202,7 +220,13 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  void  playbackInterrupted({required InterruptionKind kind });
 
 
+ void  playbackPaused({required PlatformInt64 positionMs });
+
+
  void  playbackProgress({required PlatformInt64 positionMs , required PlatformInt64 listenedMs });
+
+
+ void  playbackResumed({required PlatformInt64 positionMs });
 
 
  void  playbackSeeked({required PlatformInt64 fromMs , required PlatformInt64 toMs });
@@ -229,6 +253,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  List<ProfileSummary>  profiles();
 
 
+ Future<void>  pullFrom({required String deviceId });
+
+
  QueueState  queue();
 
 
@@ -250,6 +277,12 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  Future<Home>  regenerateMixes();
 
 
+ Future<void>  remoteCommand({required String deviceId , required RemoteCommand command });
+
+
+ Future<RemoteQueue>  remoteQueue({required String deviceId });
+
+
  EditResult  removeFromPlaylist({required PlatformInt64 playlistId , required List<int> positions });
 
 
@@ -269,6 +302,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
 
 
  void  removeServer({required PlatformInt64 sourceId });
+
+
+ Future<void>  renameDevice({required String deviceId , required String name });
 
 
  EditResult  renamePlaylist({required PlatformInt64 playlistId , required String name });
@@ -328,6 +364,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  void  setStreamQuality({required Network network , required StreamQuality quality });
 
 
+ void  setVolumeLevel({required double level });
+
+
  Future<SignedIn>  signIn({required String baseUrl , required String username , required String password });
 
 
@@ -358,6 +397,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
 /// Close the events stream (it reports done). Cancelling a subscription alone
 /// does not end it, because the core still holds the stream's sink.
  void  stopEvents();
+
+
+ void  stopRemoteControl();
 
 
  StreamInfo  streamFor({required PlatformInt64 songId , required Network network });
@@ -687,15 +729,19 @@ final PlatformInt64 syncTotal;
 final SyncStatus? syncStatus;
 final RemoteChange? remoteChange;
 final SourceToken? credential;
+final OutputDevices? outputDevices;
+final OutputDevice? device;
+final HandoffInfo? handoff;
+final RemoteCommand? remoteCommand;
 
-                const CoreEvent({required this.kind ,this.queue ,this.nowPlaying ,this.preload ,this.syncSourceId ,required this.syncDone ,required this.syncTotal ,this.syncStatus ,this.remoteChange ,this.credential ,});
+                const CoreEvent({required this.kind ,this.queue ,this.nowPlaying ,this.preload ,this.syncSourceId ,required this.syncDone ,required this.syncTotal ,this.syncStatus ,this.remoteChange ,this.credential ,this.outputDevices ,this.device ,this.handoff ,this.remoteCommand ,});
 
 
 
 
 
         @override
-        int get hashCode => kind.hashCode^queue.hashCode^nowPlaying.hashCode^preload.hashCode^syncSourceId.hashCode^syncDone.hashCode^syncTotal.hashCode^syncStatus.hashCode^remoteChange.hashCode^credential.hashCode;
+        int get hashCode => kind.hashCode^queue.hashCode^nowPlaying.hashCode^preload.hashCode^syncSourceId.hashCode^syncDone.hashCode^syncTotal.hashCode^syncStatus.hashCode^remoteChange.hashCode^credential.hashCode^outputDevices.hashCode^device.hashCode^handoff.hashCode^remoteCommand.hashCode;
 
 
 
@@ -704,7 +750,7 @@ final SourceToken? credential;
             identical(this, other) ||
             other is CoreEvent &&
                 runtimeType == other.runtimeType
-                && kind == other.kind&& queue == other.queue&& nowPlaying == other.nowPlaying&& preload == other.preload&& syncSourceId == other.syncSourceId&& syncDone == other.syncDone&& syncTotal == other.syncTotal&& syncStatus == other.syncStatus&& remoteChange == other.remoteChange&& credential == other.credential;
+                && kind == other.kind&& queue == other.queue&& nowPlaying == other.nowPlaying&& preload == other.preload&& syncSourceId == other.syncSourceId&& syncDone == other.syncDone&& syncTotal == other.syncTotal&& syncStatus == other.syncStatus&& remoteChange == other.remoteChange&& credential == other.credential&& outputDevices == other.outputDevices&& device == other.device&& handoff == other.handoff&& remoteCommand == other.remoteCommand;
 
             }
 
@@ -731,6 +777,15 @@ final String key;
                 && sourceId == other.sourceId&& key == other.key;
 
             }
+
+enum DeviceState {
+                    playing,
+paused,
+idle,
+offline,
+                    ;
+                    
+                }
 
 class DropPreview  {
                 final int count;
@@ -871,6 +926,13 @@ syncProgress,
 syncStatusChanged,
 remoteChange,
 credentialChanged,
+devicesChanged,
+continueAvailable,
+handoffIncoming,
+handoffConfirmed,
+handoffFailed,
+remoteCommand,
+remoteState,
                     ;
                     
                 }
@@ -947,6 +1009,37 @@ final PlatformInt64 endsIfIdleUtcMs;
             other is GuestSession &&
                 runtimeType == other.runtimeType
                 && startedUtcMs == other.startedUtcMs&& endsIfIdleUtcMs == other.endsIfIdleUtcMs;
+
+            }
+
+class HandoffInfo  {
+                final String transferId;
+final String deviceId;
+final String deviceName;
+final QueueEntry? entry;
+final PlatformInt64 positionMs;
+final bool playing;
+final double volume;
+final int unknownSongs;
+final String? reason;
+
+                const HandoffInfo({required this.transferId ,required this.deviceId ,required this.deviceName ,this.entry ,required this.positionMs ,required this.playing ,required this.volume ,required this.unknownSongs ,this.reason ,});
+
+
+
+
+
+        @override
+        int get hashCode => transferId.hashCode^deviceId.hashCode^deviceName.hashCode^entry.hashCode^positionMs.hashCode^playing.hashCode^volume.hashCode^unknownSongs.hashCode^reason.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is HandoffInfo &&
+                runtimeType == other.runtimeType
+                && transferId == other.transferId&& deviceId == other.deviceId&& deviceName == other.deviceName&& entry == other.entry&& positionMs == other.positionMs&& playing == other.playing&& volume == other.volume&& unknownSongs == other.unknownSongs&& reason == other.reason;
 
             }
 
@@ -1361,6 +1454,73 @@ wrongMoment,
                     
                 }
 
+class OutputDevice  {
+                final String deviceId;
+final String name;
+final String platform;
+final bool thisDevice;
+final DeviceState state;
+final RemoteSong? song;
+final PlatformInt64 positionMs;
+final double volume;
+final bool privateListening;
+final PlatformInt64 lastSeenUtcMs;
+
+                const OutputDevice({required this.deviceId ,required this.name ,required this.platform ,required this.thisDevice ,required this.state ,this.song ,required this.positionMs ,required this.volume ,required this.privateListening ,required this.lastSeenUtcMs ,});
+
+
+
+
+
+        @override
+        int get hashCode => deviceId.hashCode^name.hashCode^platform.hashCode^thisDevice.hashCode^state.hashCode^song.hashCode^positionMs.hashCode^volume.hashCode^privateListening.hashCode^lastSeenUtcMs.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is OutputDevice &&
+                runtimeType == other.runtimeType
+                && deviceId == other.deviceId&& name == other.name&& platform == other.platform&& thisDevice == other.thisDevice&& state == other.state&& song == other.song&& positionMs == other.positionMs&& volume == other.volume&& privateListening == other.privateListening&& lastSeenUtcMs == other.lastSeenUtcMs;
+
+            }
+
+class OutputDevices  {
+                final OutputState state;
+final String? reason;
+final List<OutputDevice> devices;
+
+                const OutputDevices({required this.state ,this.reason ,required this.devices ,});
+
+
+
+
+
+        @override
+        int get hashCode => state.hashCode^reason.hashCode^devices.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is OutputDevices &&
+                runtimeType == other.runtimeType
+                && state == other.state&& reason == other.reason&& devices == other.devices;
+
+            }
+
+enum OutputState {
+                    ready,
+noOtherDevices,
+unreachable,
+noCompanion,
+notAvailable,
+                    ;
+                    
+                }
+
 enum PaletteScheme {
                     dark,
 light,
@@ -1660,6 +1820,127 @@ final bool librarySyncSuggested;
             other is RemoteChange &&
                 runtimeType == other.runtimeType
                 && likedSongIds == other.likedSongIds&& unlikedSongIds == other.unlikedSongIds&& playlistIds == other.playlistIds&& history == other.history&& librarySyncSuggested == other.librarySyncSuggested;
+
+            }
+
+class RemoteCommand  {
+                final RemoteCommandKind kind;
+final PlatformInt64? positionMs;
+final double? level;
+final Int64List songIds;
+final PlatformInt64? uid;
+final int? toIndex;
+
+                const RemoteCommand({required this.kind ,this.positionMs ,this.level ,required this.songIds ,this.uid ,this.toIndex ,});
+
+
+
+
+
+        @override
+        int get hashCode => kind.hashCode^positionMs.hashCode^level.hashCode^songIds.hashCode^uid.hashCode^toIndex.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is RemoteCommand &&
+                runtimeType == other.runtimeType
+                && kind == other.kind&& positionMs == other.positionMs&& level == other.level&& songIds == other.songIds&& uid == other.uid&& toIndex == other.toIndex;
+
+            }
+
+enum RemoteCommandKind {
+                    play,
+pause,
+next,
+previous,
+seekTo,
+setVolume,
+playNext,
+addToUpNext,
+remove,
+move,
+jumpTo,
+                    ;
+                    
+                }
+
+class RemoteQueue  {
+                final RemoteQueueItem? current;
+final List<RemoteQueueItem> upNext;
+final List<RemoteQueueItem> autoplay;
+
+                const RemoteQueue({this.current ,required this.upNext ,required this.autoplay ,});
+
+
+
+
+
+        @override
+        int get hashCode => current.hashCode^upNext.hashCode^autoplay.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is RemoteQueue &&
+                runtimeType == other.runtimeType
+                && current == other.current&& upNext == other.upNext&& autoplay == other.autoplay;
+
+            }
+
+class RemoteQueueItem  {
+                final PlatformInt64 uid;
+final RemoteSong song;
+final ChosenBy chosenBy;
+
+                const RemoteQueueItem({required this.uid ,required this.song ,required this.chosenBy ,});
+
+
+
+
+
+        @override
+        int get hashCode => uid.hashCode^song.hashCode^chosenBy.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is RemoteQueueItem &&
+                runtimeType == other.runtimeType
+                && uid == other.uid&& song == other.song&& chosenBy == other.chosenBy;
+
+            }
+
+class RemoteSong  {
+                final String title;
+final String artist;
+final String? album;
+final PlatformInt64 durationMs;
+final PlatformInt64? songId;
+
+                const RemoteSong({required this.title ,required this.artist ,this.album ,required this.durationMs ,this.songId ,});
+
+
+
+
+
+        @override
+        int get hashCode => title.hashCode^artist.hashCode^album.hashCode^durationMs.hashCode^songId.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is RemoteSong &&
+                runtimeType == other.runtimeType
+                && title == other.title&& artist == other.artist&& album == other.album&& durationMs == other.durationMs&& songId == other.songId;
 
             }
 
