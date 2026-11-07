@@ -282,7 +282,11 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
                     onPlay = if (ids.isEmpty()) null else ({ actions.play(ids, 0, StartedFrom.PLAYLIST, playlistId.toString(), name) }),
                     onShuffle = if (ids.isEmpty()) null else ({ actions.play(ids, ids.indices.random(), StartedFrom.PLAYLIST, playlistId.toString(), name, shuffle = true) }),
                 ) {
-                    Artwork(ArtworkOf.PLAYLIST, playlistId, COVER_DP.dp, Modifier.fillMaxWidth(), cornerRadius = COVER_RADIUS_DP.dp)
+                    // The server's playlist image, over a mosaic of its first songs for playlists without one.
+                    Box {
+                        Mosaic(playable.take(4).map { it.id })
+                        Artwork(ArtworkOf.PLAYLIST, playlistId, COVER_DP.dp, Modifier.fillMaxWidth(), cornerRadius = COVER_RADIUS_DP.dp, placeholder = false)
+                    }
                 }
             }
             if (detail.entries.isEmpty()) item { EmptyState("This playlist is empty", "Add songs from their menu, Add to Playlist.") }

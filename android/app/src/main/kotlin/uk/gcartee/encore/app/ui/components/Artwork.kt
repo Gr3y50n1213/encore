@@ -47,6 +47,8 @@ fun Artwork(
     size: Dp,
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 8.dp,
+    /** False: transparent until the image arrives, so something drawn beneath shows (a mosaic). */
+    placeholder: Boolean = true,
 ) {
     val context = LocalContext.current
     val px = with(LocalDensity.current) { size.roundToPx() }.coerceIn(64, 1200)
@@ -59,7 +61,7 @@ fun Artwork(
         modifier
             .aspectRatio(1f)
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+            .let { if (placeholder) it.background(MaterialTheme.colorScheme.surfaceContainerHighest) else it }
             .clearAndSetSemantics { },
     ) {
         image?.let {
