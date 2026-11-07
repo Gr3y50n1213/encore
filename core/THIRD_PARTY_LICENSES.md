@@ -1,6 +1,6 @@
 # Third-party licences: core and server
 
-What the core track's code depends on, and under which licence. Kept current with every dependency change (CLAUDE.md, quality bar). The platform tracks keep their own lists for what their apps add.
+What the core track's code depends on, and under which licence. Kept current with every dependency change; CI fails on a licence nobody has reviewed (tools/ci/check_licences.py). The platform tracks keep their own lists for what their apps add.
 
 Rule: nothing linked into the apps may be copyleft stronger than MPL-2.0. The server may use AGPL-compatible licences. The licences of this project itself (MPL-2.0 apps, AGPL-3.0 server) are still a suggestion the owner has not confirmed.
 

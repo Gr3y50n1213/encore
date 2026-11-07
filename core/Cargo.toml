@@ -22,8 +22,9 @@ edition = "2024"
 # 1.89: rusqlite 0.41 needs it.
 rust-version = "1.89"
 publish = false
-# No licence field yet: MPL-2.0 (apps) and AGPL-3.0 (server) is a suggestion that
-# the owner has not confirmed (docs/DECISIONS.md section 4).
+# The owner's choice, 7 November 2026: MPL-2.0 for the core and the apps
+# (LICENSE); AGPL-3.0 for the companion server (server/LICENSE).
+license = "MPL-2.0"
 
 [workspace.dependencies]
 # Bindings. Versions checked on crates.io on 5 Nov 2026; licences in THIRD_PARTY_LICENSES.

@@ -20,7 +20,6 @@ The repository layout from section 3:
 
 ```
 encore/
-  CLAUDE.md                 # project rules for Claude Code (section 14)
   docs/                     # this plan, ADRs, API specs, design tokens
   core/                     # Rust workspace
     encore-core/            # public API exposed over FFI

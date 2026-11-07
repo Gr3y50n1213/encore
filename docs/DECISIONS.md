@@ -1,6 +1,6 @@
 # Decisions log
 
-Status of every decision in this project. Claude Code: build on "Decided" and "Chosen for the owner" rows. Treat "Assumed" rows as defaults you may change when the owner says so, and ask before building anything that is hard to undo on top of them. Never treat "Unverified" rows as fact.
+Status of every decision in this project. Build on "Decided" and "Chosen for the owner" rows. Treat "Assumed" rows as defaults you may change when the owner says so, and ask before building anything that is hard to undo on top of them. Never treat "Unverified" rows as fact.
 
 Last updated: 6 November 2026, Phase 2 (core): the owner's choices on fixtures and libraries, the name kept, and new unverified items (section 5). Earlier the same day: the colours and the type scale (section 1). Before that: 5 November 2026, after the plan was split into four tracks (core and server, Apple, Android, Windows and Linux; `docs/ROADMAP.md`), on top of the year recap engine, swipe gestures and drag and drop (plan sections 25 and 26, boards 39 to 43).
 
@@ -37,7 +37,7 @@ Last updated: 6 November 2026, Phase 2 (core): the owner's choices on fixtures a
 | Decision | Choice | Where |
 | --- | --- | --- |
 | Database encryption | No SQLCipher in version 1. Use OS file protection and the OS keychain or keystore | Plan section 12 |
-| Licences | MPL-2.0 for the apps, AGPL-3.0 for the server (suggestion, see open items) | Plan section 3 |
+| Licences | **Decided by the owner, 7 November 2026:** MPL-2.0 for the core, the apps, the tools and the docs (LICENSE); AGPL-3.0-only for the companion server (server/LICENSE) | Plan section 3 |
 | Server language | Rust with Axum and SQLite; Postgres optional | Plan section 5 |
 | Minimum OS versions | iOS and iPadOS 17, macOS 14, Android 9, Windows 10, current Ubuntu and Fedora LTS; newest look on the 26 releases | Plan section 15 |
 | Telemetry | None. No analytics, no crash upload without the user pressing Send | Plan section 12 |
@@ -104,7 +104,6 @@ The owner has not answered these. They are the plan's defaults (plan section 15)
 | **Store name check** | The owner chose to keep "Encore" and `uk.gcartee` (section 1). Whether "Encore" is free in each store is not checked | Before any store upload |
 | **Build hardware** | Apple targets need a Mac with Xcode; testing needs a Windows and a Linux machine or VM and real phones | Before phase 2 |
 | **Developer accounts** | Apple Developer Program (paid, annual), Google Play Console (one-time fee), GitHub for CI. Signing and TestFlight need them | Before phase 2 (Apple) and phase 6 (Google) |
-| **Licence confirmation** | MPL-2.0 apps and AGPL-3.0 server is a suggestion; the licence file should not be added until confirmed | Before the first public push |
 | **Recap design packs** | Editorial, Tide, Bloom and Glass are defaults; Contour, Aura, Neon Grid and Paper Collage are held back for later releases | Before phase 11 |
 
 ## 5. Unverified: check before relying on or releasing

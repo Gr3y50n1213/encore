@@ -56,10 +56,10 @@ def problems_in(path, data):
 
 def self_test():
     bad = {
-        "a.txt": b"mail me at someone@gmail.com\n",
-        "b.rs": b'let k = "-----BEGIN PRIVATE KEY-----";\n',
-        "c.md": b"token ghp_abcdefghijklmnopqrstuvwxyz0123\n",
-        "d.ps1": b'$x = "C:\\Users\\Alex\\tools"\n',
+        "a.txt": b"mail me at someone@gmail.com\n",  # public-ok
+        "b.rs": b'let k = "-----BEGIN PRIVATE KEY-----";\n',  # public-ok
+        "c.md": b"token ghp_abcdefghijklmnopqrstuvwxyz0123\n",  # public-ok
+        "d.ps1": b'$x = "C:\\Users\\Alex\\tools"\n',  # public-ok
         "e/.env": b"X=1\n",
         "f/library.sqlite": b"",
         "tools/target/private-history/h.json": b"{}",

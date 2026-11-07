@@ -13,7 +13,7 @@ PLAN-PRODUCT is `docs/shared/PLAN-PRODUCT.md`. PLAN-UX is `docs/shared/PLAN-UX.m
 | 11 | Handoff. The Apple `NSUserActivity` bullet is in the Apple plan | PLAN-PRODUCT; Apple plan |
 | 12 | Privacy and security | PLAN-PRODUCT |
 | 13 | Roadmap | `docs/ROADMAP.md` |
-| 14 | How to build it with Claude Code | `docs/START-HERE.md`, `CLAUDE.md`, `docs/<track>/PROMPTS.md` |
+| 14 | How it is built | `docs/shared/PLAN-PRODUCT.md` section 14 (the working notes for the AI-assisted sessions are kept outside the repository) |
 | 15 | Open questions and defaults | PLAN-PRODUCT |
 | 16 | Interaction, motion and haptics | PLAN-UX |
 | 17 | Screen inventory | PLAN-UX |

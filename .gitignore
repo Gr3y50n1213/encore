@@ -29,3 +29,9 @@ Thumbs.db
 .idea/
 .claude/
 CLAUDE.local.md
+# Working notes for the AI-assisted sessions: kept on each computer, not published
+CLAUDE.md
+**/CLAUDE.md
+docs/core/PROMPTS.md
+docs/*/PROMPTS.md
+docs/START-HERE.md

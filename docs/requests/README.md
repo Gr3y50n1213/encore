@@ -8,6 +8,6 @@ A track never edits another track's folder. When it needs something it does not 
 
 **What belongs here:** a missing core call or event, a change to a core type, a design token that is missing, a wireframe that disagrees with the plan, a decision only the owner can make.
 
-**What does not:** anything inside your own folder, and questions Claude can answer by reading the plan.
+**What does not:** anything inside your own folder, and questions the plan already answers.
 
 Requests are the one place every track may add files. Never edit another track's request, except the track it is addressed to, which fills in the Answer.

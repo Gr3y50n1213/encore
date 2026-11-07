@@ -10,7 +10,8 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.89"
 publish = false
-# No licence field yet: AGPL-3.0 is a suggestion the owner has not confirmed.
+# The owner's choice, 7 November 2026 (server/LICENSE).
+license = "AGPL-3.0-only"
 
 # Phase 4 (owner, 7 November 2026): only crates already in the build, used directly.
 [dependencies]

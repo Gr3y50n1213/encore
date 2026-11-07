@@ -1,37 +1,61 @@
 # Encore (working name)
 
-A free, open-source music player for self-hosted libraries, with Apple Music-grade design, word-by-word synced lyrics, a private on-device recommender, per-person profiles, handoff between devices and a year-end recap. Platforms: macOS, iOS, iPadOS, Windows, Android and Linux. Jellyfin first, behind a generic source layer. "Encore" is a placeholder name.
+A free, open-source music player for your own music server, with:
+- Apple Music-grade design;
+- word-by-word synced lyrics;
+- private smart picks that learn on your own devices;
+- per-person profiles;
+- handoff between devices;
+- a year-end recap.
 
-This folder is a **seed for Claude Code**: the plans, the design and the rules, with no code yet. The plan is split into four tracks that live in one repository, so that a session on a Mac and a session on a PC can work at the same time.
+Platforms: iPhone, iPad, Mac, Android, Windows and Linux. Jellyfin comes first, behind a generic source layer. "Encore" is a placeholder name.
 
-| Track | Kit (zip) | Plan | Folder it builds |
-| --- | --- | --- | --- |
-| Core and server | `encore-0-core-and-server.zip` | `docs/core/PLAN-CORE-SERVER.md` | `core/`, `server/`, `tools/` |
-| Apple (iPhone, iPad, Mac) | `encore-1-apple.zip` | `docs/apple/PLAN-APPLE.md` | `apple/` |
-| Android | `encore-2-android.zip` | `docs/android/PLAN-ANDROID.md` | `android/` |
-| Windows and Linux | `encore-3-windows-linux.zip` | `docs/windows-linux/PLAN-WINDOWS-LINUX.md` | `flutter/` |
+**Status:** in development, with no releases yet. The shared Rust core and the companion server are being built and tested first (docs/ROADMAP.md); the apps follow.
+
+## How it fits together
+
+- **The core** (`core/`, Rust) holds everything the apps share:
+  - the Jellyfin client and an offline library mirror;
+  - search, the queue and the play log;
+  - lyrics, album colours and playlist edits;
+  - profiles, sync, smart picks and handoff.
+
+  Swift and Kotlin call it through UniFFI, and Dart through flutter_rust_bridge (docs/core/CORE-API.md).
+- **The apps**: native SwiftUI on Apple devices (`apple/`), Jetpack Compose with Media3 on Android (`android/`), and Flutter on Windows and Linux (`flutter/`).
+- **The companion server** (`server/`, optional) runs next to your Jellyfin in one small Docker image, amd64 or arm64. It handles:
+  - profiles and sync across your devices;
+  - the daily mixes;
+  - handoff.
+
+  It never stores music. See `server/compose.yaml`.
+
+Nothing is sent anywhere except to your own servers: no telemetry, no analytics, no account with the project.
+
+## The repository
 
 | Path | What it holds |
 | --- | --- |
-| `CLAUDE.md` | The rules every Claude Code session must never break, the track rules and the reading order. Loaded automatically |
-| `docs/START-HERE.md` | For the human owner: how the four kits fit together, what to settle first and how to run sessions |
-| `docs/ROADMAP.md` | The thirteen phases, which track builds which part, and each "done when" line |
-| `docs/DECISIONS.md` | Decided, chosen for the owner, assumed, open, unverified, spikes, lead times |
-| `docs/SECTION-MAP.md` | Where each of the plan's 26 numbered sections lives now |
-| `docs/shared/` | The shared plans: product and engine (`PLAN-PRODUCT.md`), design and interaction (`PLAN-UX.md`) |
-| `docs/<track>/` | One plan and one prompts file per track |
-| `docs/requests/` | How one track asks another for something, with a template |
-| `docs/adr/` | Decision records (template included) |
-| `docs/reference/` | Where reference screenshots go |
-| `design/tokens.json` | Design values with their sources |
-| `design/wireframes/` | 43 wireframe boards: PNG, HTML and a text spec each, with an `INDEX.md` that also says which track builds from which board |
-| `tools/fixtures/` | Empty; test media and recorded HTTP responses go here |
-| `Makefile` | Hands `make check-core`, `check-apple`, `check-android` and `check-flutter` to each track's own Makefile |
+| `docs/ROADMAP.md` | The thirteen phases and each one's "done when" line |
+| `docs/shared/` | The product and design plans (`PLAN-PRODUCT.md`, `PLAN-UX.md`) |
+| `docs/core/` | The core's plan, its API contract (`CORE-API.md`) and the review of each phase |
+| `docs/adr/`, `docs/DECISIONS.md` | Decision records and the status of every decision |
+| `docs/api/openapi.yaml` | The companion server's API |
+| `docs/requests/` | How one part of the project asks another for something |
+| `design/` | Design tokens (`tokens.json`) and 43 wireframe boards (PNG, HTML and a text spec each) |
+| `core/`, `server/`, `tools/` | The Rust core, the companion server, codegen, fixtures and test tools |
+| `.github/workflows/core.yml` | CI: every target, every test, licence and privacy checks |
 
-## Begin
+## Building
 
-Owner: read `docs/START-HERE.md`. Claude Code: read `CLAUDE.md`.
+The core and the server: `make check-core` (Rust stable; fmt, clippy and tests). The server image: `docker build -f server/Dockerfile .`. Each app builds the core for its own targets (docs/core/CORE-API.md, "How every platform gets the core").
+
+## Security
+
+See SECURITY.md. Report vulnerabilities privately through GitHub's "Report a vulnerability". Contributors: docs/PUBLIC-REPO-CHECKLIST.md lists what must never be committed.
 
 ## Licence
 
-Not added yet. The plan suggests MPL-2.0 for the apps and AGPL-3.0 for the server; confirm in `docs/DECISIONS.md` before adding a licence file.
+- The core, the apps, the tools and the docs: **MPL-2.0** (LICENSE).
+- The companion server (`server/`): **AGPL-3.0** (server/LICENSE).
+
+Third-party licences: core/THIRD_PARTY_LICENSES.md.

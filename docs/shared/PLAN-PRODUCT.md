@@ -88,7 +88,6 @@ One monorepo, so Claude Code can see and change the core, both UIs and the serve
 
 ```
 encore/
-  CLAUDE.md                 # project rules for Claude Code (section 14)
   docs/                     # this plan, ADRs, API specs, design tokens
   core/                     # Rust workspace
     encore-core/            # public API exposed over FFI
@@ -473,7 +472,7 @@ Goal: under 1 second from tap to sound when the track is cached on the target, u
 
 Listening data goes to exactly two places the user owns: their devices and their companion server. The project runs no servers and collects nothing.
 
-**Rules (put these in CLAUDE.md as hard requirements)**
+**Rules (hard requirements for every change)**
 
 - No analytics, crash reporting or ad SDKs. Crash logs stay on the device until the user chooses to share one.
 - No network call to any third party unless the user turned that feature on (lyrics providers, MusicBrainz lookups, history import). Each one is listed by name in Settings > Privacy, off by default except MusicBrainz metadata, which asks on first launch.
@@ -499,7 +498,7 @@ The roadmap is `docs/ROADMAP.md`. It keeps the plan's thirteen phases and their 
 
 ## 14. How to build it with Claude Code
 
-See `docs/START-HERE.md` (for the owner), `CLAUDE.md` (the rules Claude Code loads) and the prompts in `docs/<track>/PROMPTS.md`.
+The project is built with Claude Code, in four tracks (docs/ROADMAP.md). The sessions' working notes and prompts are kept with each working copy, outside the repository; everything they build from (the plans, the boards, the decisions and the API contract) is here.
 
 ## 15. Open questions for you
 
