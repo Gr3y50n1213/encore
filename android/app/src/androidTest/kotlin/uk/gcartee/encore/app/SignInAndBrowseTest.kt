@@ -129,7 +129,10 @@ class SignInAndBrowseTest {
         shot("08-search")
         rule.onNodeWithText("Mixes").performClick()
         shot("09-mixes")
+        // Library still shows the playlist opened above; tapping its tab again returns to its root (board 05, item 6).
         rule.onNodeWithText("Library").performClick()
+        rule.onAllNodesWithText("Library").onFirst().performClick()
+        rule.waitUntilAtLeastOneExists(hasContentDescription("Settings"), TIMEOUT)
         rule.onNodeWithContentDescription("Settings").performClick()
         rule.waitUntilAtLeastOneExists(hasText("Appearance"), TIMEOUT)
         shot("10-settings")
