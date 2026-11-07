@@ -12,7 +12,7 @@ pub mod time;
 pub use address::{AddressPlan, AddressWarning, plan_address};
 pub use auth::DeviceInfo;
 pub use client::{
-    ArtworkInfo, JellyfinClient, QuickConnectCode, RawLyrics, ServerInfo, Session, StreamCodec,
+    ArtworkInfo, JellyfinClient, Me, QuickConnectCode, RawLyrics, ServerInfo, Session, StreamCodec,
     StreamInfo, StreamQuality, StreamRequest, probe,
 };
 pub use sync::{SyncProgress, sync_library};

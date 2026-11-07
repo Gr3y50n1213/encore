@@ -8,21 +8,27 @@ name = "encore-server"
 description = "The Encore companion server: profiles, sync, handoff, heavy jobs. Never stores music."
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.89"
 publish = false
 # No licence field yet: AGPL-3.0 is a suggestion the owner has not confirmed.
 
+# Phase 4 (owner, 7 November 2026): only crates already in the build, used directly.
 [dependencies]
 encore-core = { path = "../core/encore-core", default-features = false }
+encore-sources = { path = "../core/encore-sources" }
 axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "tokio"] }
-tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "net", "signal"] }
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "net", "signal", "sync", "time"] }
 serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+rusqlite = { version = "0.41.1", features = ["bundled", "backup"] }
+sha2 = "0.11.0"
+getrandom = "0.4.3"
+ulid = "3.0.0"
+url = "2.5.8"
 
 [dev-dependencies]
 tower = { version = "0.5.3", features = ["util"] }
 http-body-util = "0.1"
-serde_json = "1.0.154"
-
 [lints.rust]
 missing_debug_implementations = "warn"
 unreachable_pub = "warn"

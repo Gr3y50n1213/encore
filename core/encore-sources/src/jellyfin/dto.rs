@@ -21,6 +21,9 @@ pub struct PublicSystemInfo {
 pub struct UserDto {
     pub id: Option<String>,
     pub name: Option<String>,
+    pub server_id: Option<String>,
+    /// Set when the user has a profile image.
+    pub primary_image_tag: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]

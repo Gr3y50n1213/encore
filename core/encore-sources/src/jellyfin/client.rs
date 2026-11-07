@@ -12,6 +12,7 @@ use super::address::{AddressPlan, AddressWarning, check_security};
 use super::auth::{DeviceInfo, authorization_header};
 use super::dto::{
     AuthenticationResult, ItemsResult, PlaylistCreated, PublicSystemInfo, QuickConnectResult,
+    UserDto,
 };
 use crate::error::{Result, SourceError};
 use crate::model::{EditOutcome, ServerEdit};
@@ -105,6 +106,16 @@ impl fmt::Debug for ArtworkInfo {
     }
 }
 
+/// Who a token belongs to (`GET /Users/Me`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Me {
+    pub user_id: String,
+    pub user_name: String,
+    /// The server's ID as the user record gives it (may be empty on old servers).
+    pub server_id: String,
+    /// Set when the user has a profile image (`user_image`).
+    pub image_tag: Option<String>,
+}
 /// Lyrics as the server sent them; Phase 3 parses them into the lyrics model.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RawLyrics {
@@ -625,6 +636,39 @@ impl JellyfinClient {
     }
 
     /// The primary image at exactly `size_px` square (plan section 4).
+    /// `GET /Users/Me`: who this client's token belongs to. A 401 means the token
+    /// is not (or no longer) valid: `SessionExpired`.
+    pub async fn me(&self) -> Result<Me> {
+        let user: UserDto = self.get_json("/Users/Me", &[]).await?;
+        Ok(Me {
+            user_id: user
+                .id
+                .filter(|i| !i.is_empty())
+                .ok_or_else(|| SourceError::Protocol("no user id in /Users/Me".into()))?,
+            user_name: user.name.unwrap_or_default(),
+            server_id: user.server_id.unwrap_or_default(),
+            image_tag: user.primary_image_tag.filter(|t| !t.is_empty()),
+        })
+    }
+
+    /// Where a user's profile image is, square, for avatars (board 14). Never log
+    /// the headers.
+    pub fn user_image(&self, user_id: &str, image_tag: &str, size_px: u32) -> Result<ArtworkInfo> {
+        let px = size_px.clamp(16, 1024).to_string();
+        let url = self.url(
+            &format!("/Users/{user_id}/Images/Primary"),
+            &[
+                ("tag", image_tag),
+                ("fillWidth", px.as_str()),
+                ("fillHeight", px.as_str()),
+                ("quality", "90"),
+            ],
+        )?;
+        Ok(ArtworkInfo {
+            url: url.to_string(),
+            headers: vec![self.auth_header()],
+        })
+    }
     pub fn artwork(&self, item_id: &str, size_px: u32) -> Result<ArtworkInfo> {
         let px = size_px.clamp(16, 4096).to_string();
         let url = self.url(

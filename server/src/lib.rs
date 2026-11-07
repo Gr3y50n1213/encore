@@ -1,19 +1,116 @@
-//! The companion server's HTTP routes.
-//!
-//! Phase 1 is a skeleton with one route. Auth, sync, the WebSocket, jobs and the
-//! admin page arrive in their own phases (plan section 5; docs/ROADMAP.md).
+//! The companion server (plan section 5): profiles, sign-in by media-server token,
+//! the synced event log, and a status page. It never stores music. Auth, sync and
+//! status are Phase 4; the WebSocket, jobs and recaps arrive in their own phases.
 
-use axum::{Json, Router, routing::get};
+mod auth;
+mod config;
+mod db;
+mod error;
+mod limit;
+mod sync;
+#[cfg(test)]
+mod tests;
+
+use std::collections::HashMap;
+use std::net::{IpAddr, SocketAddr};
+use std::path::Path;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
+
+use axum::extract::{ConnectInfo, DefaultBodyLimit, State};
+use axum::routing::{delete, get, post};
+use axum::{Json, Router};
 use serde::Serialize;
-use std::net::SocketAddr;
+use tokio::sync::Notify;
 
-/// Where the server listens unless `ENCORE_SERVER_BIND` says otherwise.
-/// Loopback only by default: nothing is reachable from the network until the
-/// owner chooses an address.
-pub const DEFAULT_BIND: &str = "127.0.0.1:8097";
+pub use auth::{CheckError, CheckFuture, CheckedUser, JellyfinCheck, MediaCheck};
+pub use config::{
+    BIND_ENV, Config, DATA_DIR_ENV, DEFAULT_BIND, JELLYFIN_URLS_ENV, bind_address, jellyfin_urls,
+};
+pub use db::{DeviceRow, Event, Status};
+pub use sync::{MAX_PULL, MAX_PUSH};
 
-/// The environment variable that sets the listen address, e.g. `0.0.0.0:8097`.
-pub const BIND_ENV: &str = "ENCORE_SERVER_BIND";
+use error::ApiError;
+
+/// The database file inside the data folder.
+pub const DB_FILE: &str = "encore-server.sqlite";
+
+pub(crate) fn now_ms() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0)
+}
+
+/// Everything a request handler shares.
+#[derive(Debug)]
+pub struct AppState {
+    db: db::Db,
+    check: Arc<dyn MediaCheck>,
+    limiter: limit::RateLimiter,
+    /// One waiter per profile, woken when one of its devices pushes.
+    waiters: Mutex<HashMap<i64, Arc<Notify>>>,
+    config: Config,
+    started: Instant,
+}
+
+impl AppState {
+    /// Open (or create) the database in `config.data_dir`.
+    pub fn open(config: Config, check: Arc<dyn MediaCheck>) -> Result<AppState, String> {
+        std::fs::create_dir_all(&config.data_dir)
+            .map_err(|e| format!("can't make {}: {e}", config.data_dir.display()))?;
+        let path = config.data_dir.join(DB_FILE);
+        let db = db::Db::open(&path).map_err(|e| format!("can't open {}: {e}", path.display()))?;
+        Ok(AppState::with_db(db, config, check))
+    }
+
+    fn with_db(db: db::Db, config: Config, check: Arc<dyn MediaCheck>) -> AppState {
+        AppState {
+            db,
+            check,
+            limiter: limit::RateLimiter::new(10, Duration::from_secs(60)),
+            waiters: Mutex::new(HashMap::new()),
+            config,
+            started: Instant::now(),
+        }
+    }
+
+    fn ttl(&self) -> (i64, i64) {
+        (
+            self.config.access_ttl.as_millis() as i64,
+            self.config.refresh_ttl.as_millis() as i64,
+        )
+    }
+
+    fn waiter(&self, profile_id: i64) -> Arc<Notify> {
+        self.waiters
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .entry(profile_id)
+            .or_default()
+            .clone()
+    }
+
+    fn wake(&self, profile_id: i64) {
+        self.waiter(profile_id).notify_waiters();
+    }
+
+    /// A consistent copy of the database while the server runs.
+    pub fn backup_to(&self, dest: &Path) -> Result<(), String> {
+        self.db.backup_to(dest).map_err(|e| e.to_string())
+    }
+}
+
+/// `encore-server backup <file>`: a consistent copy of the database in
+/// `data_dir`, safe while the server runs (the database is in WAL mode).
+pub fn backup_database(data_dir: &Path, dest: &Path) -> Result<(), String> {
+    let path = data_dir.join(DB_FILE);
+    if !path.exists() {
+        return Err(format!("no database at {}", path.display()));
+    }
+    let db = db::Db::open(&path).map_err(|e| e.to_string())?;
+    db.backup_to(dest).map_err(|e| e.to_string())
+}
 
 /// The reply to `GET /health`. It names no user, device or library.
 #[derive(Debug, Serialize, PartialEq, Eq)]
@@ -23,9 +120,21 @@ pub struct Health {
     pub core_version: String,
 }
 
-/// All routes.
-pub fn app() -> Router {
-    Router::new().route("/health", get(health))
+/// All routes. Serve with `into_make_service_with_connect_info::<SocketAddr>()`:
+/// sign-in's rate limit and the status page need the client's address.
+pub fn app(state: Arc<AppState>) -> Router {
+    Router::new()
+        .route("/health", get(health))
+        .route("/auth/exchange", post(auth::exchange))
+        .route("/auth/refresh", post(auth::refresh))
+        .route("/devices", get(auth::devices))
+        .route("/devices/{id}", delete(auth::revoke))
+        .route("/profile", delete(auth::delete_profile))
+        .route("/sync/push", post(sync::push))
+        .route("/sync/pull", get(sync::pull))
+        .route("/admin/status", get(admin_status))
+        .layer(DefaultBodyLimit::max(4 * 1024 * 1024))
+        .with_state(state)
 }
 
 async fn health() -> Json<Health> {
@@ -36,71 +145,50 @@ async fn health() -> Json<Health> {
     })
 }
 
-/// Reads the listen address from `value` (the environment variable), or the default.
-pub fn bind_address(value: Option<&str>) -> Result<SocketAddr, String> {
-    let text = value
-        .map(str::trim)
-        .filter(|v| !v.is_empty())
-        .unwrap_or(DEFAULT_BIND);
-    text.parse()
-        .map_err(|_| format!("{BIND_ENV}={text:?} is not an address like 127.0.0.1:8097"))
+/// Loopback and private addresses: the home network (plan section 12: "admin
+/// page bound to the LAN by default").
+fn is_local(ip: IpAddr) -> bool {
+    match ip {
+        IpAddr::V4(v4) => {
+            let o = v4.octets();
+            v4.is_private()
+                || v4.is_loopback()
+                || v4.is_link_local()
+                || (o[0] == 100 && (o[1] & 0xC0) == 64)
+        }
+        IpAddr::V6(v6) => {
+            if let Some(v4) = v6.to_ipv4_mapped() {
+                return is_local(IpAddr::V4(v4));
+            }
+            let first = v6.segments()[0];
+            v6.is_loopback() || (first & 0xFE00) == 0xFC00 || (first & 0xFFC0) == 0xFE80
+        }
+    }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use axum::body::Body;
-    use axum::http::{Request, StatusCode};
-    use http_body_util::BodyExt;
-    use tower::ServiceExt;
+#[derive(Debug, Serialize)]
+struct AdminStatus {
+    status: &'static str,
+    server_version: &'static str,
+    uptime_s: u64,
+    #[serde(flatten)]
+    counts: Status,
+}
 
-    async fn get_path(path: &str) -> (StatusCode, Vec<u8>) {
-        let response = app()
-            .oneshot(Request::get(path).body(Body::empty()).unwrap())
-            .await
-            .unwrap();
-        let status = response.status();
-        let body = response
-            .into_body()
-            .collect()
-            .await
-            .unwrap()
-            .to_bytes()
-            .to_vec();
-        (status, body)
+/// `GET /admin/status`: counts only, and only from the home network.
+async fn admin_status(
+    State(state): State<Arc<AppState>>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+) -> Result<Json<AdminStatus>, ApiError> {
+    if !is_local(addr.ip()) {
+        return Err(ApiError::Forbidden(
+            "The status page answers only on the home network.".into(),
+        ));
     }
-
-    #[tokio::test]
-    async fn health_reports_both_versions() {
-        let (status, body) = get_path("/health").await;
-        assert_eq!(status, StatusCode::OK);
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
-        assert_eq!(json["status"], "ok");
-        assert_eq!(json["server_version"], env!("CARGO_PKG_VERSION"));
-        assert_eq!(json["core_version"], encore_core::core_version());
-    }
-
-    #[tokio::test]
-    async fn unknown_paths_are_not_found() {
-        let (status, _) = get_path("/nope").await;
-        assert_eq!(status, StatusCode::NOT_FOUND);
-    }
-
-    #[test]
-    fn binds_to_loopback_by_default() {
-        let addr = bind_address(None).unwrap();
-        assert!(addr.ip().is_loopback());
-        assert_eq!(bind_address(Some("  ")).unwrap(), addr);
-    }
-
-    #[test]
-    fn bind_address_can_be_set() {
-        assert_eq!(bind_address(Some("0.0.0.0:9000")).unwrap().port(), 9000);
-    }
-
-    #[test]
-    fn a_bad_bind_address_is_an_error() {
-        let err = bind_address(Some("not-an-address")).unwrap_err();
-        assert!(err.contains(BIND_ENV));
-    }
+    Ok(Json(AdminStatus {
+        status: "ok",
+        server_version: env!("CARGO_PKG_VERSION"),
+        uptime_s: state.started.elapsed().as_secs(),
+        counts: state.db.status()?,
+    }))
 }
