@@ -8,10 +8,14 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.printToString
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
@@ -52,10 +56,20 @@ class SignInAndBrowseTest {
         rule.waitUntilAtLeastOneExists(hasText("Found Jellyfin", substring = true), TIMEOUT)
         rule.onNodeWithTag("quick-connect").performClick()
 
-        // Quick Connect approves (the recording's approval), the profile opens, sync runs.
-        rule.waitUntilAtLeastOneExists(hasText("Recently added"), SYNC_TIMEOUT)
+        // Quick Connect approves (the recording's approval) and the profile opens. Each
+        // step is waited for on its own, so a failure says which one stalled and why.
         val host = CoreHost.get(rule.activity)
-        val album = host.core.albums(AlbumSort.TITLE, 0u, 100u).first { it.songCount >= 2u }
+        step("signed in (the profile opened)", SIGN_IN_TIMEOUT) { host.profileOpen.value }
+        step("the first library sync finished", SYNC_TIMEOUT) {
+            val s = host.sync.state.value
+            !s.running && s.generation > 0
+        }
+        val sync = host.sync.state.value
+        assertNull("the library sync failed: ${sync.problem}", sync.problem)
+        val albums = host.core.albums(AlbumSort.TITLE, 0u, 100u)
+        assertTrue("the synced library has no albums", albums.isNotEmpty())
+        val album = albums.first { it.songCount >= 2u }
+        rule.waitUntilAtLeastOneExists(hasText("Recently added"), TIMEOUT)
 
         // Library: the album is listed from the on-device mirror.
         rule.onNodeWithText("Library").performClick()
@@ -70,7 +84,19 @@ class SignInAndBrowseTest {
         rule.waitUntilAtLeastOneExists(hasTestTag("mini-player"), TIMEOUT)
     }
 
+    /** Waits for [done], pumping the UI; fails naming the step if it never comes. */
+    private fun step(what: String, timeoutMs: Long, done: () -> Boolean) {
+        try {
+            rule.waitUntil(timeoutMs) { done() }
+        } catch (e: androidx.compose.ui.test.ComposeTimeoutException) {
+            // What the screen said at that moment (an error line, a spinner, a code).
+            val screen = runCatching { rule.onRoot().printToString(maxDepth = 30) }.getOrDefault("?")
+            throw AssertionError("Not reached in ${timeoutMs / 1000} s: $what.\n$screen", e)
+        }
+    }
+
     private companion object {
+        const val SIGN_IN_TIMEOUT = 30_000L
         const val GUARD_MS = 400L
         const val CHECK_AFTER_MS = 700L
         const val TIMEOUT = 10_000L
