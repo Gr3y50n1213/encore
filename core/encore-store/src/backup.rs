@@ -149,8 +149,11 @@ impl Store {
             p.push(suffix);
             let _ = std::fs::remove_file(PathBuf::from(p));
         }
-        std::fs::rename(&tmp, live)
-            .map_err(|e| StoreError::Backup(format!("couldn't put the backup in place ({e})")))?;
+        std::fs::rename(&tmp, live).map_err(|e| {
+            StoreError::Edit(format!(
+                "The backup is fine, but the profile's file couldn't be replaced ({e}). Close the app and try again."
+            ))
+        })?;
         Store::open(live)
     }
 }
