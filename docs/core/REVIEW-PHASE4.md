@@ -2,7 +2,7 @@
 
 Prompt 5, 7 November 2026. Phase 4's "done when" line (docs/ROADMAP.md) is *two people share an iPad with fully separate history, and a like on the phone shows on the Mac within a second*. The core track's part (PLAN-CORE-SERVER section 3) is the Docker image, the auth exchange, event log sync, and profiles with the switcher state. The platforms draw the switcher and the sync status row.
 
-Rules: an item passes only with evidence from a test, the recording or a CI run, never from reading the code. Unless it says otherwise, CI evidence is run **CI_RUN**, with every job green.
+Rules: an item passes only with evidence from a test, the recording or a CI run, never from reading the code. Unless it says otherwise, CI evidence is run **42349533999** (all six jobs green: Linux, Windows, Apple, Android, both server images; Swift, Kotlin and Dart read the switcher fields and sync status through the bindings), with every job green.
 
 The owner's answers for this phase:
 - long-poll now, with the WebSocket in Phase 7;
