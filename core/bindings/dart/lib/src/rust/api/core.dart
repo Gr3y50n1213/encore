@@ -79,6 +79,12 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  Stream<CoreEvent>  events();
 
 
+ Future<ExportSummary>  exportProfile({required String profileId , required String destPath });
+
+
+ Future<int>  fetchLyricsAhead({required int maxSongs });
+
+
  List<Song>  genreSongs({required String genre , required int offset , required int limit });
 
 
@@ -697,6 +703,33 @@ syncProgress,
                     
                 }
 
+class ExportSummary  {
+                final BigInt plays;
+final BigInt likes;
+final BigInt playlists;
+final BigInt playlistSongs;
+final BigInt bytes;
+
+                const ExportSummary({required this.plays ,required this.likes ,required this.playlists ,required this.playlistSongs ,required this.bytes ,});
+
+
+
+
+
+        @override
+        int get hashCode => plays.hashCode^likes.hashCode^playlists.hashCode^playlistSongs.hashCode^bytes.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is ExportSummary &&
+                runtimeType == other.runtimeType
+                && plays == other.plays&& likes == other.likes&& playlists == other.playlists&& playlistSongs == other.playlistSongs&& bytes == other.bytes;
+
+            }
+
 class GenreSummary  {
                 final String name;
 final int songCount;
@@ -843,6 +876,32 @@ final String? pronunciation;
             other is LyricLine &&
                 runtimeType == other.runtimeType
                 && text == other.text&& startMs == other.startMs&& endMs == other.endMs&& words == other.words&& singer == other.singer&& side == other.side&& background == other.background&& confidence == other.confidence&& translation == other.translation&& pronunciation == other.pronunciation;
+
+            }
+
+class LyricMatch  {
+                final Song song;
+final String line;
+final int lineIndex;
+final PlatformInt64? startMs;
+
+                const LyricMatch({required this.song ,required this.line ,required this.lineIndex ,this.startMs ,});
+
+
+
+
+
+        @override
+        int get hashCode => song.hashCode^line.hashCode^lineIndex.hashCode^startMs.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is LyricMatch &&
+                runtimeType == other.runtimeType
+                && song == other.song&& line == other.line&& lineIndex == other.lineIndex&& startMs == other.startMs;
 
             }
 
@@ -1153,15 +1212,16 @@ final List<Song> songs;
 final List<AlbumSummary> albums;
 final List<ArtistSummary> artists;
 final List<PlaylistSummary> playlists;
+final List<LyricMatch> lyrics;
 
-                const SearchResults({this.top ,required this.songs ,required this.albums ,required this.artists ,required this.playlists ,});
+                const SearchResults({this.top ,required this.songs ,required this.albums ,required this.artists ,required this.playlists ,required this.lyrics ,});
 
 
 
 
 
         @override
-        int get hashCode => top.hashCode^songs.hashCode^albums.hashCode^artists.hashCode^playlists.hashCode;
+        int get hashCode => top.hashCode^songs.hashCode^albums.hashCode^artists.hashCode^playlists.hashCode^lyrics.hashCode;
 
 
 
@@ -1170,7 +1230,7 @@ final List<PlaylistSummary> playlists;
             identical(this, other) ||
             other is SearchResults &&
                 runtimeType == other.runtimeType
-                && top == other.top&& songs == other.songs&& albums == other.albums&& artists == other.artists&& playlists == other.playlists;
+                && top == other.top&& songs == other.songs&& albums == other.albums&& artists == other.artists&& playlists == other.playlists&& lyrics == other.lyrics;
 
             }
 

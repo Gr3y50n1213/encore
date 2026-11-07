@@ -132,7 +132,7 @@ void main() {
           isTrue);
       // Export: one open JSON file.
       final exportFile = File('${dir.path}/export.json');
-      final exported = core.exportProfile(
+      final exported = await core.exportProfile(
           profileId: signedIn.profileId, destPath: exportFile.path);
       expect(exported.bytes, greaterThan(BigInt.zero));
       expect(exportFile.lengthSync(), exported.bytes.toInt());

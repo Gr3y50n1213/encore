@@ -116,6 +116,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected EventKind dco_decode_event_kind(dynamic raw);
 
+@protected ExportSummary dco_decode_export_summary(dynamic raw);
+
 @protected double dco_decode_f_64(dynamic raw);
 
 @protected GenreSummary dco_decode_genre_summary(dynamic raw);
@@ -147,6 +149,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected List<LyricGap> dco_decode_list_lyric_gap(dynamic raw);
 
 @protected List<LyricLine> dco_decode_list_lyric_line(dynamic raw);
+
+@protected List<LyricMatch> dco_decode_list_lyric_match(dynamic raw);
 
 @protected List<LyricWord> dco_decode_list_lyric_word(dynamic raw);
 
@@ -185,6 +189,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected LyricGap dco_decode_lyric_gap(dynamic raw);
 
 @protected LyricLine dco_decode_lyric_line(dynamic raw);
+
+@protected LyricMatch dco_decode_lyric_match(dynamic raw);
 
 @protected LyricSide dco_decode_lyric_side(dynamic raw);
 
@@ -296,6 +302,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected int dco_decode_u_32(dynamic raw);
 
+@protected BigInt dco_decode_u_64(dynamic raw);
+
 @protected int dco_decode_u_8(dynamic raw);
 
 @protected void dco_decode_unit(dynamic raw);
@@ -392,6 +400,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected EventKind sse_decode_event_kind(SseDeserializer deserializer);
 
+@protected ExportSummary sse_decode_export_summary(SseDeserializer deserializer);
+
 @protected double sse_decode_f_64(SseDeserializer deserializer);
 
 @protected GenreSummary sse_decode_genre_summary(SseDeserializer deserializer);
@@ -423,6 +433,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected List<LyricGap> sse_decode_list_lyric_gap(SseDeserializer deserializer);
 
 @protected List<LyricLine> sse_decode_list_lyric_line(SseDeserializer deserializer);
+
+@protected List<LyricMatch> sse_decode_list_lyric_match(SseDeserializer deserializer);
 
 @protected List<LyricWord> sse_decode_list_lyric_word(SseDeserializer deserializer);
 
@@ -461,6 +473,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected LyricGap sse_decode_lyric_gap(SseDeserializer deserializer);
 
 @protected LyricLine sse_decode_lyric_line(SseDeserializer deserializer);
+
+@protected LyricMatch sse_decode_lyric_match(SseDeserializer deserializer);
 
 @protected LyricSide sse_decode_lyric_side(SseDeserializer deserializer);
 
@@ -572,6 +586,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected int sse_decode_u_32(SseDeserializer deserializer);
 
+@protected BigInt sse_decode_u_64(SseDeserializer deserializer);
+
 @protected int sse_decode_u_8(SseDeserializer deserializer);
 
 @protected void sse_decode_unit(SseDeserializer deserializer);
@@ -668,6 +684,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_event_kind(EventKind self, SseSerializer serializer);
 
+@protected void sse_encode_export_summary(ExportSummary self, SseSerializer serializer);
+
 @protected void sse_encode_f_64(double self, SseSerializer serializer);
 
 @protected void sse_encode_genre_summary(GenreSummary self, SseSerializer serializer);
@@ -699,6 +717,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_list_lyric_gap(List<LyricGap> self, SseSerializer serializer);
 
 @protected void sse_encode_list_lyric_line(List<LyricLine> self, SseSerializer serializer);
+
+@protected void sse_encode_list_lyric_match(List<LyricMatch> self, SseSerializer serializer);
 
 @protected void sse_encode_list_lyric_word(List<LyricWord> self, SseSerializer serializer);
 
@@ -737,6 +757,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_lyric_gap(LyricGap self, SseSerializer serializer);
 
 @protected void sse_encode_lyric_line(LyricLine self, SseSerializer serializer);
+
+@protected void sse_encode_lyric_match(LyricMatch self, SseSerializer serializer);
 
 @protected void sse_encode_lyric_side(LyricSide self, SseSerializer serializer);
 
@@ -847,6 +869,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_u_16(int self, SseSerializer serializer);
 
 @protected void sse_encode_u_32(int self, SseSerializer serializer);
+
+@protected void sse_encode_u_64(BigInt self, SseSerializer serializer);
 
 @protected void sse_encode_u_8(int self, SseSerializer serializer);
 
