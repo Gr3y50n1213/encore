@@ -359,8 +359,14 @@ impl Inner {
     }
 
     fn close_profile(&self) -> Result<(), EncoreError> {
+        self.take_profile().map(drop)
+    }
+
+    /// Close the open profile and hand it back. The database stays open until the
+    /// last holder (a background send, say) lets go of it.
+    fn take_profile(&self) -> Result<Option<Arc<Profile>>, EncoreError> {
         let old = lock(&self.profile)?.take();
-        if let Some(p) = old {
+        if let Some(p) = &old {
             let mut pb = lock(&p.playback)?;
             let store = lock(&p.store)?;
             let listened = pb.last_listened_ms;
@@ -371,7 +377,7 @@ impl Inner {
                 now_ms(),
             )?;
         }
-        Ok(())
+        Ok(old)
     }
 
     fn song(store: &Store, id: i64) -> Option<Song> {
@@ -963,8 +969,19 @@ impl EncoreCore {
         let id = checked_profile_id(&profile_id)?;
         let from = Path::new(&from_path);
         Store::check_backup(from)?;
-        if self.current_profile().as_deref() == Some(id) {
-            self.inner.close_profile()?;
+        if self.current_profile().as_deref() == Some(id)
+            && let Some(p) = self.inner.take_profile()?
+        {
+            // The database file must really be closed before it is replaced
+            // (Windows refuses to replace an open file): wait for any background
+            // send still holding the profile, briefly.
+            for _ in 0..100 {
+                if Arc::strong_count(&p) == 1 {
+                    break;
+                }
+                std::thread::sleep(Duration::from_millis(50));
+            }
+            drop(p);
         }
         let path = self.inner.store_path(id);
         if let Some(dir) = path.parent() {

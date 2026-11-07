@@ -809,6 +809,30 @@ fn playlist_drops_likes_and_undo_through_the_api() {
     ));
 }
 
+/// A background send still holding the profile while it is restored: restore
+/// waits for it, so the database file is closed before it is replaced (Windows
+/// refuses to replace an open file).
+#[test]
+fn restoring_waits_for_a_background_task_to_let_go() {
+    let dir = temp_dir("restore-wait");
+    let (core, _) = core_on_recording(&dir);
+    let s = signed_in(&core);
+    block(core.sync_library()).unwrap();
+    let file = dir.0.join("backup.sqlite");
+    core.backup_profile(s.profile_id.clone(), file.to_string_lossy().into_owned())
+        .unwrap();
+    let held = core.inner.profile().unwrap();
+    let holder = std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(300));
+        drop(held);
+    });
+    core.restore_profile(s.profile_id.clone(), file.to_string_lossy().into_owned())
+        .unwrap();
+    holder.join().unwrap();
+    core.open_profile(s.profile_id, vec![]).unwrap();
+    assert_eq!(core.songs(SongSort::Title, 0, 1000).unwrap().len(), 150);
+}
+
 #[test]
 fn a_profile_reopens_with_the_token_from_the_keychain() {
     let dir = temp_dir("reopen");

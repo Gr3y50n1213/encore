@@ -40,8 +40,19 @@ void main() {
             dataDir: dir.path, deviceId: 'smoke', deviceName: 'CI', platform: 'ci'),
       );
     });
-    tearDown(() {
+    tearDown(() async {
+      core.closeProfile();
       core.dispose();
+      // A background send can hold the database for a moment after an edit, and
+      // Windows won't delete an open file: try for up to 5 s.
+      for (var i = 0; i < 50; i++) {
+        try {
+          dir.deleteSync(recursive: true);
+          return;
+        } on FileSystemException {
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+        }
+      }
       dir.deleteSync(recursive: true);
     });
 
