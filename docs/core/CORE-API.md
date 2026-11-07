@@ -1,6 +1,6 @@
 # Encore core API (the contract)
 
-**Version 1** (Phase 2, 6 November 2026). Core crate version `0.1.0`.
+**Version 2** (Phase 3, 7 November 2026). Core crate version `0.1.0`.
 
 This file is the only thing the platform tracks may rely on. Every public call, event and type of the core is listed here before a platform uses it. A change that breaks a platform gets a line under "Changes" and a request in `docs/requests/` that says what to change.
 
@@ -10,6 +10,7 @@ This file is the only thing the platform tracks may rely on. Every public call, 
 | --- | --- | --- |
 | 0 | 1 | First version: `hello`, `core_version`, `app_name`; token constants |
 | 1 | 2 | `EncoreCore`: connect and sign in to Jellyfin (password or Quick Connect), profiles, library sync, browse, search, the queue, playback reporting with the play log, streams, artwork, raw lyrics, events. Nothing from API 0 changed. Kotlin now also needs kotlinx-coroutines (async calls are suspend functions). |
+| 2 | 3 | Added, nothing removed. Lyrics (`lyrics`, the word-timing-ready model); album and playlist palettes; the skip signal (`skip_next` / `skip_previous` with an origin, `next_target` / `previous_target`, `playback_interrupted`, `playback_seeked`); playlist writes and likes (`drop_preview`, `add_to`, `like`, `unlike`, `are_liked`, `liked_songs`, `remove_from_playlist`, `move_in_playlist`, `rename_playlist`, `undo`, `pending_edits`, `send_edits`); `backup_profile` / `restore_profile`; the error kind `NotAllowed`. `next()` and `previous()` stay, as the button. A platform that switches over every `ErrorKind` adds `NotAllowed`. |
 | 1, revised | 2 | Same day, after CI ran the bindings. Each error case carries its sentence as `reason`, no longer `message`, because the Kotlin exceptions clashed with `Throwable.message`. New calls: `clear_listener` (Swift, Kotlin) and `stopEvents` (Dart), which end the events. A platform that copied the first version renames `message` to `reason` in its error handling; nothing else changes. |
 
 ## How every platform gets the core
@@ -38,7 +39,7 @@ Rules for every platform:
 
 - **Threads.** Every call may be made from any thread. Calls marked *async* are `async throws` in Swift, `suspend` in Kotlin and `Future` in Dart; they run on the core's own small runtime. Every other call is synchronous, reads the on-device mirror and returns in milliseconds, so it is safe on the main thread. Search stays under 50 ms on 50,000 songs (`search.budgetMs`, measured in CI).
 - **Events** go to the listener on a core thread: hop to the UI thread before touching UI.
-- **Errors** are one error type with one case per reason, each with a `message` sentence a person can act on (boards 18, 20 and 21): `InvalidAddress`, `InsecureAddress`, `Unreachable`, `CertificateUntrusted { sha256 }`, `NotJellyfin`, `UnsupportedVersion`, `WrongCredentials`, `SessionExpired`, `QuickConnectDisabled`, `QuickConnectExpired`, `QuickConnectCancelled`, `NotFound`, `Server { status, detail }` (show `detail` in a "Details" disclosure), `NoProfile`, `Storage` and `Internal`. Each case carries the sentence as `reason`, because Kotlin exceptions already have a `message`. Swift: `EncoreError.WrongCredentials(reason:)`. Kotlin: `EncoreException.WrongCredentials`; show `e.reason` to the user, because `e.message` reads `reason=<text>`. Dart: `ApiError` with `kind` (an `ErrorKind`), `message`, and `sha256`, `status` and `detail` where they apply.
+- **Errors** are one error type with one case per reason, each with a `message` sentence a person can act on (boards 18, 20 and 21): `InvalidAddress`, `InsecureAddress`, `Unreachable`, `CertificateUntrusted { sha256 }`, `NotJellyfin`, `UnsupportedVersion`, `WrongCredentials`, `SessionExpired`, `QuickConnectDisabled`, `QuickConnectExpired`, `QuickConnectCancelled`, `NotFound`, `Server { status, detail }` (show `detail` in a "Details" disclosure), `NoProfile`, `Storage`, `Internal` and `NotAllowed` (Guest saving, a drop on an album, a read-only playlist, an Undo too late: the `reason` says which). Each case carries the sentence as `reason`, because Kotlin exceptions already have a `message`. Swift: `EncoreError.WrongCredentials(reason:)`. Kotlin: `EncoreException.WrongCredentials`; show `e.reason` to the user, because `e.message` reads `reason=<text>`. Dart: `ApiError` with `kind` (an `ErrorKind`), `message`, and `sha256`, `status` and `detail` where they apply.
 - **Tokens never live in the core.** Signing in returns `SignedIn.token`. Store it in the keychain or keystore under `SignedIn.credential_key`. When the app starts, read it back and pass it to `open_profile`. The core keeps it in memory only, never writes it to disk or a log, and leaves it out of every `Debug` print. Stream and artwork URLs carry it, so never log those either.
 - **Nothing leaves the device** except calls to the user's own media server. No telemetry.
 
@@ -77,6 +78,8 @@ Inputs and outputs use the types under "Types". "async" marks calls that wait on
 | `open_profile(profile_id, tokens)` | – | `tokens`: `[SourceToken]` read from the keychain. A source without a token is browsable offline and reports `signed_in = false`. |
 | `close_profile()` | – | Ends the current play as "ended by the system". |
 | `current_profile()` | `profile_id?` | |
+| `backup_profile(profile_id, dest_path)` | – | A consistent copy of the profile's database, safe while playing: library, history, settings; never tokens. Blocking: call off the main thread. |
+| `restore_profile(profile_id, from_path)` | – | Checks the file first (intact, an Encore profile, not from a newer app); if it fails nothing changes. The replaced database is kept as `library.sqlite.before-restore`. Closes the profile if it was open; open it again with its tokens. The core also keeps a copy before every schema upgrade (`library.sqlite.before-v<N>`, the newest two). |
 
 Phase 4 adds the profile switcher, Guest and sync to the companion server.
 
@@ -109,7 +112,7 @@ Phase 4 adds the profile switcher, Guest and sync to the companion server.
 
 | Call | Returns | Notes |
 | --- | --- | --- |
-| `search(query)` | `SearchResults` | As the user types. Matches any part of a name, ignores accents and case, and tolerates typos. Sections: `top` (exactly one of its fields is set, as `kind` says), then songs, albums, artists and playlists (limits in `search.limits`). Lyrics search comes in Phase 3. |
+| `search(query)` | `SearchResults` | As the user types. Matches any part of a name, ignores accents and case, and tolerates typos. Sections: `top` (exactly one of its fields is set, as `kind` says), then songs, albums, artists and playlists (limits in `search.limits`). Lyrics are not searched: they are kept only for songs whose lyrics were opened. |
 | `add_recent_search(query)` | – | The return key. Saved per profile, newest first, at most `search.recentSearchesMax`. |
 | `recent_searches()` / `remove_recent_search(query)` / `clear_recent_searches()` | | |
 
@@ -122,7 +125,10 @@ Every change returns the new `QueueState` and also sends `QueueChanged` (and `No
 | `queue()` | The current state. |
 | `play(song_ids, start_index, started_from, context_id)` | Play a list (an album, a playlist, search results) from `start_index`. `context_id` is the album's or playlist's ID, kept in the play log. |
 | `play_next(song_ids)` / `add_to_up_next(song_ids)` | Top or end of Up Next. |
-| `next()` | Button, swipe, headset, lock screen. At the end of the queue the current song stays. |
+| `next()` | The button: the same as `skip_next(Button)`. |
+| `skip_next(origin)` | From anywhere: `SkipOrigin` Button, Swipe, Headset, Car, LockScreen, Keyboard. Every origin runs the same code and teaches the same lesson (board 42, rule 15); the origin is stored on the play it ends. At the end of the queue the current song stays. |
+| `skip_previous(origin, position_ms)` → `PreviousResult` | A swipe always goes back (`Moved`); every other origin restarts the song after 3 s, as the button does. With Repeat All, back from the first song wraps to the last. |
+| `next_target()` / `previous_target()` → `SkipTarget` | Where a swipe would land (draw the neighbour), or `end_of_queue`: the rubber band and "End of queue" (board 42, rule 8). |
 | `previous(position_ms, from_swipe)` → `PreviousResult` | `Restarted`: seek to 0:00 (the button after `previousButtonRestartAfterSeconds`, 3 s). `Moved`: play the new current song. The swipe (`from_swipe`) always moves back. |
 | `jump_to(uid)` | The songs passed over move to History. |
 | `replay_from_history(uid)` | |
@@ -146,7 +152,11 @@ The platform's own player plays the audio; the core owns the queue and the play 
 | Call | Notes |
 | --- | --- |
 | `lyric_line_tapped(line_index, line_start_ms)` | Logged with the current play (a section 5 field). |
+| `playback_interrupted(kind)` | `InterruptionKind`: HeadphonesUnplugged, OutputChanged, Call, Assistant. A skip in the next 3 s (`smartPicks.interruptionWindowSeconds`) reads as an interruption, never a skip. |
+| `playback_seeked(from_ms, to_ms)` | Dragging the progress bar: counted, never a skip. Seeking back before the preload point lets `Preload` come again. |
 | `set_listening_mode(mode)` | `Private`, `Guest` and `LearningOff` record nothing at all (checked at the database level); `Normal` records. Switching away from Normal closes the current play. |
+
+**The skip signal (plan section 21).** When a play closes, the core decides how it reads and stores that with the play: finished; skipped late (past 80%), mid, early (an app-chosen song under 30 s) or a user pick; or, never a negative, interruption, error, accident (under 2 s), too soon (a negative within 2 hours of hearing it), system, paused and abandoned. A song reached by a skip and skipped again within 600 ms (`gestures.playerSwipe.coalesceMs`) was only passed over: it leaves no play at all, so load audio only after the finger settles. Phase 5 weighs these signals.
 
 Each play event stores the song key, the source and its item ID, the title, artist and album (so history survives the song leaving the library), the duration, the UTC start and offset, the local hour and weekday, listened milliseconds, the end reason, what started it, the context ID, who chose it (user or app), the device ID, a ULID and a hybrid logical clock value. No location is ever stored.
 
@@ -157,8 +167,43 @@ Each play event stores the song key, the source and its item ID, the title, arti
 | `stream_for(song_id, network)` | `StreamInfo` | Quality from the setting for that network: Wi-Fi defaults to original (gapless info intact), cellular to high (320 kbps). `SessionExpired` when the server has no token. |
 | `stream_quality(network)` / `set_stream_quality(network, quality)` | `StreamQuality` | Original, High (320), Normal (160), DataSaver (96) kbps (`playback.quality`). |
 | `set_playback_capabilities(direct_play_containers, transcode_codec)` | – | Once per platform: the containers the player plays as they are (default flac, mp3, m4a, aac, alac, ogg, opus and wav), and the codec for transcodes (`Aac` or `Opus`; default AAC). |
-| `artwork(of, id, size_px)` | `ArtworkRequest` | The image at exactly `size_px` square. `ArtworkOf`: Album, Song (its album's art when there is one), Artist, Playlist. Load it with `headers`. Phase 3 adds the disk cache and the colour palette. |
-| `lyrics_raw(song_id)` async | `string?` | Jellyfin's lyrics JSON as sent (lines with start ticks and word cues), or null. Phase 3 adds the parsed lyrics model; do not parse this in the UI. |
+| `artwork(of, id, size_px)` | `ArtworkRequest` | The image at exactly `size_px` square. `ArtworkOf`: Album, Song (its album's art when there is one), Artist, Playlist. Load it with `headers`. The platform's image loader caches it; the core keeps no image cache (offline artwork comes with downloads in Phase 8). |
+| `album_palette(album_id)` / `playlist_palette(playlist_id)` async | `ArtworkPalette?` | Board 04's colours for the moving field: `scheme` (Dark: white text; Light: dark text), `base`, four `stops` (leading first: the mini player and album page tint), `text`, `lowest_contrast` (4.5:1 or better on dark, 7:1 on light), `sampled`. Made once per cover, the same bytes on every device; offline once made. None: no cover, so use the profile accent. |
+| `lyrics(song_id)` async | `SongLyrics?` | Ready to draw (board 10): see "Lyrics" below. None: "No lyrics for this song". Kept per song, so offline once fetched. Call it when the `Preload` event names the next song, so its lyrics are ready before the view opens (a first read of a long word-timed song takes about 9 ms on a desktop; a kept copy about 2 ms). |
+| `lyrics_raw(song_id)` async | `string?` | Jellyfin's lyrics JSON as sent, for diagnostics. Draw `lyrics` instead. |
+
+### Lyrics (board 10)
+
+`SongLyrics`: `sync` (Word, Line, Unsynced), `origin` (MediaServer, EmbeddedTag, Sidecar, Provider, Generated), `format`, `lines`, `singers`, `gaps`, `instrumental`, `language?`.
+
+- **Lines** come in the order they are sung. Synced lines always have `start_ms` and `end_ms`: the core fills the ends (the next line, the last word, never past the song).
+- **Words.** A line with `words` fills word by word across each word's `start_ms` to `end_ms`; a line without words lights up whole. A line's text is its words' texts with a space after each word whose `space_after` is set, and syllables of one word have none. Render each word as its own run; never index into the string.
+- **Singers.** `side` Opposite is a second singer, aligned to the other side. `singer` indexes `singers` (each with a `name` and a `kind`: Person, Group, Other).
+- **Background vocals.** `background`: smaller and dimmer, shown under the line while sung, with their own words.
+- **Gaps.** `gaps` are silences of `lyrics.instrumentalGapSeconds` (5 s) or more, for the breathing dots; `after_line` null is before the first line.
+- **Instrumental.** Show the dots and the title only.
+- `translation` and `pronunciation` when the source has them (TTML). `confidence` is 1 for anything from a file or a server.
+- Today Jellyfin's lyrics are line-synced (the owner's library has no word timing). Word-timed TTML and enhanced LRC already come through with words, and nothing in the UI may assume where word timing comes from.
+
+### Playlists and likes (section 26, board 43, synchronous)
+
+Every edit is **one call** with the whole list in the order shown, one event and one undo entry, however many songs. It works offline: the library shows the change at once, and the core sends it when the server can be reached, in order, even after the app was closed.
+
+| Call | Returns | Notes |
+| --- | --- | --- |
+| `drop_preview(target, song_ids)` | `DropPreview` | Before the drop: `count`, `already_there` (by song, so a song on two albums counts once), `needs_confirm` (over `gestures.dragAndDrop.confirmOverSongs`, 100), `suggested_name` (for a new playlist: the album's name, or the first artist's), or a `refusal` with `refusal_reason` to show (GuestCannotSave, AlbumsTakeNoSongs, PlaylistReadOnly, NothingToAdd). |
+| `add_to(target, song_ids, position, allow_duplicates)` | `EditResult` | `DropTarget { kind, id }`: Playlist (`id`; at `position`, or the end), NewPlaylist, LikedSongs, UpNext (at `position`, the line), PlayNext. Duplicates are skipped unless `allow_duplicates` ("Add anyway"); the toast reads "Added {added} · {already_there} already there". `edit_id` null: nothing changed. Refusals throw `NotAllowed`. |
+| `like(song_ids)` / `unlike(song_ids)` | `EditResult` | Liked Songs, by song. A like is also a favourite on the song's server; unlike clears every copy. Favourites set elsewhere arrive as likes with the next sync. |
+| `are_liked(song_ids)` | `[bool]` | The heart, in order. |
+| `liked_songs(offset, limit)` | `[Song]` | Newest like first; each song once. |
+| `remove_from_playlist(playlist_id, positions)` | `EditResult` | A row swipe's Remove. |
+| `move_in_playlist(playlist_id, from_position, to_position)` | `EditResult` | Reordering is always a move. |
+| `rename_playlist(playlist_id, name)` | `EditResult` | The name field a new playlist opens with; an empty name keeps the old one. |
+| `undo(edit_id)` | – | Until `undo_until_utc_ms` (`gestures.dragAndDrop.shortcutUndoMs`, 10 s; the toast may close sooner). Too late, or twice: `NotAllowed`. |
+| `pending_edits()` | `u32` | Edits not yet accepted by their server. |
+| `send_edits()` async | `SentEdits` | Send now, when the network returns. Also done after every edit and before every sync. `refused`: the server said no, and the next sync brings back its version. |
+
+Albums refuse drops: their songs come from the server's tags and folders. Guest can queue but not save. Copy versus move is the platform's choice: a move is `add_to`, then `remove_from_playlist`.
 
 ## Events
 
@@ -197,7 +242,11 @@ All are plain records and enums. IDs and times are 64-bit signed integers (milli
 | `StreamInfo` | `song_id`, `url`, `url_with_api_key`, `headers: [HttpHeader { name, value }]`, `may_transcode` |
 | `ArtworkRequest` | `url`, `headers` |
 | `CoreEvent` | `kind`, `queue?`, `now_playing?`, `preload?`, `sync_source_id?`, `sync_done`, `sync_total` |
-| Enums | `AlbumSort`, `SongSort`, `ResultKind`, `StartedFrom` (Album, Playlist, Artist, Songs, Genre, Search, Radio, Mix, Queue, History, Other), `ChosenBy`, `RepeatMode`, `ListeningMode` (Normal, Private, Guest, LearningOff), `EndReason` (Finished, PausedAbandoned, Interrupted, Error, EndedBySystem), `PreviousResult`, `Network` (Wifi, Cellular), `StreamQuality`, `TranscodeCodec`, `ArtworkOf`, `EventKind`, `ErrorKind` |
+| `SkipTarget` | `song?`, `end_of_queue` |
+| `SongLyrics` / `LyricLine` / `LyricWord` / `LyricBackground` / `LyricGap` / `Singer` | see "Lyrics" |
+| `ArtworkPalette` / `PaletteSwatch` | `scheme`, `base`, `stops`, `text`, `lowest_contrast`, `sampled` / `colour`, `share` |
+| `DropTarget` / `DropPreview` / `EditResult` / `SentEdits` | see "Playlists and likes" |
+| Enums | `AlbumSort`, `SongSort`, `ResultKind`, `StartedFrom` (Album, Playlist, Artist, Songs, Genre, Search, Radio, Mix, Queue, History, Other), `ChosenBy`, `RepeatMode`, `ListeningMode` (Normal, Private, Guest, LearningOff), `EndReason` (Finished, PausedAbandoned, Interrupted, Error, EndedBySystem), `PreviousResult`, `Network` (Wifi, Cellular), `StreamQuality`, `TranscodeCodec`, `ArtworkOf`, `EventKind`, `ErrorKind`; from Phase 3: `SkipOrigin`, `InterruptionKind`, `LyricsSync`, `LyricsOrigin`, `LyricsFormat`, `LyricSide`, `SingerKind`, `PaletteScheme`, `DropTargetKind`, `DropRefusal` |
 
 Names follow each language: `base_url` is `baseUrl` in Swift, Kotlin and Dart.
 
@@ -270,13 +319,13 @@ Types: whole numbers are `Int` (Swift and Kotlin; `Long` in Kotlin above 32 bits
 
 ## Proven so far
 
-- Rust tests for every layer (`cargo test` in `core/`). The Jellyfin adapter, the library sync and the whole `EncoreCore` API run end to end on a recording from a real Jellyfin 12.0.0 server, anonymized (`tools/fixtures/jellyfin/`). That covers Quick Connect, sync, browse, search, playing an album, the preload event, the play log and private listening. Error paths a recording cannot hold use stand-in replies written from the server's OpenAPI document.
+- Rust tests for every layer (`cargo test` in `core/`). The Jellyfin adapter, the library sync and the whole `EncoreCore` API run end to end on a recording from a real Jellyfin 12.0.0 server, anonymized (`tools/fixtures/jellyfin/`). That covers Quick Connect, sync, browse, search, playing an album, the preload event, the play log and private listening; and from Phase 3 the recording also holds 40 songs' lyrics, 38 covers as PNG (replaced in the fixture by board 04's own art), favourites, and real playlist and favourite writes that were undone in the same session. Error paths a recording cannot hold use stand-in replies written from the server's OpenAPI document.
 - CI (`.github/workflows/core.yml`) builds every target on every pull request and every push to `main`. These jobs prove the bindings and the builds, not the platforms. The Apple, Android, and Windows and Linux tracks prove them on their own devices.
 
 | Job | Runner | What it proves |
 | --- | --- | --- |
-| `linux` | Ubuntu | `make check-core`: fmt, clippy and tests for `core/`, `tools/` and `server/`, plus proof that the committed bindings and token constants match what the generators produce. The licence scan of every dependency. The search and browse budgets on 50,000 songs, with the timings in the log. Then it runs the library flow over real HTTP against the Jellyfin replay: first in Rust through `EncoreCore::new` (production page size and poll interval, plus a delta sync), then from Swift (Swift 6 mode), from Kotlin on a JVM with JNA and coroutines, and from Dart. The flow is check the address, sign in with Quick Connect, sync, open an album, play it, finish a song, get the next one, and search. Each language also checks typed errors, and Dart checks the events stream. |
-| `apple` | macOS | Builds `libencore_core.a` for iOS (arm64), the iOS Simulator (arm64, x86_64) and macOS (arm64, x86_64) with the plan's minimums (iOS 17, macOS 14). Links the Swift bindings for all five in Swift 6 mode and runs them, library flow included, on macOS and in an iOS Simulator. The iOS device build is linked but not run, because CI has no iPhone. Packages an XCFramework of the three platforms. |
+| `linux` | Ubuntu | `make check-core`: fmt, clippy and tests for `core/`, `tools/` and `server/`, plus proof that the committed bindings and token constants match what the generators produce. The licence scan of every dependency. The search and browse budgets on 50,000 songs, with the timings in the log. Then it runs the library flow over real HTTP against the Jellyfin replay: first in Rust through `EncoreCore::new` (production page size and poll interval, plus a delta sync), then from Swift (Swift 6 mode), from Kotlin on a JVM with JNA and coroutines, and from Dart. The flow is check the address, sign in with Quick Connect, sync, open an album, play it, finish a song, get the next one, and search; then fetch a song's lyrics, make an album's palette and check its base is exactly `3D0000` in every language (the same bytes everywhere), and add a song to a playlist and undo it. Each language also checks typed errors, and Dart checks the events stream. |
+| `apple` | macOS | Builds `libencore_core.a` for iOS (arm64), the iOS Simulator (arm64, x86_64) and macOS (arm64, x86_64) with the plan's minimums (iOS 17, macOS 14). Links the Swift bindings for all five in Swift 6 mode and runs them, library flow included, on macOS and in an iOS Simulator. The iOS device build is linked but not run, because CI has no iPhone. Runs the palette tests natively on Apple silicon (arm64), so the golden palette is checked on ARM as well as x86_64. Packages an XCFramework of the three platforms. |
 | `android` | Ubuntu | Builds `libencore_core.so` for arm64-v8a, armeabi-v7a, x86_64 and x86 at API 28 (Android 9). Checks that every one is 16 KB page aligned, as Google Play will require for app updates from 1 February 2027 ([Android docs](https://developer.android.com/guide/practices/page-sizes)), and that it exports every symbol the Kotlin bindings call. Nothing runs, because that needs an emulator or a phone. |
 | `windows` | Windows | Core and server tests, the Rust library flow over HTTP, then the Dart tests (library flow included) through `encore_dart.dll`. |
 
@@ -312,6 +361,32 @@ Everything below is in API version 1 and runs on a real Jellyfin 12.0.0 recordin
   - The `Preload` event comes 20 s before the end, for gapless playback.
   - The player reports with `playback_started`, `playback_progress` and `playback_ended`, and `lyric_line_tapped` for lyric jumps. The core writes the play log.
 - **Private listening and Guest.** `set_listening_mode`: nothing is written while it is on.
-- **Artwork and lyrics.** `artwork` URLs at an exact size; `lyrics_raw` text (parsing is Phase 3).
+- **Artwork and lyrics.** `artwork` URLs at an exact size (and, from Phase 3, `lyrics` and palettes below).
 
-Not available yet: anything from Phase 3 on (parsed lyrics, artwork cache and colours, sync between devices, smart picks, recaps).
+## What the platform tracks can build now (Phase 3)
+
+Everything below is in API version 2, tested in Rust on the owner's real Jellyfin recording, and called from Swift, Kotlin and Dart in CI.
+
+- **The lyrics view (board 10).** `lyrics(song_id)` gives everything the view needs:
+  - lines in order with filled-in end times; words with their own times for the word-by-word fill;
+  - the second singer's side, background vocals, translations;
+  - the gaps for the breathing dots, the instrumental flag, and the three states (word, line, unsynced).
+
+  Tap a line: `lyric_line_tapped`. The owner's lyrics are line-synced today; word-timed lyrics need no app change when they arrive.
+- **Album gradients (board 04).** `album_palette` and `playlist_palette`: the base, four stops, the text colour, the scheme (light art flips) and the contrast, the same on every device. Draw the moving field, the album and playlist page tint, and the mini player tint from it; with no cover, use the profile accent.
+- **Swipes (board 42).**
+  - `skip_next(Swipe)` and `skip_previous(Swipe, position)`, and the same calls for headsets, cars, the lock screen and keys;
+  - `next_target` / `previous_target` to draw the neighbour or the rubber band at the end of the queue;
+  - `playback_interrupted` (unplug, output switch, call, assistant) and `playback_seeked`.
+
+  The core decides what each skip teaches, and songs passed over in quick swipes leave no trace.
+- **Row swipes.** Play Next and Add to Queue (`add_to` with PlayNext or UpNext), Remove on your own playlists (`remove_from_playlist`), each with Undo (`undo`).
+- **Drag and drop, and every menu twin (board 43).**
+  - `drop_preview` for the tip, the count badge, "already there", the confirm over 100, the new playlist's name and the refusal reason;
+  - then `add_to` with the whole list in one call: a playlist at the line, a new playlist, Liked Songs, Up Next at the line, or Play Next;
+  - `move_in_playlist` to reorder, `rename_playlist` for the name field, `undo` for the toast and Ctrl/Command+Z.
+- **Likes.** The heart (`are_liked`, `like`, `unlike`) and Liked Songs (`liked_songs`); likes are Jellyfin favourites, so other Jellyfin apps agree.
+- **Offline edits.** All of the above work offline; `pending_edits` can drive a "Waiting to sync" note, and `send_edits` sends at once when the network returns.
+- **Backup and restore.** `backup_profile` / `restore_profile` for a settings page (export in an open format, board 19, is still to come).
+
+Not available yet: lyrics search, sync between devices and the profile switcher (Phase 4), smart picks and Autoplay (Phase 5), downloads and offline artwork (Phase 8), recaps (Phase 11).

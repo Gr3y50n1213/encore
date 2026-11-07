@@ -25,6 +25,9 @@ Last updated: 6 November 2026, Phase 2 (core): the owner's choices on fixtures a
 | Jellyfin test fixtures (6 November 2026) | Recorded from the owner's own Jellyfin 12.0 server through Quick Connect, with every name, title, ID and path replaced by consistent stand-ins before committing (the repository will be public). `tools/fixtures/jellyfin/RECORDING.md` |
 | Phase 2 core libraries (6 November 2026) | Approved: tokio, reqwest with rustls, rustls-platform-verifier, rusqlite with bundled SQLite, ulid, thiserror, url, unicode-normalization, sha2. Anything else is asked first. `core/THIRD_PARTY_LICENSES.md` |
 | Type (6 November 2026) | Android, Windows and Linux follow the type drawn on the boards: a compact scale under 600 wide and a wide scale from 600, by window width. Every Android page title is 28 sp, weight 500, as on the Home board. Apple devices use the system text styles. `design/tokens.json` `typography.scale` |
+| Phase 3 core libraries (6 November 2026) | Approved: quick-xml 0.42.0 (TTML lyrics) and png 0.18.1 (album covers, lossless so every device makes the same palette). `core/THIRD_PARTY_LICENSES.md` |
+| Phase 3 recording (6 November 2026) | One Quick Connect session that may write to the owner's server and undo it: a temporary playlist ("Encore test - safe to delete") made, changed and deleted, and one favourite set and cleared. Done on 7 November 2026; the server was left as it was. `tools/fixtures/jellyfin/RECORDING.md` |
+| Likes (6 November 2026) | A like is also a Jellyfin favourite, so other Jellyfin apps and devices see it before Phase 4 sync; favourites set elsewhere arrive as likes. `docs/adr/core-0008-edits-outbox-undo.md` |
 
 ## 2. Chosen for the owner (the owner delegated these)
 
@@ -44,6 +47,9 @@ Last updated: 6 November 2026, Phase 2 (core): the owner's choices on fixtures a
 | Swipe gestures | Mini player and Now Playing artwork: swipe to skip or go back, with direction lock, 60 pt arm, coalescing, rubber band at the queue ends, and signals the same as the Next button. Row swipes arm at 25% or 60% | Plan section 26, board 42 |
 | Drag and drop | Songs drag from any list to playlists, Up Next, the player bar and Liked Songs on Mac, Windows, Linux, iPad and Android tablets; copy by default; one core call, one sync event and one undo entry; a menu twin for every drop | Plan section 26, board 43 |
 | Work split | One monorepo built by four tracks: core and server, Apple, Android, Windows and Linux. Each track has its own plan, its own folders and its own Claude Code session, so a Mac session and a PC session can run at the same time. The core runs one step ahead; Android and Windows and Linux follow Phases 2 to 5 as soon as the core part exists, instead of waiting for Apple | `docs/ROADMAP.md`, `CLAUDE.md` |
+| TTML parser (Phase 3) | quick-xml directly with Encore's own mapping, instead of the plan's ttml_processor (a 6-day-old release with four more crates and a model of its own) | `docs/adr/core-0006-lyrics.md` |
+| Artwork disk cache | Not in the core: each platform's image loader caches display images; offline artwork comes with downloads (Phase 8). The core keeps only palettes | `docs/core/CORE-API.md` |
+| Browse speed target | No browse budget exists in tokens, so every browse page is held to the search budget (50 ms on 50,000 songs) | `core/encore-store/tests/search_budget.rs` |
 | Where the build glue lives | Each platform track compiles the Rust core for its own targets inside its own folder (an XCFramework for Apple, the Android ABIs, the Windows and Linux libraries). The Rust source stays in `core/`. Each track has its own CI workflow file and its own `check` Makefile target | `CLAUDE.md` |
 
 ## 3. Assumed defaults (not confirmed by the owner)
@@ -85,7 +91,10 @@ The owner has not answered these. They are the plan's defaults (plan section 15)
 
 | Item | Why it is open | Check against |
 | --- | --- | --- |
-| Word-by-word lyrics source | Jellyfin and LRCLIB mostly provide line-synced lyrics. Word timings need enhanced LRC or TTML files. One song recorded from the owner's library (6 Nov 2026) came back line-synced, 34 lines with start times and no word cues; most recorded songs report lyrics | A spike in phase 3: Jellyfin's replies for more of the owner's files |
+| Word-by-word lyrics source | Spike done in Phase 3 (7 Nov 2026): all 40 recorded songs with lyrics came back line-synced, none with word cues. The core reads word timing from TTML, enhanced LRC and Jellyfin's cues, tested only on written fixtures | Real word-timed files (enhanced LRC sidecars or TTML) when the owner has some; a later provider or the companion server's alignment |
+| `Metadata.Offset` in Jellyfin's lyrics JSON | Applied once, the LRC way (positive shows lyrics earlier); Jellyfin's own LRC parser never sets it, and nothing in the owner's library does | A server or provider that reports it |
+| Palette numbers (`albumGradient`: ranking weight, duplicate distance, light-art threshold, base and light-field lightness) | Starting values; within 0.038 OKLab of board 04 on its four covers, readable on the owner's 38 real covers | The look on devices, next to Apple Music, in Phase 3's platform work |
+| Skip-signal thresholds (`smartPicks`: 30 s early skip, 80% late, 2 s accident, 3 s interruption window, 2 h too soon; 600 ms swipe coalescing) | Starting values from the plan; classification tested, weights unused until Phase 5 | Offline replay on real histories in Phase 5 |
 | Stream transcode settings | AAC in ADTS and Opus in Ogg through `/Audio/{id}/universal`, chosen from Jellyfin's API document; not played on any device | Each platform's player in its Phase 2 |
 | Certificate checks through each operating system's verifier | Built for every target in CI; not run against a real https server with a private CA or a self-signed certificate | Each platform track's first https sign-in; Android also needs request `core-0001-android-tls-init` |
 | Search speed on devices | Under 50 ms on 50,000 songs on a CI runner, not on a phone | The platform tracks, Phase 6 |

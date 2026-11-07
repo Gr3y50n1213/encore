@@ -206,9 +206,11 @@ jobs:
       # Board 07: search answers in under search.budgetMs (50 ms); every browse page
       # (first and last, every sort) is held to the same. 50,000 songs, release
       # build; the timings are printed here. A runner is not a phone.
-      - name: Search and browse budgets on 50,000 songs
+      - name: Search and browse budgets on 50,000 songs; lyrics parse time
         working-directory: core
-        run: cargo test --locked -p encore-store --release --test search_budget -- --ignored --nocapture
+        run: |
+          cargo test --locked -p encore-store --release --test search_budget -- --ignored --nocapture
+          cargo test --locked -p encore-lyrics --release a_long_word_timed_song -- --nocapture
 
       # When the check finds stale bindings, this holds what CI generated, so the
       # difference can be read without a Dart SDK.

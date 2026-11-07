@@ -418,16 +418,34 @@ fn a_long_word_timed_song_parses_quickly() {
         ttml.push_str("</p>");
     }
     ttml.push_str("</div></body></tt>");
-    let started = std::time::Instant::now();
-    let l = read(&ttml);
-    let took = started.elapsed();
+    let median = |f: &mut dyn FnMut()| {
+        let mut times: Vec<std::time::Duration> = (0..7)
+            .map(|_| {
+                let t = std::time::Instant::now();
+                f();
+                t.elapsed()
+            })
+            .collect();
+        times.sort();
+        times[3]
+    };
+    let mut l = None;
+    let parse = median(&mut || l = Some(read(&ttml)));
+    let l = l.unwrap();
+    // Every later view reads the kept copy back from JSON instead.
+    let json = serde_json::to_string(&l).unwrap();
+    let cached = median(&mut || {
+        let back: Lyrics = serde_json::from_str(&json).unwrap();
+        std::hint::black_box(back);
+    });
     println!(
-        "400 lines, 3,200 timed words: parsed in {:.2} ms",
-        took.as_secs_f64() * 1e3
+        "400 lines, 3,200 timed words: parsed in {:.2} ms, read back from the cache in {:.2} ms (medians of 7)",
+        parse.as_secs_f64() * 1e3,
+        cached.as_secs_f64() * 1e3
     );
     assert_eq!(l.lines.len(), 400);
     assert_eq!(l.lines.iter().map(|x| x.words.len()).sum::<usize>(), 3200);
-    assert!(took < std::time::Duration::from_millis(500), "{took:?}");
+    assert!(parse < std::time::Duration::from_millis(500), "{parse:?}");
 }
 
 #[test]

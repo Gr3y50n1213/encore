@@ -96,7 +96,8 @@ if let replay = ProcessInfo.processInfo.environment["ENCORE_REPLAY_URL"] {
         allowDuplicates: false)
     precondition(edit.added == 1 && edit.editId != nil)
     try core.undo(editId: edit.editId!)
-    precondition(try core.playlist(playlistId: list.id).entries.count == inList.count)
+    let afterUndo = try core.playlist(playlistId: list.id).entries.count
+    precondition(afterUndo == inList.count)
     flow = "library flow OK (signed in, synced \(synced[0].songs) songs, played an album, searched, lyrics, palette \(palette.base), playlist edit and undo)"
 }
 

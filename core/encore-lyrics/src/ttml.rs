@@ -144,26 +144,31 @@ fn collapse(s: &str) -> String {
     s.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
+/// An element's attributes by local name. A short list, not a map: elements have
+/// a handful, and a word-timed song has thousands of elements.
 struct Attrs {
-    map: HashMap<String, String>,
+    list: Vec<(String, String)>,
 }
 
 impl Attrs {
     fn of(e: &BytesStart<'_>) -> Result<Attrs, LyricsError> {
-        let mut map = HashMap::new();
+        let mut list = Vec::new();
         for a in e.attributes() {
             let a = a.map_err(|e| LyricsError::Malformed(format!("attribute: {e}")))?;
             let local = a.key.local_name();
             let value = a
                 .normalized_value(quick_xml::XmlVersion::Implicit1_0)
                 .map_err(|e| LyricsError::Malformed(format!("attribute value: {e}")))?;
-            map.insert(local.as_ref().to_owned(), value.into_owned());
+            list.push((local.as_ref().to_owned(), value.into_owned()));
         }
-        Ok(Attrs { map })
+        Ok(Attrs { list })
     }
 
     fn get(&self, key: &str) -> Option<&str> {
-        self.map.get(key).map(String::as_str)
+        self.list
+            .iter()
+            .find(|(k, _)| k == key)
+            .map(|(_, v)| v.as_str())
     }
 
     /// `begin` and `end` (or `begin` + `dur`).
