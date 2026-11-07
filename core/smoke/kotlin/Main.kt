@@ -1,7 +1,8 @@
 // Smoke test: Kotlin calls the Rust core through the UniFFI bindings (JNA on a desktop JVM).
 // CI compiles this with bindings/kotlin and bindings/tokens/EncoreTokens.kt on Linux, with
 // JNA and kotlinx-coroutines (the async calls are suspend functions).
-// It proves the bindings work; the Android track proves them on Android.
+// It proves the bindings work. The same file runs on Android phones through app_process
+// (tools/android-smoke), where it also checks the https guard of request core-0001.
 //
 // The only network is 127.0.0.1: a replay of the real Jellyfin recording (see the end).
 
@@ -25,6 +26,18 @@ import uk.gcartee.encore.core.appName
 import uk.gcartee.encore.core.coreVersion
 import uk.gcartee.encore.core.hello
 import uk.gcartee.encore.tokens.EncoreTokens
+
+// FNV-1a (32 bit) of the flow's clock-free summary: every platform must print the same
+// "parity" value (the same account gives the same answers everywhere; Phase 6).
+fun parity(lines: List<String>): String {
+    var h = 0x811c9dc5u
+    for (b in lines.joinToString("\n").toByteArray(Charsets.UTF_8)) {
+        h = (h xor (b.toUInt() and 0xffu)) * 0x01000193u
+    }
+    return h.toString(16).padStart(8, '0')
+}
+
+val onAndroid = System.getProperty("java.vm.name") == "Dalvik"
 
 class Listener : CoreListener {
     override fun onEvent(event: CoreEvent) {}
@@ -66,6 +79,22 @@ fun main() {
     // The library flow over real HTTP: sign in, sync, browse, play and search against
     // the real Jellyfin recording, which tools/ci/replay_jellyfin.py serves on this machine.
     var flow = "library flow skipped (set ENCORE_REPLAY_URL, see tools/ci/replay.sh)"
+    var parityLine = ""
+    // On Android without EncoreTls.initialize, an https server must fail with the
+    // documented reason (an Unreachable error), never crash (request core-0001).
+    var tls = ""
+    val tlsUrl = System.getenv("ENCORE_TLS_URL")
+    if (onAndroid && tlsUrl != null) {
+        runBlocking {
+            try {
+                core.checkAddress(tlsUrl)
+                error("an https server must be refused before EncoreTls.initialize")
+            } catch (e: EncoreException) {
+                check(e.reason.contains("EncoreTls.initialize")) { "unexpected: $e ${e.reason}" }
+                tls = "; https guard OK"
+            }
+        }
+    }
     val replay = System.getenv("ENCORE_REPLAY_URL")
     if (replay != null) {
         runBlocking {
@@ -124,10 +153,20 @@ fun main() {
             check(edit.added == 1u && edit.editId != null)
             core.undo(edit.editId!!)
             check(core.playlist(list.id).entries.size == entriesBefore.size)
+            parityLine = "; parity " + parity(listOf(
+                "songs=${synced[0].songs}",
+                "albums=" + core.albums(AlbumSort.TITLE, 0u, 100u).joinToString("|") { it.title },
+                "album=" + songs.joinToString("|") { it.title },
+                "search=" + core.search(songs[0].title).songs.joinToString("|") { it.title },
+                "lyrics=${lyrics.lines.size}:${lyrics.lines[0].text}",
+                "palette=${palette.base}," + palette.stops.joinToString(","),
+                "playlist=${list.name}:${entriesBefore.size}",
+            ))
             flow = "library flow OK (signed in, synced ${synced[0].songs} songs, played an album, searched, lyrics, lyrics search, export, profiles, sync status, smart picks, palette ${palette.base}, playlist edit and undo)"
         }
     }
 
     core.close()
-    println("Kotlin -> Rust: $greeting (core ${coreVersion()}); EncoreCore suspend calls and errors OK; $flow")
+    val where = if (onAndroid) "Kotlin on Android" else "Kotlin"
+    println("$where -> Rust: $greeting (core ${coreVersion()}); EncoreCore suspend calls and errors OK; $flow$tls$parityLine")
 }

@@ -50,6 +50,16 @@ do {
 // The library flow over real HTTP: sign in, sync, browse, play and search against the
 // real Jellyfin recording, which tools/ci/replay_jellyfin.py serves on this machine.
 var flow = "library flow skipped (set ENCORE_REPLAY_URL, see tools/ci/replay.sh)"
+var parityLine = ""
+
+// FNV-1a (32 bit) of the flow's clock-free summary: every platform must print the same
+// "parity" value (the same account gives the same answers everywhere; Phase 6).
+func parity(_ text: String) -> String {
+    var h: UInt32 = 0x811c_9dc5
+    for b in text.utf8 { h = (h ^ UInt32(b)) &* 0x0100_0193 }
+    let hex = String(h, radix: 16)
+    return String(repeating: "0", count: 8 - hex.count) + hex
+}
 if let replay = ProcessInfo.processInfo.environment["ENCORE_REPLAY_URL"] {
     let check = try await core.checkAddress(address: replay)
     precondition(check.version == "12.0.0", check.version)
@@ -119,8 +129,19 @@ if let replay = ProcessInfo.processInfo.environment["ENCORE_REPLAY_URL"] {
     try core.undo(editId: edit.editId!)
     let afterUndo = try core.playlist(playlistId: list.id).entries.count
     precondition(afterUndo == entriesBefore.count, "\(afterUndo) vs \(entriesBefore.count)")
+    // The flow's clock-free summary, hashed the same way on every platform (Phase 6).
+    let summary = [
+        "songs=\(synced[0].songs)",
+        "albums=" + (try core.albums(sort: .title, offset: 0, limit: 100)).map { $0.title }.joined(separator: "|"),
+        "album=" + songs.map { $0.title }.joined(separator: "|"),
+        "search=" + (try core.search(query: songs[0].title)).songs.map { $0.title }.joined(separator: "|"),
+        "lyrics=\(lyrics.lines.count):\(lyrics.lines[0].text)",
+        "palette=\(palette.base)," + palette.stops.joined(separator: ","),
+        "playlist=\(list.name):\(entriesBefore.count)",
+    ].joined(separator: "\n")
+    parityLine = "; parity " + parity(summary)
     flow = "library flow OK (signed in, synced \(synced[0].songs) songs, played an album, searched, lyrics, lyrics search, export, profiles, sync status, smart picks, palette \(palette.base), playlist edit and undo)"
 }
 
-print("Swift -> Rust: \(greeting) (core \(coreVersion())); EncoreCore async and errors OK; \(flow)")
+print("Swift -> Rust: \(greeting) (core \(coreVersion())); EncoreCore async and errors OK; \(flow)\(parityLine)")
 try? FileManager.default.removeItem(at: dir)

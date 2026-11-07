@@ -70,6 +70,9 @@ env:
   # Maven Central, whose SHA-1 is 3d57dc678bd8d72a60e7adf0eca5c54e3f4f4b79.
   COROUTINES_VERSION: 1.11.0
   COROUTINES_SHA256: d1d75aa01dffbb4d1c520e67e4c4e7f5f6174718e7cb4632412503f2f0e604fa
+  # JNA's Android build (the same version), for the phone bundle; SHA-256 computed
+  # from Maven Central, whose SHA-1 is 4134d63c53cbf9650b11ee950df093add29f14cf.
+  JNA_AAR_SHA256: 4dbeffffa665d97ad5aa7eee297531d3c841a86716ab7f774fd6956422b3cf38
 
 jobs:
   regenerate:
@@ -135,6 +138,8 @@ jobs:
     timeout-minutes: 40
     outputs:
       apps: ${{ steps.changes.outputs.apps }}
+      # Phase 6: the library flow's summary hash; every platform must print it.
+      parity: ${{ steps.parity.outputs.value }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -264,6 +269,7 @@ jobs:
           out="$(LD_LIBRARY_PATH=target/debug target/smoke-swift)"
           echo "$out"
           grep -qF 'library flow OK' <<<"$out"
+          grep -oE 'parity [0-9a-f]{8}' <<<"$out" > target/parity-swift.txt
 
       - name: Kotlin (JVM with JNA)
         working-directory: core
@@ -281,6 +287,7 @@ jobs:
           out="$(java -Djna.library.path=target/debug -cp target/smoke-kotlin.jar:target/jna.jar:target/coroutines.jar MainKt)"
           echo "$out"
           grep -qF 'library flow OK' <<<"$out"
+          grep -oE 'parity [0-9a-f]{8}' <<<"$out" > target/parity-kotlin.txt
 
       - name: Dart
         working-directory: core/bindings/dart
@@ -289,7 +296,20 @@ jobs:
           dart analyze
           source ../../../tools/ci/replay.sh && start_replay
           # --run-skipped: the library-flow test fails if the replay URL is missing.
-          ENCORE_DART_LIB="$GITHUB_WORKSPACE/core/target/debug/libencore_dart.so" dart test --run-skipped
+          out="$(ENCORE_DART_LIB="$GITHUB_WORKSPACE/core/target/debug/libencore_dart.so" dart test --run-skipped --reporter expanded)"
+          echo "$out"
+          grep -oE 'parity [0-9a-f]{8}' <<<"$out" | head -n 1 > ../../target/parity-dart.txt
+
+      # Phase 6: the same account gives the same answers on every platform. The
+      # Apple, Windows and Android runs compare with this value.
+      - name: Swift, Kotlin and Dart give the same answers
+        id: parity
+        working-directory: core
+        run: |
+          cat target/parity-*.txt
+          test "$(sort -u target/parity-*.txt | wc -l)" -eq 1
+          test "$(wc -l < target/parity-swift.txt)" -eq 1
+          echo "value=$(cut -d' ' -f2 target/parity-swift.txt)" >> "$GITHUB_OUTPUT"
 
   apple:
     # A real iPhone or iPad can't be reached from CI, so the iOS device slice is built
@@ -380,6 +400,8 @@ jobs:
           swift_build x86_64-apple-darwin   x86_64-apple-macos14.0         macosx
 
       - name: Run on macOS
+        env:
+          PARITY: ${{ needs.linux.outputs.parity }}
         run: |
           case "$(uname -m)" in
             arm64) bin=target/smoke/aarch64-apple-darwin ;;
@@ -390,8 +412,11 @@ jobs:
           echo "$out"
           grep -qF 'Hello, CI, from the Encore core.' <<<"$out"
           grep -qF 'library flow OK' <<<"$out"
+          grep -qF "parity $PARITY" <<<"$out"
 
       - name: Run in an iOS Simulator
+        env:
+          PARITY: ${{ needs.linux.outputs.parity }}
         run: |
           case "$(uname -m)" in
             arm64) bin="$PWD/target/smoke/aarch64-apple-ios-sim" ;;
@@ -417,6 +442,7 @@ jobs:
           test "$status" -eq 0
           grep -qF 'Hello, CI, from the Encore core.' <<<"$out"
           grep -qF 'library flow OK' <<<"$out"
+          grep -qF "parity $PARITY" <<<"$out"
 
       - name: Package an XCFramework
         run: |
@@ -533,6 +559,49 @@ jobs:
           done
           du -sh target/android/jniLibs/*
 
+      # Phase 6: the Kotlin smoke test as one dex file plus each ABI's libraries, run
+      # on the owner's phones by tools/android-smoke/run.ps1 (app_process, no app).
+      - name: A bundle that runs the Kotlin smoke test on Android phones
+        env:
+          PARITY: ${{ needs.linux.outputs.parity }}
+        run: |
+          kotlinc -version
+          b=target/android-smoke
+          rm -rf "$b" && mkdir -p "$b/bundle" "$b/aar"
+          curl -fsSL --retry 3 -o "$b/jna.aar" \
+            "https://repo1.maven.org/maven2/net/java/dev/jna/jna/$JNA_VERSION/jna-$JNA_VERSION.aar"
+          echo "$JNA_AAR_SHA256  $b/jna.aar" | sha256sum -c -
+          curl -fsSL --retry 3 -o "$b/coroutines.jar" \
+            "https://repo1.maven.org/maven2/org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm/$COROUTINES_VERSION/kotlinx-coroutines-core-jvm-$COROUTINES_VERSION.jar"
+          echo "$COROUTINES_SHA256  $b/coroutines.jar" | sha256sum -c -
+          unzip -q "$b/jna.aar" -d "$b/aar"
+          kotlinc -cp "$b/aar/classes.jar:$b/coroutines.jar" -include-runtime -d "$b/smoke.jar" \
+            bindings/kotlin/uk/gcartee/encore/core/encore_core.kt bindings/tokens/EncoreTokens.kt smoke/kotlin/Main.kt
+          bt="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1)"
+          echo "d8 from $bt"
+          "$bt/d8" --release --min-api "$ANDROID_API" --output "$b/bundle" \
+            "$b/smoke.jar" "$b/aar/classes.jar" "$b/coroutines.jar"
+          for abi in arm64-v8a armeabi-v7a x86_64 x86; do
+            mkdir -p "$b/bundle/$abi"
+            cp "target/android/jniLibs/$abi/libencore_core.so" "$b/aar/jni/$abi/libjnidispatch.so" "$b/bundle/$abi/"
+          done
+          echo "$PARITY" > "$b/bundle/expected-parity.txt"
+          # A throwaway self-signed certificate for 127.0.0.1: the phone run checks the
+          # https guard (request core-0001) against tools/android-smoke/tls_server.py.
+          mkdir -p "$b/bundle/tls"
+          openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -days 14 \
+            -subj "/CN=127.0.0.1" -addext "subjectAltName=IP:127.0.0.1" \
+            -keyout "$b/bundle/tls/key.pem" -out "$b/bundle/tls/cert.pem" 2>/dev/null
+          ls -la "$b/bundle" && du -sh "$b/bundle"
+
+      - name: Upload the phone bundle
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: encore-android-smoke
+          path: core/target/android-smoke/bundle
+          retention-days: 7
+          if-no-files-found: error
+
       - name: Upload jniLibs and the Kotlin bindings (manual runs only)
         if: ${{ github.event_name == 'workflow_dispatch' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -596,12 +665,16 @@ jobs:
       - name: Dart
         if: ${{ needs.linux.outputs.apps == 'true' }}
         working-directory: core/bindings/dart
+        env:
+          PARITY: ${{ needs.linux.outputs.parity }}
         run: |
           dart --version
           dart pub get
           source ../../../tools/ci/replay.sh && start_replay
           # --run-skipped: the library-flow test fails if the replay URL is missing.
-          ENCORE_DART_LIB="$GITHUB_WORKSPACE/core/target/debug/encore_dart.dll" dart test --run-skipped
+          out="$(ENCORE_DART_LIB="$GITHUB_WORKSPACE/core/target/debug/encore_dart.dll" dart test --run-skipped --reporter expanded)"
+          echo "$out"
+          grep -qF "parity $PARITY" <<<"$out"
 
   server-image:
     # Phase 4: the companion server as it ships. The image is built for amd64 and

@@ -2,12 +2,23 @@
 // Run with ENCORE_DART_LIB set to the built encore_dart library
 // (core/target/debug/libencore_dart.so on Linux, encore_dart.dll on Windows).
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:encore_core/encore_core.dart';
 import 'package:encore_core/encore_tokens.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:test/test.dart';
+
+/// FNV-1a (32 bit) of the flow's clock-free summary: every platform must print
+/// the same "parity" value (the same account gives the same answers; Phase 6).
+String parity(List<String> lines) {
+  var h = 0x811c9dc5;
+  for (final b in utf8.encode(lines.join('\n'))) {
+    h = ((h ^ b) * 0x01000193) & 0xffffffff;
+  }
+  return h.toRadixString(16).padLeft(8, '0');
+}
 
 void main() {
   setUpAll(() async {
@@ -174,6 +185,19 @@ void main() {
       core.undo(editId: edit.editId!);
       expect(core.playlist(playlistId: list.id).entries.length,
           entriesBefore.length);
+      final albumTitles = core
+          .albums(sort: AlbumSort.title, offset: 0, limit: 100)
+          .map((a) => a.title)
+          .join('|');
+      print('parity ${parity([
+            'songs=${synced.single.songs}',
+            'albums=$albumTitles',
+            'album=${songs.map((s) => s.title).join('|')}',
+            'search=${core.search(query: songs[0].title).songs.map((s) => s.title).join('|')}',
+            'lyrics=${lyrics.lines.length}:${lyrics.lines[0].text}',
+            'palette=${palette.base},${palette.stops.join(',')}',
+            'playlist=${list.name}:${entriesBefore.length}',
+          ])}');
     },
         skip: replay == null ? 'set ENCORE_REPLAY_URL (tools/ci/replay.sh)' : false,
         timeout: const Timeout(Duration(seconds: 60)));
