@@ -52,6 +52,13 @@ enum class TransportSize(val playW: Int, val playH: Int, val checkedRadius: Int,
         AndroidToggleShape.Sizes.Medium.height * AndroidToggleShape.pressedRadiusPercentOfHeight / 100,
         AndroidToggleShape.TransportRow.PrevNext.Sizes.Medium.width, AndroidToggleShape.TransportRow.PrevNext.Sizes.Medium.outerRadius,
     ),
+    /** The tablet and desktop player bar (board 29, item 5). */
+    Bar(
+        AndroidToggleShape.Sizes.Bar.width, AndroidToggleShape.Sizes.Bar.height,
+        AndroidToggleShape.Sizes.Bar.checkedRadius,
+        AndroidToggleShape.Sizes.Bar.height * AndroidToggleShape.pressedRadiusPercentOfHeight / 100,
+        AndroidToggleShape.TransportRow.PrevNext.Sizes.Bar.width, AndroidToggleShape.TransportRow.PrevNext.Sizes.Bar.outerRadius,
+    ),
     /** The mini player: 44 dp, a 48 dp touch target kept by the button's minimum size. */
     Compact(
         AndroidToggleShape.Sizes.Compact.width, AndroidToggleShape.Sizes.Compact.height,

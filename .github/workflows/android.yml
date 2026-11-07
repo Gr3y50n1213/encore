@@ -83,10 +83,14 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.ENCORE_TEST_KEYSTORE_PASSWORD }}
         run: |
           if [ -n "$KEYSTORE_B64" ]; then
-            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/encore-test.jks"
+            # Secrets set from Windows can end in a CR LF: strip line endings first.
+            printf '%s' "$KEYSTORE_B64" | tr -d '\r\n ' | base64 -d > "$RUNNER_TEMP/encore-test.jks"
+            password="$(printf '%s' "$KEYSTORE_PASSWORD" | tr -d '\r\n')"
+            echo "::add-mask::$password"
+            # Fail here, not in the middle of the build, if the key or password is wrong.
+            keytool -list -keystore "$RUNNER_TEMP/encore-test.jks" -storepass "$password" -alias encore-test > /dev/null
             echo "ENCORE_TEST_KEYSTORE=$RUNNER_TEMP/encore-test.jks" >> "$GITHUB_ENV"
-            echo "::add-mask::$KEYSTORE_PASSWORD"
-            echo "ENCORE_TEST_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "ENCORE_TEST_KEYSTORE_PASSWORD=$password" >> "$GITHUB_ENV"
             echo "signing with the test key"
           else
             echo "no test key: signing with the debug key"

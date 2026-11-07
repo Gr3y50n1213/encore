@@ -210,7 +210,8 @@ private fun SungWord(w: LyricWord, positionMs: Long, colour: Color) {
             style = type.lyricLine,
             color = colour,
             modifier = Modifier.drawWithContent {
-                clipRect(right = size.width * fill) { this@drawWithContent.drawContent() }
+                val word = this
+                clipRect(right = size.width * fill) { word.drawContent() }
             },
         )
     }

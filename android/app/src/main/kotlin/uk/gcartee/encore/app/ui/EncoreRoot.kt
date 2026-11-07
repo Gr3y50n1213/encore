@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -150,7 +151,9 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     val homeData = remember(switches) { HomeData(host) }
     val still = reduceMotion()
     val playingSongId = player.entry?.song?.id
-    val wide = LocalConfiguration.current.screenWidthDp >= Breakpoints.railFrom
+    val widthDp = LocalConfiguration.current.screenWidthDp
+    val wide = widthDp >= Breakpoints.railFrom
+    val expanded = widthDp >= Breakpoints.expandedRailFrom
     val offline = rememberOffline(context)
     val actions = remember(nav) {
         AppActions(host, toaster, context, open = { route -> nowPlaying = false; nav.push(route) }, openNowPlaying = { nowPlaying = true })
@@ -194,8 +197,11 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
         }
         Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             Row(Modifier.fillMaxSize()) {
-                if (wide) {
-                    // Board 29: a navigation rail from 600 dp of window width.
+                if (expanded) {
+                    // Board 29, item 1: from 840 dp the expanded rail, 240 dp, labels beside the icons.
+                    ExpandedRail(host, nav.tab, onTab = { nav.select(it) }, onOpen = actions.open, onProfile = { profiles = true })
+                } else if (wide) {
+                    // Board 29: an 80 dp rail with labels under the icons from 600 dp.
                     NavigationRail(Modifier.statusBarsPadding()) {
                         Tab.entries.forEach { tab ->
                             val selected = nav.tab == tab
@@ -221,6 +227,20 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                             },
                             label = "page",
                         ) { (tab, route) ->
+                            // Board 29, item 2: on expanded windows Library is a 340 dp list with the
+                            // chosen album, artist or playlist open beside it, two panes 12 dp apart.
+                            if (expanded && tab == Tab.Library && route != null && route !is Route.Settings) {
+                                Row(Modifier.fillMaxSize().padding(PANE_GAP_DP.dp)) {
+                                    Surface(shape = androidx.compose.foundation.shape.RoundedCornerShape(PANE_RADIUS_DP.dp), color = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.width(LIST_PANE_DP.dp).fillMaxSize()) {
+                                        LibraryScreen(host, actions.open, playingSongId, inner)
+                                    }
+                                    androidx.compose.foundation.layout.Spacer(Modifier.width(PANE_GAP_DP.dp))
+                                    Surface(shape = androidx.compose.foundation.shape.RoundedCornerShape(PANE_RADIUS_DP.dp), modifier = Modifier.weight(1f).fillMaxSize()) {
+                                        Page(route, host, playingSongId, nav::back, inner, onProfiles = { profiles = true }, onAddServer = { addingAccount = true })
+                                    }
+                                }
+                                return@AnimatedContent
+                            }
                             when (route) {
                                 is Route.Album -> AlbumScreen(host, route.id, playingSongId, onBack = { nav.back() }, contentPadding = inner)
                                 is Route.Artist -> ArtistScreen(host, route.id, playingSongId, onBack = { nav.back() }, contentPadding = inner)
@@ -238,7 +258,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                         // Toasts sit above the mini player and never cover controls (board 20).
                         SnackbarHost(toaster.host, Modifier.align(Alignment.BottomCenter).padding(bottom = Grid.base.dp).semantics { liveRegion = LiveRegionMode.Polite })
                     }
-                    MiniPlayer(host, player, onExpand = { nowPlaying = true }, modifier = Modifier.padding(vertical = Grid.base.dp).let { if (wide) it.navigationBarsPadding() else it })
+                    MiniPlayer(host, player, onExpand = { nowPlaying = true }, modifier = Modifier.padding(vertical = Grid.base.dp).let { if (wide) it.navigationBarsPadding() else it }, bar = wide)
                     if (!wide) {
                         NavigationBar {
                             Tab.entries.forEach { tab ->
@@ -274,6 +294,63 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
         }
         if (profiles) ProfileSheet(host, playing = player.isPlaying, onDismiss = { profiles = false }, onSwitched = { nav.reset(); switches++ }, onAddAccount = { addingAccount = true })
         if (output) OutputSheet(host, playingHere = player.isPlaying, onDismiss = { output = false })
+    }
+}
+
+/** A pushed page, for the detail pane. */
+@Composable
+private fun Page(route: Route, host: CoreHost, playingSongId: Long?, onBack: () -> Unit, inner: PaddingValues, onProfiles: () -> Unit, onAddServer: () -> Unit) {
+    when (route) {
+        is Route.Album -> AlbumScreen(host, route.id, playingSongId, onBack = onBack, contentPadding = inner)
+        is Route.Artist -> ArtistScreen(host, route.id, playingSongId, onBack = onBack, contentPadding = inner)
+        is Route.Playlist -> PlaylistScreen(host, route.id, playingSongId, onBack = onBack, contentPadding = inner)
+        is Route.Mix -> MixScreen(host, route.id, playingSongId, onBack = onBack, contentPadding = inner)
+        is Route.Settings -> SettingsScreen(host, route.page, onBack = onBack, onProfiles = onProfiles, onAddServer = onAddServer, contentPadding = inner)
+    }
+}
+
+/**
+ * Board 29, item 1: the expanded rail: the four destinations as full-round tonal pills,
+ * then pinned mixes and playlists, and the profile at the foot.
+ */
+@Composable
+private fun ExpandedRail(host: CoreHost, tab: Tab, onTab: (Tab) -> Unit, onOpen: (Route) -> Unit, onProfile: () -> Unit) {
+    val type = LocalEncoreType.current
+    val playlists = remember { runCatching { host.core.playlists(0u, 8u) }.getOrDefault(emptyList()) }
+    val profile = remember { runCatching { host.core.profiles().firstOrNull { it.active } }.getOrNull() }
+    androidx.compose.material3.PermanentDrawerSheet(
+        Modifier.width(EXPANDED_RAIL_DP.dp).statusBarsPadding(),
+        drawerContainerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        androidx.compose.foundation.lazy.LazyColumn(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+            items(Tab.entries.size) { i ->
+                val t = Tab.entries[i]
+                androidx.compose.material3.NavigationDrawerItem(
+                    label = { Text(t.name, style = if (t == tab) type.navLabelSelected else type.listRowTitle) },
+                    icon = { TabIcon(t, t == tab) },
+                    selected = t == tab,
+                    onClick = { onTab(t) },
+                )
+            }
+            if (playlists.isNotEmpty()) {
+                item { Text("Playlists", style = type.groupLabel, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)) }
+                items(playlists.size) { i ->
+                    val p = playlists[i]
+                    androidx.compose.material3.NavigationDrawerItem(
+                        label = { Text(p.name, style = type.listRowTitle, maxLines = 1) },
+                        selected = false,
+                        onClick = { onTab(Tab.Library); onOpen(Route.Playlist(p.id)) },
+                    )
+                }
+            }
+        }
+        androidx.compose.material3.NavigationDrawerItem(
+            label = { Text(profile?.displayName ?: "Profile", style = type.listRowTitle) },
+            icon = { Icon(Icons.artist(), contentDescription = null) },
+            selected = false,
+            onClick = onProfile,
+            modifier = Modifier.padding(12.dp),
+        )
     }
 }
 
@@ -328,3 +405,9 @@ private fun OfflineBanner() {
 }
 
 private const val OFFLINE_DELAY_MS = 2_000L
+
+// Board 29's panes.
+private const val LIST_PANE_DP = 340
+private const val PANE_GAP_DP = 12
+private const val PANE_RADIUS_DP = 28
+private val EXPANDED_RAIL_DP = Breakpoints.expandedRailWidth

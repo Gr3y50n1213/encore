@@ -48,7 +48,7 @@ import uk.gcartee.encore.tokens.EncoreTokens.Radius
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun MiniPlayer(host: CoreHost, state: PlayerState, onExpand: () -> Unit, modifier: Modifier = Modifier) {
+fun MiniPlayer(host: CoreHost, state: PlayerState, onExpand: () -> Unit, modifier: Modifier = Modifier, bar: Boolean = false) {
     val entry = state.entry ?: return
     val context = LocalContext.current
     val type = LocalEncoreType.current
@@ -102,18 +102,24 @@ fun MiniPlayer(host: CoreHost, state: PlayerState, onExpand: () -> Unit, modifie
                     }
                 }
             }
+            // Board 29, item 5: on wider windows a bar with the whole transport, 48 dp or more
+            // apart, so a stray touch only expands the bar.
+            if (bar) {
+                SkipButton(next = false, onClick = { PlaybackHub.previous(context) }, size = TransportSize.Bar)
+                Spacer(Modifier.width(Grid.base.dp))
+            }
             Box {
                 PlayPauseButton(
                     playing = state.isPlaying,
                     loading = state.buffering,
                     onToggle = { PlaybackHub.togglePlay(context) },
-                    size = TransportSize.Compact,
+                    size = if (bar) TransportSize.Bar else TransportSize.Compact,
                     container = MaterialTheme.colorScheme.secondaryContainer,
                     onContainer = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
             }
-            Spacer(Modifier.width(4.dp))
-            SkipButton(next = true, onClick = { PlaybackHub.next(context) }, size = TransportSize.Compact)
+            Spacer(Modifier.width(if (bar) Grid.base.dp else 4.dp))
+            SkipButton(next = true, onClick = { PlaybackHub.next(context) }, size = if (bar) TransportSize.Bar else TransportSize.Compact)
         }
     }
 }
