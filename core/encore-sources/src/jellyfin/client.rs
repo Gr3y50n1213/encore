@@ -178,6 +178,13 @@ impl JellyfinClient {
         &self.base
     }
 
+    /// The token, for one purpose only: the companion server's sign-in, which
+    /// sends it once so the companion can check it with this server (plan section
+    /// 5). Never log it or store it anywhere but the keychain.
+    pub fn token_for_companion_sign_in(&self) -> Option<&str> {
+        self.token()
+    }
+
     fn token(&self) -> Option<&str> {
         self.session.as_ref().map(|(t, _)| t.as_str())
     }

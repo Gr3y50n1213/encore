@@ -786,6 +786,66 @@ impl From<crate::palette::Palette> for ArtworkPalette {
     }
 }
 
+// ---------------------------------------------------------------- companion sync
+
+/// Where sync with the companion server stands (the sync status row).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum SyncState {
+    /// No companion server for this profile: everything stays on this device.
+    NotConnected,
+    /// Up to date, listening for other devices' changes.
+    Idle,
+    /// Sending or receiving.
+    Syncing,
+    /// The server can't be reached; changes wait here and go when it's back.
+    Offline,
+    /// The server no longer accepts this device (it was signed out elsewhere, or
+    /// the profile was deleted there). Local data stays; connect again to sync.
+    SignedOut,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct SyncStatus {
+    pub state: SyncState,
+    /// Changes on this device not yet on the server ("Waiting to sync").
+    pub pending: u32,
+    pub last_synced_utc_ms: Option<i64>,
+    /// The companion server's address, when one is set.
+    pub server_url: Option<String>,
+    /// Why, for Offline and SignedOut.
+    pub reason: Option<String>,
+}
+
+/// What another device changed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct RemoteChange {
+    /// Songs whose like changed; refresh hearts and Liked Songs.
+    pub liked_song_ids: Vec<i64>,
+    pub unliked_song_ids: Vec<i64>,
+    /// Playlists re-read from the media server.
+    pub playlist_ids: Vec<i64>,
+    /// Plays from other devices joined the history.
+    pub history: bool,
+    /// Another device made a playlist this one doesn't have yet: call
+    /// `sync_library` when convenient.
+    pub library_sync_suggested: bool,
+}
+
+/// A device signed in to this profile on the companion server (the Devices list).
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct CompanionDevice {
+    pub device_id: String,
+    pub name: String,
+    pub platform: String,
+    pub added_utc_ms: i64,
+    pub last_seen_utc_ms: i64,
+    pub signed_out: bool,
+    pub this_device: bool,
+}
 // ---------------------------------------------------------------- events
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -799,6 +859,15 @@ pub enum EventKind {
     Preload,
     /// `sync_source_id`, `sync_done` and `sync_total` are set.
     SyncProgress,
+    /// `sync_status` is set: the companion server's sync state changed.
+    SyncStatusChanged,
+    /// `remote_change` is set: another device changed likes, playlists or history;
+    /// refresh what's on screen.
+    RemoteChange,
+    /// `credential` is set: store its token in the keychain under the profile's
+    /// companion key (`source_id` 0), replacing the old one; an empty token means
+    /// delete it. Store it before anything else: the old one no longer works.
+    CredentialChanged,
 }
 
 /// One event. Only the fields its `kind` names are set.
@@ -812,6 +881,9 @@ pub struct CoreEvent {
     pub sync_source_id: Option<i64>,
     pub sync_done: i64,
     pub sync_total: i64,
+    pub sync_status: Option<SyncStatus>,
+    pub remote_change: Option<RemoteChange>,
+    pub credential: Option<SourceToken>,
 }
 
 impl CoreEvent {
@@ -824,6 +896,9 @@ impl CoreEvent {
             sync_source_id: None,
             sync_done: 0,
             sync_total: 0,
+            sync_status: None,
+            remote_change: None,
+            credential: None,
         }
     }
 }

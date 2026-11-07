@@ -341,8 +341,35 @@ BEGIN
 END;
 "#;
 
+/// Migration 6: sync with the companion server (Phase 4), and the queue kept per
+/// profile (board 14: "the new profile's last queue loads paused").
+///
+/// - `play_events.synced` now counts what was sent: 0 nothing, 1 sent while the
+///   play was going, 2 sent once ended (plays from other devices arrive as 2).
+/// - `like_clock` holds, per song, the clock of the last like or unlike that
+///   decided it, so likes merge last-writer-wins (plan section 5). `from_here` is
+///   1 when this device decided it: if another device's later decision wins, this
+///   device sends the winner to the media server too, so it ends where the clock
+///   says even if this device's own write reached it last.
+const V6: &str = r#"
+CREATE INDEX play_events_unsent ON play_events (hlc) WHERE synced < 2;
+CREATE INDEX lyric_jumps_unsent ON lyric_jumps (hlc) WHERE synced = 0;
+CREATE TABLE like_clock (
+    song_key   TEXT    PRIMARY KEY,
+    liked      INTEGER NOT NULL,
+    hlc        TEXT    NOT NULL,
+    device_id  TEXT    NOT NULL,
+    from_here  INTEGER NOT NULL
+);
+CREATE TABLE saved_queue (
+    id            INTEGER PRIMARY KEY CHECK (id = 1),
+    queue_json    TEXT    NOT NULL,
+    saved_utc_ms  INTEGER NOT NULL
+);
+"#;
+
 /// Every migration, oldest first. Append only.
-pub(crate) const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5];
+pub(crate) const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6];
 
 /// Bring the database up to the newest schema. Returns the version it ended at.
 #[cfg(test)]

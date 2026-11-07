@@ -214,7 +214,7 @@ impl std::fmt::Debug for Editor<'_> {
     }
 }
 
-fn new_id() -> String {
+pub(crate) fn new_id() -> String {
     ulid::Ulid::generate().to_string()
 }
 
@@ -321,6 +321,13 @@ impl Editor<'_> {
         let hlc = self.clock.tick(self.now_utc_ms);
         let mut payload = payload;
         payload["editId"] = edit_id.into();
+        // Name the media server too: another device knows the playlist by its ID
+        // there, not by this device's source number.
+        if let Some(source) = payload["source"].as_i64()
+            && let Ok(s) = self.store.source(source)
+        {
+            payload["serverId"] = s.server_id.into();
+        }
         self.store.insert_event(&EventRecord {
             id: new_id(),
             device_id: self.device_id.to_owned(),
@@ -988,7 +995,13 @@ impl Editor<'_> {
                 for (src, item) in &pairs {
                     store.set_favorite(*src, item, false)?;
                 }
-                self.record("undo", undo_id, undo_event("like"), None, None)?;
+                self.record(
+                    "undo",
+                    undo_id,
+                    serde_json::json!({ "undoes": "like", "songKeys": keys }),
+                    None,
+                    None,
+                )?;
                 queue_favorites(store, undo_id, &pairs, false)?;
             }
             Inverse::Like { keys, items } => {
@@ -998,7 +1011,13 @@ impl Editor<'_> {
                 for (src, item) in items {
                     store.set_favorite(*src, item, true)?;
                 }
-                self.record("undo", undo_id, undo_event("unlike"), None, None)?;
+                self.record(
+                    "undo",
+                    undo_id,
+                    serde_json::json!({ "undoes": "unlike", "songKeys": keys }),
+                    None,
+                    None,
+                )?;
                 queue_favorites(store, undo_id, items, true)?;
             }
         }
@@ -1095,7 +1114,7 @@ fn lock(store: &Mutex<Store>) -> Result<std::sync::MutexGuard<'_, Store>, EditEr
 
 /// After a playlist's writes are all accepted, take the server's rows (with their
 /// entry IDs), keeping which edit put each row there where the song matches.
-async fn refresh_playlist(
+pub(crate) async fn refresh_playlist(
     store: &Mutex<Store>,
     source: &dyn MediaSource,
     playlist: i64,

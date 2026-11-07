@@ -309,6 +309,12 @@ impl Store {
                 e.created_utc_ms
             ],
         )?;
+        // Who last decided a song's like, for merging with other devices.
+        if let Ok(payload) = serde_json::from_str::<serde_json::Value>(&e.payload)
+            && let Some((keys, liked)) = crate::sync::like_effect(&e.kind, &payload)
+        {
+            self.note_like_decision(&keys, liked, &e.hlc, &e.device_id, true)?;
+        }
         Ok(())
     }
 

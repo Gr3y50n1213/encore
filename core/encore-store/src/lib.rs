@@ -19,6 +19,7 @@ mod mirror;
 mod playlog;
 mod schema;
 mod search;
+mod sync;
 
 pub use backup::{BackupInfo, migration_copies};
 pub use browse::*;
@@ -28,6 +29,7 @@ pub use export::{EXPORT_FORMAT, EXPORT_VERSION, ExportCounts, ExportHeader};
 pub use mirror::{ApplyStats, LOCAL_ITEM_PREFIX};
 pub use playlog::*;
 pub use search::{LyricHit, SearchLimits, SearchResults, TopResult, fold_for_search};
+pub use sync::{Applied, InEvent, OutEvent, like_effect};
 
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {

@@ -58,7 +58,7 @@ const COLS: &str =
      duration_ms, started_utc_ms, utc_offset_minutes, local_hour, local_weekday, listened_ms,
      end_reason, started_from, context_id, chosen_by, updated_utc_ms, signal, origin, seeks";
 
-fn row(r: &Row<'_>) -> rusqlite::Result<PlayEventRecord> {
+pub(crate) fn row(r: &Row<'_>) -> rusqlite::Result<PlayEventRecord> {
     Ok(PlayEventRecord {
         id: r.get(0)?,
         device_id: r.get(1)?,

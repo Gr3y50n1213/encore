@@ -126,6 +126,8 @@ struct Profile {
     /// Songs whose lyrics failed to fetch ahead this session, so the next batch
     /// moves on instead of asking for them again.
     lyrics_ahead_failed: Mutex<std::collections::HashSet<i64>>,
+    /// Sync with the companion server, when the profile has one.
+    companion: Mutex<Option<Arc<sync_loop::Session>>>,
 }
 
 struct Inner {
@@ -346,6 +348,7 @@ impl Inner {
             id: id.to_owned(),
             edits_clock: Mutex::new(HlcClock::resume(last_edit)),
             lyrics_ahead_failed: Mutex::new(Default::default()),
+            companion: Mutex::new(None),
             store: Mutex::new(store),
             sources: Mutex::new(sources),
             playback: Mutex::new(Playback {
@@ -371,6 +374,10 @@ impl Inner {
     fn take_profile(&self) -> Result<Option<Arc<Profile>>, EncoreError> {
         let old = lock(&self.profile)?.take();
         if let Some(p) = &old {
+            // Stop syncing: unsent changes stay queued and go out next time.
+            if let Some(s) = lock(&p.companion)?.take() {
+                s.stop();
+            }
             let mut pb = lock(&p.playback)?;
             let store = lock(&p.store)?;
             let listened = pb.last_listened_ms;
@@ -616,7 +623,51 @@ impl EncoreCore {
 
     /// Start sending the waiting edits in the background; failures wait for the
     /// next chance (another edit, a sync, or `send_edits`).
+    /// Pick up sync with the companion where it was, with the refresh token from
+    /// the keychain (`open_profile`). No address or device kept: nothing to do.
+    fn resume_companion(&self, refresh: String) -> Result<(), EncoreError> {
+        let p = self.inner.profile()?;
+        let (url, device) = {
+            let st = lock(&p.store)?;
+            (
+                st.setting(sync_loop::URL_KEY)?,
+                st.setting(sync_loop::DEVICE_KEY)?,
+            )
+        };
+        let (Some(url), Some(device)) = (
+            url.filter(|u| !u.is_empty()),
+            device.filter(|d| !d.is_empty()),
+        ) else {
+            return Ok(());
+        };
+        let base = url::Url::parse(&url).map_err(|e| EncoreError::InvalidAddress {
+            reason: e.to_string(),
+        })?;
+        let client = crate::companion::Client::new(base, self.inner.transport_for(None)?);
+        let tokens = crate::companion::Tokens {
+            access: String::new(),
+            access_expires_utc_ms: 0,
+            refresh,
+        };
+        let s = sync_loop::Session::new(client, device, tokens, sync_loop::last_synced(&p));
+        *lock(&p.companion)? = Some(s.clone());
+        if let Some(rt) = &self.rt {
+            sync_loop::start(rt.handle(), self.inner.clone(), p, s);
+        }
+        Ok(())
+    }
+
+    /// Something to sync changed: wake the companion pusher.
+    fn sync_soon(&self) {
+        if let Ok(p) = self.inner.profile()
+            && let Ok(c) = lock(&p.companion)
+            && let Some(s) = c.as_ref()
+        {
+            s.wake();
+        }
+    }
     fn send_soon(&self) {
+        self.sync_soon();
         let Some(rt) = self.rt.as_ref() else { return };
         let inner = self.inner.clone();
         rt.spawn(async move {
@@ -719,6 +770,17 @@ impl EncoreCore {
 }
 
 impl EncoreCore {
+    /// For end-to-end tests outside this crate (the companion server's): a core whose
+    /// every request goes through `transport`, polling Quick Connect without delay,
+    /// with the recording's page size. Not part of the app API.
+    #[doc(hidden)]
+    pub fn with_transport_for_tests(
+        config: CoreConfig,
+        transport: Arc<dyn Transport>,
+    ) -> Result<Arc<EncoreCore>, EncoreError> {
+        Self::build(config, Duration::ZERO, 50, Some(transport))
+    }
+
     pub(crate) fn build(
         config: CoreConfig,
         poll_every: Duration,
@@ -914,6 +976,16 @@ impl EncoreCore {
                         source_id: s.id,
                         key: credential_key(&id, s.id),
                     })
+                    // The companion server's token, when the profile has one.
+                    .chain(
+                        store
+                            .setting(sync_loop::URL_KEY)?
+                            .filter(|u| !u.is_empty())
+                            .map(|_| CredentialKey {
+                                source_id: 0,
+                                key: credential_key(&id, 0),
+                            }),
+                    )
                     .collect(),
                 profile_id: id,
             });
@@ -928,7 +1000,14 @@ impl EncoreCore {
         profile_id: String,
         tokens: Vec<SourceToken>,
     ) -> Result<(), EncoreError> {
-        self.inner.open_profile(&profile_id, tokens)
+        // `source_id` 0 is the companion server's token; the rest are media servers'.
+        let (companion, media): (Vec<SourceToken>, Vec<SourceToken>) =
+            tokens.into_iter().partition(|t| t.source_id == 0);
+        self.inner.open_profile(&profile_id, media)?;
+        if let Some(t) = companion.into_iter().find(|t| !t.token.is_empty()) {
+            self.resume_companion(t.token)?;
+        }
+        Ok(())
     }
 
     pub fn close_profile(&self) -> Result<(), EncoreError> {
@@ -1005,6 +1084,262 @@ impl EncoreCore {
         })
     }
 
+    /// Connect this profile to a companion server (plan section 5), at the address
+    /// the user typed: https anywhere, plain http only on the home network. The
+    /// profile's media-server token is sent once so the companion can check it;
+    /// the companion gives back its own tokens. A `CredentialChanged` event hands
+    /// the app the token to keep in the keychain (`source_id` 0). Sync starts at
+    /// once and runs in the background. Async.
+    pub async fn connect_companion(&self, url: String) -> Result<SyncStatus, EncoreError> {
+        let base = crate::companion::companion_url(&url)
+            .map_err(|reason| EncoreError::InvalidAddress { reason })?;
+        let handle = self
+            .rt
+            .as_ref()
+            .ok_or_else(|| EncoreError::internal("runtime stopped"))?
+            .handle()
+            .clone();
+        let inner = self.inner.clone();
+        self.spawn(async move {
+            let p = inner.profile()?;
+            if lock(&p.playback)?.log.mode() == crate::playlog::ListeningMode::Guest {
+                return Err(EncoreError::NotAllowed {
+                    reason: "Nothing syncs in Guest mode".into(),
+                });
+            }
+            let (server_id, media_token) = {
+                let records = lock(&p.store)?.sources()?;
+                let sources = lock(&p.sources)?;
+                records
+                    .iter()
+                    .find_map(|r| {
+                        let t = sources.get(&r.id)?.client.token_for_companion_sign_in()?;
+                        Some((r.server_id.clone(), t.to_owned()))
+                    })
+                    .ok_or_else(|| EncoreError::SessionExpired {
+                        reason: "Sign in to your media server first".into(),
+                    })?
+            };
+            let client = crate::companion::Client::new(base.clone(), inner.transport_for(None)?);
+            client.health().await.map_err(sync_loop::into_error)?;
+            let (device, tokens) = client
+                .exchange(
+                    &server_id,
+                    &media_token,
+                    &inner.config.device_id,
+                    &inner.config.device_name,
+                    &inner.config.platform,
+                )
+                .await
+                .map_err(sync_loop::into_error)?;
+            {
+                let st = lock(&p.store)?;
+                st.set_setting(sync_loop::URL_KEY, base.as_str())?;
+                st.set_setting(sync_loop::DEVICE_KEY, &device)?;
+            }
+            sync_loop::credential(&inner, tokens.refresh.clone());
+            if let Some(old) = lock(&p.companion)?.take() {
+                old.stop();
+            }
+            let s = sync_loop::Session::new(client, device, tokens, sync_loop::last_synced(&p));
+            *lock(&p.companion)? = Some(s.clone());
+            sync_loop::start(&handle, inner.clone(), p.clone(), s.clone());
+            Ok(s.status())
+        })
+        .await
+    }
+
+    /// Stop syncing this profile with its companion server. This device is signed
+    /// out there when it can be reached; everything stays on this device. A
+    /// `CredentialChanged` event with an empty token says to delete the keychain
+    /// entry. Async.
+    pub async fn disconnect_companion(&self) -> Result<(), EncoreError> {
+        let inner = self.inner.clone();
+        self.spawn(async move {
+            let p = inner.profile()?;
+            let session = lock(&p.companion)?.take();
+            if let Some(s) = session {
+                s.stop();
+                let own = s.server_device_id.clone();
+                let _ = tokio::time::timeout(
+                    Duration::from_secs(5),
+                    sync_loop::signed(&inner, &s, |a| {
+                        let (s, own) = (&s, &own);
+                        async move { s.client.revoke(&a, own).await }
+                    }),
+                )
+                .await;
+            }
+            {
+                let st = lock(&p.store)?;
+                st.set_setting(sync_loop::URL_KEY, "")?;
+                st.set_setting(sync_loop::DEVICE_KEY, "")?;
+                st.set_sync_cursor(0)?;
+            }
+            sync_loop::credential(&inner, String::new());
+            Ok(())
+        })
+        .await
+    }
+
+    /// Board 19's "Delete profile and its data", for the open profile: its
+    /// history, likes, playlists made here, settings and tokens, on the companion
+    /// server (every device signed in to it stops syncing) and on this device. The
+    /// media-server account and its music are never touched. `typed_name` must be
+    /// the profile's name as `profiles()` shows it. If the companion server can't be
+    /// reached, nothing is deleted and the error says so: try again when it's back.
+    /// After this, delete every keychain entry of the profile. Async.
+    pub async fn delete_profile_everywhere(
+        &self,
+        profile_id: String,
+        typed_name: String,
+    ) -> Result<(), EncoreError> {
+        checked_profile_id(&profile_id)?;
+        let inner = self.inner.clone();
+        self.spawn(async move {
+            let p = inner.profile()?;
+            if p.id != profile_id {
+                return Err(EncoreError::NotAllowed {
+                    reason: "Open the profile first, then delete it".into(),
+                });
+            }
+            let name = lock(&p.store)?
+                .sources()?
+                .first()
+                .map(|s| s.user_name.clone())
+                .unwrap_or_else(|| profile_id.clone());
+            if typed_name.trim() != name {
+                return Err(EncoreError::NotAllowed {
+                    reason: format!("Type the profile's name, {name}, to delete it"),
+                });
+            }
+            let session = lock(&p.companion)?.clone();
+            if let Some(s) = session {
+                match sync_loop::signed(&inner, &s, |a| {
+                    let s = &s;
+                    async move { s.client.delete_profile(&a).await }
+                })
+                .await
+                {
+                    // Signed out there already: nothing of this device left to delete.
+                    Ok(()) | Err(crate::companion::CompanionError::SignedOut(_)) => {}
+                    Err(e) => return Err(sync_loop::into_error(e)),
+                }
+            }
+            drop(p);
+            let old = inner.take_profile()?;
+            if let Some(p) = old {
+                for _ in 0..100 {
+                    if Arc::strong_count(&p) == 1 {
+                        break;
+                    }
+                    tokio::time::sleep(Duration::from_millis(50)).await;
+                }
+            }
+            let dir = inner.profiles_dir().join(&profile_id);
+            std::fs::remove_dir_all(&dir).map_err(|e| EncoreError::Storage {
+                reason: format!("couldn't delete this device's copy ({e})"),
+            })?;
+            sync_loop::credential(&inner, String::new());
+            Ok(())
+        })
+        .await
+    }
+    /// Where sync stands, for the sync status row.
+    pub fn sync_status(&self) -> Result<SyncStatus, EncoreError> {
+        let p = self.inner.profile()?;
+        let pending = lock(&p.store)?.pending_out_count(&self.inner.config.device_id)?;
+        if let Some(s) = lock(&p.companion)?.as_ref() {
+            let mut st = s.status();
+            st.pending = pending;
+            return Ok(st);
+        }
+        let url = lock(&p.store)?
+            .setting(sync_loop::URL_KEY)?
+            .filter(|u| !u.is_empty());
+        Ok(SyncStatus {
+            state: SyncState::NotConnected,
+            pending,
+            last_synced_utc_ms: sync_loop::last_synced(&p),
+            server_url: url.map(|u| u.trim_end_matches('/').to_owned()),
+            reason: None,
+        })
+    }
+
+    /// Send and receive now, without waiting (pull to refresh). Async.
+    pub async fn sync_now(&self) -> Result<SyncStatus, EncoreError> {
+        let inner = self.inner.clone();
+        self.spawn(async move {
+            let p = inner.profile()?;
+            let s = lock(&p.companion)?
+                .clone()
+                .ok_or_else(|| EncoreError::NotFound {
+                    reason: "This profile isn't connected to a companion server".into(),
+                })?;
+            sync_loop::push_all(&inner, &p, &s)
+                .await
+                .map_err(sync_loop::into_error)?;
+            while sync_loop::pull_once(&inner, &p, &s, 0)
+                .await
+                .map_err(sync_loop::into_error)?
+            {}
+            Ok(s.status())
+        })
+        .await
+    }
+
+    /// The profile's devices on the companion server (the Devices list). Async.
+    pub async fn companion_devices(&self) -> Result<Vec<CompanionDevice>, EncoreError> {
+        let inner = self.inner.clone();
+        self.spawn(async move {
+            let p = inner.profile()?;
+            let s = lock(&p.companion)?
+                .clone()
+                .ok_or_else(|| EncoreError::NotFound {
+                    reason: "This profile isn't connected to a companion server".into(),
+                })?;
+            let (this, list) = sync_loop::signed(&inner, &s, |a| {
+                let s = &s;
+                async move { s.client.devices(&a).await }
+            })
+            .await
+            .map_err(sync_loop::into_error)?;
+            Ok(list
+                .into_iter()
+                .map(|d| CompanionDevice {
+                    this_device: d.id == this,
+                    device_id: d.id,
+                    name: d.name,
+                    platform: d.platform,
+                    added_utc_ms: d.created_utc_ms,
+                    last_seen_utc_ms: d.last_seen_utc_ms,
+                    signed_out: d.revoked,
+                })
+                .collect())
+        })
+        .await
+    }
+
+    /// Sign one of the profile's devices out everywhere (a lost phone, plan section
+    /// 12). Async.
+    pub async fn revoke_device(&self, device_id: String) -> Result<(), EncoreError> {
+        let inner = self.inner.clone();
+        self.spawn(async move {
+            let p = inner.profile()?;
+            let s = lock(&p.companion)?
+                .clone()
+                .ok_or_else(|| EncoreError::NotFound {
+                    reason: "This profile isn't connected to a companion server".into(),
+                })?;
+            sync_loop::signed(&inner, &s, |a| {
+                let (s, id) = (&s, &device_id);
+                async move { s.client.revoke(&a, id).await }
+            })
+            .await
+            .map_err(sync_loop::into_error)
+        })
+        .await
+    }
     /// Replace a profile's database with a backup made by `backup_profile`. The
     /// backup is checked first (intact, an Encore profile, not from a newer app); if
     /// it fails, nothing changes. The replaced database is kept beside it as
@@ -2233,5 +2568,6 @@ impl EncoreCore {
     }
 }
 
+mod sync_loop;
 #[cfg(test)]
 mod tests;

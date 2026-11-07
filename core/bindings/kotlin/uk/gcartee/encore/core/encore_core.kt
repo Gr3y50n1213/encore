@@ -744,7 +744,15 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_close_profile(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_companion_devices(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_connect_companion(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_current_profile(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_delete_profile_everywhere(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_disconnect_companion(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_drop_preview(
     ): Int
@@ -830,6 +838,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_restore_profile(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_revoke_device(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_search(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_send_edits(
@@ -865,6 +875,10 @@ internal object IntegrityCheckingUniffiLib {
     external fun uniffi_encore_core_checksum_method_encorecore_stream_quality(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_sync_library(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_sync_now(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_sync_status(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_trust_certificate(
     ): Int
@@ -939,8 +953,16 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_close_profile(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_companion_devices(`ptr`: Long,
+    ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_connect_companion(`ptr`: Long,`url`: RustBuffer.ByValue,
+    ): Long
     external fun uniffi_encore_core_fn_method_encorecore_current_profile(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_delete_profile_everywhere(`ptr`: Long,`profileId`: RustBuffer.ByValue,`typedName`: RustBuffer.ByValue,
+    ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_disconnect_companion(`ptr`: Long,
+    ): Long
     external fun uniffi_encore_core_fn_method_encorecore_drop_preview(`ptr`: Long,`target`: RustBuffer.ByValue,`songIds`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_export_profile(`ptr`: Long,`profileId`: RustBuffer.ByValue,`destPath`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -1025,6 +1047,8 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_restore_profile(`ptr`: Long,`profileId`: RustBuffer.ByValue,`fromPath`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_revoke_device(`ptr`: Long,`deviceId`: RustBuffer.ByValue,
+    ): Long
     external fun uniffi_encore_core_fn_method_encorecore_search(`ptr`: Long,`query`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_send_edits(`ptr`: Long,
@@ -1061,6 +1085,10 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_sync_library(`ptr`: Long,
     ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_sync_now(`ptr`: Long,
+    ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_sync_status(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_trust_certificate(`ptr`: Long,`address`: RustBuffer.ByValue,`sha256`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_encore_core_fn_method_encorecore_undo(`ptr`: Long,`editId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -1262,7 +1290,19 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_encore_core_checksum_method_encorecore_close_profile() and 0xFFFF) != 19751) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_companion_devices() and 0xFFFF) != 8978) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_connect_companion() and 0xFFFF) != 13371) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_current_profile() and 0xFFFF) != 14260) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_delete_profile_everywhere() and 0xFFFF) != 47212) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_disconnect_companion() and 0xFFFF) != 13519) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_drop_preview() and 0xFFFF) != 698) {
@@ -1391,6 +1431,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_encore_core_checksum_method_encorecore_restore_profile() and 0xFFFF) != 53453) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_revoke_device() and 0xFFFF) != 50148) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_search() and 0xFFFF) != 19862) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1443,6 +1486,12 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_sync_library() and 0xFFFF) != 48232) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_sync_now() and 0xFFFF) != 1674) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_sync_status() and 0xFFFF) != 29536) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_trust_certificate() and 0xFFFF) != 49158) {
@@ -2408,9 +2457,43 @@ public interface EncoreCoreInterface {
     fun `closeProfile`()
     
     /**
+     * The profile's devices on the companion server (the Devices list). Async.
+     */
+    suspend fun `companionDevices`(): List<CompanionDevice>
+    
+    /**
+     * Connect this profile to a companion server (plan section 5), at the address
+     * the user typed: https anywhere, plain http only on the home network. The
+     * profile's media-server token is sent once so the companion can check it;
+     * the companion gives back its own tokens. A `CredentialChanged` event hands
+     * the app the token to keep in the keychain (`source_id` 0). Sync starts at
+     * once and runs in the background. Async.
+     */
+    suspend fun `connectCompanion`(`url`: kotlin.String): SyncStatus
+    
+    /**
      * The open profile's ID, if any.
      */
     fun `currentProfile`(): kotlin.String?
+    
+    /**
+     * Board 19's "Delete profile and its data", for the open profile: its
+     * history, likes, playlists made here, settings and tokens, on the companion
+     * server (every device signed in to it stops syncing) and on this device. The
+     * media-server account and its music are never touched. `typed_name` must be
+     * the profile's name as `profiles()` shows it. If the companion server can't be
+     * reached, nothing is deleted and the error says so: try again when it's back.
+     * After this, delete every keychain entry of the profile. Async.
+     */
+    suspend fun `deleteProfileEverywhere`(`profileId`: kotlin.String, `typedName`: kotlin.String)
+    
+    /**
+     * Stop syncing this profile with its companion server. This device is signed
+     * out there when it can be reached; everything stays on this device. A
+     * `CredentialChanged` event with an empty token says to delete the keychain
+     * entry. Async.
+     */
+    suspend fun `disconnectCompanion`()
     
     /**
      * What dropping (or sending) these songs on `target` would do, before it is
@@ -2623,6 +2706,12 @@ public interface EncoreCoreInterface {
     fun `restoreProfile`(`profileId`: kotlin.String, `fromPath`: kotlin.String)
     
     /**
+     * Sign one of the profile's devices out everywhere (a lost phone, plan section
+     * 12). Async.
+     */
+    suspend fun `revokeDevice`(`deviceId`: kotlin.String)
+    
+    /**
      * Search the on-device mirror as the user types (board 07). Synchronous.
      */
     fun `search`(`query`: kotlin.String): SearchResults
@@ -2704,6 +2793,16 @@ public interface EncoreCoreInterface {
      * a delta after. Progress arrives as SyncProgress events. Async.
      */
     suspend fun `syncLibrary`(): List<SyncResult>
+    
+    /**
+     * Send and receive now, without waiting (pull to refresh). Async.
+     */
+    suspend fun `syncNow`(): SyncStatus
+    
+    /**
+     * Where sync stands, for the sync status row.
+     */
+    fun `syncStatus`(): SyncStatus
     
     /**
      * Trust this exact certificate for the server at `address` (after the user
@@ -3159,6 +3258,60 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
 
     
     /**
+     * The profile's devices on the companion server (the Devices list). Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `companionDevices`() : List<CompanionDevice> {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_companion_devices(
+                uniffiHandle,
+                
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterSequenceTypeCompanionDevice.lift(it) },
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * Connect this profile to a companion server (plan section 5), at the address
+     * the user typed: https anywhere, plain http only on the home network. The
+     * profile's media-server token is sent once so the companion can check it;
+     * the companion gives back its own tokens. A `CredentialChanged` event hands
+     * the app the token to keep in the keychain (`source_id` 0). Sync starts at
+     * once and runs in the background. Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `connectCompanion`(`url`: kotlin.String) : SyncStatus {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_connect_companion(
+                uniffiHandle,
+                
+        FfiConverterString.lower(`url`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeSyncStatus.lift(it) },
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
+
+    
+    /**
      * The open profile's ID, if any.
      */override fun `currentProfile`(): kotlin.String? {
             return FfiConverterOptionalString.lift(
@@ -3172,6 +3325,67 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
     )
     }
     
+
+    
+    /**
+     * Board 19's "Delete profile and its data", for the open profile: its
+     * history, likes, playlists made here, settings and tokens, on the companion
+     * server (every device signed in to it stops syncing) and on this device. The
+     * media-server account and its music are never touched. `typed_name` must be
+     * the profile's name as `profiles()` shows it. If the companion server can't be
+     * reached, nothing is deleted and the error says so: try again when it's back.
+     * After this, delete every keychain entry of the profile. Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `deleteProfileEverywhere`(`profileId`: kotlin.String, `typedName`: kotlin.String) {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_delete_profile_everywhere(
+                uniffiHandle,
+                
+        FfiConverterString.lower(`profileId`),
+        FfiConverterString.lower(`typedName`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_void(future) },
+        // lift function
+        { },
+        
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * Stop syncing this profile with its companion server. This device is signed
+     * out there when it can be reached; everything stays on this device. A
+     * `CredentialChanged` event with an empty token says to delete the keychain
+     * entry. Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `disconnectCompanion`() {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_disconnect_companion(
+                uniffiHandle,
+                
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_void(future) },
+        // lift function
+        { },
+        
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
 
     
     /**
@@ -3974,6 +4188,33 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
 
     
     /**
+     * Sign one of the profile's devices out everywhere (a lost phone, plan section
+     * 12). Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `revokeDevice`(`deviceId`: kotlin.String) {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_revoke_device(
+                uniffiHandle,
+                
+        FfiConverterString.lower(`deviceId`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_void(future) },
+        // lift function
+        { },
+        
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
+
+    
+    /**
      * Search the on-device mirror as the user types (board 07). Synchronous.
      */
     @Throws(EncoreException::class)override fun `search`(`query`: kotlin.String): SearchResults {
@@ -4317,6 +4558,47 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
         EncoreException.ErrorHandler,
     )
     }
+
+    
+    /**
+     * Send and receive now, without waiting (pull to refresh). Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `syncNow`() : SyncStatus {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_sync_now(
+                uniffiHandle,
+                
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeSyncStatus.lift(it) },
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * Where sync stands, for the sync status row.
+     */
+    @Throws(EncoreException::class)override fun `syncStatus`(): SyncStatus {
+            return FfiConverterTypeSyncStatus.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_sync_status(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
 
     
     /**
@@ -4734,6 +5016,72 @@ public object FfiConverterTypeArtworkRequest: FfiConverterRustBuffer<ArtworkRequ
 
 
 /**
+ * A device signed in to this profile on the companion server (the Devices list).
+ */
+data class CompanionDevice (
+    var `deviceId`: kotlin.String
+    , 
+    var `name`: kotlin.String
+    , 
+    var `platform`: kotlin.String
+    , 
+    var `addedUtcMs`: kotlin.Long
+    , 
+    var `lastSeenUtcMs`: kotlin.Long
+    , 
+    var `signedOut`: kotlin.Boolean
+    , 
+    var `thisDevice`: kotlin.Boolean
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeCompanionDevice: FfiConverterRustBuffer<CompanionDevice> {
+    override fun read(buf: ByteBuffer): CompanionDevice {
+        return CompanionDevice(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: CompanionDevice) = (
+            FfiConverterString.allocationSize(value.`deviceId`) +
+            FfiConverterString.allocationSize(value.`name`) +
+            FfiConverterString.allocationSize(value.`platform`) +
+            FfiConverterLong.allocationSize(value.`addedUtcMs`) +
+            FfiConverterLong.allocationSize(value.`lastSeenUtcMs`) +
+            FfiConverterBoolean.allocationSize(value.`signedOut`) +
+            FfiConverterBoolean.allocationSize(value.`thisDevice`)
+    )
+
+    override fun write(value: CompanionDevice, buf: ByteBuffer) {
+            FfiConverterString.write(value.`deviceId`, buf)
+            FfiConverterString.write(value.`name`, buf)
+            FfiConverterString.write(value.`platform`, buf)
+            FfiConverterLong.write(value.`addedUtcMs`, buf)
+            FfiConverterLong.write(value.`lastSeenUtcMs`, buf)
+            FfiConverterBoolean.write(value.`signedOut`, buf)
+            FfiConverterBoolean.write(value.`thisDevice`, buf)
+    }
+}
+
+
+
+/**
  * What the platform tells the core when it starts.
  */
 data class CoreConfig (
@@ -4813,6 +5161,12 @@ data class CoreEvent (
     var `syncDone`: kotlin.Long
     , 
     var `syncTotal`: kotlin.Long
+    , 
+    var `syncStatus`: SyncStatus?
+    , 
+    var `remoteChange`: RemoteChange?
+    , 
+    var `credential`: SourceToken?
     
 ){
     
@@ -4836,6 +5190,9 @@ public object FfiConverterTypeCoreEvent: FfiConverterRustBuffer<CoreEvent> {
             FfiConverterOptionalLong.read(buf),
             FfiConverterLong.read(buf),
             FfiConverterLong.read(buf),
+            FfiConverterOptionalTypeSyncStatus.read(buf),
+            FfiConverterOptionalTypeRemoteChange.read(buf),
+            FfiConverterOptionalTypeSourceToken.read(buf),
         )
     }
 
@@ -4846,7 +5203,10 @@ public object FfiConverterTypeCoreEvent: FfiConverterRustBuffer<CoreEvent> {
             FfiConverterOptionalTypeQueueEntry.allocationSize(value.`preload`) +
             FfiConverterOptionalLong.allocationSize(value.`syncSourceId`) +
             FfiConverterLong.allocationSize(value.`syncDone`) +
-            FfiConverterLong.allocationSize(value.`syncTotal`)
+            FfiConverterLong.allocationSize(value.`syncTotal`) +
+            FfiConverterOptionalTypeSyncStatus.allocationSize(value.`syncStatus`) +
+            FfiConverterOptionalTypeRemoteChange.allocationSize(value.`remoteChange`) +
+            FfiConverterOptionalTypeSourceToken.allocationSize(value.`credential`)
     )
 
     override fun write(value: CoreEvent, buf: ByteBuffer) {
@@ -4857,6 +5217,9 @@ public object FfiConverterTypeCoreEvent: FfiConverterRustBuffer<CoreEvent> {
             FfiConverterOptionalLong.write(value.`syncSourceId`, buf)
             FfiConverterLong.write(value.`syncDone`, buf)
             FfiConverterLong.write(value.`syncTotal`, buf)
+            FfiConverterOptionalTypeSyncStatus.write(value.`syncStatus`, buf)
+            FfiConverterOptionalTypeRemoteChange.write(value.`remoteChange`, buf)
+            FfiConverterOptionalTypeSourceToken.write(value.`credential`, buf)
     }
 }
 
@@ -5872,6 +6235,75 @@ public object FfiConverterTypeQuickConnectStart: FfiConverterRustBuffer<QuickCon
 
 
 
+/**
+ * What another device changed.
+ */
+data class RemoteChange (
+    /**
+     * Songs whose like changed; refresh hearts and Liked Songs.
+     */
+    var `likedSongIds`: List<kotlin.Long>
+    , 
+    var `unlikedSongIds`: List<kotlin.Long>
+    , 
+    /**
+     * Playlists re-read from the media server.
+     */
+    var `playlistIds`: List<kotlin.Long>
+    , 
+    /**
+     * Plays from other devices joined the history.
+     */
+    var `history`: kotlin.Boolean
+    , 
+    /**
+     * Another device made a playlist this one doesn't have yet: call
+     * `sync_library` when convenient.
+     */
+    var `librarySyncSuggested`: kotlin.Boolean
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRemoteChange: FfiConverterRustBuffer<RemoteChange> {
+    override fun read(buf: ByteBuffer): RemoteChange {
+        return RemoteChange(
+            FfiConverterSequenceLong.read(buf),
+            FfiConverterSequenceLong.read(buf),
+            FfiConverterSequenceLong.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RemoteChange) = (
+            FfiConverterSequenceLong.allocationSize(value.`likedSongIds`) +
+            FfiConverterSequenceLong.allocationSize(value.`unlikedSongIds`) +
+            FfiConverterSequenceLong.allocationSize(value.`playlistIds`) +
+            FfiConverterBoolean.allocationSize(value.`history`) +
+            FfiConverterBoolean.allocationSize(value.`librarySyncSuggested`)
+    )
+
+    override fun write(value: RemoteChange, buf: ByteBuffer) {
+            FfiConverterSequenceLong.write(value.`likedSongIds`, buf)
+            FfiConverterSequenceLong.write(value.`unlikedSongIds`, buf)
+            FfiConverterSequenceLong.write(value.`playlistIds`, buf)
+            FfiConverterBoolean.write(value.`history`, buf)
+            FfiConverterBoolean.write(value.`librarySyncSuggested`, buf)
+    }
+}
+
+
+
 data class SearchResults (
     var `top`: TopResult?
     , 
@@ -6609,6 +7041,68 @@ public object FfiConverterTypeSyncResult: FfiConverterRustBuffer<SyncResult> {
             FfiConverterUInt.write(value.`songs`, buf)
             FfiConverterUInt.write(value.`playlists`, buf)
             FfiConverterUInt.write(value.`removed`, buf)
+    }
+}
+
+
+
+data class SyncStatus (
+    var `state`: SyncState
+    , 
+    /**
+     * Changes on this device not yet on the server ("Waiting to sync").
+     */
+    var `pending`: kotlin.UInt
+    , 
+    var `lastSyncedUtcMs`: kotlin.Long?
+    , 
+    /**
+     * The companion server's address, when one is set.
+     */
+    var `serverUrl`: kotlin.String?
+    , 
+    /**
+     * Why, for Offline and SignedOut.
+     */
+    var `reason`: kotlin.String?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSyncStatus: FfiConverterRustBuffer<SyncStatus> {
+    override fun read(buf: ByteBuffer): SyncStatus {
+        return SyncStatus(
+            FfiConverterTypeSyncState.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterOptionalLong.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: SyncStatus) = (
+            FfiConverterTypeSyncState.allocationSize(value.`state`) +
+            FfiConverterUInt.allocationSize(value.`pending`) +
+            FfiConverterOptionalLong.allocationSize(value.`lastSyncedUtcMs`) +
+            FfiConverterOptionalString.allocationSize(value.`serverUrl`) +
+            FfiConverterOptionalString.allocationSize(value.`reason`)
+    )
+
+    override fun write(value: SyncStatus, buf: ByteBuffer) {
+            FfiConverterTypeSyncState.write(value.`state`, buf)
+            FfiConverterUInt.write(value.`pending`, buf)
+            FfiConverterOptionalLong.write(value.`lastSyncedUtcMs`, buf)
+            FfiConverterOptionalString.write(value.`serverUrl`, buf)
+            FfiConverterOptionalString.write(value.`reason`, buf)
     }
 }
 
@@ -7413,7 +7907,22 @@ enum class EventKind {
     /**
      * `sync_source_id`, `sync_done` and `sync_total` are set.
      */
-    SYNC_PROGRESS;
+    SYNC_PROGRESS,
+    /**
+     * `sync_status` is set: the companion server's sync state changed.
+     */
+    SYNC_STATUS_CHANGED,
+    /**
+     * `remote_change` is set: another device changed likes, playlists or history;
+     * refresh what's on screen.
+     */
+    REMOTE_CHANGE,
+    /**
+     * `credential` is set: store its token in the keychain under the profile's
+     * companion key (`source_id` 0), replacing the old one; an empty token means
+     * delete it. Store it before anything else: the old one no longer works.
+     */
+    CREDENTIAL_CHANGED;
 
     
 
@@ -8069,6 +8578,62 @@ public object FfiConverterTypeStreamQuality: FfiConverterRustBuffer<StreamQualit
 
 
 
+/**
+ * Where sync with the companion server stands (the sync status row).
+ */
+
+enum class SyncState {
+    
+    /**
+     * No companion server for this profile: everything stays on this device.
+     */
+    NOT_CONNECTED,
+    /**
+     * Up to date, listening for other devices' changes.
+     */
+    IDLE,
+    /**
+     * Sending or receiving.
+     */
+    SYNCING,
+    /**
+     * The server can't be reached; changes wait here and go when it's back.
+     */
+    OFFLINE,
+    /**
+     * The server no longer accepts this device (it was signed out elsewhere, or
+     * the profile was deleted there). Local data stays; connect again to sync.
+     */
+    SIGNED_OUT;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSyncState: FfiConverterRustBuffer<SyncState> {
+    override fun read(buf: ByteBuffer) = try {
+        SyncState.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: SyncState) = 4UL
+
+    override fun write(value: SyncState, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
 
 enum class TranscodeCodec {
     
@@ -8459,6 +9024,38 @@ public object FfiConverterOptionalTypeQueueState: FfiConverterRustBuffer<QueueSt
 /**
  * @suppress
  */
+public object FfiConverterOptionalTypeRemoteChange: FfiConverterRustBuffer<RemoteChange?> {
+    override fun read(buf: ByteBuffer): RemoteChange? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeRemoteChange.read(buf)
+    }
+
+    override fun allocationSize(value: RemoteChange?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeRemoteChange.allocationSize(value)
+        }
+    }
+
+    override fun write(value: RemoteChange?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeRemoteChange.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalTypeSong: FfiConverterRustBuffer<Song?> {
     override fun read(buf: ByteBuffer): Song? {
         if (buf.get().toInt() == 0) {
@@ -8513,6 +9110,70 @@ public object FfiConverterOptionalTypeSongLyrics: FfiConverterRustBuffer<SongLyr
         } else {
             buf.put(1)
             FfiConverterTypeSongLyrics.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeSourceToken: FfiConverterRustBuffer<SourceToken?> {
+    override fun read(buf: ByteBuffer): SourceToken? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeSourceToken.read(buf)
+    }
+
+    override fun allocationSize(value: SourceToken?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeSourceToken.allocationSize(value)
+        }
+    }
+
+    override fun write(value: SourceToken?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeSourceToken.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeSyncStatus: FfiConverterRustBuffer<SyncStatus?> {
+    override fun read(buf: ByteBuffer): SyncStatus? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeSyncStatus.read(buf)
+    }
+
+    override fun allocationSize(value: SyncStatus?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeSyncStatus.allocationSize(value)
+        }
+    }
+
+    override fun write(value: SyncStatus?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeSyncStatus.write(value, buf)
         }
     }
 }
@@ -8745,6 +9406,34 @@ public object FfiConverterSequenceTypeArtistSummary: FfiConverterRustBuffer<List
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeArtistSummary.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeCompanionDevice: FfiConverterRustBuffer<List<CompanionDevice>> {
+    override fun read(buf: ByteBuffer): List<CompanionDevice> {
+        val len = buf.getInt()
+        return List<CompanionDevice>(len) {
+            FfiConverterTypeCompanionDevice.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<CompanionDevice>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeCompanionDevice.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<CompanionDevice>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeCompanionDevice.write(it, buf)
         }
     }
 }

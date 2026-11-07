@@ -186,14 +186,8 @@ async fn refresh_rotates_and_a_reused_refresh_token_signs_the_device_out() {
     let (app, _) = server();
     let v = sign_in(&app, "good-sam", "phone").await;
     let first = v["refresh_token"].as_str().unwrap().to_owned();
-    let (s, r) = call(
-        &app,
-        "POST",
-        "/auth/refresh",
-        None,
-        Some(json!({ "refresh_token": first })),
-    )
-    .await;
+    let refresh = |t: &str| Some(json!({ "refresh_token": t }));
+    let (s, r) = call(&app, "POST", "/auth/refresh", None, refresh(&first)).await;
     assert_eq!(s, StatusCode::OK);
     let new_access = r["access_token"].as_str().unwrap().to_owned();
     assert_eq!(
@@ -209,18 +203,21 @@ async fn refresh_rotates_and_a_reused_refresh_token_signs_the_device_out() {
         StatusCode::UNAUTHORIZED,
         "the old access token stops"
     );
-    let (s, e) = call(
+    // The new refresh token is used, so the first one coming back was copied.
+    let (s, r2) = call(
         &app,
         "POST",
         "/auth/refresh",
         None,
-        Some(json!({ "refresh_token": first })),
+        refresh(r["refresh_token"].as_str().unwrap()),
     )
     .await;
+    assert_eq!(s, StatusCode::OK);
+    let (s, e) = call(&app, "POST", "/auth/refresh", None, refresh(&first)).await;
     assert_eq!(s, StatusCode::UNAUTHORIZED);
     assert!(e["reason"].as_str().unwrap().contains("somewhere else"));
     assert_eq!(
-        call(&app, "GET", "/devices", Some(&new_access), None)
+        call(&app, "GET", "/devices", r2["access_token"].as_str(), None)
             .await
             .0,
         StatusCode::UNAUTHORIZED,

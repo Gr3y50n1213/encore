@@ -18,14 +18,15 @@ pub use encore_core::api::{
     ChosenBy, CoreConfig, CoreEvent, CredentialKey, EncoreError, EndReason, ErrorKind, EventKind,
     GenreSummary, HttpHeader, ListeningMode, Network, PlaylistDetail, PlaylistEntry,
     PlaylistSummary, PreviousResult, ProfileSummary, QueueEntry, QueueState, QuickConnectStart,
-    RepeatMode, ResultKind, SearchResults, ServerCheck, ServerRow, SignedIn, Song, SongSort,
-    SourceToken, StartedFrom, StreamInfo, StreamQuality, SyncResult, TopResult, TranscodeCodec,
+    RemoteChange, RepeatMode, ResultKind, SearchResults, ServerCheck, ServerRow, SignedIn, Song,
+    SongSort, SourceToken, StartedFrom, StreamInfo, StreamQuality, SyncResult, SyncState,
+    SyncStatus, TopResult, TranscodeCodec,
 };
 pub use encore_core::api::{
-    ArtworkPalette, DropPreview, DropRefusal, DropTarget, DropTargetKind, EditResult,
-    ExportSummary, InterruptionKind, LyricBackground, LyricGap, LyricLine, LyricMatch, LyricSide,
-    LyricWord, LyricsFormat, LyricsOrigin, LyricsSync, PaletteScheme, PaletteSwatch, SentEdits,
-    Singer, SingerKind, SkipOrigin, SkipTarget, SongLyrics,
+    ArtworkPalette, CompanionDevice, DropPreview, DropRefusal, DropTarget, DropTargetKind,
+    EditResult, ExportSummary, InterruptionKind, LyricBackground, LyricGap, LyricLine, LyricMatch,
+    LyricSide, LyricWord, LyricsFormat, LyricsOrigin, LyricsSync, PaletteScheme, PaletteSwatch,
+    SentEdits, Singer, SingerKind, SkipOrigin, SkipTarget, SongLyrics,
 };
 use encore_core::api::{CoreListener, EncoreCore};
 
@@ -268,6 +269,47 @@ pub struct _CoreEvent {
     pub sync_source_id: Option<i64>,
     pub sync_done: i64,
     pub sync_total: i64,
+    pub sync_status: Option<SyncStatus>,
+    pub remote_change: Option<RemoteChange>,
+    pub credential: Option<SourceToken>,
+}
+
+#[frb(mirror(SyncState))]
+pub enum _SyncState {
+    NotConnected,
+    Idle,
+    Syncing,
+    Offline,
+    SignedOut,
+}
+
+#[frb(mirror(SyncStatus))]
+pub struct _SyncStatus {
+    pub state: SyncState,
+    pub pending: u32,
+    pub last_synced_utc_ms: Option<i64>,
+    pub server_url: Option<String>,
+    pub reason: Option<String>,
+}
+
+#[frb(mirror(RemoteChange))]
+pub struct _RemoteChange {
+    pub liked_song_ids: Vec<i64>,
+    pub unliked_song_ids: Vec<i64>,
+    pub playlist_ids: Vec<i64>,
+    pub history: bool,
+    pub library_sync_suggested: bool,
+}
+
+#[frb(mirror(CompanionDevice))]
+pub struct _CompanionDevice {
+    pub device_id: String,
+    pub name: String,
+    pub platform: String,
+    pub added_utc_ms: i64,
+    pub last_seen_utc_ms: i64,
+    pub signed_out: bool,
+    pub this_device: bool,
 }
 
 #[frb(mirror(AlbumSort))]
@@ -379,6 +421,9 @@ pub enum _EventKind {
     NowPlaying,
     Preload,
     SyncProgress,
+    SyncStatusChanged,
+    RemoteChange,
+    CredentialChanged,
 }
 
 #[frb(mirror(ErrorKind))]
@@ -727,6 +772,37 @@ impl Encore {
     }
     pub async fn sync_library(&self) -> Result<Vec<SyncResult>, ApiError> {
         Ok(self.core.sync_library().await?)
+    }
+
+    // Phase 4: the companion server
+    pub async fn connect_companion(&self, url: String) -> Result<SyncStatus, ApiError> {
+        Ok(self.core.connect_companion(url).await?)
+    }
+    pub async fn disconnect_companion(&self) -> Result<(), ApiError> {
+        Ok(self.core.disconnect_companion().await?)
+    }
+    #[frb(sync)]
+    pub fn sync_status(&self) -> Result<SyncStatus, ApiError> {
+        Ok(self.core.sync_status()?)
+    }
+    pub async fn sync_now(&self) -> Result<SyncStatus, ApiError> {
+        Ok(self.core.sync_now().await?)
+    }
+    pub async fn companion_devices(&self) -> Result<Vec<CompanionDevice>, ApiError> {
+        Ok(self.core.companion_devices().await?)
+    }
+    pub async fn delete_profile_everywhere(
+        &self,
+        profile_id: String,
+        typed_name: String,
+    ) -> Result<(), ApiError> {
+        Ok(self
+            .core
+            .delete_profile_everywhere(profile_id, typed_name)
+            .await?)
+    }
+    pub async fn revoke_device(&self, device_id: String) -> Result<(), ApiError> {
+        Ok(self.core.revoke_device(device_id).await?)
     }
     pub async fn sign_out(&self, source_id: i64) -> Result<(), ApiError> {
         Ok(self.core.sign_out(source_id).await?)

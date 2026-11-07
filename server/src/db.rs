@@ -44,12 +44,15 @@ CREATE TABLE access_tokens (
     expires_utc_ms   INTEGER NOT NULL
 );
 -- Refresh tokens rotate: each is used once. A used one coming back means it was
--- copied, so the device is revoked (stolen-token detection).
+-- copied, so the device is revoked (stolen-token detection), except a retry: the
+-- same token again within 2 minutes while its replacement is still unused (the
+-- app lost the reply, say, or crashed before saving the new token).
 CREATE TABLE refresh_tokens (
     hash             TEXT    PRIMARY KEY,
     device_id        TEXT    NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
     expires_utc_ms   INTEGER NOT NULL,
-    used_utc_ms      INTEGER
+    used_utc_ms      INTEGER,
+    replaced_by      TEXT
 );
 -- The synced event log. `seq` is the pull cursor. An event is unique per profile
 -- by its ULID; a newer `version` of the same event (a play that has since ended)
@@ -71,6 +74,9 @@ CREATE INDEX events_by_profile ON events (profile_id, seq);
 "#;
 
 pub(crate) type Result<T> = std::result::Result<T, rusqlite::Error>;
+
+/// How long the same refresh token may be retried while its replacement is unused.
+pub(crate) const RETRY_WINDOW_MS: i64 = 120_000;
 
 /// A refresh token's device, expiry, use, the device's revocation, profile and
 /// app device ID.
@@ -353,21 +359,35 @@ impl Db {
         let Some((device, expires, used, revoked, profile_id, client_device_id)) = found else {
             return Ok(Refreshed::Invalid);
         };
-        if used.is_some() {
-            revoke(&tx, &device, now)?;
-            tx.commit()?;
-            return Ok(Refreshed::Reused);
+        if let Some(used_at) = used {
+            // A retry: its replacement was never used, and it's soon after.
+            let replacement_unused: bool = tx.query_row(
+                "SELECT count(*) > 0 FROM refresh_tokens r JOIN refresh_tokens o ON o.replaced_by = r.hash
+                 WHERE o.hash = ?1 AND r.used_utc_ms IS NULL",
+                [hash(refresh_token)],
+                |r| r.get(0),
+            )?;
+            if !(replacement_unused && now - used_at <= RETRY_WINDOW_MS && revoked.is_none()) {
+                revoke(&tx, &device, now)?;
+                tx.commit()?;
+                return Ok(Refreshed::Reused);
+            }
+            tx.execute(
+                "DELETE FROM refresh_tokens WHERE hash = (SELECT replaced_by FROM refresh_tokens WHERE hash = ?1)",
+                [hash(refresh_token)],
+            )?;
         }
         if revoked.is_some() || expires <= now {
             return Ok(Refreshed::Invalid);
         }
-        tx.execute(
-            "UPDATE refresh_tokens SET used_utc_ms = ?2 WHERE hash = ?1",
-            params![hash(refresh_token), now],
-        )?;
         // Old access tokens of this device stop working with the new pair.
         tx.execute("DELETE FROM access_tokens WHERE device_id = ?1", [&device])?;
         let tokens = issue(&tx, &device, now, ttl)?;
+        tx.execute(
+            "UPDATE refresh_tokens SET used_utc_ms = coalesce(used_utc_ms, ?2), replaced_by = ?3
+             WHERE hash = ?1",
+            params![hash(refresh_token), now, hash(&tokens.refresh)],
+        )?;
         tx.commit()?;
         Ok(Refreshed::Ok {
             tokens,
@@ -660,15 +680,37 @@ mod tests {
         );
         assert!(db.authed(&t2.access, 11).unwrap().is_some());
 
-        // The old refresh token again: someone copied it, so the device is revoked.
+        // The same token again soon, its replacement unused: a retry (the app lost
+        // the reply), so a new pair, and the unused replacement stops working.
+        let Refreshed::Ok { tokens: t3, .. } = db.refresh(&t.refresh, 12, TTL).unwrap() else {
+            panic!("a retry")
+        };
         assert!(matches!(
-            db.refresh(&t.refresh, 12, TTL).unwrap(),
+            db.refresh(&t2.refresh, 13, TTL).unwrap(),
+            Refreshed::Invalid
+        ));
+        let Refreshed::Ok { tokens: t4, .. } = db.refresh(&t3.refresh, 14, TTL).unwrap() else {
+            panic!("refresh")
+        };
+        // The first token once more, now that its replacement was used: someone
+        // copied it, so the device is revoked.
+        assert!(matches!(
+            db.refresh(&t.refresh, 15, TTL).unwrap(),
             Refreshed::Reused
         ));
-        assert!(db.authed(&t2.access, 13).unwrap().is_none());
+        assert!(db.authed(&t4.access, 16).unwrap().is_none());
         assert!(matches!(
-            db.refresh(&t2.refresh, 14, TTL).unwrap(),
+            db.refresh(&t4.refresh, 17, TTL).unwrap(),
             Refreshed::Invalid
+        ));
+        // A retry long after is theft too.
+        let db = Db::open_in_memory();
+        let (_, t) = signed_in(&db, "d1");
+        db.refresh(&t.refresh, 10, TTL).unwrap();
+        assert!(matches!(
+            db.refresh(&t.refresh, 10 + RETRY_WINDOW_MS + 1, TTL)
+                .unwrap(),
+            Refreshed::Reused
         ));
         assert!(db.devices(1).unwrap()[0].revoked);
     }

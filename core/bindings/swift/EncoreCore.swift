@@ -923,9 +923,43 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     func closeProfile() throws 
     
     /**
+     * The profile's devices on the companion server (the Devices list). Async.
+     */
+    func companionDevices() async throws  -> [CompanionDevice]
+    
+    /**
+     * Connect this profile to a companion server (plan section 5), at the address
+     * the user typed: https anywhere, plain http only on the home network. The
+     * profile's media-server token is sent once so the companion can check it;
+     * the companion gives back its own tokens. A `CredentialChanged` event hands
+     * the app the token to keep in the keychain (`source_id` 0). Sync starts at
+     * once and runs in the background. Async.
+     */
+    func connectCompanion(url: String) async throws  -> SyncStatus
+    
+    /**
      * The open profile's ID, if any.
      */
     func currentProfile()  -> String?
+    
+    /**
+     * Board 19's "Delete profile and its data", for the open profile: its
+     * history, likes, playlists made here, settings and tokens, on the companion
+     * server (every device signed in to it stops syncing) and on this device. The
+     * media-server account and its music are never touched. `typed_name` must be
+     * the profile's name as `profiles()` shows it. If the companion server can't be
+     * reached, nothing is deleted and the error says so: try again when it's back.
+     * After this, delete every keychain entry of the profile. Async.
+     */
+    func deleteProfileEverywhere(profileId: String, typedName: String) async throws 
+    
+    /**
+     * Stop syncing this profile with its companion server. This device is signed
+     * out there when it can be reached; everything stays on this device. A
+     * `CredentialChanged` event with an empty token says to delete the keychain
+     * entry. Async.
+     */
+    func disconnectCompanion() async throws 
     
     /**
      * What dropping (or sending) these songs on `target` would do, before it is
@@ -1138,6 +1172,12 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     func restoreProfile(profileId: String, fromPath: String) throws 
     
     /**
+     * Sign one of the profile's devices out everywhere (a lost phone, plan section
+     * 12). Async.
+     */
+    func revokeDevice(deviceId: String) async throws 
+    
+    /**
      * Search the on-device mirror as the user types (board 07). Synchronous.
      */
     func search(query: String) throws  -> SearchResults
@@ -1219,6 +1259,16 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
      * a delta after. Progress arrives as SyncProgress events. Async.
      */
     func syncLibrary() async throws  -> [SyncResult]
+    
+    /**
+     * Send and receive now, without waiting (pull to refresh). Async.
+     */
+    func syncNow() async throws  -> SyncStatus
+    
+    /**
+     * Where sync stands, for the sync status row.
+     */
+    func syncStatus() throws  -> SyncStatus
     
     /**
      * Trust this exact certificate for the server at `address` (after the user
@@ -1537,6 +1587,49 @@ open func closeProfile()throws   {try rustCallWithError(FfiConverterTypeEncoreEr
 }
     
     /**
+     * The profile's devices on the companion server (the Devices list). Async.
+     */
+open func companionDevices()async throws  -> [CompanionDevice]  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_companion_devices(
+                        self.uniffiCloneHandle()
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_rust_buffer,
+            completeFunc: ffi_encore_core_rust_future_complete_rust_buffer,
+            freeFunc: ffi_encore_core_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterSequenceTypeCompanionDevice.lift,
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
+}
+    
+    /**
+     * Connect this profile to a companion server (plan section 5), at the address
+     * the user typed: https anywhere, plain http only on the home network. The
+     * profile's media-server token is sent once so the companion can check it;
+     * the companion gives back its own tokens. A `CredentialChanged` event hands
+     * the app the token to keep in the keychain (`source_id` 0). Sync starts at
+     * once and runs in the background. Async.
+     */
+open func connectCompanion(url: String)async throws  -> SyncStatus  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_connect_companion(
+                        self.uniffiCloneHandle(),FfiConverterString.lower(url)
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_rust_buffer,
+            completeFunc: ffi_encore_core_rust_future_complete_rust_buffer,
+            freeFunc: ffi_encore_core_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterTypeSyncStatus_lift,
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
+}
+    
+    /**
      * The open profile's ID, if any.
      */
 open func currentProfile() -> String?  {
@@ -1546,6 +1639,53 @@ open func currentProfile() -> String?  {
             self.uniffiCloneHandle(),uniffiCallStatus
     )
 })
+}
+    
+    /**
+     * Board 19's "Delete profile and its data", for the open profile: its
+     * history, likes, playlists made here, settings and tokens, on the companion
+     * server (every device signed in to it stops syncing) and on this device. The
+     * media-server account and its music are never touched. `typed_name` must be
+     * the profile's name as `profiles()` shows it. If the companion server can't be
+     * reached, nothing is deleted and the error says so: try again when it's back.
+     * After this, delete every keychain entry of the profile. Async.
+     */
+open func deleteProfileEverywhere(profileId: String, typedName: String)async throws   {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_delete_profile_everywhere(
+                        self.uniffiCloneHandle(),FfiConverterString.lower(profileId),FfiConverterString.lower(typedName)
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_void,
+            completeFunc: ffi_encore_core_rust_future_complete_void,
+            freeFunc: ffi_encore_core_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
+}
+    
+    /**
+     * Stop syncing this profile with its companion server. This device is signed
+     * out there when it can be reached; everything stays on this device. A
+     * `CredentialChanged` event with an empty token says to delete the keychain
+     * entry. Async.
+     */
+open func disconnectCompanion()async throws   {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_disconnect_companion(
+                        self.uniffiCloneHandle()
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_void,
+            completeFunc: ffi_encore_core_rust_future_complete_void,
+            freeFunc: ffi_encore_core_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
 }
     
     /**
@@ -2134,6 +2274,26 @@ open func restoreProfile(profileId: String, fromPath: String)throws   {try rustC
 }
     
     /**
+     * Sign one of the profile's devices out everywhere (a lost phone, plan section
+     * 12). Async.
+     */
+open func revokeDevice(deviceId: String)async throws   {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_revoke_device(
+                        self.uniffiCloneHandle(),FfiConverterString.lower(deviceId)
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_void,
+            completeFunc: ffi_encore_core_rust_future_complete_void,
+            freeFunc: ffi_encore_core_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
+}
+    
+    /**
      * Search the on-device mirror as the user types (board 07). Synchronous.
      */
 open func search(query: String)throws  -> SearchResults  {
@@ -2383,6 +2543,37 @@ open func syncLibrary()async throws  -> [SyncResult]  {
             liftFunc: FfiConverterSequenceTypeSyncResult.lift,
             errorHandler: FfiConverterTypeEncoreError_lift
         )
+}
+    
+    /**
+     * Send and receive now, without waiting (pull to refresh). Async.
+     */
+open func syncNow()async throws  -> SyncStatus  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_sync_now(
+                        self.uniffiCloneHandle()
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_rust_buffer,
+            completeFunc: ffi_encore_core_rust_future_complete_rust_buffer,
+            freeFunc: ffi_encore_core_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterTypeSyncStatus_lift,
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
+}
+    
+    /**
+     * Where sync stands, for the sync status row.
+     */
+open func syncStatus()throws  -> SyncStatus  {
+    return try  FfiConverterTypeSyncStatus_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_sync_status(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
 }
     
     /**
@@ -2891,6 +3082,83 @@ public func FfiConverterTypeArtworkRequest_lower(_ value: ArtworkRequest) -> Rus
 
 
 /**
+ * A device signed in to this profile on the companion server (the Devices list).
+ */
+public struct CompanionDevice: Equatable, Hashable {
+    public var deviceId: String
+    public var name: String
+    public var platform: String
+    public var addedUtcMs: Int64
+    public var lastSeenUtcMs: Int64
+    public var signedOut: Bool
+    public var thisDevice: Bool
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(deviceId: String, name: String, platform: String, addedUtcMs: Int64, lastSeenUtcMs: Int64, signedOut: Bool, thisDevice: Bool) {
+        self.deviceId = deviceId
+        self.name = name
+        self.platform = platform
+        self.addedUtcMs = addedUtcMs
+        self.lastSeenUtcMs = lastSeenUtcMs
+        self.signedOut = signedOut
+        self.thisDevice = thisDevice
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension CompanionDevice: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeCompanionDevice: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> CompanionDevice {
+        return
+            try CompanionDevice(
+                deviceId: FfiConverterString.read(from: &buf), 
+                name: FfiConverterString.read(from: &buf), 
+                platform: FfiConverterString.read(from: &buf), 
+                addedUtcMs: FfiConverterInt64.read(from: &buf), 
+                lastSeenUtcMs: FfiConverterInt64.read(from: &buf), 
+                signedOut: FfiConverterBool.read(from: &buf), 
+                thisDevice: FfiConverterBool.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: CompanionDevice, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.deviceId, into: &buf)
+        FfiConverterString.write(value.name, into: &buf)
+        FfiConverterString.write(value.platform, into: &buf)
+        FfiConverterInt64.write(value.addedUtcMs, into: &buf)
+        FfiConverterInt64.write(value.lastSeenUtcMs, into: &buf)
+        FfiConverterBool.write(value.signedOut, into: &buf)
+        FfiConverterBool.write(value.thisDevice, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeCompanionDevice_lift(_ buf: RustBuffer) throws -> CompanionDevice {
+    return try FfiConverterTypeCompanionDevice.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeCompanionDevice_lower(_ value: CompanionDevice) -> RustBuffer {
+    return FfiConverterTypeCompanionDevice.lower(value)
+}
+
+
+/**
  * What the platform tells the core when it starts.
  */
 public struct CoreConfig: Equatable, Hashable {
@@ -2990,10 +3258,13 @@ public struct CoreEvent: Equatable, Hashable {
     public var syncSourceId: Int64?
     public var syncDone: Int64
     public var syncTotal: Int64
+    public var syncStatus: SyncStatus?
+    public var remoteChange: RemoteChange?
+    public var credential: SourceToken?
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(kind: EventKind, queue: QueueState?, nowPlaying: QueueEntry?, preload: QueueEntry?, syncSourceId: Int64?, syncDone: Int64, syncTotal: Int64) {
+    public init(kind: EventKind, queue: QueueState?, nowPlaying: QueueEntry?, preload: QueueEntry?, syncSourceId: Int64?, syncDone: Int64, syncTotal: Int64, syncStatus: SyncStatus?, remoteChange: RemoteChange?, credential: SourceToken?) {
         self.kind = kind
         self.queue = queue
         self.nowPlaying = nowPlaying
@@ -3001,6 +3272,9 @@ public struct CoreEvent: Equatable, Hashable {
         self.syncSourceId = syncSourceId
         self.syncDone = syncDone
         self.syncTotal = syncTotal
+        self.syncStatus = syncStatus
+        self.remoteChange = remoteChange
+        self.credential = credential
     }
 
     
@@ -3025,7 +3299,10 @@ public struct FfiConverterTypeCoreEvent: FfiConverterRustBuffer {
                 preload: FfiConverterOptionTypeQueueEntry.read(from: &buf), 
                 syncSourceId: FfiConverterOptionInt64.read(from: &buf), 
                 syncDone: FfiConverterInt64.read(from: &buf), 
-                syncTotal: FfiConverterInt64.read(from: &buf)
+                syncTotal: FfiConverterInt64.read(from: &buf), 
+                syncStatus: FfiConverterOptionTypeSyncStatus.read(from: &buf), 
+                remoteChange: FfiConverterOptionTypeRemoteChange.read(from: &buf), 
+                credential: FfiConverterOptionTypeSourceToken.read(from: &buf)
         )
     }
 
@@ -3037,6 +3314,9 @@ public struct FfiConverterTypeCoreEvent: FfiConverterRustBuffer {
         FfiConverterOptionInt64.write(value.syncSourceId, into: &buf)
         FfiConverterInt64.write(value.syncDone, into: &buf)
         FfiConverterInt64.write(value.syncTotal, into: &buf)
+        FfiConverterOptionTypeSyncStatus.write(value.syncStatus, into: &buf)
+        FfiConverterOptionTypeRemoteChange.write(value.remoteChange, into: &buf)
+        FfiConverterOptionTypeSourceToken.write(value.credential, into: &buf)
     }
 }
 
@@ -4389,6 +4669,101 @@ public func FfiConverterTypeQuickConnectStart_lower(_ value: QuickConnectStart) 
 }
 
 
+/**
+ * What another device changed.
+ */
+public struct RemoteChange: Equatable, Hashable {
+    /**
+     * Songs whose like changed; refresh hearts and Liked Songs.
+     */
+    public var likedSongIds: [Int64]
+    public var unlikedSongIds: [Int64]
+    /**
+     * Playlists re-read from the media server.
+     */
+    public var playlistIds: [Int64]
+    /**
+     * Plays from other devices joined the history.
+     */
+    public var history: Bool
+    /**
+     * Another device made a playlist this one doesn't have yet: call
+     * `sync_library` when convenient.
+     */
+    public var librarySyncSuggested: Bool
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * Songs whose like changed; refresh hearts and Liked Songs.
+         */likedSongIds: [Int64], unlikedSongIds: [Int64], 
+        /**
+         * Playlists re-read from the media server.
+         */playlistIds: [Int64], 
+        /**
+         * Plays from other devices joined the history.
+         */history: Bool, 
+        /**
+         * Another device made a playlist this one doesn't have yet: call
+         * `sync_library` when convenient.
+         */librarySyncSuggested: Bool) {
+        self.likedSongIds = likedSongIds
+        self.unlikedSongIds = unlikedSongIds
+        self.playlistIds = playlistIds
+        self.history = history
+        self.librarySyncSuggested = librarySyncSuggested
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension RemoteChange: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeRemoteChange: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> RemoteChange {
+        return
+            try RemoteChange(
+                likedSongIds: FfiConverterSequenceInt64.read(from: &buf), 
+                unlikedSongIds: FfiConverterSequenceInt64.read(from: &buf), 
+                playlistIds: FfiConverterSequenceInt64.read(from: &buf), 
+                history: FfiConverterBool.read(from: &buf), 
+                librarySyncSuggested: FfiConverterBool.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: RemoteChange, into buf: inout [UInt8]) {
+        FfiConverterSequenceInt64.write(value.likedSongIds, into: &buf)
+        FfiConverterSequenceInt64.write(value.unlikedSongIds, into: &buf)
+        FfiConverterSequenceInt64.write(value.playlistIds, into: &buf)
+        FfiConverterBool.write(value.history, into: &buf)
+        FfiConverterBool.write(value.librarySyncSuggested, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRemoteChange_lift(_ buf: RustBuffer) throws -> RemoteChange {
+    return try FfiConverterTypeRemoteChange.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRemoteChange_lower(_ value: RemoteChange) -> RustBuffer {
+    return FfiConverterTypeRemoteChange.lower(value)
+}
+
+
 public struct SearchResults: Equatable, Hashable {
     public var top: TopResult?
     public var songs: [Song]
@@ -5298,6 +5673,90 @@ public func FfiConverterTypeSyncResult_lift(_ buf: RustBuffer) throws -> SyncRes
 #endif
 public func FfiConverterTypeSyncResult_lower(_ value: SyncResult) -> RustBuffer {
     return FfiConverterTypeSyncResult.lower(value)
+}
+
+
+public struct SyncStatus: Equatable, Hashable {
+    public var state: SyncState
+    /**
+     * Changes on this device not yet on the server ("Waiting to sync").
+     */
+    public var pending: UInt32
+    public var lastSyncedUtcMs: Int64?
+    /**
+     * The companion server's address, when one is set.
+     */
+    public var serverUrl: String?
+    /**
+     * Why, for Offline and SignedOut.
+     */
+    public var reason: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(state: SyncState, 
+        /**
+         * Changes on this device not yet on the server ("Waiting to sync").
+         */pending: UInt32, lastSyncedUtcMs: Int64?, 
+        /**
+         * The companion server's address, when one is set.
+         */serverUrl: String?, 
+        /**
+         * Why, for Offline and SignedOut.
+         */reason: String?) {
+        self.state = state
+        self.pending = pending
+        self.lastSyncedUtcMs = lastSyncedUtcMs
+        self.serverUrl = serverUrl
+        self.reason = reason
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension SyncStatus: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSyncStatus: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SyncStatus {
+        return
+            try SyncStatus(
+                state: FfiConverterTypeSyncState.read(from: &buf), 
+                pending: FfiConverterUInt32.read(from: &buf), 
+                lastSyncedUtcMs: FfiConverterOptionInt64.read(from: &buf), 
+                serverUrl: FfiConverterOptionString.read(from: &buf), 
+                reason: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: SyncStatus, into buf: inout [UInt8]) {
+        FfiConverterTypeSyncState.write(value.state, into: &buf)
+        FfiConverterUInt32.write(value.pending, into: &buf)
+        FfiConverterOptionInt64.write(value.lastSyncedUtcMs, into: &buf)
+        FfiConverterOptionString.write(value.serverUrl, into: &buf)
+        FfiConverterOptionString.write(value.reason, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSyncStatus_lift(_ buf: RustBuffer) throws -> SyncStatus {
+    return try FfiConverterTypeSyncStatus.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSyncStatus_lower(_ value: SyncStatus) -> RustBuffer {
+    return FfiConverterTypeSyncStatus.lower(value)
 }
 
 
@@ -6334,6 +6793,21 @@ public enum EventKind: Equatable, Hashable {
      * `sync_source_id`, `sync_done` and `sync_total` are set.
      */
     case syncProgress
+    /**
+     * `sync_status` is set: the companion server's sync state changed.
+     */
+    case syncStatusChanged
+    /**
+     * `remote_change` is set: another device changed likes, playlists or history;
+     * refresh what's on screen.
+     */
+    case remoteChange
+    /**
+     * `credential` is set: store its token in the keychain under the profile's
+     * companion key (`source_id` 0), replacing the old one; an empty token means
+     * delete it. Store it before anything else: the old one no longer works.
+     */
+    case credentialChanged
 
 
 
@@ -6363,6 +6837,12 @@ public struct FfiConverterTypeEventKind: FfiConverterRustBuffer {
         
         case 4: return .syncProgress
         
+        case 5: return .syncStatusChanged
+        
+        case 6: return .remoteChange
+        
+        case 7: return .credentialChanged
+        
         default: throw UniffiInternalError.unexpectedEnumCase
         }
     }
@@ -6385,6 +6865,18 @@ public struct FfiConverterTypeEventKind: FfiConverterRustBuffer {
         
         case .syncProgress:
             writeInt(&buf, Int32(4))
+        
+        
+        case .syncStatusChanged:
+            writeInt(&buf, Int32(5))
+        
+        
+        case .remoteChange:
+            writeInt(&buf, Int32(6))
+        
+        
+        case .credentialChanged:
+            writeInt(&buf, Int32(7))
         
         }
     }
@@ -7737,6 +8229,112 @@ public func FfiConverterTypeStreamQuality_lower(_ value: StreamQuality) -> RustB
 
 
 
+/**
+ * Where sync with the companion server stands (the sync status row).
+ */
+
+public enum SyncState: Equatable, Hashable {
+    
+    /**
+     * No companion server for this profile: everything stays on this device.
+     */
+    case notConnected
+    /**
+     * Up to date, listening for other devices' changes.
+     */
+    case idle
+    /**
+     * Sending or receiving.
+     */
+    case syncing
+    /**
+     * The server can't be reached; changes wait here and go when it's back.
+     */
+    case offline
+    /**
+     * The server no longer accepts this device (it was signed out elsewhere, or
+     * the profile was deleted there). Local data stays; connect again to sync.
+     */
+    case signedOut
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension SyncState: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSyncState: FfiConverterRustBuffer {
+    typealias SwiftType = SyncState
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SyncState {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .notConnected
+        
+        case 2: return .idle
+        
+        case 3: return .syncing
+        
+        case 4: return .offline
+        
+        case 5: return .signedOut
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: SyncState, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .notConnected:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .idle:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .syncing:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .offline:
+            writeInt(&buf, Int32(4))
+        
+        
+        case .signedOut:
+            writeInt(&buf, Int32(5))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSyncState_lift(_ buf: RustBuffer) throws -> SyncState {
+    return try FfiConverterTypeSyncState.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSyncState_lower(_ value: SyncState) -> RustBuffer {
+    return FfiConverterTypeSyncState.lower(value)
+}
+
+
+
 
 public enum TranscodeCodec: Equatable, Hashable {
     
@@ -8069,6 +8667,30 @@ fileprivate struct FfiConverterOptionTypeQueueState: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterOptionTypeRemoteChange: FfiConverterRustBuffer {
+    typealias SwiftType = RemoteChange?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeRemoteChange.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeRemoteChange.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterOptionTypeSong: FfiConverterRustBuffer {
     typealias SwiftType = Song?
 
@@ -8109,6 +8731,54 @@ fileprivate struct FfiConverterOptionTypeSongLyrics: FfiConverterRustBuffer {
         switch try readInt(&buf) as Int8 {
         case 0: return nil
         case 1: return try FfiConverterTypeSongLyrics.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeSourceToken: FfiConverterRustBuffer {
+    typealias SwiftType = SourceToken?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeSourceToken.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeSourceToken.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeSyncStatus: FfiConverterRustBuffer {
+    typealias SwiftType = SyncStatus?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeSyncStatus.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeSyncStatus.read(from: &buf)
         default: throw UniffiInternalError.unexpectedOptionalTag
         }
     }
@@ -8307,6 +8977,31 @@ fileprivate struct FfiConverterSequenceTypeArtistSummary: FfiConverterRustBuffer
         seq.reserveCapacity(Int(len))
         for _ in 0 ..< len {
             seq.append(try FfiConverterTypeArtistSummary.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeCompanionDevice: FfiConverterRustBuffer {
+    typealias SwiftType = [CompanionDevice]
+
+    public static func write(_ value: [CompanionDevice], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeCompanionDevice.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [CompanionDevice] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [CompanionDevice]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeCompanionDevice.read(from: &buf))
         }
         return seq
     }
@@ -8920,7 +9615,19 @@ private let initializationResult: InitializationResult = {
     if (uniffi_encore_core_checksum_method_encorecore_close_profile() != 19751) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_encore_core_checksum_method_encorecore_companion_devices() != 8978) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_connect_companion() != 13371) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_encore_core_checksum_method_encorecore_current_profile() != 14260) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_delete_profile_everywhere() != 47212) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_disconnect_companion() != 13519) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_drop_preview() != 698) {
@@ -9049,6 +9756,9 @@ private let initializationResult: InitializationResult = {
     if (uniffi_encore_core_checksum_method_encorecore_restore_profile() != 53453) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_encore_core_checksum_method_encorecore_revoke_device() != 50148) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_encore_core_checksum_method_encorecore_search() != 19862) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -9101,6 +9811,12 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_sync_library() != 48232) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_sync_now() != 1674) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_sync_status() != 29536) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_trust_certificate() != 49158) {
