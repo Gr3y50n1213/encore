@@ -235,7 +235,7 @@ Albums refuse drops: their songs come from the server's tags and folders. Guest 
 
 ### Smart picks (plan section 21; boards 15, 23, 37, 38)
 
-One engine chooses every song the app chooses, so a skip teaches every surface. Version 1 learns from how the user listens: what they finish and skip, what they play together, when they play it, likes and playlist adds. Audio features come in Phase 9. Design: docs/adr/core-0012 to 0014.
+One engine chooses every song the app chooses, so a skip teaches every surface. Version 1 learns from how the user listens: what they finish and skip, what they play together, when they play it, likes and playlist adds. Audio features come in Phase 10. Design: docs/adr/core-0012 to 0014.
 
 | Call | Returns | Notes |
 | --- | --- | --- |

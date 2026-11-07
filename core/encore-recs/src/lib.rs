@@ -10,7 +10,7 @@
 //! ([`det::Rng`]) and every exponential from [`det::exp`].
 //!
 //! Version 1 has no audio features (they arrive with the companion's analysis in
-//! Phase 9): "sounds like" means played together, same artist, genre and era.
+//! Phase 10): "sounds like" means played together, same artist, genre and era.
 
 #![forbid(unsafe_code)]
 

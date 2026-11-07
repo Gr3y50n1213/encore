@@ -34,7 +34,7 @@ The owner's answers:
 | A cold profile, 49 plays and 50 plays show the right mixes, labels and fallbacks | **Passes** | `mixes_follow_the_cold_start_table`: 0 plays gives a Starter mix; 1 to 49 up to three family mixes, still learning; 50 or more under 30 days the two strongest; 30 days or more up to five. `home_follows_…`: NotEnoughPlays at 0 of 50, Fresh after 60, LearningOff with Most played. |
 | Every smart surface has a working fallback with no model, the server off and no network | **Passes, except downloads** | No history: metadata-only picks (Guest and learning off build from the library alone). Server off: the device builds the same set (`the_mixes_come_from_the_companion_server_and_the_device_builds_them_without_it`). No network: everything reads the mirror. "Only downloaded songs" needs downloads (Phase 8): the engine takes the list (`only`), and nothing is downloaded yet. |
 | Budgets: next song under 50 ms, mix build under 20 s and 150 MB | **Passes in CI; not on a phone** | On 20,010 songs and 20,160 plays, in CI: model plus five mixes **0.03 s**, **6.7 MB** at the peak; the next-song pick **5.1 ms** (20 ms on this busy PC). A phone is Phase 6's. |
-| Licences of the audio embedding model and the nearest-neighbour library | Not yet applicable | Neither exists until audio analysis (Phase 9 and 10). No new crate this phase. |
+| Licences of the audio embedding model and the nearest-neighbour library | Not yet applicable | Neither exists until audio analysis (Phase 10). No new crate this phase. |
 
 ## The phase's items
 
@@ -62,7 +62,7 @@ The owner's answers:
 | Your own history | The recording needs the owner's approval | Run `fixture-recorder --phase5`, then `recs-replay --private` |
 | Every weight, threshold and title rule | Starting values; generated listeners are not real ones | Replay on real histories as apps log them |
 | Phone budgets | CI and this PC only | Phase 6 devices |
-| Audio-based moods, tempo and energy flow, model-written titles | Need audio analysis | Phase 9 |
+| Audio-based moods, tempo and energy flow, model-written titles | Need audio analysis | Phase 10 |
 | "Only downloaded songs" | Downloads don't exist yet | Phase 8 |
 | Smart downloads | A Phase 8 surface | Phase 8 |
 | Household learning, history import from Last.fm or ListenBrainz | Optional extras, not built | Later, if the owner wants them |

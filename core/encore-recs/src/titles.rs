@@ -4,7 +4,7 @@
 //! no two titles in a row sharing a main word, no title reused within 14 days
 //! unless pinned, and never a fact the app doesn't know (no weather, no place, no
 //! commute). Version 1 uses the fixed vocabulary only; model-written titles come
-//! with the audio analysis (Phase 9) and must pass the same rules.
+//! with the audio analysis (Phase 10) and must pass the same rules.
 
 /// Mood words, by the family of the songs' genres (no audio features yet).
 const MOODS: &[(&str, &[&str])] = &[

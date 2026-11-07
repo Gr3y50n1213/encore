@@ -10,7 +10,7 @@ Plan section 7.1 builds the five mixes nightly on the companion server, delivere
 - **Devices send a catalog.** After a library sync, a device sends the profile's song list (`PUT /catalog`), but only when its SHA-256 hash changed (`GET /catalog/hash`).
   - It holds song keys, titles, artists, album, genres, year, length, date added, Jellyfin's play counts and favourites.
   - It holds no audio and no token. The server holds no new secret, and knows only what the profile's devices already know.
-  - The API-key choice can wait for Phase 9's audio analysis, which needs to read audio anyway.
+  - The API-key choice can wait for Phase 10's audio analysis, which needs to read audio anyway.
 - **The server builds from the synced log** (`POST /recs/home`): the history from the profile's events (plays, likes and Not interested last-writer-wins, playlist adds, feedback, the epoch), plus the catalog, through `encore-recs`.
 - **When it builds:**
   - at the first request after 06:00 in the profile's own time zone (the device sends its offset);

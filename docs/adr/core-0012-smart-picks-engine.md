@@ -4,7 +4,7 @@ Date: 7 November 2026
 Status: accepted
 
 ## Context
-Plan sections 7, 7.1 and 21, and boards 15, 23, 37 and 38. One engine chooses every song the app chooses (autoplay, radio, mixes, Smart shuffle) with one set of rules, so a skip teaches every surface. Version 1 has no audio features: audio analysis comes with the companion server in Phase 9, and the trained ranker in Phase 10. The mixes must look the same on every device of a profile. The owner chose that they are built on the companion server, and by a device when there is none (core-0013).
+Plan sections 7, 7.1 and 21, and boards 15, 23, 37 and 38. One engine chooses every song the app chooses (autoplay, radio, mixes, Smart shuffle) with one set of rules, so a skip teaches every surface. Version 1 has no audio features: audio analysis on the companion server and the trained ranker both come in Phase 10. The mixes must look the same on every device of a profile. The owner chose that they are built on the companion server, and by a device when there is none (core-0013).
 
 ## Decision
 - **`encore-recs` is pure and deterministic.**
@@ -40,4 +40,4 @@ Plan sections 7, 7.1 and 21, and boards 15, 23, 37 and 38. One engine chooses ev
 - Measured in CI (docs/core/REPLAY-RESULTS.md): autoplay's early-skip rate is 18% to 46% of shuffle's on three generated listeners.
 - Budgets on 20,000 songs and 20,000 plays: the model and five mixes take 0.14 s and 7 MB at the peak; the next-song pick takes 20 ms.
 - Every number is a starting value, to be tuned by replay on real histories.
-- Phase 9 adds audio features to the same model (tempo and energy flow, real "sounds like"). Phase 10 replaces the hand-tuned score with a trained one that has the same inputs and outputs.
+- Phase 10 adds audio features to the same model (tempo and energy flow, real "sounds like") and replaces the hand-tuned score with a trained one that has the same inputs and outputs.

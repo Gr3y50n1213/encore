@@ -2,7 +2,7 @@
 //! 23, the cold-start table of section 21).
 //!
 //! Version 1 finds moods from how the user listens, not from audio (that comes in
-//! Phase 9): each enjoyed song is placed by when it is played (time of day,
+//! Phase 10): each enjoyed song is placed by when it is played (time of day,
 //! weekday or weekend), the mood family of its genres and its era, and those
 //! points are clustered. Slots: the two strongest moods, then (after 30 days of
 //! history) the time-of-day mood, the mood the user has drifted toward in the last
