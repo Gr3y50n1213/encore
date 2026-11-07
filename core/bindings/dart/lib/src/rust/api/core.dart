@@ -1391,7 +1391,7 @@ final double? albumGainDb;
 
 class SongLyrics  {
                 final PlatformInt64 songId;
-final LyricsSync sync_;
+final LyricsSync syncLevel;
 final LyricsOrigin origin;
 final LyricsFormat format;
 final List<LyricLine> lines;
@@ -1401,14 +1401,14 @@ final bool instrumental;
 final String? language;
 final PlatformInt64 fetchedUtcMs;
 
-                const SongLyrics({required this.songId ,required this.sync_ ,required this.origin ,required this.format ,required this.lines ,required this.singers ,required this.gaps ,required this.instrumental ,this.language ,required this.fetchedUtcMs ,});
+                const SongLyrics({required this.songId ,required this.syncLevel ,required this.origin ,required this.format ,required this.lines ,required this.singers ,required this.gaps ,required this.instrumental ,this.language ,required this.fetchedUtcMs ,});
 
 
 
 
 
         @override
-        int get hashCode => songId.hashCode^sync_.hashCode^origin.hashCode^format.hashCode^lines.hashCode^singers.hashCode^gaps.hashCode^instrumental.hashCode^language.hashCode^fetchedUtcMs.hashCode;
+        int get hashCode => songId.hashCode^syncLevel.hashCode^origin.hashCode^format.hashCode^lines.hashCode^singers.hashCode^gaps.hashCode^instrumental.hashCode^language.hashCode^fetchedUtcMs.hashCode;
 
 
 
@@ -1417,7 +1417,7 @@ final PlatformInt64 fetchedUtcMs;
             identical(this, other) ||
             other is SongLyrics &&
                 runtimeType == other.runtimeType
-                && songId == other.songId&& sync_ == other.sync_&& origin == other.origin&& format == other.format&& lines == other.lines&& singers == other.singers&& gaps == other.gaps&& instrumental == other.instrumental&& language == other.language&& fetchedUtcMs == other.fetchedUtcMs;
+                && songId == other.songId&& syncLevel == other.syncLevel&& origin == other.origin&& format == other.format&& lines == other.lines&& singers == other.singers&& gaps == other.gaps&& instrumental == other.instrumental&& language == other.language&& fetchedUtcMs == other.fetchedUtcMs;
 
             }
 

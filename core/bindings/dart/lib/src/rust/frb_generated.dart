@@ -3042,7 +3042,7 @@ albumGainDb: dco_decode_opt_box_autoadd_f_64(arr[14]),); }
 final arr = raw as List<dynamic>;
                 if (arr.length != 10) throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
                 return SongLyrics(songId: dco_decode_i_64(arr[0]),
-sync_: dco_decode_lyrics_sync(arr[1]),
+syncLevel: dco_decode_lyrics_sync(arr[1]),
 origin: dco_decode_lyrics_origin(arr[2]),
 format: dco_decode_lyrics_format(arr[3]),
 lines: dco_decode_list_lyric_line(arr[4]),
@@ -3867,7 +3867,7 @@ return Song(id: var_id, sourceId: var_sourceId, title: var_title, artist: var_ar
 
 @protected SongLyrics sse_decode_song_lyrics(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
 var var_songId = sse_decode_i_64(deserializer);
-var var_sync_ = sse_decode_lyrics_sync(deserializer);
+var var_syncLevel = sse_decode_lyrics_sync(deserializer);
 var var_origin = sse_decode_lyrics_origin(deserializer);
 var var_format = sse_decode_lyrics_format(deserializer);
 var var_lines = sse_decode_list_lyric_line(deserializer);
@@ -3876,7 +3876,7 @@ var var_gaps = sse_decode_list_lyric_gap(deserializer);
 var var_instrumental = sse_decode_bool(deserializer);
 var var_language = sse_decode_opt_String(deserializer);
 var var_fetchedUtcMs = sse_decode_i_64(deserializer);
-return SongLyrics(songId: var_songId, sync_: var_sync_, origin: var_origin, format: var_format, lines: var_lines, singers: var_singers, gaps: var_gaps, instrumental: var_instrumental, language: var_language, fetchedUtcMs: var_fetchedUtcMs); }
+return SongLyrics(songId: var_songId, syncLevel: var_syncLevel, origin: var_origin, format: var_format, lines: var_lines, singers: var_singers, gaps: var_gaps, instrumental: var_instrumental, language: var_language, fetchedUtcMs: var_fetchedUtcMs); }
 
 @protected SongSort sse_decode_song_sort(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
 var inner = sse_decode_i_32(deserializer);
@@ -4573,7 +4573,7 @@ sse_encode_opt_box_autoadd_f_64(self.albumGainDb, serializer);
 
 @protected void sse_encode_song_lyrics(SongLyrics self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
 sse_encode_i_64(self.songId, serializer);
-sse_encode_lyrics_sync(self.sync_, serializer);
+sse_encode_lyrics_sync(self.syncLevel, serializer);
 sse_encode_lyrics_origin(self.origin, serializer);
 sse_encode_lyrics_format(self.format, serializer);
 sse_encode_list_lyric_line(self.lines, serializer);

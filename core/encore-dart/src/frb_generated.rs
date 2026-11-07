@@ -4481,7 +4481,7 @@ const _: fn() = || {
     {
         let SongLyrics = None::<crate::api::core::SongLyrics>.unwrap();
         let _: i64 = SongLyrics.song_id;
-        let _: crate::api::core::LyricsSync = SongLyrics.sync;
+        let _: crate::api::core::LyricsSync = SongLyrics.sync_level;
         let _: crate::api::core::LyricsOrigin = SongLyrics.origin;
         let _: crate::api::core::LyricsFormat = SongLyrics.format;
         let _: Vec<crate::api::core::LyricLine> = SongLyrics.lines;
@@ -5962,7 +5962,7 @@ impl SseDecode for crate::api::core::SongLyrics {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_songId = <i64>::sse_decode(deserializer);
-        let mut var_sync_ = <crate::api::core::LyricsSync>::sse_decode(deserializer);
+        let mut var_syncLevel = <crate::api::core::LyricsSync>::sse_decode(deserializer);
         let mut var_origin = <crate::api::core::LyricsOrigin>::sse_decode(deserializer);
         let mut var_format = <crate::api::core::LyricsFormat>::sse_decode(deserializer);
         let mut var_lines = <Vec<crate::api::core::LyricLine>>::sse_decode(deserializer);
@@ -5973,7 +5973,7 @@ impl SseDecode for crate::api::core::SongLyrics {
         let mut var_fetchedUtcMs = <i64>::sse_decode(deserializer);
         return crate::api::core::SongLyrics {
             song_id: var_songId,
-            sync: var_sync_,
+            sync_level: var_syncLevel,
             origin: var_origin,
             format: var_format,
             lines: var_lines,
@@ -7605,7 +7605,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::SongLyrics> 
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.0.song_id.into_into_dart().into_dart(),
-            self.0.sync.into_into_dart().into_dart(),
+            self.0.sync_level.into_into_dart().into_dart(),
             self.0.origin.into_into_dart().into_dart(),
             self.0.format.into_into_dart().into_dart(),
             self.0.lines.into_into_dart().into_dart(),
@@ -9039,7 +9039,7 @@ impl SseEncode for crate::api::core::SongLyrics {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i64>::sse_encode(self.song_id, serializer);
-        <crate::api::core::LyricsSync>::sse_encode(self.sync, serializer);
+        <crate::api::core::LyricsSync>::sse_encode(self.sync_level, serializer);
         <crate::api::core::LyricsOrigin>::sse_encode(self.origin, serializer);
         <crate::api::core::LyricsFormat>::sse_encode(self.format, serializer);
         <Vec<crate::api::core::LyricLine>>::sse_encode(self.lines, serializer);
