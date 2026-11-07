@@ -10,8 +10,11 @@ use url::Url;
 
 use super::address::{AddressPlan, AddressWarning, check_security};
 use super::auth::{DeviceInfo, authorization_header};
-use super::dto::{AuthenticationResult, ItemsResult, PublicSystemInfo, QuickConnectResult};
+use super::dto::{
+    AuthenticationResult, ItemsResult, PlaylistCreated, PublicSystemInfo, QuickConnectResult,
+};
 use crate::error::{Result, SourceError};
+use crate::model::{EditOutcome, ServerEdit};
 use crate::transport::{Method, Request, Response, Transport};
 
 /// The oldest Jellyfin this adapter supports (lyrics endpoint, `MediaBrowser` auth).
@@ -456,6 +459,136 @@ impl JellyfinClient {
             headers: vec![self.auth_header()],
             may_transcode,
         })
+    }
+
+    /// Send one playlist or favourite write (plan section 26). Jellyfin 12.0:
+    /// `POST /Playlists`, `POST /Playlists/{id}/Items?ids=&position=`,
+    /// `DELETE /Playlists/{id}/Items?entryIds=`,
+    /// `POST /Playlists/{id}/Items/{entryId}/Move/{index}`, `POST /Playlists/{id}`
+    /// (rename), `DELETE /Items/{id}`, `POST`/`DELETE /UserFavoriteItems/{id}`.
+    pub async fn edit(&self, edit: &ServerEdit) -> Result<EditOutcome> {
+        let user = self.user_id()?.to_owned();
+        let (method, url, body) = match edit {
+            ServerEdit::CreatePlaylist { name, item_ids } => (
+                Method::Post,
+                self.url("/Playlists", &[])?,
+                Some(serde_json::json!({
+                    "Name": name,
+                    "Ids": item_ids,
+                    "UserId": user,
+                    "MediaType": "Audio",
+                })),
+            ),
+            ServerEdit::AddToPlaylist {
+                playlist_id,
+                item_ids,
+                position,
+            } => {
+                let ids = item_ids.join(",");
+                let pos = position.map(|p| p.to_string());
+                let mut q = vec![("ids", ids.as_str()), ("userId", user.as_str())];
+                if let Some(p) = &pos {
+                    q.push(("position", p.as_str()));
+                }
+                (
+                    Method::Post,
+                    self.url(&format!("/Playlists/{playlist_id}/Items"), &q)?,
+                    None,
+                )
+            }
+            ServerEdit::RemoveFromPlaylist {
+                playlist_id,
+                entry_ids,
+            } => {
+                let ids = entry_ids.join(",");
+                (
+                    Method::Delete,
+                    self.url(
+                        &format!("/Playlists/{playlist_id}/Items"),
+                        &[("entryIds", ids.as_str())],
+                    )?,
+                    None,
+                )
+            }
+            ServerEdit::MoveInPlaylist {
+                playlist_id,
+                entry_id,
+                new_index,
+            } => (
+                Method::Post,
+                self.url(
+                    &format!("/Playlists/{playlist_id}/Items/{entry_id}/Move/{new_index}"),
+                    &[],
+                )?,
+                None,
+            ),
+            ServerEdit::RenamePlaylist { playlist_id, name } => (
+                Method::Post,
+                self.url(&format!("/Playlists/{playlist_id}"), &[])?,
+                Some(serde_json::json!({ "Name": name })),
+            ),
+            ServerEdit::DeletePlaylist { playlist_id } => (
+                Method::Delete,
+                self.url(&format!("/Items/{playlist_id}"), &[])?,
+                None,
+            ),
+            ServerEdit::SetFavorite { item_id, favorite } => (
+                if *favorite {
+                    Method::Post
+                } else {
+                    Method::Delete
+                },
+                self.url(
+                    &format!("/UserFavoriteItems/{item_id}"),
+                    &[("userId", user.as_str())],
+                )?,
+                None,
+            ),
+        };
+        let resp = self.send(method, url, body).await?;
+        let resp = Self::check(resp, SourceError::SessionExpired)?;
+        Ok(match edit {
+            ServerEdit::CreatePlaylist { .. } => {
+                let created: PlaylistCreated = resp.json()?;
+                EditOutcome::Created(
+                    created.id.ok_or_else(|| {
+                        SourceError::Protocol("no ID for the new playlist".into())
+                    })?,
+                )
+            }
+            _ => EditOutcome::Done,
+        })
+    }
+
+    /// The IDs of every song this user marked as a favourite, page by page.
+    pub async fn favorite_ids(&self, page_size: u32) -> Result<Vec<String>> {
+        let mut ids = Vec::new();
+        let mut start: u64 = 0;
+        let limit = page_size.max(1).to_string();
+        loop {
+            let start_s = start.to_string();
+            let page = self
+                .items(&[
+                    ("includeItemTypes", "Audio"),
+                    ("recursive", "true"),
+                    ("filters", "IsFavorite"),
+                    ("enableImages", "false"),
+                    ("enableUserData", "false"),
+                    ("enableTotalRecordCount", "true"),
+                    ("sortBy", "SortName"),
+                    ("startIndex", start_s.as_str()),
+                    ("limit", limit.as_str()),
+                ])
+                .await?;
+            let items = page.items.unwrap_or_default();
+            let n = items.len() as u64;
+            ids.extend(items.into_iter().filter_map(|i| i.id));
+            start += n;
+            if n == 0 || start >= page.total_record_count.unwrap_or(0).max(0) as u64 {
+                break;
+            }
+        }
+        Ok(ids)
     }
 
     /// The primary image as PNG, at most `size_px` on its longer side, for colour

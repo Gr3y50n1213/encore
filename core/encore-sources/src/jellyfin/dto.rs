@@ -86,3 +86,10 @@ pub struct ItemsResult {
     #[serde(skip)]
     pub server_date_utc_ms: Option<i64>,
 }
+
+/// `POST /Playlists` reply.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "PascalCase", default)]
+pub struct PlaylistCreated {
+    pub id: Option<String>,
+}

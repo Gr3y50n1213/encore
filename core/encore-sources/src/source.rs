@@ -12,7 +12,9 @@ use crate::error::Result;
 use crate::jellyfin::{
     self, ArtworkInfo, JellyfinClient, RawLyrics, StreamInfo, StreamRequest, SyncProgress,
 };
-use crate::model::{Capabilities, Cursor, LibraryDelta, SourceKind};
+use crate::model::{
+    Capabilities, Cursor, EditOutcome, LibraryDelta, PlaylistEntry, ServerEdit, SourceKind,
+};
 use crate::transport::BoxFuture;
 
 pub trait MediaSource: Send + Sync + fmt::Debug {
@@ -38,6 +40,13 @@ pub trait MediaSource: Send + Sync + fmt::Debug {
         size_px: u32,
         tag: Option<&'a str>,
     ) -> BoxFuture<'a, Result<Option<Vec<u8>>>>;
+    /// Send one playlist or favourite write.
+    fn edit<'a>(&'a self, edit: &'a ServerEdit) -> BoxFuture<'a, Result<EditOutcome>>;
+    /// A playlist's songs as the server has them now, with their entry IDs.
+    fn playlist_entries<'a>(
+        &'a self,
+        playlist_id: &'a str,
+    ) -> BoxFuture<'a, Result<Vec<PlaylistEntry>>>;
 }
 
 /// A signed-in Jellyfin account.
@@ -91,5 +100,24 @@ impl MediaSource for JellyfinSource {
         tag: Option<&'a str>,
     ) -> BoxFuture<'a, Result<Option<Vec<u8>>>> {
         Box::pin(self.client.cover_png(item_id, size_px, tag))
+    }
+
+    fn edit<'a>(&'a self, edit: &'a ServerEdit) -> BoxFuture<'a, Result<EditOutcome>> {
+        Box::pin(self.client.edit(edit))
+    }
+
+    fn playlist_entries<'a>(
+        &'a self,
+        playlist_id: &'a str,
+    ) -> BoxFuture<'a, Result<Vec<PlaylistEntry>>> {
+        Box::pin(async move {
+            let page = self.client.playlist_items(playlist_id).await?;
+            Ok(page
+                .items
+                .unwrap_or_default()
+                .iter()
+                .filter_map(jellyfin::map::to_playlist_entry)
+                .collect())
+        })
     }
 }

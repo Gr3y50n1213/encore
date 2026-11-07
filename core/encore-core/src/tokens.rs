@@ -34,6 +34,8 @@ pub struct Tokens {
     pub lyrics_refresh_after_ms: i64,
     pub palette: crate::palette::Settings,
     pub signal: crate::signal::Rules,
+    pub undo_ms: i64,
+    pub confirm_over_songs: u32,
 }
 
 fn at<'a>(v: &'a Value, path: &str) -> &'a Value {
@@ -113,6 +115,8 @@ fn parse() -> Tokens {
             light_art_text_contrast_min: real(&v, "albumGradient.lightArtTextContrastMin"),
             lightness_step: real(&v, "albumGradient.contrastLightnessStep"),
         },
+        undo_ms: num(&v, "gestures.dragAndDrop.shortcutUndoMs") as i64,
+        confirm_over_songs: num(&v, "gestures.dragAndDrop.confirmOverSongs") as u32,
         signal: crate::signal::Rules {
             early_skip_ms: num(&v, "smartPicks.earlySkipBoundarySeconds") * 1000,
             late_skip_percent: num(&v, "smartPicks.lateSkipPercent"),

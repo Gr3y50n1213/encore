@@ -646,6 +646,122 @@ fn swipes_headsets_and_interruptions_through_the_api() {
 }
 
 #[test]
+fn playlist_drops_likes_and_undo_through_the_api() {
+    let dir = temp_dir("edits");
+    let (core, _) = core_on_recording(&dir);
+    signed_in(&core);
+    block(core.sync_library()).unwrap();
+    let playlist = core.playlists(0, 1).unwrap()[0].clone();
+    let in_playlist: Vec<i64> = core
+        .playlist(playlist.id)
+        .unwrap()
+        .entries
+        .iter()
+        .filter_map(|e| e.song.as_ref().map(|s| s.id))
+        .collect();
+    let songs: Vec<i64> = core
+        .songs(SongSort::Title, 0, 200)
+        .unwrap()
+        .iter()
+        .map(|s| s.id)
+        .filter(|id| !in_playlist.contains(id))
+        .take(6)
+        .collect();
+    let before = core.playlist(playlist.id).unwrap().entries.len();
+    let to_playlist = DropTarget {
+        kind: DropTargetKind::Playlist,
+        id: Some(playlist.id),
+    };
+
+    // Albums refuse, with the reason to show.
+    let album = core.albums(AlbumSort::Title, 0, 1).unwrap()[0].id;
+    let p = core
+        .drop_preview(
+            DropTarget {
+                kind: DropTargetKind::Album,
+                id: Some(album),
+            },
+            songs.clone(),
+        )
+        .unwrap();
+    assert_eq!(p.refusal, Some(DropRefusal::AlbumsTakeNoSongs));
+    assert!(p.refusal_reason.unwrap().contains("playlist"));
+
+    // Two songs in one call, then the same two: already there.
+    let r = core
+        .add_to(to_playlist.clone(), songs[..2].to_vec(), None, false)
+        .unwrap();
+    assert_eq!((r.added, r.already_there), (2, 0));
+    assert!(r.edit_id.is_some() && r.undo_until_utc_ms.is_some());
+    assert_eq!(
+        core.playlist(playlist.id).unwrap().entries.len(),
+        before + 2
+    );
+    let again = core
+        .add_to(to_playlist.clone(), songs[..2].to_vec(), None, false)
+        .unwrap();
+    assert_eq!(
+        (again.edit_id, again.added, again.already_there),
+        (None, 0, 2)
+    );
+    core.undo(r.edit_id.clone().unwrap()).unwrap();
+    assert_eq!(core.playlist(playlist.id).unwrap().entries.len(), before);
+    assert!(matches!(
+        core.undo(r.edit_id.unwrap()),
+        Err(EncoreError::NotAllowed { .. })
+    ));
+
+    // Likes.
+    let liked = core.like(songs[2..4].to_vec()).unwrap();
+    assert_eq!(
+        core.are_liked(songs[1..5].to_vec()).unwrap(),
+        [false, true, true, false]
+    );
+    assert_eq!(core.liked_songs(0, 10).unwrap().len(), 2);
+    core.undo(liked.edit_id.unwrap()).unwrap();
+    assert_eq!(core.liked_songs(0, 10).unwrap().len(), 0);
+
+    // Up Next at the line, and its Undo.
+    core.play(songs[..3].to_vec(), 0, StartedFrom::Songs, None)
+        .unwrap();
+    let q = core
+        .add_to(
+            DropTarget {
+                kind: DropTargetKind::UpNext,
+                id: None,
+            },
+            vec![songs[5]],
+            Some(1),
+            false,
+        )
+        .unwrap();
+    let up_next: Vec<i64> = core
+        .queue()
+        .unwrap()
+        .up_next
+        .iter()
+        .map(|e| e.song.id)
+        .collect();
+    assert_eq!(up_next, [songs[1], songs[5], songs[2]]);
+    core.undo(q.edit_id.unwrap()).unwrap();
+    let up_next: Vec<i64> = core
+        .queue()
+        .unwrap()
+        .up_next
+        .iter()
+        .map(|e| e.song.id)
+        .collect();
+    assert_eq!(up_next, [songs[1], songs[2]]);
+
+    // A guest can queue, but not save.
+    core.set_listening_mode(ListeningMode::Guest).unwrap();
+    assert!(matches!(
+        core.add_to(to_playlist, vec![songs[0]], None, false),
+        Err(EncoreError::NotAllowed { .. })
+    ));
+}
+
+#[test]
 fn a_profile_reopens_with_the_token_from_the_keychain() {
     let dir = temp_dir("reopen");
     let (core, _) = core_on_recording(&dir);

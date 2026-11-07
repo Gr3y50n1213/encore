@@ -308,8 +308,15 @@ ALTER TABLE play_events ADD COLUMN origin TEXT;
 ALTER TABLE play_events ADD COLUMN seeks INTEGER NOT NULL DEFAULT 0;
 "#;
 
+/// Migration 4: which edit put each playlist row there, so undoing that edit
+/// removes exactly those rows even after other edits moved them. A pull from the
+/// server clears it (the server's rows are nobody's edit).
+const V4: &str = r#"
+ALTER TABLE playlist_items ADD COLUMN edit_id TEXT;
+"#;
+
 /// Every migration, oldest first. Append only.
-pub(crate) const MIGRATIONS: &[&str] = &[V1, V2, V3];
+pub(crate) const MIGRATIONS: &[&str] = &[V1, V2, V3, V4];
 
 /// Bring the database up to the newest schema. Returns the version it ended at.
 #[cfg(test)]

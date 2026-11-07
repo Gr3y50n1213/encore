@@ -486,6 +486,91 @@ pub struct SkipTarget {
     pub end_of_queue: bool,
 }
 
+// ---------------------------------------------------------------- playlist writes
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum DropTargetKind {
+    /// `id` is the playlist.
+    Playlist,
+    /// A new playlist named after the album or the first artist.
+    NewPlaylist,
+    LikedSongs,
+    /// `index` (in `add_to`) is the line in Up Next; None is the end.
+    UpNext,
+    PlayNext,
+    /// `id` is the album. Always refused: albums come from the server.
+    Album,
+}
+
+/// Where songs are dropped or sent (board 43). A record, not an enum with data,
+/// so Dart gets the same shape.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct DropTarget {
+    pub kind: DropTargetKind,
+    pub id: Option<i64>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum DropRefusal {
+    GuestCannotSave,
+    AlbumsTakeNoSongs,
+    PlaylistReadOnly,
+    NothingToAdd,
+}
+
+/// What a drop would do, before it is done: the badge count, the "already there"
+/// count, whether to ask first (over 100), and why not.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct DropPreview {
+    pub count: u32,
+    pub already_there: u32,
+    pub needs_confirm: bool,
+    pub suggested_name: Option<String>,
+    pub refusal: Option<DropRefusal>,
+    /// The sentence to show after the refusal delay (board 43, rule 15).
+    pub refusal_reason: Option<String>,
+}
+
+/// What one edit did. `edit_id` is what `undo` takes; None when nothing changed
+/// (every song was already there).
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct EditResult {
+    pub edit_id: Option<String>,
+    pub added: u32,
+    pub already_there: u32,
+    pub playlist_id: Option<i64>,
+    /// Undo is accepted until then (`gestures.dragAndDrop.shortcutUndoMs`); the
+    /// UI's toast may close sooner.
+    pub undo_until_utc_ms: Option<i64>,
+}
+
+/// What sending the waiting edits did.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct SentEdits {
+    pub sent: u32,
+    /// The server said no; the next sync brings back its version.
+    pub refused: u32,
+    /// Still waiting for the server.
+    pub waiting: u32,
+}
+
+impl From<crate::edits::Refusal> for DropRefusal {
+    fn from(r: crate::edits::Refusal) -> Self {
+        match r {
+            crate::edits::Refusal::GuestCannotSave => DropRefusal::GuestCannotSave,
+            crate::edits::Refusal::AlbumsTakeNoSongs => DropRefusal::AlbumsTakeNoSongs,
+            crate::edits::Refusal::PlaylistReadOnly => DropRefusal::PlaylistReadOnly,
+            crate::edits::Refusal::NothingToAdd => DropRefusal::NothingToAdd,
+        }
+    }
+}
+
 // ---------------------------------------------------------------- lyrics
 
 /// How finely a song's lyrics are timed (board 10's three states).
@@ -768,6 +853,10 @@ pub enum EncoreError {
     Storage { reason: String },
     #[error("{reason}")]
     Internal { reason: String },
+    /// The action isn't allowed here: a Guest saving a playlist, a drop on an album,
+    /// a read-only playlist, an Undo that came too late. `reason` says which.
+    #[error("{reason}")]
+    NotAllowed { reason: String },
 }
 
 /// The kind of an `EncoreError`, for bindings that flatten errors (Dart).
@@ -790,6 +879,7 @@ pub enum ErrorKind {
     NoProfile,
     Storage,
     Internal,
+    NotAllowed,
 }
 
 impl EncoreError {
@@ -811,6 +901,7 @@ impl EncoreError {
             EncoreError::NoProfile { .. } => ErrorKind::NoProfile,
             EncoreError::Storage { .. } => ErrorKind::Storage,
             EncoreError::Internal { .. } => ErrorKind::Internal,
+            EncoreError::NotAllowed { .. } => ErrorKind::NotAllowed,
         }
     }
 
@@ -828,6 +919,28 @@ impl EncoreError {
     pub(crate) fn internal(what: impl std::fmt::Display) -> EncoreError {
         EncoreError::Internal {
             reason: format!("Something went wrong inside the app ({what})"),
+        }
+    }
+}
+
+impl From<crate::edits::EditError> for EncoreError {
+    fn from(e: crate::edits::EditError) -> Self {
+        use crate::edits::EditError;
+        match e {
+            EditError::Store(s) => s.into(),
+            EditError::Refused(r) => EncoreError::NotAllowed {
+                reason: r.sentence().into(),
+            },
+            EditError::NotFound(what) => EncoreError::NotFound {
+                reason: format!("That {what} isn't in your library"),
+            },
+            EditError::UndoExpired => EncoreError::NotAllowed {
+                reason: "It's too late to undo that".into(),
+            },
+            EditError::AlreadyUndone => EncoreError::NotAllowed {
+                reason: "That was already undone".into(),
+            },
+            EditError::Poisoned => EncoreError::internal("store lock"),
         }
     }
 }

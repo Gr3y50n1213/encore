@@ -145,6 +145,52 @@ fn yes() -> bool {
     true
 }
 
+/// One write to a media server (plan section 26: playlists and likes). Kept in the
+/// outbox as JSON until the server accepts it, so a write made offline is sent
+/// later and survives a closed app.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "op", rename_all = "camelCase", rename_all_fields = "camelCase")]
+pub enum ServerEdit {
+    CreatePlaylist {
+        name: String,
+        item_ids: Vec<String>,
+    },
+    /// `position` None: at the end.
+    AddToPlaylist {
+        playlist_id: String,
+        item_ids: Vec<String>,
+        position: Option<u32>,
+    },
+    RemoveFromPlaylist {
+        playlist_id: String,
+        entry_ids: Vec<String>,
+    },
+    MoveInPlaylist {
+        playlist_id: String,
+        entry_id: String,
+        new_index: u32,
+    },
+    RenamePlaylist {
+        playlist_id: String,
+        name: String,
+    },
+    DeletePlaylist {
+        playlist_id: String,
+    },
+    SetFavorite {
+        item_id: String,
+        favorite: bool,
+    },
+}
+
+/// What the server said to a `ServerEdit`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum EditOutcome {
+    Done,
+    /// A playlist was made; this is its ID on the server.
+    Created(String),
+}
+
 /// Where a library sync continues from. Opaque to everything but the adapter.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Cursor(pub String);

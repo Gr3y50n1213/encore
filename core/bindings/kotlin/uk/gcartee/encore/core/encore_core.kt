@@ -712,6 +712,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_add_recent_search(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_add_to(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_add_to_up_next(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_album(
@@ -719,6 +721,8 @@ internal object IntegrityCheckingUniffiLib {
     external fun uniffi_encore_core_checksum_method_encorecore_album_palette(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_albums(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_are_liked(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_artist(
     ): Int
@@ -742,17 +746,25 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_current_profile(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_drop_preview(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_genre_songs(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_genres(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_jump_to(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_like(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_liked_songs(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_lyric_line_tapped(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_lyrics(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_lyrics_raw(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_move_in_playlist(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_move_in_queue(
     ): Int
@@ -761,6 +773,8 @@ internal object IntegrityCheckingUniffiLib {
     external fun uniffi_encore_core_checksum_method_encorecore_next_target(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_open_profile(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_pending_edits(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_play(
     ): Int
@@ -798,17 +812,23 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_recent_searches(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_remove_from_playlist(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_remove_from_queue(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_remove_recent_search(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_remove_server(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_rename_playlist(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_replay_from_history(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_restore_profile(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_search(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_send_edits(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_servers(
     ): Int
@@ -844,7 +864,11 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_trust_certificate(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_undo(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_undo_queue(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_unlike(
     ): Int
     external fun uniffi_encore_core_checksum_method_corelistener_on_event(
     ): Int
@@ -879,6 +903,8 @@ internal object UniffiLib {
     ): Long
     external fun uniffi_encore_core_fn_method_encorecore_add_recent_search(`ptr`: Long,`query`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_add_to(`ptr`: Long,`target`: RustBuffer.ByValue,`songIds`: RustBuffer.ByValue,`position`: RustBuffer.ByValue,`allowDuplicates`: Byte,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_add_to_up_next(`ptr`: Long,`songIds`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_album(`ptr`: Long,`albumId`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -886,6 +912,8 @@ internal object UniffiLib {
     external fun uniffi_encore_core_fn_method_encorecore_album_palette(`ptr`: Long,`albumId`: Long,
     ): Long
     external fun uniffi_encore_core_fn_method_encorecore_albums(`ptr`: Long,`sort`: RustBuffer.ByValue,`offset`: Int,`limit`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_are_liked(`ptr`: Long,`songIds`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_artist(`ptr`: Long,`artistId`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -909,11 +937,17 @@ internal object UniffiLib {
     ): Unit
     external fun uniffi_encore_core_fn_method_encorecore_current_profile(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_drop_preview(`ptr`: Long,`target`: RustBuffer.ByValue,`songIds`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_genre_songs(`ptr`: Long,`genre`: RustBuffer.ByValue,`offset`: Int,`limit`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_genres(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_jump_to(`ptr`: Long,`uid`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_like(`ptr`: Long,`songIds`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_liked_songs(`ptr`: Long,`offset`: Int,`limit`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_lyric_line_tapped(`ptr`: Long,`lineIndex`: Int,`lineStartMs`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
@@ -921,6 +955,8 @@ internal object UniffiLib {
     ): Long
     external fun uniffi_encore_core_fn_method_encorecore_lyrics_raw(`ptr`: Long,`songId`: Long,
     ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_move_in_playlist(`ptr`: Long,`playlistId`: Long,`fromPosition`: Int,`toPosition`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_move_in_queue(`ptr`: Long,`uid`: Long,`toIndex`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_next(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -929,6 +965,8 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_open_profile(`ptr`: Long,`profileId`: RustBuffer.ByValue,`tokens`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_pending_edits(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Int
     external fun uniffi_encore_core_fn_method_encorecore_play(`ptr`: Long,`songIds`: RustBuffer.ByValue,`startIndex`: Int,`startedFrom`: RustBuffer.ByValue,`contextId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_play_next(`ptr`: Long,`songIds`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -965,18 +1003,24 @@ internal object UniffiLib {
     ): Long
     external fun uniffi_encore_core_fn_method_encorecore_recent_searches(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_remove_from_playlist(`ptr`: Long,`playlistId`: Long,`positions`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_remove_from_queue(`ptr`: Long,`uid`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_remove_recent_search(`ptr`: Long,`query`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_encore_core_fn_method_encorecore_remove_server(`ptr`: Long,`sourceId`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_rename_playlist(`ptr`: Long,`playlistId`: Long,`name`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_replay_from_history(`ptr`: Long,`uid`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_restore_profile(`ptr`: Long,`profileId`: RustBuffer.ByValue,`fromPath`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_encore_core_fn_method_encorecore_search(`ptr`: Long,`query`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_send_edits(`ptr`: Long,
+    ): Long
     external fun uniffi_encore_core_fn_method_encorecore_servers(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_set_listener(`ptr`: Long,`listener`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -1011,7 +1055,11 @@ internal object UniffiLib {
     ): Long
     external fun uniffi_encore_core_fn_method_encorecore_trust_certificate(`ptr`: Long,`address`: RustBuffer.ByValue,`sha256`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_undo(`ptr`: Long,`editId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     external fun uniffi_encore_core_fn_method_encorecore_undo_queue(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_unlike(`ptr`: Long,`songIds`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_clone_corelistener(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Long
@@ -1158,6 +1206,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_encore_core_checksum_method_encorecore_add_recent_search() and 0xFFFF) != 35342) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_add_to() and 0xFFFF) != 12766) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_add_to_up_next() and 0xFFFF) != 55232) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1168,6 +1219,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_albums() and 0xFFFF) != 40763) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_are_liked() and 0xFFFF) != 2160) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_artist() and 0xFFFF) != 60965) {
@@ -1203,6 +1257,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_encore_core_checksum_method_encorecore_current_profile() and 0xFFFF) != 14260) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_drop_preview() and 0xFFFF) != 698) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_genre_songs() and 0xFFFF) != 51346) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1212,6 +1269,12 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_encore_core_checksum_method_encorecore_jump_to() and 0xFFFF) != 57299) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_like() and 0xFFFF) != 26934) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_liked_songs() and 0xFFFF) != 41298) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_lyric_line_tapped() and 0xFFFF) != 50507) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1219,6 +1282,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_lyrics_raw() and 0xFFFF) != 18296) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_move_in_playlist() and 0xFFFF) != 31992) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_move_in_queue() and 0xFFFF) != 44822) {
@@ -1231,6 +1297,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_open_profile() and 0xFFFF) != 52351) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_pending_edits() and 0xFFFF) != 52133) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_play() and 0xFFFF) != 56444) {
@@ -1287,6 +1356,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_encore_core_checksum_method_encorecore_recent_searches() and 0xFFFF) != 18607) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_remove_from_playlist() and 0xFFFF) != 24666) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_remove_from_queue() and 0xFFFF) != 19389) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1296,6 +1368,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_encore_core_checksum_method_encorecore_remove_server() and 0xFFFF) != 36941) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_rename_playlist() and 0xFFFF) != 32181) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_replay_from_history() and 0xFFFF) != 13472) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1303,6 +1378,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_search() and 0xFFFF) != 19862) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_send_edits() and 0xFFFF) != 30892) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_servers() and 0xFFFF) != 57243) {
@@ -1356,7 +1434,13 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_encore_core_checksum_method_encorecore_trust_certificate() and 0xFFFF) != 49158) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_undo() and 0xFFFF) != 24370) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_undo_queue() and 0xFFFF) != 8245) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_unlike() and 0xFFFF) != 42881) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_corelistener_on_event() and 0xFFFF) != 61302) {
@@ -2217,6 +2301,17 @@ public interface EncoreCoreInterface {
      */
     fun `addRecentSearch`(`query`: kotlin.String)
     
+    /**
+     * Add songs to a playlist, a new playlist, Liked Songs or the queue: **one
+     * call** with the whole list in the order shown, one event, one undo entry,
+     * however many songs (section 26). `position` is the line in a playlist or in
+     * Up Next (None: the end). Duplicates (by song) are skipped unless
+     * `allow_duplicates` ("Add anyway"). Works offline: the change shows at once
+     * and is sent when the server can be reached. Synchronous; sending happens in
+     * the background.
+     */
+    fun `addTo`(`target`: DropTarget, `songIds`: List<kotlin.Long>, `position`: kotlin.UInt?, `allowDuplicates`: kotlin.Boolean): EditResult
+    
     fun `addToUpNext`(`songIds`: List<kotlin.Long>): QueueState
     
     fun `album`(`albumId`: kotlin.Long): AlbumDetail
@@ -2230,6 +2325,11 @@ public interface EncoreCoreInterface {
     suspend fun `albumPalette`(`albumId`: kotlin.Long): ArtworkPalette?
     
     fun `albums`(`sort`: AlbumSort, `offset`: kotlin.UInt, `limit`: kotlin.UInt): List<AlbumSummary>
+    
+    /**
+     * Whether each song is liked, in order (the heart on rows and Now Playing).
+     */
+    fun `areLiked`(`songIds`: List<kotlin.Long>): List<kotlin.Boolean>
     
     fun `artist`(`artistId`: kotlin.Long): ArtistDetail
     
@@ -2275,11 +2375,30 @@ public interface EncoreCoreInterface {
      */
     fun `currentProfile`(): kotlin.String?
     
+    /**
+     * What dropping (or sending) these songs on `target` would do, before it is
+     * done (board 43): the count, how many are already there (by song, so a song
+     * on two albums counts once), whether to ask first, the name a new playlist
+     * would get, or why it's refused. Synchronous.
+     */
+    fun `dropPreview`(`target`: DropTarget, `songIds`: List<kotlin.Long>): DropPreview
+    
     fun `genreSongs`(`genre`: kotlin.String, `offset`: kotlin.UInt, `limit`: kotlin.UInt): List<Song>
     
     fun `genres`(): List<GenreSummary>
     
     fun `jumpTo`(`uid`: kotlin.Long): QueueState
+    
+    /**
+     * Like songs: Liked Songs, and a favourite on the server. The same as
+     * `add_to` with Liked Songs.
+     */
+    fun `like`(`songIds`: List<kotlin.Long>): EditResult
+    
+    /**
+     * Liked Songs, newest like first; a song on several albums appears once.
+     */
+    fun `likedSongs`(`offset`: kotlin.UInt, `limit`: kotlin.UInt): List<Song>
     
     /**
      * A lyric line was tapped (plan section 5: lyric-line jumps are logged).
@@ -2301,6 +2420,11 @@ public interface EncoreCoreInterface {
      */
     suspend fun `lyricsRaw`(`songId`: kotlin.Long): kotlin.String?
     
+    /**
+     * Reorder inside a playlist (always a move).
+     */
+    fun `moveInPlaylist`(`playlistId`: kotlin.Long, `fromPosition`: kotlin.UInt, `toPosition`: kotlin.UInt): EditResult
+    
     fun `moveInQueue`(`uid`: kotlin.Long, `toIndex`: kotlin.UInt): QueueState
     
     /**
@@ -2319,6 +2443,11 @@ public interface EncoreCoreInterface {
      * open by a crash is closed as "ended by the system".
      */
     fun `openProfile`(`profileId`: kotlin.String, `tokens`: List<SourceToken>)
+    
+    /**
+     * Edits not yet accepted by their server (for a "Waiting to sync" note).
+     */
+    fun `pendingEdits`(): kotlin.UInt
     
     /**
      * Play a list (an album, a playlist, search results) from `start_index`.
@@ -2404,6 +2533,11 @@ public interface EncoreCoreInterface {
     
     fun `recentSearches`(): List<kotlin.String>
     
+    /**
+     * Remove rows from one of your playlists (a row swipe; Undo for 5 s).
+     */
+    fun `removeFromPlaylist`(`playlistId`: kotlin.Long, `positions`: List<kotlin.UInt>): EditResult
+    
     fun `removeFromQueue`(`uid`: kotlin.Long): QueueState
     
     fun `removeRecentSearch`(`query`: kotlin.String)
@@ -2413,6 +2547,12 @@ public interface EncoreCoreInterface {
      * (board 18, item 2). History stays.
      */
     fun `removeServer`(`sourceId`: kotlin.Long)
+    
+    /**
+     * Rename a playlist (the name field a new playlist opens with). An empty name
+     * keeps the old one.
+     */
+    fun `renamePlaylist`(`playlistId`: kotlin.Long, `name`: kotlin.String): EditResult
     
     fun `replayFromHistory`(`uid`: kotlin.Long): QueueState
     
@@ -2429,6 +2569,12 @@ public interface EncoreCoreInterface {
      * Search the on-device mirror as the user types (board 07). Synchronous.
      */
     fun `search`(`query`: kotlin.String): SearchResults
+    
+    /**
+     * Send the waiting edits now (when the network comes back, say). They are
+     * also sent after every edit and before every sync. Async.
+     */
+    suspend fun `sendEdits`(): SentEdits
     
     /**
      * The rows of board 18.
@@ -2509,9 +2655,21 @@ public interface EncoreCoreInterface {
     fun `trustCertificate`(`address`: kotlin.String, `sha256`: kotlin.String)
     
     /**
+     * Undo an edit (the toast's Undo, or Command/Ctrl+Z), within
+     * `gestures.dragAndDrop.shortcutUndoMs` (10 s). Undo is one event too; it
+     * can't itself be undone. Refused with `NotAllowed` when too late.
+     */
+    fun `undo`(`editId`: kotlin.String)
+    
+    /**
      * Undo the last queue change (the Undo toast).
      */
     fun `undoQueue`(): QueueState
+    
+    /**
+     * Unlike songs; every copy of each song (on any album) stops being liked.
+     */
+    fun `unlike`(`songIds`: List<kotlin.Long>): EditResult
     
     companion object
 }
@@ -2650,6 +2808,33 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
     
 
     
+    /**
+     * Add songs to a playlist, a new playlist, Liked Songs or the queue: **one
+     * call** with the whole list in the order shown, one event, one undo entry,
+     * however many songs (section 26). `position` is the line in a playlist or in
+     * Up Next (None: the end). Duplicates (by song) are skipped unless
+     * `allow_duplicates` ("Add anyway"). Works offline: the change shows at once
+     * and is sent when the server can be reached. Synchronous; sending happens in
+     * the background.
+     */
+    @Throws(EncoreException::class)override fun `addTo`(`target`: DropTarget, `songIds`: List<kotlin.Long>, `position`: kotlin.UInt?, `allowDuplicates`: kotlin.Boolean): EditResult {
+            return FfiConverterTypeEditResult.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_add_to(
+        it,
+        
+        FfiConverterTypeDropTarget.lower(`target`),
+        FfiConverterSequenceLong.lower(`songIds`),
+        FfiConverterOptionalUInt.lower(`position`),
+        FfiConverterBoolean.lower(`allowDuplicates`),_status)
+}
+    }
+    )
+    }
+    
+
+    
     @Throws(EncoreException::class)override fun `addToUpNext`(`songIds`: List<kotlin.Long>): QueueState {
             return FfiConverterTypeQueueState.lift(
     callWithHandle {
@@ -2718,6 +2903,24 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
         FfiConverterTypeAlbumSort.lower(`sort`),
         FfiConverterUInt.lower(`offset`),
         FfiConverterUInt.lower(`limit`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Whether each song is liked, in order (the heart on rows and Now Playing).
+     */
+    @Throws(EncoreException::class)override fun `areLiked`(`songIds`: List<kotlin.Long>): List<kotlin.Boolean> {
+            return FfiConverterSequenceBoolean.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_are_liked(
+        it,
+        
+        FfiConverterSequenceLong.lower(`songIds`),_status)
 }
     }
     )
@@ -2914,6 +3117,28 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
     
 
     
+    /**
+     * What dropping (or sending) these songs on `target` would do, before it is
+     * done (board 43): the count, how many are already there (by song, so a song
+     * on two albums counts once), whether to ask first, the name a new playlist
+     * would get, or why it's refused. Synchronous.
+     */
+    @Throws(EncoreException::class)override fun `dropPreview`(`target`: DropTarget, `songIds`: List<kotlin.Long>): DropPreview {
+            return FfiConverterTypeDropPreview.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_drop_preview(
+        it,
+        
+        FfiConverterTypeDropTarget.lower(`target`),
+        FfiConverterSequenceLong.lower(`songIds`),_status)
+}
+    }
+    )
+    }
+    
+
+    
     @Throws(EncoreException::class)override fun `genreSongs`(`genre`: kotlin.String, `offset`: kotlin.UInt, `limit`: kotlin.UInt): List<Song> {
             return FfiConverterSequenceTypeSong.lift(
     callWithHandle {
@@ -2953,6 +3178,44 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
         it,
         
         FfiConverterLong.lower(`uid`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Like songs: Liked Songs, and a favourite on the server. The same as
+     * `add_to` with Liked Songs.
+     */
+    @Throws(EncoreException::class)override fun `like`(`songIds`: List<kotlin.Long>): EditResult {
+            return FfiConverterTypeEditResult.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_like(
+        it,
+        
+        FfiConverterSequenceLong.lower(`songIds`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Liked Songs, newest like first; a song on several albums appears once.
+     */
+    @Throws(EncoreException::class)override fun `likedSongs`(`offset`: kotlin.UInt, `limit`: kotlin.UInt): List<Song> {
+            return FfiConverterSequenceTypeSong.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_liked_songs(
+        it,
+        
+        FfiConverterUInt.lower(`offset`),
+        FfiConverterUInt.lower(`limit`),_status)
 }
     }
     )
@@ -3033,6 +3296,26 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
     }
 
     
+    /**
+     * Reorder inside a playlist (always a move).
+     */
+    @Throws(EncoreException::class)override fun `moveInPlaylist`(`playlistId`: kotlin.Long, `fromPosition`: kotlin.UInt, `toPosition`: kotlin.UInt): EditResult {
+            return FfiConverterTypeEditResult.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_move_in_playlist(
+        it,
+        
+        FfiConverterLong.lower(`playlistId`),
+        FfiConverterUInt.lower(`fromPosition`),
+        FfiConverterUInt.lower(`toPosition`),_status)
+}
+    }
+    )
+    }
+    
+
+    
     @Throws(EncoreException::class)override fun `moveInQueue`(`uid`: kotlin.Long, `toIndex`: kotlin.UInt): QueueState {
             return FfiConverterTypeQueueState.lift(
     callWithHandle {
@@ -3100,6 +3383,23 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
 }
     }
     
+    
+
+    
+    /**
+     * Edits not yet accepted by their server (for a "Waiting to sync" note).
+     */
+    @Throws(EncoreException::class)override fun `pendingEdits`(): kotlin.UInt {
+            return FfiConverterUInt.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_pending_edits(
+        it,
+        _status)
+}
+    }
+    )
+    }
     
 
     
@@ -3439,6 +3739,25 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
     
 
     
+    /**
+     * Remove rows from one of your playlists (a row swipe; Undo for 5 s).
+     */
+    @Throws(EncoreException::class)override fun `removeFromPlaylist`(`playlistId`: kotlin.Long, `positions`: List<kotlin.UInt>): EditResult {
+            return FfiConverterTypeEditResult.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_remove_from_playlist(
+        it,
+        
+        FfiConverterLong.lower(`playlistId`),
+        FfiConverterSequenceUInt.lower(`positions`),_status)
+}
+    }
+    )
+    }
+    
+
+    
     @Throws(EncoreException::class)override fun `removeFromQueue`(`uid`: kotlin.Long): QueueState {
             return FfiConverterTypeQueueState.lift(
     callWithHandle {
@@ -3483,6 +3802,26 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
 }
     }
     
+    
+
+    
+    /**
+     * Rename a playlist (the name field a new playlist opens with). An empty name
+     * keeps the old one.
+     */
+    @Throws(EncoreException::class)override fun `renamePlaylist`(`playlistId`: kotlin.Long, `name`: kotlin.String): EditResult {
+            return FfiConverterTypeEditResult.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_rename_playlist(
+        it,
+        
+        FfiConverterLong.lower(`playlistId`),
+        FfiConverterString.lower(`name`),_status)
+}
+    }
+    )
+    }
     
 
     
@@ -3539,6 +3878,31 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
     )
     }
     
+
+    
+    /**
+     * Send the waiting edits now (when the network comes back, say). They are
+     * also sent after every edit and before every sync. Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `sendEdits`() : SentEdits {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_send_edits(
+                uniffiHandle,
+                
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeSentEdits.lift(it) },
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
 
     
     /**
@@ -3863,6 +4227,25 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
 
     
     /**
+     * Undo an edit (the toast's Undo, or Command/Ctrl+Z), within
+     * `gestures.dragAndDrop.shortcutUndoMs` (10 s). Undo is one event too; it
+     * can't itself be undone. Refused with `NotAllowed` when too late.
+     */
+    @Throws(EncoreException::class)override fun `undo`(`editId`: kotlin.String)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_undo(
+        it,
+        
+        FfiConverterString.lower(`editId`),_status)
+}
+    }
+    
+    
+
+    
+    /**
      * Undo the last queue change (the Undo toast).
      */
     @Throws(EncoreException::class)override fun `undoQueue`(): QueueState {
@@ -3872,6 +4255,24 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
     UniffiLib.uniffi_encore_core_fn_method_encorecore_undo_queue(
         it,
         _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Unlike songs; every copy of each song (on any album) stops being liked.
+     */
+    @Throws(EncoreException::class)override fun `unlike`(`songIds`: List<kotlin.Long>): EditResult {
+            return FfiConverterTypeEditResult.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_unlike(
+        it,
+        
+        FfiConverterSequenceLong.lower(`songIds`),_status)
 }
     }
     )
@@ -4383,6 +4784,174 @@ public object FfiConverterTypeCredentialKey: FfiConverterRustBuffer<CredentialKe
     override fun write(value: CredentialKey, buf: ByteBuffer) {
             FfiConverterLong.write(value.`sourceId`, buf)
             FfiConverterString.write(value.`key`, buf)
+    }
+}
+
+
+
+/**
+ * What a drop would do, before it is done: the badge count, the "already there"
+ * count, whether to ask first (over 100), and why not.
+ */
+data class DropPreview (
+    var `count`: kotlin.UInt
+    , 
+    var `alreadyThere`: kotlin.UInt
+    , 
+    var `needsConfirm`: kotlin.Boolean
+    , 
+    var `suggestedName`: kotlin.String?
+    , 
+    var `refusal`: DropRefusal?
+    , 
+    /**
+     * The sentence to show after the refusal delay (board 43, rule 15).
+     */
+    var `refusalReason`: kotlin.String?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeDropPreview: FfiConverterRustBuffer<DropPreview> {
+    override fun read(buf: ByteBuffer): DropPreview {
+        return DropPreview(
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalTypeDropRefusal.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: DropPreview) = (
+            FfiConverterUInt.allocationSize(value.`count`) +
+            FfiConverterUInt.allocationSize(value.`alreadyThere`) +
+            FfiConverterBoolean.allocationSize(value.`needsConfirm`) +
+            FfiConverterOptionalString.allocationSize(value.`suggestedName`) +
+            FfiConverterOptionalTypeDropRefusal.allocationSize(value.`refusal`) +
+            FfiConverterOptionalString.allocationSize(value.`refusalReason`)
+    )
+
+    override fun write(value: DropPreview, buf: ByteBuffer) {
+            FfiConverterUInt.write(value.`count`, buf)
+            FfiConverterUInt.write(value.`alreadyThere`, buf)
+            FfiConverterBoolean.write(value.`needsConfirm`, buf)
+            FfiConverterOptionalString.write(value.`suggestedName`, buf)
+            FfiConverterOptionalTypeDropRefusal.write(value.`refusal`, buf)
+            FfiConverterOptionalString.write(value.`refusalReason`, buf)
+    }
+}
+
+
+
+/**
+ * Where songs are dropped or sent (board 43). A record, not an enum with data,
+ * so Dart gets the same shape.
+ */
+data class DropTarget (
+    var `kind`: DropTargetKind
+    , 
+    var `id`: kotlin.Long?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeDropTarget: FfiConverterRustBuffer<DropTarget> {
+    override fun read(buf: ByteBuffer): DropTarget {
+        return DropTarget(
+            FfiConverterTypeDropTargetKind.read(buf),
+            FfiConverterOptionalLong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: DropTarget) = (
+            FfiConverterTypeDropTargetKind.allocationSize(value.`kind`) +
+            FfiConverterOptionalLong.allocationSize(value.`id`)
+    )
+
+    override fun write(value: DropTarget, buf: ByteBuffer) {
+            FfiConverterTypeDropTargetKind.write(value.`kind`, buf)
+            FfiConverterOptionalLong.write(value.`id`, buf)
+    }
+}
+
+
+
+/**
+ * What one edit did. `edit_id` is what `undo` takes; None when nothing changed
+ * (every song was already there).
+ */
+data class EditResult (
+    var `editId`: kotlin.String?
+    , 
+    var `added`: kotlin.UInt
+    , 
+    var `alreadyThere`: kotlin.UInt
+    , 
+    var `playlistId`: kotlin.Long?
+    , 
+    /**
+     * Undo is accepted until then (`gestures.dragAndDrop.shortcutUndoMs`); the
+     * UI's toast may close sooner.
+     */
+    var `undoUntilUtcMs`: kotlin.Long?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeEditResult: FfiConverterRustBuffer<EditResult> {
+    override fun read(buf: ByteBuffer): EditResult {
+        return EditResult(
+            FfiConverterOptionalString.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterOptionalLong.read(buf),
+            FfiConverterOptionalLong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: EditResult) = (
+            FfiConverterOptionalString.allocationSize(value.`editId`) +
+            FfiConverterUInt.allocationSize(value.`added`) +
+            FfiConverterUInt.allocationSize(value.`alreadyThere`) +
+            FfiConverterOptionalLong.allocationSize(value.`playlistId`) +
+            FfiConverterOptionalLong.allocationSize(value.`undoUntilUtcMs`)
+    )
+
+    override fun write(value: EditResult, buf: ByteBuffer) {
+            FfiConverterOptionalString.write(value.`editId`, buf)
+            FfiConverterUInt.write(value.`added`, buf)
+            FfiConverterUInt.write(value.`alreadyThere`, buf)
+            FfiConverterOptionalLong.write(value.`playlistId`, buf)
+            FfiConverterOptionalLong.write(value.`undoUntilUtcMs`, buf)
     }
 }
 
@@ -5132,6 +5701,58 @@ public object FfiConverterTypeSearchResults: FfiConverterRustBuffer<SearchResult
             FfiConverterSequenceTypeAlbumSummary.write(value.`albums`, buf)
             FfiConverterSequenceTypeArtistSummary.write(value.`artists`, buf)
             FfiConverterSequenceTypePlaylistSummary.write(value.`playlists`, buf)
+    }
+}
+
+
+
+/**
+ * What sending the waiting edits did.
+ */
+data class SentEdits (
+    var `sent`: kotlin.UInt
+    , 
+    /**
+     * The server said no; the next sync brings back its version.
+     */
+    var `refused`: kotlin.UInt
+    , 
+    /**
+     * Still waiting for the server.
+     */
+    var `waiting`: kotlin.UInt
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSentEdits: FfiConverterRustBuffer<SentEdits> {
+    override fun read(buf: ByteBuffer): SentEdits {
+        return SentEdits(
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: SentEdits) = (
+            FfiConverterUInt.allocationSize(value.`sent`) +
+            FfiConverterUInt.allocationSize(value.`refused`) +
+            FfiConverterUInt.allocationSize(value.`waiting`)
+    )
+
+    override fun write(value: SentEdits, buf: ByteBuffer) {
+            FfiConverterUInt.write(value.`sent`, buf)
+            FfiConverterUInt.write(value.`refused`, buf)
+            FfiConverterUInt.write(value.`waiting`, buf)
     }
 }
 
@@ -5925,6 +6546,92 @@ public object FfiConverterTypeChosenBy: FfiConverterRustBuffer<ChosenBy> {
 
 
 
+enum class DropRefusal {
+    
+    GUEST_CANNOT_SAVE,
+    ALBUMS_TAKE_NO_SONGS,
+    PLAYLIST_READ_ONLY,
+    NOTHING_TO_ADD;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeDropRefusal: FfiConverterRustBuffer<DropRefusal> {
+    override fun read(buf: ByteBuffer) = try {
+        DropRefusal.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: DropRefusal) = 4UL
+
+    override fun write(value: DropRefusal, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+
+enum class DropTargetKind {
+    
+    /**
+     * `id` is the playlist.
+     */
+    PLAYLIST,
+    /**
+     * A new playlist named after the album or the first artist.
+     */
+    NEW_PLAYLIST,
+    LIKED_SONGS,
+    /**
+     * `index` (in `add_to`) is the line in Up Next; None is the end.
+     */
+    UP_NEXT,
+    PLAY_NEXT,
+    /**
+     * `id` is the album. Always refused: albums come from the server.
+     */
+    ALBUM;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeDropTargetKind: FfiConverterRustBuffer<DropTargetKind> {
+    override fun read(buf: ByteBuffer) = try {
+        DropTargetKind.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: DropTargetKind) = 4UL
+
+    override fun write(value: DropTargetKind, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+
 
 /**
  * Every failure, in words a person can act on (boards 18, 20 and 21).
@@ -6071,6 +6778,18 @@ sealed class EncoreException: kotlin.Exception() {
             get() = "reason=${ `reason` }"
     }
     
+    /**
+     * The action isn't allowed here: a Guest saving a playlist, a drop on an album,
+     * a read-only playlist, an Undo that came too late. `reason` says which.
+     */
+    class NotAllowed(
+        
+        val `reason`: kotlin.String
+        ) : EncoreException() {
+        override val message
+            get() = "reason=${ `reason` }"
+    }
+    
 
     
 
@@ -6139,6 +6858,9 @@ public object FfiConverterTypeEncoreError : FfiConverterRustBuffer<EncoreExcepti
                 FfiConverterString.read(buf),
                 )
             16 -> EncoreException.Internal(
+                FfiConverterString.read(buf),
+                )
+            17 -> EncoreException.NotAllowed(
                 FfiConverterString.read(buf),
                 )
             else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
@@ -6226,6 +6948,11 @@ public object FfiConverterTypeEncoreError : FfiConverterRustBuffer<EncoreExcepti
                 + FfiConverterString.allocationSize(value.`reason`)
             )
             is EncoreException.Internal -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+                + FfiConverterString.allocationSize(value.`reason`)
+            )
+            is EncoreException.NotAllowed -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
                 + FfiConverterString.allocationSize(value.`reason`)
@@ -6318,6 +7045,11 @@ public object FfiConverterTypeEncoreError : FfiConverterRustBuffer<EncoreExcepti
                 FfiConverterString.write(value.`reason`, buf)
                 Unit
             }
+            is EncoreException.NotAllowed -> {
+                buf.putInt(17)
+                FfiConverterString.write(value.`reason`, buf)
+                Unit
+            }
         }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
     }
 
@@ -6401,7 +7133,8 @@ enum class ErrorKind {
     SERVER,
     NO_PROFILE,
     STORAGE,
-    INTERNAL;
+    INTERNAL,
+    NOT_ALLOWED;
 
     
 
@@ -7591,6 +8324,66 @@ public object FfiConverterOptionalTypeTopResult: FfiConverterRustBuffer<TopResul
 /**
  * @suppress
  */
+public object FfiConverterOptionalTypeDropRefusal: FfiConverterRustBuffer<DropRefusal?> {
+    override fun read(buf: ByteBuffer): DropRefusal? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeDropRefusal.read(buf)
+    }
+
+    override fun allocationSize(value: DropRefusal?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeDropRefusal.allocationSize(value)
+        }
+    }
+
+    override fun write(value: DropRefusal?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeDropRefusal.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceUInt: FfiConverterRustBuffer<List<kotlin.UInt>> {
+    override fun read(buf: ByteBuffer): List<kotlin.UInt> {
+        val len = buf.getInt()
+        return List<kotlin.UInt>(len) {
+            FfiConverterUInt.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<kotlin.UInt>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterUInt.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<kotlin.UInt>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterUInt.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterSequenceLong: FfiConverterRustBuffer<List<kotlin.Long>> {
     override fun read(buf: ByteBuffer): List<kotlin.Long> {
         val len = buf.getInt()
@@ -7609,6 +8402,34 @@ public object FfiConverterSequenceLong: FfiConverterRustBuffer<List<kotlin.Long>
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterLong.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceBoolean: FfiConverterRustBuffer<List<kotlin.Boolean>> {
+    override fun read(buf: ByteBuffer): List<kotlin.Boolean> {
+        val len = buf.getInt()
+        return List<kotlin.Boolean>(len) {
+            FfiConverterBoolean.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<kotlin.Boolean>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterBoolean.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<kotlin.Boolean>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterBoolean.write(it, buf)
         }
     }
 }

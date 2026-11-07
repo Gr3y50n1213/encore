@@ -174,14 +174,15 @@ impl Store {
     /// Remove a play still in progress, and its lyric jumps: a song passed over by
     /// quick skips was never really played (board 42).
     pub fn discard_play_event(&self, id: &str) -> Result<bool> {
-        let tx = self.conn.unchecked_transaction()?;
-        tx.execute("DELETE FROM lyric_jumps WHERE play_event_id = ?1", [id])?;
-        let n = tx.execute(
-            "DELETE FROM play_events WHERE id = ?1 AND end_reason = ?2",
-            params![id, IN_PROGRESS],
-        )?;
-        tx.commit()?;
-        Ok(n == 1)
+        self.in_transaction(|s| {
+            s.conn
+                .execute("DELETE FROM lyric_jumps WHERE play_event_id = ?1", [id])?;
+            let n = s.conn.execute(
+                "DELETE FROM play_events WHERE id = ?1 AND end_reason = ?2",
+                params![id, IN_PROGRESS],
+            )?;
+            Ok(n == 1)
+        })
     }
 
     /// Whether the song was heard (at least `min_listened_ms`) in a play that

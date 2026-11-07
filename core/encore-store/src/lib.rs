@@ -13,6 +13,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 mod backup;
 mod browse;
 mod cache;
+mod edits;
 mod mirror;
 mod playlog;
 mod schema;
@@ -21,6 +22,7 @@ mod search;
 pub use backup::{BackupInfo, migration_copies};
 pub use browse::*;
 pub use cache::{CachedLyrics, CachedPalette};
+pub use edits::{EventRecord, OutboxRow, PlaylistItemRow, PlaylistRecord, UndoRow};
 pub use mirror::{ApplyStats, LOCAL_ITEM_PREFIX};
 pub use playlog::*;
 pub use search::{SearchLimits, SearchResults, TopResult, fold_for_search};
@@ -37,6 +39,8 @@ pub enum StoreError {
     NotFound(String),
     #[error("backup: {0}")]
     Backup(String),
+    #[error("{0}")]
+    Edit(String),
 }
 
 pub type Result<T> = std::result::Result<T, StoreError>;

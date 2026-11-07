@@ -837,6 +837,17 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
      */
     func addRecentSearch(query: String) throws 
     
+    /**
+     * Add songs to a playlist, a new playlist, Liked Songs or the queue: **one
+     * call** with the whole list in the order shown, one event, one undo entry,
+     * however many songs (section 26). `position` is the line in a playlist or in
+     * Up Next (None: the end). Duplicates (by song) are skipped unless
+     * `allow_duplicates` ("Add anyway"). Works offline: the change shows at once
+     * and is sent when the server can be reached. Synchronous; sending happens in
+     * the background.
+     */
+    func addTo(target: DropTarget, songIds: [Int64], position: UInt32?, allowDuplicates: Bool) throws  -> EditResult
+    
     func addToUpNext(songIds: [Int64]) throws  -> QueueState
     
     func album(albumId: Int64) throws  -> AlbumDetail
@@ -850,6 +861,11 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     func albumPalette(albumId: Int64) async throws  -> ArtworkPalette?
     
     func albums(sort: AlbumSort, offset: UInt32, limit: UInt32) throws  -> [AlbumSummary]
+    
+    /**
+     * Whether each song is liked, in order (the heart on rows and Now Playing).
+     */
+    func areLiked(songIds: [Int64]) throws  -> [Bool]
     
     func artist(artistId: Int64) throws  -> ArtistDetail
     
@@ -895,11 +911,30 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
      */
     func currentProfile()  -> String?
     
+    /**
+     * What dropping (or sending) these songs on `target` would do, before it is
+     * done (board 43): the count, how many are already there (by song, so a song
+     * on two albums counts once), whether to ask first, the name a new playlist
+     * would get, or why it's refused. Synchronous.
+     */
+    func dropPreview(target: DropTarget, songIds: [Int64]) throws  -> DropPreview
+    
     func genreSongs(genre: String, offset: UInt32, limit: UInt32) throws  -> [Song]
     
     func genres() throws  -> [GenreSummary]
     
     func jumpTo(uid: Int64) throws  -> QueueState
+    
+    /**
+     * Like songs: Liked Songs, and a favourite on the server. The same as
+     * `add_to` with Liked Songs.
+     */
+    func like(songIds: [Int64]) throws  -> EditResult
+    
+    /**
+     * Liked Songs, newest like first; a song on several albums appears once.
+     */
+    func likedSongs(offset: UInt32, limit: UInt32) throws  -> [Song]
     
     /**
      * A lyric line was tapped (plan section 5: lyric-line jumps are logged).
@@ -921,6 +956,11 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
      */
     func lyricsRaw(songId: Int64) async throws  -> String?
     
+    /**
+     * Reorder inside a playlist (always a move).
+     */
+    func moveInPlaylist(playlistId: Int64, fromPosition: UInt32, toPosition: UInt32) throws  -> EditResult
+    
     func moveInQueue(uid: Int64, toIndex: UInt32) throws  -> QueueState
     
     /**
@@ -939,6 +979,11 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
      * open by a crash is closed as "ended by the system".
      */
     func openProfile(profileId: String, tokens: [SourceToken]) throws 
+    
+    /**
+     * Edits not yet accepted by their server (for a "Waiting to sync" note).
+     */
+    func pendingEdits() throws  -> UInt32
     
     /**
      * Play a list (an album, a playlist, search results) from `start_index`.
@@ -1024,6 +1069,11 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     
     func recentSearches() throws  -> [String]
     
+    /**
+     * Remove rows from one of your playlists (a row swipe; Undo for 5 s).
+     */
+    func removeFromPlaylist(playlistId: Int64, positions: [UInt32]) throws  -> EditResult
+    
     func removeFromQueue(uid: Int64) throws  -> QueueState
     
     func removeRecentSearch(query: String) throws 
@@ -1033,6 +1083,12 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
      * (board 18, item 2). History stays.
      */
     func removeServer(sourceId: Int64) throws 
+    
+    /**
+     * Rename a playlist (the name field a new playlist opens with). An empty name
+     * keeps the old one.
+     */
+    func renamePlaylist(playlistId: Int64, name: String) throws  -> EditResult
     
     func replayFromHistory(uid: Int64) throws  -> QueueState
     
@@ -1049,6 +1105,12 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
      * Search the on-device mirror as the user types (board 07). Synchronous.
      */
     func search(query: String) throws  -> SearchResults
+    
+    /**
+     * Send the waiting edits now (when the network comes back, say). They are
+     * also sent after every edit and before every sync. Async.
+     */
+    func sendEdits() async throws  -> SentEdits
     
     /**
      * The rows of board 18.
@@ -1129,9 +1191,21 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     func trustCertificate(address: String, sha256: String) 
     
     /**
+     * Undo an edit (the toast's Undo, or Command/Ctrl+Z), within
+     * `gestures.dragAndDrop.shortcutUndoMs` (10 s). Undo is one event too; it
+     * can't itself be undone. Refused with `NotAllowed` when too late.
+     */
+    func undo(editId: String) throws 
+    
+    /**
      * Undo the last queue change (the Undo toast).
      */
     func undoQueue() throws  -> QueueState
+    
+    /**
+     * Unlike songs; every copy of each song (on any album) stops being liked.
+     */
+    func unlike(songIds: [Int64]) throws  -> EditResult
     
 }
 /**
@@ -1214,6 +1288,28 @@ open func addRecentSearch(query: String)throws   {try rustCallWithError(FfiConve
 }
 }
     
+    /**
+     * Add songs to a playlist, a new playlist, Liked Songs or the queue: **one
+     * call** with the whole list in the order shown, one event, one undo entry,
+     * however many songs (section 26). `position` is the line in a playlist or in
+     * Up Next (None: the end). Duplicates (by song) are skipped unless
+     * `allow_duplicates` ("Add anyway"). Works offline: the change shows at once
+     * and is sent when the server can be reached. Synchronous; sending happens in
+     * the background.
+     */
+open func addTo(target: DropTarget, songIds: [Int64], position: UInt32?, allowDuplicates: Bool)throws  -> EditResult  {
+    return try  FfiConverterTypeEditResult_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_add_to(
+            self.uniffiCloneHandle(),
+        FfiConverterTypeDropTarget_lower(target),
+        FfiConverterSequenceInt64.lower(songIds),
+        FfiConverterOptionUInt32.lower(position),
+        FfiConverterBool.lower(allowDuplicates),uniffiCallStatus
+    )
+})
+}
+    
 open func addToUpNext(songIds: [Int64])throws  -> QueueState  {
     return try  FfiConverterTypeQueueState_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
         uniffiCallStatus in
@@ -1264,6 +1360,19 @@ open func albums(sort: AlbumSort, offset: UInt32, limit: UInt32)throws  -> [Albu
         FfiConverterTypeAlbumSort_lower(sort),
         FfiConverterUInt32.lower(offset),
         FfiConverterUInt32.lower(limit),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Whether each song is liked, in order (the heart on rows and Now Playing).
+     */
+open func areLiked(songIds: [Int64])throws  -> [Bool]  {
+    return try  FfiConverterSequenceBool.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_are_liked(
+            self.uniffiCloneHandle(),
+        FfiConverterSequenceInt64.lower(songIds),uniffiCallStatus
     )
 })
 }
@@ -1403,6 +1512,23 @@ open func currentProfile() -> String?  {
 })
 }
     
+    /**
+     * What dropping (or sending) these songs on `target` would do, before it is
+     * done (board 43): the count, how many are already there (by song, so a song
+     * on two albums counts once), whether to ask first, the name a new playlist
+     * would get, or why it's refused. Synchronous.
+     */
+open func dropPreview(target: DropTarget, songIds: [Int64])throws  -> DropPreview  {
+    return try  FfiConverterTypeDropPreview_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_drop_preview(
+            self.uniffiCloneHandle(),
+        FfiConverterTypeDropTarget_lower(target),
+        FfiConverterSequenceInt64.lower(songIds),uniffiCallStatus
+    )
+})
+}
+    
 open func genreSongs(genre: String, offset: UInt32, limit: UInt32)throws  -> [Song]  {
     return try  FfiConverterSequenceTypeSong.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
         uniffiCallStatus in
@@ -1430,6 +1556,34 @@ open func jumpTo(uid: Int64)throws  -> QueueState  {
     uniffi_encore_core_fn_method_encorecore_jump_to(
             self.uniffiCloneHandle(),
         FfiConverterInt64.lower(uid),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Like songs: Liked Songs, and a favourite on the server. The same as
+     * `add_to` with Liked Songs.
+     */
+open func like(songIds: [Int64])throws  -> EditResult  {
+    return try  FfiConverterTypeEditResult_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_like(
+            self.uniffiCloneHandle(),
+        FfiConverterSequenceInt64.lower(songIds),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Liked Songs, newest like first; a song on several albums appears once.
+     */
+open func likedSongs(offset: UInt32, limit: UInt32)throws  -> [Song]  {
+    return try  FfiConverterSequenceTypeSong.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_liked_songs(
+            self.uniffiCloneHandle(),
+        FfiConverterUInt32.lower(offset),
+        FfiConverterUInt32.lower(limit),uniffiCallStatus
     )
 })
 }
@@ -1490,6 +1644,21 @@ open func lyricsRaw(songId: Int64)async throws  -> String?  {
         )
 }
     
+    /**
+     * Reorder inside a playlist (always a move).
+     */
+open func moveInPlaylist(playlistId: Int64, fromPosition: UInt32, toPosition: UInt32)throws  -> EditResult  {
+    return try  FfiConverterTypeEditResult_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_move_in_playlist(
+            self.uniffiCloneHandle(),
+        FfiConverterInt64.lower(playlistId),
+        FfiConverterUInt32.lower(fromPosition),
+        FfiConverterUInt32.lower(toPosition),uniffiCallStatus
+    )
+})
+}
+    
 open func moveInQueue(uid: Int64, toIndex: UInt32)throws  -> QueueState  {
     return try  FfiConverterTypeQueueState_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
         uniffiCallStatus in
@@ -1538,6 +1707,18 @@ open func openProfile(profileId: String, tokens: [SourceToken])throws   {try rus
         FfiConverterSequenceTypeSourceToken.lower(tokens),uniffiCallStatus
     )
 }
+}
+    
+    /**
+     * Edits not yet accepted by their server (for a "Waiting to sync" note).
+     */
+open func pendingEdits()throws  -> UInt32  {
+    return try  FfiConverterUInt32.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_pending_edits(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
 }
     
     /**
@@ -1785,6 +1966,20 @@ open func recentSearches()throws  -> [String]  {
 })
 }
     
+    /**
+     * Remove rows from one of your playlists (a row swipe; Undo for 5 s).
+     */
+open func removeFromPlaylist(playlistId: Int64, positions: [UInt32])throws  -> EditResult  {
+    return try  FfiConverterTypeEditResult_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_remove_from_playlist(
+            self.uniffiCloneHandle(),
+        FfiConverterInt64.lower(playlistId),
+        FfiConverterSequenceUInt32.lower(positions),uniffiCallStatus
+    )
+})
+}
+    
 open func removeFromQueue(uid: Int64)throws  -> QueueState  {
     return try  FfiConverterTypeQueueState_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
         uniffiCallStatus in
@@ -1815,6 +2010,21 @@ open func removeServer(sourceId: Int64)throws   {try rustCallWithError(FfiConver
         FfiConverterInt64.lower(sourceId),uniffiCallStatus
     )
 }
+}
+    
+    /**
+     * Rename a playlist (the name field a new playlist opens with). An empty name
+     * keeps the old one.
+     */
+open func renamePlaylist(playlistId: Int64, name: String)throws  -> EditResult  {
+    return try  FfiConverterTypeEditResult_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_rename_playlist(
+            self.uniffiCloneHandle(),
+        FfiConverterInt64.lower(playlistId),
+        FfiConverterString.lower(name),uniffiCallStatus
+    )
+})
 }
     
 open func replayFromHistory(uid: Int64)throws  -> QueueState  {
@@ -1855,6 +2065,26 @@ open func search(query: String)throws  -> SearchResults  {
         FfiConverterString.lower(query),uniffiCallStatus
     )
 })
+}
+    
+    /**
+     * Send the waiting edits now (when the network comes back, say). They are
+     * also sent after every edit and before every sync. Async.
+     */
+open func sendEdits()async throws  -> SentEdits  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_send_edits(
+                        self.uniffiCloneHandle()
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_rust_buffer,
+            completeFunc: ffi_encore_core_rust_future_complete_rust_buffer,
+            freeFunc: ffi_encore_core_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterTypeSentEdits_lift,
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
 }
     
     /**
@@ -2091,6 +2321,20 @@ open func trustCertificate(address: String, sha256: String)  {try! rustCall() {
 }
     
     /**
+     * Undo an edit (the toast's Undo, or Command/Ctrl+Z), within
+     * `gestures.dragAndDrop.shortcutUndoMs` (10 s). Undo is one event too; it
+     * can't itself be undone. Refused with `NotAllowed` when too late.
+     */
+open func undo(editId: String)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_undo(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(editId),uniffiCallStatus
+    )
+}
+}
+    
+    /**
      * Undo the last queue change (the Undo toast).
      */
 open func undoQueue()throws  -> QueueState  {
@@ -2098,6 +2342,19 @@ open func undoQueue()throws  -> QueueState  {
         uniffiCallStatus in
     uniffi_encore_core_fn_method_encorecore_undo_queue(
             self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Unlike songs; every copy of each song (on any album) stops being liked.
+     */
+open func unlike(songIds: [Int64])throws  -> EditResult  {
+    return try  FfiConverterTypeEditResult_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_unlike(
+            self.uniffiCloneHandle(),
+        FfiConverterSequenceInt64.lower(songIds),uniffiCallStatus
     )
 })
 }
@@ -2771,6 +3028,222 @@ public func FfiConverterTypeCredentialKey_lift(_ buf: RustBuffer) throws -> Cred
 #endif
 public func FfiConverterTypeCredentialKey_lower(_ value: CredentialKey) -> RustBuffer {
     return FfiConverterTypeCredentialKey.lower(value)
+}
+
+
+/**
+ * What a drop would do, before it is done: the badge count, the "already there"
+ * count, whether to ask first (over 100), and why not.
+ */
+public struct DropPreview: Equatable, Hashable {
+    public var count: UInt32
+    public var alreadyThere: UInt32
+    public var needsConfirm: Bool
+    public var suggestedName: String?
+    public var refusal: DropRefusal?
+    /**
+     * The sentence to show after the refusal delay (board 43, rule 15).
+     */
+    public var refusalReason: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(count: UInt32, alreadyThere: UInt32, needsConfirm: Bool, suggestedName: String?, refusal: DropRefusal?, 
+        /**
+         * The sentence to show after the refusal delay (board 43, rule 15).
+         */refusalReason: String?) {
+        self.count = count
+        self.alreadyThere = alreadyThere
+        self.needsConfirm = needsConfirm
+        self.suggestedName = suggestedName
+        self.refusal = refusal
+        self.refusalReason = refusalReason
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension DropPreview: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeDropPreview: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> DropPreview {
+        return
+            try DropPreview(
+                count: FfiConverterUInt32.read(from: &buf), 
+                alreadyThere: FfiConverterUInt32.read(from: &buf), 
+                needsConfirm: FfiConverterBool.read(from: &buf), 
+                suggestedName: FfiConverterOptionString.read(from: &buf), 
+                refusal: FfiConverterOptionTypeDropRefusal.read(from: &buf), 
+                refusalReason: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: DropPreview, into buf: inout [UInt8]) {
+        FfiConverterUInt32.write(value.count, into: &buf)
+        FfiConverterUInt32.write(value.alreadyThere, into: &buf)
+        FfiConverterBool.write(value.needsConfirm, into: &buf)
+        FfiConverterOptionString.write(value.suggestedName, into: &buf)
+        FfiConverterOptionTypeDropRefusal.write(value.refusal, into: &buf)
+        FfiConverterOptionString.write(value.refusalReason, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDropPreview_lift(_ buf: RustBuffer) throws -> DropPreview {
+    return try FfiConverterTypeDropPreview.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDropPreview_lower(_ value: DropPreview) -> RustBuffer {
+    return FfiConverterTypeDropPreview.lower(value)
+}
+
+
+/**
+ * Where songs are dropped or sent (board 43). A record, not an enum with data,
+ * so Dart gets the same shape.
+ */
+public struct DropTarget: Equatable, Hashable {
+    public var kind: DropTargetKind
+    public var id: Int64?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(kind: DropTargetKind, id: Int64?) {
+        self.kind = kind
+        self.id = id
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension DropTarget: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeDropTarget: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> DropTarget {
+        return
+            try DropTarget(
+                kind: FfiConverterTypeDropTargetKind.read(from: &buf), 
+                id: FfiConverterOptionInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: DropTarget, into buf: inout [UInt8]) {
+        FfiConverterTypeDropTargetKind.write(value.kind, into: &buf)
+        FfiConverterOptionInt64.write(value.id, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDropTarget_lift(_ buf: RustBuffer) throws -> DropTarget {
+    return try FfiConverterTypeDropTarget.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDropTarget_lower(_ value: DropTarget) -> RustBuffer {
+    return FfiConverterTypeDropTarget.lower(value)
+}
+
+
+/**
+ * What one edit did. `edit_id` is what `undo` takes; None when nothing changed
+ * (every song was already there).
+ */
+public struct EditResult: Equatable, Hashable {
+    public var editId: String?
+    public var added: UInt32
+    public var alreadyThere: UInt32
+    public var playlistId: Int64?
+    /**
+     * Undo is accepted until then (`gestures.dragAndDrop.shortcutUndoMs`); the
+     * UI's toast may close sooner.
+     */
+    public var undoUntilUtcMs: Int64?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(editId: String?, added: UInt32, alreadyThere: UInt32, playlistId: Int64?, 
+        /**
+         * Undo is accepted until then (`gestures.dragAndDrop.shortcutUndoMs`); the
+         * UI's toast may close sooner.
+         */undoUntilUtcMs: Int64?) {
+        self.editId = editId
+        self.added = added
+        self.alreadyThere = alreadyThere
+        self.playlistId = playlistId
+        self.undoUntilUtcMs = undoUntilUtcMs
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension EditResult: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeEditResult: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> EditResult {
+        return
+            try EditResult(
+                editId: FfiConverterOptionString.read(from: &buf), 
+                added: FfiConverterUInt32.read(from: &buf), 
+                alreadyThere: FfiConverterUInt32.read(from: &buf), 
+                playlistId: FfiConverterOptionInt64.read(from: &buf), 
+                undoUntilUtcMs: FfiConverterOptionInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: EditResult, into buf: inout [UInt8]) {
+        FfiConverterOptionString.write(value.editId, into: &buf)
+        FfiConverterUInt32.write(value.added, into: &buf)
+        FfiConverterUInt32.write(value.alreadyThere, into: &buf)
+        FfiConverterOptionInt64.write(value.playlistId, into: &buf)
+        FfiConverterOptionInt64.write(value.undoUntilUtcMs, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeEditResult_lift(_ buf: RustBuffer) throws -> EditResult {
+    return try FfiConverterTypeEditResult.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeEditResult_lower(_ value: EditResult) -> RustBuffer {
+    return FfiConverterTypeEditResult.lower(value)
 }
 
 
@@ -3765,6 +4238,79 @@ public func FfiConverterTypeSearchResults_lift(_ buf: RustBuffer) throws -> Sear
 #endif
 public func FfiConverterTypeSearchResults_lower(_ value: SearchResults) -> RustBuffer {
     return FfiConverterTypeSearchResults.lower(value)
+}
+
+
+/**
+ * What sending the waiting edits did.
+ */
+public struct SentEdits: Equatable, Hashable {
+    public var sent: UInt32
+    /**
+     * The server said no; the next sync brings back its version.
+     */
+    public var refused: UInt32
+    /**
+     * Still waiting for the server.
+     */
+    public var waiting: UInt32
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(sent: UInt32, 
+        /**
+         * The server said no; the next sync brings back its version.
+         */refused: UInt32, 
+        /**
+         * Still waiting for the server.
+         */waiting: UInt32) {
+        self.sent = sent
+        self.refused = refused
+        self.waiting = waiting
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension SentEdits: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSentEdits: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SentEdits {
+        return
+            try SentEdits(
+                sent: FfiConverterUInt32.read(from: &buf), 
+                refused: FfiConverterUInt32.read(from: &buf), 
+                waiting: FfiConverterUInt32.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: SentEdits, into buf: inout [UInt8]) {
+        FfiConverterUInt32.write(value.sent, into: &buf)
+        FfiConverterUInt32.write(value.refused, into: &buf)
+        FfiConverterUInt32.write(value.waiting, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSentEdits_lift(_ buf: RustBuffer) throws -> SentEdits {
+    return try FfiConverterTypeSentEdits.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSentEdits_lower(_ value: SentEdits) -> RustBuffer {
+    return FfiConverterTypeSentEdits.lower(value)
 }
 
 
@@ -4818,6 +5364,192 @@ public func FfiConverterTypeChosenBy_lower(_ value: ChosenBy) -> RustBuffer {
 
 
 
+
+public enum DropRefusal: Equatable, Hashable {
+    
+    case guestCannotSave
+    case albumsTakeNoSongs
+    case playlistReadOnly
+    case nothingToAdd
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension DropRefusal: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeDropRefusal: FfiConverterRustBuffer {
+    typealias SwiftType = DropRefusal
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> DropRefusal {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .guestCannotSave
+        
+        case 2: return .albumsTakeNoSongs
+        
+        case 3: return .playlistReadOnly
+        
+        case 4: return .nothingToAdd
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: DropRefusal, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .guestCannotSave:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .albumsTakeNoSongs:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .playlistReadOnly:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .nothingToAdd:
+            writeInt(&buf, Int32(4))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDropRefusal_lift(_ buf: RustBuffer) throws -> DropRefusal {
+    return try FfiConverterTypeDropRefusal.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDropRefusal_lower(_ value: DropRefusal) -> RustBuffer {
+    return FfiConverterTypeDropRefusal.lower(value)
+}
+
+
+
+
+public enum DropTargetKind: Equatable, Hashable {
+    
+    /**
+     * `id` is the playlist.
+     */
+    case playlist
+    /**
+     * A new playlist named after the album or the first artist.
+     */
+    case newPlaylist
+    case likedSongs
+    /**
+     * `index` (in `add_to`) is the line in Up Next; None is the end.
+     */
+    case upNext
+    case playNext
+    /**
+     * `id` is the album. Always refused: albums come from the server.
+     */
+    case album
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension DropTargetKind: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeDropTargetKind: FfiConverterRustBuffer {
+    typealias SwiftType = DropTargetKind
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> DropTargetKind {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .playlist
+        
+        case 2: return .newPlaylist
+        
+        case 3: return .likedSongs
+        
+        case 4: return .upNext
+        
+        case 5: return .playNext
+        
+        case 6: return .album
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: DropTargetKind, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .playlist:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .newPlaylist:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .likedSongs:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .upNext:
+            writeInt(&buf, Int32(4))
+        
+        
+        case .playNext:
+            writeInt(&buf, Int32(5))
+        
+        
+        case .album:
+            writeInt(&buf, Int32(6))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDropTargetKind_lift(_ buf: RustBuffer) throws -> DropTargetKind {
+    return try FfiConverterTypeDropTargetKind.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDropTargetKind_lower(_ value: DropTargetKind) -> RustBuffer {
+    return FfiConverterTypeDropTargetKind.lower(value)
+}
+
+
+
 /**
  * Every failure, in words a person can act on (boards 18, 20 and 21).
  */
@@ -4863,6 +5595,12 @@ enum EncoreError: Swift.Error, Equatable, Hashable, Foundation.LocalizedError {
     case Storage(reason: String
     )
     case Internal(reason: String
+    )
+    /**
+     * The action isn't allowed here: a Guest saving a playlist, a drop on an album,
+     * a read-only playlist, an Undo that came too late. `reason` says which.
+     */
+    case NotAllowed(reason: String
     )
 
     
@@ -4942,6 +5680,9 @@ public struct FfiConverterTypeEncoreError: FfiConverterRustBuffer {
             reason: try FfiConverterString.read(from: &buf)
             )
         case 16: return .Internal(
+            reason: try FfiConverterString.read(from: &buf)
+            )
+        case 17: return .NotAllowed(
             reason: try FfiConverterString.read(from: &buf)
             )
 
@@ -5036,6 +5777,11 @@ public struct FfiConverterTypeEncoreError: FfiConverterRustBuffer {
         
         case let .Internal(reason):
             writeInt(&buf, Int32(16))
+            FfiConverterString.write(reason, into: &buf)
+            
+        
+        case let .NotAllowed(reason):
+            writeInt(&buf, Int32(17))
             FfiConverterString.write(reason, into: &buf)
             
         }
@@ -5185,6 +5931,7 @@ public enum ErrorKind: Equatable, Hashable {
     case noProfile
     case storage
     case `internal`
+    case notAllowed
 
 
 
@@ -5237,6 +5984,8 @@ public struct FfiConverterTypeErrorKind: FfiConverterRustBuffer {
         case 15: return .storage
         
         case 16: return .`internal`
+        
+        case 17: return .notAllowed
         
         default: throw UniffiInternalError.unexpectedEnumCase
         }
@@ -5308,6 +6057,10 @@ public struct FfiConverterTypeErrorKind: FfiConverterRustBuffer {
         
         case .`internal`:
             writeInt(&buf, Int32(16))
+        
+        
+        case .notAllowed:
+            writeInt(&buf, Int32(17))
         
         }
     }
@@ -7156,6 +7909,55 @@ fileprivate struct FfiConverterOptionTypeTopResult: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterOptionTypeDropRefusal: FfiConverterRustBuffer {
+    typealias SwiftType = DropRefusal?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeDropRefusal.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeDropRefusal.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceUInt32: FfiConverterRustBuffer {
+    typealias SwiftType = [UInt32]
+
+    public static func write(_ value: [UInt32], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterUInt32.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [UInt32] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [UInt32]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterUInt32.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterSequenceInt64: FfiConverterRustBuffer {
     typealias SwiftType = [Int64]
 
@@ -7173,6 +7975,31 @@ fileprivate struct FfiConverterSequenceInt64: FfiConverterRustBuffer {
         seq.reserveCapacity(Int(len))
         for _ in 0 ..< len {
             seq.append(try FfiConverterInt64.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceBool: FfiConverterRustBuffer {
+    typealias SwiftType = [Bool]
+
+    public static func write(_ value: [Bool], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterBool.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [Bool] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [Bool]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterBool.read(from: &buf))
         }
         return seq
     }
@@ -7788,6 +8615,9 @@ private let initializationResult: InitializationResult = {
     if (uniffi_encore_core_checksum_method_encorecore_add_recent_search() != 35342) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_encore_core_checksum_method_encorecore_add_to() != 12766) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_encore_core_checksum_method_encorecore_add_to_up_next() != 55232) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -7798,6 +8628,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_albums() != 40763) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_are_liked() != 2160) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_artist() != 60965) {
@@ -7833,6 +8666,9 @@ private let initializationResult: InitializationResult = {
     if (uniffi_encore_core_checksum_method_encorecore_current_profile() != 14260) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_encore_core_checksum_method_encorecore_drop_preview() != 698) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_encore_core_checksum_method_encorecore_genre_songs() != 51346) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -7842,6 +8678,12 @@ private let initializationResult: InitializationResult = {
     if (uniffi_encore_core_checksum_method_encorecore_jump_to() != 57299) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_encore_core_checksum_method_encorecore_like() != 26934) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_liked_songs() != 41298) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_encore_core_checksum_method_encorecore_lyric_line_tapped() != 50507) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -7849,6 +8691,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_lyrics_raw() != 18296) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_move_in_playlist() != 31992) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_move_in_queue() != 44822) {
@@ -7861,6 +8706,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_open_profile() != 52351) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_pending_edits() != 52133) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_play() != 56444) {
@@ -7917,6 +8765,9 @@ private let initializationResult: InitializationResult = {
     if (uniffi_encore_core_checksum_method_encorecore_recent_searches() != 18607) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_encore_core_checksum_method_encorecore_remove_from_playlist() != 24666) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_encore_core_checksum_method_encorecore_remove_from_queue() != 19389) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -7926,6 +8777,9 @@ private let initializationResult: InitializationResult = {
     if (uniffi_encore_core_checksum_method_encorecore_remove_server() != 36941) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_encore_core_checksum_method_encorecore_rename_playlist() != 32181) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_encore_core_checksum_method_encorecore_replay_from_history() != 13472) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -7933,6 +8787,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_search() != 19862) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_send_edits() != 30892) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_servers() != 57243) {
@@ -7986,7 +8843,13 @@ private let initializationResult: InitializationResult = {
     if (uniffi_encore_core_checksum_method_encorecore_trust_certificate() != 49158) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_encore_core_checksum_method_encorecore_undo() != 24370) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_encore_core_checksum_method_encorecore_undo_queue() != 8245) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_unlike() != 42881) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_corelistener_on_event() != 61302) {

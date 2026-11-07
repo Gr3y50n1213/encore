@@ -141,6 +141,9 @@ def handler(replay):
         def do_POST(self):
             self.answer("POST")
 
+        def do_DELETE(self):
+            self.answer("DELETE")
+
         def log_message(self, fmt, *args):
             # Path only, never the query (ApiKey).
             sys.stderr.write(f"replay: {self.command} {urlsplit(self.path).path} -> {args[1] if len(args) > 1 else ''}\n")

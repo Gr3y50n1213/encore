@@ -264,6 +264,33 @@ impl Queue {
         self.state.up_next.extend(made);
     }
 
+    /// Insert into Up Next at `index` (a drop at the line, board 43). At the top
+    /// it is Play Next; past the end it is Add to Queue. The original order keeps
+    /// the songs where they were dropped, so turning shuffle off leaves them there.
+    pub fn insert_up_next(&mut self, items: Vec<NewItem>, index: usize) {
+        let len = self.state.up_next.len();
+        if index == 0 {
+            return self.play_next(items);
+        }
+        if index >= len {
+            return self.add_to_up_next(items);
+        }
+        self.save_undo();
+        let n = items.len() as i64;
+        let prev = self.state.up_next[index - 1].order;
+        for i in self.state.up_next.iter_mut() {
+            if i.order > prev {
+                i.order += n;
+            }
+        }
+        let mut made: Vec<QueueItem> = items.into_iter().map(|x| self.make(x)).collect();
+        for (k, item) in made.iter_mut().enumerate() {
+            item.order = prev + 1 + k as i64;
+        }
+        self.next_order += n;
+        self.state.up_next.splice(index..index, made);
+    }
+
     /// Replace the Autoplay part (the smart-picks engine calls this).
     pub fn set_autoplay(&mut self, items: Vec<NewItem>) {
         let made: Vec<QueueItem> = items.into_iter().map(|n| self.make(n)).collect();
@@ -643,6 +670,22 @@ mod tests {
         assert_eq!(q.peek_after_end().map(|i| i.track_id), Some(1));
         assert_eq!(q.advance(Advance::Ended).map(|i| i.track_id), Some(1));
         assert_eq!(ids(q.view().up_next), [2, 3]);
+    }
+
+    #[test]
+    fn a_drop_at_the_line_stays_there_through_shuffle() {
+        let mut q = Queue::new(3);
+        q.play(album(&[1, 2, 3, 4]), 0);
+        q.insert_up_next(album(&[8, 9]), 1);
+        assert_eq!(ids(q.view().up_next), [2, 8, 9, 3, 4]);
+        q.set_shuffle(true);
+        q.set_shuffle(false);
+        assert_eq!(ids(q.view().up_next), [2, 8, 9, 3, 4]);
+        q.insert_up_next(album(&[7]), 0);
+        q.insert_up_next(album(&[6]), 99);
+        assert_eq!(ids(q.view().up_next), [7, 2, 8, 9, 3, 4, 6]);
+        assert!(q.undo());
+        assert_eq!(ids(q.view().up_next), [7, 2, 8, 9, 3, 4]);
     }
 
     /// Board 42: the targets a swipe shows, the end of the queue, and the wrap.

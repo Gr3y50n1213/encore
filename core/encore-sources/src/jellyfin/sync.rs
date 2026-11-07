@@ -172,6 +172,9 @@ pub async fn sync_library(
     } else {
         Vec::new()
     };
+    // Favourites are user data, not part of the delta: the whole set each sync.
+    // If they can't be read, likes stay as they are (None), the sync still counts.
+    let favorite_item_ids = client.favorite_ids(page_size.max(1) * 4).await.ok();
     // Without a server clock the next sync is a full one: slower, never wrong.
     let cursor = pager
         .started_at
@@ -183,7 +186,7 @@ pub async fn sync_library(
         tracks: tracks.iter().filter_map(map::to_track).collect(),
         playlists,
         removed_item_ids,
-        favorite_item_ids: None,
+        favorite_item_ids,
         cursor,
     })
 }

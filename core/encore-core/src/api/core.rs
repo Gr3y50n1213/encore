@@ -24,10 +24,12 @@ use sha2::{Digest, Sha256};
 
 use super::types::*;
 use crate::brand::APP_NAME;
+use crate::edits::{self, Editor, Target};
 use crate::playlog::{Close, PlayLog, PlayStart};
 use crate::queue::{Advance, NewItem, PreviousOutcome, Queue, QueueItem};
 use crate::signal::SkipOrigin as Moved;
 use crate::tokens::tokens;
+use encore_sync::{Hlc, HlcClock};
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(20);
 const QUICK_CONNECT_POLL: Duration = Duration::from_secs(3);
@@ -119,6 +121,8 @@ struct Profile {
     store: Mutex<Store>,
     sources: Mutex<HashMap<i64, Arc<JellyfinSource>>>,
     playback: Mutex<Playback>,
+    /// The clock for library edits' events (plan section 5).
+    edits_clock: Mutex<HlcClock>,
 }
 
 struct Inner {
@@ -329,8 +333,15 @@ impl Inner {
                 .try_into()
                 .unwrap_or([7; 8]),
         );
+        let last_edit = [store.newest_hlc()?, store.newest_event_hlc()?]
+            .into_iter()
+            .flatten()
+            .filter_map(|h| h.parse::<Hlc>().ok())
+            .max()
+            .unwrap_or_default();
         let profile = Profile {
             id: id.to_owned(),
+            edits_clock: Mutex::new(HlcClock::resume(last_edit)),
             store: Mutex::new(store),
             sources: Mutex::new(sources),
             playback: Mutex::new(Playback {
@@ -465,7 +476,144 @@ impl Inner {
     }
 }
 
+/// The songs for these IDs, in order; IDs no longer in the library are left out
+/// (unavailable songs are never added).
+fn songs_of(store: &Store, ids: &[i64]) -> Result<Vec<encore_store::TrackRow>, EncoreError> {
+    let mut out = Vec::with_capacity(ids.len());
+    for id in ids {
+        match store.track(*id) {
+            Ok(t) => out.push(t),
+            Err(encore_store::StoreError::NotFound(_)) => {}
+            Err(e) => return Err(e.into()),
+        }
+    }
+    Ok(out)
+}
+
+fn target_of(t: &DropTarget) -> Result<Target, EncoreError> {
+    let needs_id = || {
+        t.id.ok_or_else(|| EncoreError::NotFound {
+            reason: "That playlist isn't in your library".into(),
+        })
+    };
+    Ok(match t.kind {
+        DropTargetKind::Playlist => Target::Playlist(needs_id()?),
+        DropTargetKind::NewPlaylist => Target::NewPlaylist,
+        DropTargetKind::LikedSongs => Target::LikedSongs,
+        DropTargetKind::UpNext => Target::UpNext,
+        DropTargetKind::PlayNext => Target::PlayNext,
+        DropTargetKind::Album => Target::Album(t.id.unwrap_or(0)),
+    })
+}
+
+fn edit_result(a: edits::Applied, now: i64) -> EditResult {
+    EditResult {
+        undo_until_utc_ms: a.edit_id.as_ref().map(|_| now + tokens().undo_ms),
+        edit_id: a.edit_id,
+        added: a.added,
+        already_there: a.already_there,
+        playlist_id: a.playlist_id,
+    }
+}
+
+/// Send the waiting edits of every signed-in server.
+async fn send_all(inner: &Inner) -> Result<SentEdits, EncoreError> {
+    let p = inner.profile()?;
+    let sources: Vec<(i64, Arc<JellyfinSource>)> = lock(&p.sources)?
+        .iter()
+        .map(|(k, v)| (*k, v.clone()))
+        .collect();
+    let mut total = SentEdits {
+        sent: 0,
+        refused: 0,
+        waiting: 0,
+    };
+    for (id, source) in sources {
+        let f = edits::flush(&p.store, id, source.as_ref(), now_ms()).await?;
+        total.sent += f.sent;
+        total.refused += f.refused;
+        total.waiting += f.waiting;
+    }
+    Ok(total)
+}
+
 impl EncoreCore {
+    /// Run one library edit with an `Editor`, then send it in the background.
+    fn edit(
+        &self,
+        f: impl FnOnce(&mut Editor<'_>, &Store) -> Result<edits::Applied, EncoreError>,
+    ) -> Result<EditResult, EncoreError> {
+        let p = self.inner.profile()?;
+        let result = {
+            let store = lock(&p.store)?;
+            let mut clock = lock(&p.edits_clock)?;
+            let now = now_ms();
+            let mut ed = Editor {
+                store: &store,
+                clock: &mut clock,
+                device_id: &self.inner.config.device_id,
+                now_utc_ms: now,
+                undo_ms: tokens().undo_ms,
+            };
+            edit_result(f(&mut ed, &store)?, now)
+        };
+        self.send_soon();
+        Ok(result)
+    }
+
+    /// Up Next and Play Next: the queue changes, with an edit ID for its Undo like
+    /// every other edit. Nothing is sent anywhere (the queue is this device's).
+    fn queue_add(
+        &self,
+        target: Target,
+        song_ids: &[i64],
+        position: Option<u32>,
+    ) -> Result<EditResult, EncoreError> {
+        let p = self.inner.profile()?;
+        let ids: Vec<i64> = {
+            let store = lock(&p.store)?;
+            songs_of(&store, song_ids)?.iter().map(|t| t.id).collect()
+        };
+        if ids.is_empty() {
+            return Err(edits::EditError::Refused(edits::Refusal::NothingToAdd).into());
+        }
+        let n = ids.len() as u32;
+        let items = Inner::new_items(&ids, StartedFrom::Queue, None);
+        self.inner.with_queue(|pb, _| match (target, position) {
+            (Target::PlayNext, _) => pb.queue.play_next(items),
+            (_, Some(at)) => pb.queue.insert_up_next(items, at as usize),
+            _ => pb.queue.add_to_up_next(items),
+        })?;
+        let store = lock(&p.store)?;
+        let mut clock = lock(&p.edits_clock)?;
+        let now = now_ms();
+        let edit_id = Editor {
+            store: &store,
+            clock: &mut clock,
+            device_id: &self.inner.config.device_id,
+            now_utc_ms: now,
+            undo_ms: tokens().undo_ms,
+        }
+        .queue_edit()?;
+        Ok(EditResult {
+            edit_id: Some(edit_id),
+            added: n,
+            already_there: 0,
+            playlist_id: None,
+            undo_until_utc_ms: Some(now + tokens().undo_ms),
+        })
+    }
+
+    /// Start sending the waiting edits in the background; failures wait for the
+    /// next chance (another edit, a sync, or `send_edits`).
+    fn send_soon(&self) {
+        let Some(rt) = self.rt.as_ref() else { return };
+        let inner = self.inner.clone();
+        rt.spawn(async move {
+            let _ = send_all(&inner).await;
+        });
+    }
+
     /// Make, or read back, the palette of an album's or playlist's cover.
     async fn palette_for(
         &self,
@@ -872,6 +1020,9 @@ impl EncoreCore {
                     e.sync_total = s.total as i64;
                     progress_inner.emit(e);
                 };
+                // Edits made here go first, so the pull can't put back what they
+                // changed. If the server can't be reached they keep waiting.
+                let _ = edits::flush(&p.store, id, source.as_ref(), now_ms()).await;
                 let stats = crate::library::sync_source(
                     &p.store,
                     id,
@@ -881,6 +1032,12 @@ impl EncoreCore {
                     &progress,
                 )
                 .await?;
+                {
+                    // Favourites set or cleared elsewhere become likes here.
+                    let store = lock(&p.store)?;
+                    let pending = edits::pending_favorite_keys(&store, id)?;
+                    store.reconcile_likes(id, &pending, now_ms())?;
+                }
                 results.push(SyncResult {
                     source_id: id,
                     artists: stats.artists as u32,
@@ -1484,6 +1641,219 @@ impl EncoreCore {
         let listened = pb.last_listened_ms;
         pb.log.set_mode(&store, mode.into(), listened, now_ms())?;
         Ok(())
+    }
+
+    // ------------------------------------------------------------ playlists and likes
+
+    /// What dropping (or sending) these songs on `target` would do, before it is
+    /// done (board 43): the count, how many are already there (by song, so a song
+    /// on two albums counts once), whether to ask first, the name a new playlist
+    /// would get, or why it's refused. Synchronous.
+    pub fn drop_preview(
+        &self,
+        target: DropTarget,
+        song_ids: Vec<i64>,
+    ) -> Result<DropPreview, EncoreError> {
+        let p = self.inner.profile()?;
+        let guest = lock(&p.playback)?.log.mode() == crate::playlog::ListeningMode::Guest;
+        let store = lock(&p.store)?;
+        let songs = songs_of(&store, &song_ids)?;
+        let preview = edits::preview(
+            &store,
+            target_of(&target)?,
+            &songs,
+            guest,
+            tokens().confirm_over_songs,
+        )?;
+        Ok(DropPreview {
+            count: preview.count,
+            already_there: preview.already_there,
+            needs_confirm: preview.needs_confirm,
+            suggested_name: preview.suggested_name,
+            refusal: preview.refusal.map(Into::into),
+            refusal_reason: preview.refusal.map(|r| r.sentence().to_owned()),
+        })
+    }
+
+    /// Add songs to a playlist, a new playlist, Liked Songs or the queue: **one
+    /// call** with the whole list in the order shown, one event, one undo entry,
+    /// however many songs (section 26). `position` is the line in a playlist or in
+    /// Up Next (None: the end). Duplicates (by song) are skipped unless
+    /// `allow_duplicates` ("Add anyway"). Works offline: the change shows at once
+    /// and is sent when the server can be reached. Synchronous; sending happens in
+    /// the background.
+    pub fn add_to(
+        &self,
+        target: DropTarget,
+        song_ids: Vec<i64>,
+        position: Option<u32>,
+        allow_duplicates: bool,
+    ) -> Result<EditResult, EncoreError> {
+        let p = self.inner.profile()?;
+        let target_kind = target_of(&target)?;
+        let guest = lock(&p.playback)?.log.mode() == crate::playlog::ListeningMode::Guest;
+        if guest
+            && matches!(
+                target_kind,
+                Target::Playlist(_) | Target::NewPlaylist | Target::LikedSongs
+            )
+        {
+            return Err(edits::EditError::Refused(edits::Refusal::GuestCannotSave).into());
+        }
+        if matches!(target_kind, Target::UpNext | Target::PlayNext) {
+            return self.queue_add(target_kind, &song_ids, position);
+        }
+        let result = {
+            let store = lock(&p.store)?;
+            let songs = songs_of(&store, &song_ids)?;
+            let mut clock = lock(&p.edits_clock)?;
+            let now = now_ms();
+            let applied = Editor {
+                store: &store,
+                clock: &mut clock,
+                device_id: &self.inner.config.device_id,
+                now_utc_ms: now,
+                undo_ms: tokens().undo_ms,
+            }
+            .add(target_kind, &songs, position, allow_duplicates)?;
+            edit_result(applied, now)
+        };
+        self.send_soon();
+        Ok(result)
+    }
+
+    /// Like songs: Liked Songs, and a favourite on the server. The same as
+    /// `add_to` with Liked Songs.
+    pub fn like(&self, song_ids: Vec<i64>) -> Result<EditResult, EncoreError> {
+        self.add_to(
+            DropTarget {
+                kind: DropTargetKind::LikedSongs,
+                id: None,
+            },
+            song_ids,
+            None,
+            false,
+        )
+    }
+
+    /// Unlike songs; every copy of each song (on any album) stops being liked.
+    pub fn unlike(&self, song_ids: Vec<i64>) -> Result<EditResult, EncoreError> {
+        self.edit(|ed, store| {
+            let songs = songs_of(store, &song_ids)?;
+            Ok(ed.unlike(&songs)?)
+        })
+    }
+
+    /// Whether each song is liked, in order (the heart on rows and Now Playing).
+    pub fn are_liked(&self, song_ids: Vec<i64>) -> Result<Vec<bool>, EncoreError> {
+        let p = self.inner.profile()?;
+        let store = lock(&p.store)?;
+        let liked = store.liked_keys()?;
+        song_ids
+            .iter()
+            .map(|id| Ok(liked.contains(&store.track(*id)?.song_key)))
+            .collect()
+    }
+
+    /// Liked Songs, newest like first; a song on several albums appears once.
+    pub fn liked_songs(&self, offset: u32, limit: u32) -> Result<Vec<Song>, EncoreError> {
+        let p = self.inner.profile()?;
+        let store = lock(&p.store)?;
+        Ok(store
+            .liked_songs(offset, limit)?
+            .into_iter()
+            .map(Song::from)
+            .collect())
+    }
+
+    /// Remove rows from one of your playlists (a row swipe; Undo for 5 s).
+    pub fn remove_from_playlist(
+        &self,
+        playlist_id: i64,
+        positions: Vec<u32>,
+    ) -> Result<EditResult, EncoreError> {
+        self.edit(|ed, _| {
+            let id = ed.remove(playlist_id, &positions)?;
+            Ok(edits::Applied {
+                edit_id: Some(id),
+                added: 0,
+                already_there: 0,
+                playlist_id: Some(playlist_id),
+            })
+        })
+    }
+
+    /// Reorder inside a playlist (always a move).
+    pub fn move_in_playlist(
+        &self,
+        playlist_id: i64,
+        from_position: u32,
+        to_position: u32,
+    ) -> Result<EditResult, EncoreError> {
+        self.edit(|ed, _| {
+            let id = ed.move_row(playlist_id, from_position, to_position)?;
+            Ok(edits::Applied {
+                edit_id: Some(id),
+                added: 0,
+                already_there: 0,
+                playlist_id: Some(playlist_id),
+            })
+        })
+    }
+
+    /// Rename a playlist (the name field a new playlist opens with). An empty name
+    /// keeps the old one.
+    pub fn rename_playlist(
+        &self,
+        playlist_id: i64,
+        name: String,
+    ) -> Result<EditResult, EncoreError> {
+        self.edit(|ed, _| {
+            let id = ed.rename(playlist_id, &name)?;
+            Ok(edits::Applied {
+                edit_id: Some(id),
+                added: 0,
+                already_there: 0,
+                playlist_id: Some(playlist_id),
+            })
+        })
+    }
+
+    /// Undo an edit (the toast's Undo, or Command/Ctrl+Z), within
+    /// `gestures.dragAndDrop.shortcutUndoMs` (10 s). Undo is one event too; it
+    /// can't itself be undone. Refused with `NotAllowed` when too late.
+    pub fn undo(&self, edit_id: String) -> Result<(), EncoreError> {
+        let p = self.inner.profile()?;
+        let undone = {
+            let store = lock(&p.store)?;
+            let mut clock = lock(&p.edits_clock)?;
+            Editor {
+                store: &store,
+                clock: &mut clock,
+                device_id: &self.inner.config.device_id,
+                now_utc_ms: now_ms(),
+                undo_ms: tokens().undo_ms,
+            }
+            .undo(&edit_id)?
+        };
+        if undone == edits::Undone::Queue {
+            self.undo_queue()?;
+        }
+        self.send_soon();
+        Ok(())
+    }
+
+    /// Edits not yet accepted by their server (for a "Waiting to sync" note).
+    pub fn pending_edits(&self) -> Result<u32, EncoreError> {
+        let p = self.inner.profile()?;
+        Ok(lock(&p.store)?.pending_outbox_count()?)
+    }
+
+    /// Send the waiting edits now (when the network comes back, say). They are
+    /// also sent after every edit and before every sync. Async.
+    pub async fn send_edits(&self) -> Result<SentEdits, EncoreError> {
+        let inner = self.inner.clone();
+        self.spawn(async move { send_all(&inner).await }).await
     }
 
     // ------------------------------------------------------------ streams, artwork, lyrics
