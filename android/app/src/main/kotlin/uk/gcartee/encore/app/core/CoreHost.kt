@@ -18,7 +18,9 @@ import uk.gcartee.encore.core.CoreEvent
 import uk.gcartee.encore.core.CoreListener
 import uk.gcartee.encore.core.EncoreCore
 import uk.gcartee.encore.core.EventKind
+import uk.gcartee.encore.core.ListeningMode
 import uk.gcartee.encore.core.Network
+import uk.gcartee.encore.core.QueueState
 import uk.gcartee.encore.core.SignedIn
 import uk.gcartee.encore.core.SourceToken
 import uk.gcartee.encore.core.TranscodeCodec
@@ -45,6 +47,23 @@ class CoreHost private constructor(val context: Context) {
     private val _events = MutableSharedFlow<CoreEvent>(extraBufferCapacity = 256)
     val events: SharedFlow<CoreEvent> = _events.asSharedFlow()
 
+    private val _queue = MutableStateFlow<QueueState?>(null)
+    /** The live queue (board 11): updated by every `QueueChanged`. */
+    val queue: StateFlow<QueueState?> = _queue.asStateFlow()
+
+    /** "Playing from Home" on Now Playing (board 09): where the current list was started. */
+    val playingFrom = MutableStateFlow<String?>(null)
+
+    /** Private listening (board 09, More): the core records nothing while it is on. */
+    val privateListening = MutableStateFlow(false)
+
+    /** Bumped when another device's likes or playlists arrive (`RemoteChange`). */
+    val remoteChanges = MutableStateFlow(0)
+
+    fun refreshQueue() {
+        _queue.value = runCatching { core.queue() }.getOrNull()
+    }
+
     private val _profileOpen = MutableStateFlow(false)
     /** True once a profile is open: the app shows its library, not Welcome. */
     val profileOpen: StateFlow<Boolean> = _profileOpen.asStateFlow()
@@ -55,6 +74,8 @@ class CoreHost private constructor(val context: Context) {
                 // A rotated companion token must be stored before anything else: the
                 // old one no longer works.
                 if (event.kind == EventKind.CREDENTIAL_CHANGED) event.credential?.let(::storeCredential)
+                if (event.kind == EventKind.QUEUE_CHANGED) event.queue?.let { _queue.value = it }
+                if (event.kind == EventKind.REMOTE_CHANGE) remoteChanges.value++
                 _events.tryEmit(event)
             }
         })
@@ -79,7 +100,17 @@ class CoreHost private constructor(val context: Context) {
         profileOpened()
     }
 
+    /** Board 19, item 2: "Learn from my listening" off, kept per profile and applied when it opens. */
+    fun learningOff(): Boolean = context.getSharedPreferences("privacy-${core.currentProfile().orEmpty()}", Context.MODE_PRIVATE).getBoolean("learning-off", false)
+
+    fun setLearningOff(off: Boolean) {
+        context.getSharedPreferences("privacy-${core.currentProfile().orEmpty()}", Context.MODE_PRIVATE).edit().putBoolean("learning-off", off).apply()
+        runCatching { core.setListeningMode(if (off) ListeningMode.LEARNING_OFF else ListeningMode.NORMAL) }
+    }
+
     private fun profileOpened() {
+        uk.gcartee.encore.app.ui.theme.Appearance.load(context, core.currentProfile())
+        if (learningOff()) runCatching { core.setListeningMode(ListeningMode.LEARNING_OFF) }
         // ExoPlayer plays these as they are; the rest is transcoded to AAC. ALAC is left
         // out: Android has no platform decoder for it. The core keeps this per profile
         // (it refuses with NoProfile before one is open), so it is set on every opening.
@@ -87,7 +118,23 @@ class CoreHost private constructor(val context: Context) {
             listOf("flac", "mp3", "m4a", "aac", "ogg", "opus", "wav"),
             TranscodeCodec.AAC,
         )
+        refreshQueue()
         _profileOpen.value = true
+    }
+
+    /** Board 14: after a switch, the other profile's queue and settings load. */
+    fun profileSwitched(queue: QueueState) {
+        uk.gcartee.encore.app.ui.theme.Appearance.load(context, core.currentProfile())
+        _queue.value = queue
+        playingFrom.value = null
+        privateListening.value = false
+        core.setPlaybackCapabilities(listOf("flac", "mp3", "m4a", "aac", "ogg", "opus", "wav"), TranscodeCodec.AAC)
+    }
+
+    /** Signed out of every source, or the profile removed: back to Welcome. */
+    fun profileClosed() {
+        _queue.value = null
+        _profileOpen.value = false
     }
 
     private fun storeCredential(credential: SourceToken) {

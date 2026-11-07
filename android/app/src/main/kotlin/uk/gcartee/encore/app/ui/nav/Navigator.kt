@@ -17,16 +17,25 @@ sealed interface Route {
     data class Album(val id: Long) : Route
     data class Artist(val id: Long) : Route
     data class Playlist(val id: Long) : Route
+    data class Mix(val id: String) : Route
+    /** Settings and its pages (board 17): "settings", "servers", "privacy", "licences", "playback", "suggestions", "appearance". */
+    data class Settings(val page: String = "settings") : Route
 
     fun encode(): String = when (this) {
         is Album -> "album:$id"
         is Artist -> "artist:$id"
         is Playlist -> "playlist:$id"
+        is Mix -> "mix:$id"
+        is Settings -> "settings:$page"
     }
 
     companion object {
         fun decode(s: String): Route? {
             val (kind, id) = s.split(':', limit = 2).takeIf { it.size == 2 } ?: return null
+            when (kind) {
+                "mix" -> return id.takeIf { it.isNotEmpty() }?.let(::Mix)
+                "settings" -> return id.takeIf { it.isNotEmpty() }?.let(::Settings)
+            }
             val n = id.toLongOrNull() ?: return null
             return when (kind) {
                 "album" -> Album(n)
@@ -65,7 +74,14 @@ class Navigator(initialTab: Tab, stacks: Map<Tab, List<Route>>) {
     }
 
     fun push(route: Route) {
+        if (stack().lastOrNull() == route) return
         stacks[tab] = stack() + route
+    }
+
+    /** A profile switch resets to Home (board 14, item 2). */
+    fun reset() {
+        Tab.entries.forEach { stacks[it] = emptyList() }
+        tab = Tab.Home
     }
 
     /** Back: pop this tab's page, else go to Home; false when there is nowhere to go. */
@@ -87,13 +103,13 @@ class Navigator(initialTab: Tab, stacks: Map<Tab, List<Route>>) {
     companion object {
         val saver: Saver<Navigator, List<String>> = Saver(
             save = { nav ->
-                listOf(nav.tab.name) + Tab.entries.map { t -> t.name + "=" + nav.stack(t).joinToString(",") { it.encode() } }
+                listOf(nav.tab.name) + Tab.entries.map { t -> t.name + "=" + nav.stack(t).joinToString("\u0001") { it.encode() } }
             },
             restore = { saved ->
                 val tab = Tab.valueOf(saved.first())
                 val stacks = saved.drop(1).associate { line ->
                     val (t, routes) = line.split('=', limit = 2)
-                    Tab.valueOf(t) to routes.split(',').filter { it.isNotEmpty() }.mapNotNull(Route::decode)
+                    Tab.valueOf(t) to routes.split('\u0001').filter { it.isNotEmpty() }.mapNotNull(Route::decode)
                 }
                 Navigator(tab, stacks)
             },

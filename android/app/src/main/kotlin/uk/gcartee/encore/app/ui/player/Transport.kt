@@ -14,7 +14,18 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
@@ -41,6 +52,13 @@ enum class TransportSize(val playW: Int, val playH: Int, val checkedRadius: Int,
         AndroidToggleShape.Sizes.Medium.height * AndroidToggleShape.pressedRadiusPercentOfHeight / 100,
         AndroidToggleShape.TransportRow.PrevNext.Sizes.Medium.width, AndroidToggleShape.TransportRow.PrevNext.Sizes.Medium.outerRadius,
     ),
+    /** The mini player: 44 dp, a 48 dp touch target kept by the button's minimum size. */
+    Compact(
+        AndroidToggleShape.Sizes.Compact.width, AndroidToggleShape.Sizes.Compact.height,
+        AndroidToggleShape.Sizes.Compact.checkedRadius,
+        AndroidToggleShape.Sizes.Compact.height * AndroidToggleShape.pressedRadiusPercentOfHeight / 100,
+        AndroidToggleShape.Sizes.Compact.width, AndroidToggleShape.Sizes.Compact.height / 2,
+    ),
 }
 
 /** The 200 ms transport debounce (board 05, item 5; tokens motion.timing.transportDebounceMs). */
@@ -64,7 +82,15 @@ fun rememberDebounced(action: () -> Unit): () -> Unit {
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun PlayPauseButton(playing: Boolean, loading: Boolean, onToggle: () -> Unit, size: TransportSize = TransportSize.Large, enabled: Boolean = true) {
+fun PlayPauseButton(
+    playing: Boolean,
+    loading: Boolean,
+    onToggle: () -> Unit,
+    size: TransportSize = TransportSize.Large,
+    enabled: Boolean = true,
+    container: Color? = null,
+    onContainer: Color? = null,
+) {
     val haptics = rememberHaptics()
     val tap = rememberDebounced {
         haptics.perform(Haptic.Transport)
@@ -75,8 +101,10 @@ fun PlayPauseButton(playing: Boolean, loading: Boolean, onToggle: () -> Unit, si
         pressedShape = RoundedCornerShape(size.pressedRadius.dp),
         checkedShape = RoundedCornerShape(size.checkedRadius.dp),
     )
-    val container = MaterialTheme.colorScheme.primary
-    val content = MaterialTheme.colorScheme.onPrimary
+    // Over an album field the button is the field's text colour with the field's base as
+    // its glyph (board 09: a white button on a dark field).
+    val container = container ?: MaterialTheme.colorScheme.primary
+    val content = onContainer ?: MaterialTheme.colorScheme.onPrimary
     FilledIconToggleButton(
         checked = playing,
         onCheckedChange = { tap() },
@@ -115,11 +143,48 @@ fun PlayPauseButton(playing: Boolean, loading: Boolean, onToggle: () -> Unit, si
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun SkipButton(next: Boolean, onClick: () -> Unit, size: TransportSize = TransportSize.Large, enabled: Boolean = true) {
+fun SkipButton(
+    next: Boolean,
+    onClick: () -> Unit,
+    size: TransportSize = TransportSize.Large,
+    enabled: Boolean = true,
+    onScan: ((active: Boolean) -> Unit)? = null,
+    tint: Color? = null,
+) {
     val haptics = rememberHaptics()
+    val interaction = remember { MutableInteractionSource() }
+    // Board 09, item 6: held, it scans at 4x with a tick each second; the tap that ends a
+    // scan is not also a skip.
+    var scanned by remember { mutableStateOf(false) }
+    if (onScan != null) {
+        LaunchedEffect(interaction) {
+            var job: Job? = null
+            interaction.interactions.collect { i ->
+                when (i) {
+                    is PressInteraction.Press -> job = launch {
+                        delay(Timing.longPressAndroidMs.toLong())
+                        scanned = true
+                        onScan(true)
+                        while (isActive) {
+                            haptics.perform(Haptic.Tick)
+                            delay(1_000)
+                        }
+                    }
+                    is PressInteraction.Release, is PressInteraction.Cancel -> {
+                        job?.cancel()
+                        if (scanned) onScan(false)
+                    }
+                }
+            }
+        }
+    }
     val tap = rememberDebounced {
-        haptics.perform(Haptic.Transport)
-        onClick()
+        if (scanned) {
+            scanned = false
+        } else {
+            haptics.perform(Haptic.Transport)
+            onClick()
+        }
     }
     fun shape(inner: Dp): RoundedCornerShape {
         val round = CornerSize(size.skipOuter.dp)
@@ -129,6 +194,12 @@ fun SkipButton(next: Boolean, onClick: () -> Unit, size: TransportSize = Transpo
     FilledTonalIconButton(
         onClick = tap,
         enabled = enabled,
+        interactionSource = interaction,
+        colors = if (tint != null) {
+            IconButtonDefaults.filledTonalIconButtonColors(containerColor = tint.copy(alpha = 0.16f), contentColor = tint)
+        } else {
+            IconButtonDefaults.filledTonalIconButtonColors()
+        },
         shapes = IconButtonDefaults.shapes(
             shape = shape(AndroidToggleShape.TransportRow.PrevNext.innerRadius.dp),
             pressedShape = shape(AndroidToggleShape.TransportRow.PrevNext.pressedInnerRadius.dp),
@@ -145,13 +216,23 @@ fun SkipButton(next: Boolean, onClick: () -> Unit, size: TransportSize = Transpo
 
 /** Three separate buttons 8 dp apart, not one joined pill. */
 @Composable
-fun TransportRow(playing: Boolean, loading: Boolean, onPrevious: () -> Unit, onToggle: () -> Unit, onNext: () -> Unit, size: TransportSize = TransportSize.Large) {
+fun TransportRow(
+    playing: Boolean,
+    loading: Boolean,
+    onPrevious: () -> Unit,
+    onToggle: () -> Unit,
+    onNext: () -> Unit,
+    size: TransportSize = TransportSize.Large,
+    onScan: ((forward: Boolean, active: Boolean) -> Unit)? = null,
+    container: Color? = null,
+    onContainer: Color? = null,
+) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(AndroidToggleShape.TransportRow.gap.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SkipButton(next = false, onClick = onPrevious, size = size)
-        PlayPauseButton(playing, loading, onToggle, size)
-        SkipButton(next = true, onClick = onNext, size = size)
+        SkipButton(next = false, onClick = onPrevious, size = size, onScan = onScan?.let { s -> { a -> s(false, a) } }, tint = container)
+        PlayPauseButton(playing, loading, onToggle, size, container = container, onContainer = onContainer)
+        SkipButton(next = true, onClick = onNext, size = size, onScan = onScan?.let { s -> { a -> s(true, a) } }, tint = container)
     }
 }

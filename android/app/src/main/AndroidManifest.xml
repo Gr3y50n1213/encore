@@ -36,6 +36,17 @@
             </intent-filter>
         </activity>
 
+        <!-- Board 19, item 5: the export file is shared through the system sheet. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.exports"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/export_paths" />
+        </provider>
+
         <service
             android:name=".playback.PlaybackService"
             android:exported="true"

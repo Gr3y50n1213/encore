@@ -77,11 +77,11 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
         snapshotFlow { touching }.collect { if (!it && pending != null) { shown = pending; pending = null } }
     }
 
+    val actions = uk.gcartee.encore.app.ui.components.LocalAppActions.current
     fun playSong(song: Song, list: List<Song>) {
         host.core.addRecentSearch(query.trim())
         // A tapped song plays and Autoplay continues from it (board 07).
-        host.core.play(list.map { it.id }, list.indexOf(song).coerceAtLeast(0).toUInt(), StartedFrom.SEARCH, null)
-        PlaybackHub.playCurrent(context)
+        actions.play(list.map { it.id }, list.indexOf(song).coerceAtLeast(0), StartedFrom.SEARCH, null, "Search")
     }
 
     fun open(route: Route) {
@@ -154,7 +154,7 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
                     item { SectionTitle("Top result") }
                     item {
                         when (top.kind) {
-                            ResultKind.SONG -> top.song?.let { s -> SongRow(s, s.id == playingSongId, onClick = { playSong(s, results.songs.ifEmpty { listOf(s) }) }) }
+                            ResultKind.SONG -> top.song?.let { s -> uk.gcartee.encore.app.ui.components.SongItem(s, s.id == playingSongId, onClick = { playSong(s, results.songs.ifEmpty { listOf(s) }) }) }
                             ResultKind.ALBUM -> top.album?.let { a -> ListRow(a.title, "Album · ${a.artist}", onClick = { open(Route.Album(a.id)) }) { Artwork(ArtworkOf.ALBUM, a.id, 48.dp, Modifier.size(48.dp)) } }
                             ResultKind.ARTIST -> top.artist?.let { a -> ListRow(a.name, "Artist", onClick = { open(Route.Artist(a.id)) }) { Artwork(ArtworkOf.ARTIST, a.id, 48.dp, Modifier.size(48.dp), cornerRadius = 24.dp) } }
                             ResultKind.PLAYLIST -> top.playlist?.let { p -> ListRow(p.name, "Playlist", onClick = { open(Route.Playlist(p.id)) }) }
@@ -163,10 +163,10 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
                 }
                 if (results.songs.isNotEmpty() || results.lyrics.isNotEmpty()) {
                     item { SectionTitle("Songs") }
-                    items(results.songs, key = { "s${it.id}" }) { s -> SongRow(s, s.id == playingSongId, onClick = { playSong(s, results.songs) }) }
+                    items(results.songs, key = { "s${it.id}" }) { s -> uk.gcartee.encore.app.ui.components.SongItem(s, s.id == playingSongId, onClick = { playSong(s, results.songs) }) }
                     // Lyric matches after the title matches, with the line under the title.
                     items(results.lyrics, key = { "l${it.song.id}" }) { m ->
-                        SongRow(m.song, m.song.id == playingSongId, subtitle = "“${m.line}”", onClick = { playSong(m.song, listOf(m.song)) })
+                        uk.gcartee.encore.app.ui.components.SongItem(m.song, m.song.id == playingSongId, subtitle = "“${m.line}”", onClick = { playSong(m.song, listOf(m.song)) })
                     }
                 }
                 if (results.albums.isNotEmpty()) {

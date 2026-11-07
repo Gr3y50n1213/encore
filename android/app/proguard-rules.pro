@@ -12,3 +12,6 @@
 # rustls-platform-verifier's Kotlin part is called from Rust through JNI
 # (its README, "Proguard").
 -keep, includedescriptorclasses class org.rustls.platformverifier.** { *; }
+
+# Appearance reads the accent schemes from the generated token constants by name.
+-keep class uk.gcartee.encore.tokens.** { *; }

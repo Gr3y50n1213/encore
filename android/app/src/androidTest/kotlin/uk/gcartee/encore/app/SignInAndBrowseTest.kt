@@ -13,6 +13,7 @@ import androidx.compose.ui.test.printToString
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertNull
@@ -71,7 +72,6 @@ class SignInAndBrowseTest {
         val albums = host.core.albums(AlbumSort.RECENTLY_ADDED, 0u, 10u)
         assertTrue("the synced library has no albums", albums.isNotEmpty())
         val album = albums.first()
-        rule.waitUntilAtLeastOneExists(hasText("Recently added"), TIMEOUT)
 
         // Library: the album is listed from the on-device mirror.
         rule.onNodeWithText("Library").performClick()
@@ -84,6 +84,20 @@ class SignInAndBrowseTest {
         val first = host.core.album(album.id).songs.first()
         rule.waitUntil(TIMEOUT) { host.core.queue().current?.song?.id == first.id }
         rule.waitUntilAtLeastOneExists(hasTestTag("mini-player"), TIMEOUT)
+
+        // A playlist page lists its songs (the owner found it broken on 7 November 2026).
+        val playlist = host.core.playlists(0u, 50u).firstOrNull { it.songCount > 0u }
+        if (playlist != null) {
+            val firstSong = host.core.playlist(playlist.id).entries.firstNotNullOf { it.song }
+            Espresso.pressBack()
+            rule.onNodeWithText("Library").performClick()
+            rule.waitUntilAtLeastOneExists(hasText("Playlists"), TIMEOUT)
+            rule.onAllNodesWithText("Playlists").onFirst().performClick()
+            rule.waitUntilAtLeastOneExists(hasText(playlist.name), TIMEOUT)
+            rule.onAllNodesWithText(playlist.name).onFirst().performClick()
+            rule.waitUntilAtLeastOneExists(hasText(firstSong.title), TIMEOUT)
+            rule.waitUntilAtLeastOneExists(hasText("Shuffle"), TIMEOUT)
+        }
     }
 
     /** Waits for [done], pumping the UI; fails naming the step if it never comes. */

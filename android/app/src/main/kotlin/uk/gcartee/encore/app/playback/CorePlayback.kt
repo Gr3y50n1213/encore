@@ -12,6 +12,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import java.util.TimeZone
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +24,10 @@ import uk.gcartee.encore.core.ArtworkOf
 import uk.gcartee.encore.core.CoreEvent
 import uk.gcartee.encore.core.EndReason
 import uk.gcartee.encore.core.EventKind
+import uk.gcartee.encore.core.HandoffInfo
+import uk.gcartee.encore.core.RemoteCommand
+import uk.gcartee.encore.core.RemoteCommandKind
+import uk.gcartee.encore.tokens.EncoreTokens.Gestures
 import uk.gcartee.encore.core.InterruptionKind
 import uk.gcartee.encore.core.PreviousResult
 import uk.gcartee.encore.core.QueueEntry
@@ -59,6 +64,10 @@ class CorePlayback(
     private var startedUid: Long? = null
     private var ownSeek = false
     private var errorsInARow = 0
+    private var pendingSettle: Job? = null
+    private var pendingPlay = false
+    private var scanJob: Job? = null
+    private var scanFrom = 0L
 
     private val _state = MutableStateFlow(PlayerState())
     val state: StateFlow<PlayerState> = _state.asStateFlow()
@@ -113,9 +122,10 @@ class CorePlayback(
 
     fun pause() = exo.pause()
 
+    /** Board 42, rule 4: a skip keeps the play state; skipping while paused stays paused. */
     fun next(origin: SkipOrigin) {
         val state = core.skipNext(origin)
-        show(state.current, play = true)
+        if (origin == SkipOrigin.SWIPE) settle(state.current) else show(state.current, play = playing())
     }
 
     fun previous(origin: SkipOrigin) {
@@ -124,8 +134,58 @@ class CorePlayback(
                 ownSeek = true
                 exo.seekTo(0)
             }
-            PreviousResult.MOVED -> show(core.queue().current, play = true)
+            PreviousResult.MOVED -> {
+                val current = core.queue().current
+                if (origin == SkipOrigin.SWIPE) settle(current) else show(current, play = playing())
+            }
         }
+    }
+
+    private fun playing() = exo.playWhenReady || pendingPlay
+
+    /**
+     * Board 42, rule 5: the finger decides, not the audio. After a swipe the new song shows
+     * at 0:00 at once, but loads only once no other swipe follows within 600 ms
+     * (`gestures.playerSwipe.coalesceMs`), so songs passed over never load or sound.
+     */
+    private fun settle(entry: QueueEntry?) {
+        pendingPlay = playing()
+        if (exo.playWhenReady) exo.pause()
+        pendingSettle?.cancel()
+        publish(entry, positionMs = 0)
+        pendingSettle = scope.launch {
+            delay(Gestures.PlayerSwipe.coalesceMs.toLong())
+            pendingSettle = null
+            val play = pendingPlay
+            pendingPlay = false
+            show(entry, play)
+        }
+    }
+
+    /** Board 09, item 6: holding Previous or Next scans at 4x, one seek report at the end. */
+    fun startScan(forward: Boolean) {
+        if (exo.mediaItemCount == 0 || scanJob != null) return
+        scanFrom = exo.currentPosition
+        scanJob = scope.launch {
+            while (isActive) {
+                delay(SCAN_STEP_MS)
+                val duration = exo.duration.takeIf { it > 0 } ?: break
+                val step = if (forward) SCAN_STEP_MS * (SCAN_SPEED - 1) else -SCAN_STEP_MS * (SCAN_SPEED + 1)
+                exo.seekTo((exo.currentPosition + step).coerceIn(0, duration - SCAN_STEP_MS))
+            }
+        }
+    }
+
+    fun stopScan() {
+        val job = scanJob ?: return
+        job.cancel()
+        scanJob = null
+        if (startedUid != null) core.playbackSeeked(scanFrom, exo.currentPosition)
+    }
+
+    fun setVolume(level: Float) {
+        exo.volume = level.coerceIn(0f, 1f)
+        runCatching { core.setVolumeLevel(exo.volume.toDouble()) }
     }
 
     fun seekTo(positionMs: Long) {
@@ -136,9 +196,68 @@ class CorePlayback(
 
     private fun onEvent(event: CoreEvent) {
         when (event.kind) {
-            EventKind.NOW_PLAYING -> show(event.nowPlaying, play = exo.playWhenReady)
+            // A swipe that is still settling loads its song itself.
+            EventKind.NOW_PLAYING -> if (pendingSettle == null) show(event.nowPlaying, play = exo.playWhenReady)
             EventKind.PRELOAD -> event.preload?.let(::preload)
             EventKind.QUEUE_CHANGED -> event.queue?.let(::queueChanged)
+            EventKind.HANDOFF_INCOMING -> event.handoff?.let(::handoffIncoming)
+            EventKind.HANDOFF_CONFIRMED -> fadeOutAndPause()
+            EventKind.REMOTE_COMMAND -> event.remoteCommand?.let(::remote)
+            else -> Unit
+        }
+    }
+
+    /**
+     * CORE-API handoff, receiving side (board 12): the core has put the queue in place;
+     * load the song, say it is ready, and start at the position the core returns (the
+     * sender's position plus the time since).
+     */
+    private fun handoffIncoming(h: HandoffInfo) {
+        val entry = h.entry ?: run {
+            runCatching { core.handoffFailed(h.transferId, "Nothing to play") }
+            return
+        }
+        if (currentUid() != entry.uid) {
+            val item = mediaItem(entry)
+            if (item == null) {
+                runCatching { core.handoffFailed(h.transferId, "This song can't be played here") }
+                return
+            }
+            exo.setMediaItem(item)
+            exo.prepare()
+            clock.reset()
+        }
+        val start = runCatching { core.handoffReady(h.transferId) }.getOrElse { return }
+        ownSeek = true
+        exo.seekTo(start)
+        exo.volume = h.volume.toFloat().coerceIn(0f, 1f)
+        exo.playWhenReady = h.playing
+        publish(entry)
+    }
+
+    /** The other device started: fade out and pause (`HandoffConfirmed`). */
+    private fun fadeOutAndPause() {
+        scope.launch {
+            val from = exo.volume
+            for (i in FADE_STEPS downTo 0) {
+                exo.volume = from * i / FADE_STEPS
+                delay(FADE_MS / FADE_STEPS)
+            }
+            exo.pause()
+            exo.volume = from
+        }
+    }
+
+    /** Another device controls this one: do it as if this device's own button was pressed. */
+    private fun remote(c: RemoteCommand) {
+        when (c.kind) {
+            RemoteCommandKind.PLAY -> play()
+            RemoteCommandKind.PAUSE -> pause()
+            RemoteCommandKind.NEXT -> next(SkipOrigin.BUTTON)
+            RemoteCommandKind.PREVIOUS -> previous(SkipOrigin.BUTTON)
+            RemoteCommandKind.SEEK_TO -> c.positionMs?.let(::seekTo)
+            RemoteCommandKind.SET_VOLUME -> c.level?.let { setVolume(it.toFloat()) }
+            // Queue edits are done by the core; QueueChanged follows.
             else -> Unit
         }
     }
@@ -262,6 +381,11 @@ class CorePlayback(
 
     override fun onPositionDiscontinuity(old: Player.PositionInfo, new: Player.PositionInfo, reason: Int) {
         if (reason != Player.DISCONTINUITY_REASON_SEEK || old.mediaItemIndex != new.mediaItemIndex) return
+        if (scanJob != null) {
+            // Scanning reports one seek when it ends.
+            publish()
+            return
+        }
         if (ownSeek) {
             ownSeek = false
         } else if (startedUid != null) {
@@ -320,14 +444,14 @@ class CorePlayback(
     private fun uidAt(index: Int): Long? =
         if (index < exo.mediaItemCount) exo.getMediaItemAt(index).mediaId.toUidOrNull() else null
 
-    private fun publish(entry: QueueEntry? = null) {
+    private fun publish(entry: QueueEntry? = null, positionMs: Long? = null) {
         val current = entry ?: _state.value.entry.takeIf { it?.uid == currentUid() }
             ?: runCatching { core.queue().current }.getOrNull()
         _state.value = PlayerState(
             entry = current,
             isPlaying = exo.isPlaying,
             buffering = exo.playbackState == Player.STATE_BUFFERING,
-            positionMs = exo.currentPosition.coerceAtLeast(0),
+            positionMs = positionMs ?: if (pendingSettle != null) 0 else exo.currentPosition.coerceAtLeast(0),
             durationMs = current?.song?.durationMs ?: 0,
         )
     }
@@ -337,6 +461,10 @@ class CorePlayback(
         private const val TICK_MS = 1_000L
         private const val ARTWORK_PX = 512
         private const val MAX_ERRORS_IN_A_ROW = 3
+        private const val SCAN_STEP_MS = 250L
+        private const val SCAN_SPEED = 4
+        private const val FADE_MS = 800L
+        private const val FADE_STEPS = 16
 
         fun String.toUidOrNull(): Long? = removePrefix(UID_PREFIX).toLongOrNull()
     }

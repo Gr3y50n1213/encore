@@ -65,4 +65,10 @@ object PlaybackHub {
     fun next(context: Context) = withPlayback(context) { it.next(SkipOrigin.BUTTON) }
     fun previous(context: Context) = withPlayback(context) { it.previous(SkipOrigin.BUTTON) }
     fun seekTo(context: Context, ms: Long) = withPlayback(context) { it.seekTo(ms) }
+
+    /** Board 42: a completed swipe is a skip exactly like the button, with origin Swipe. */
+    fun swipeNext(context: Context) = withPlayback(context) { it.next(SkipOrigin.SWIPE) }
+    fun swipePrevious(context: Context) = withPlayback(context) { it.previous(SkipOrigin.SWIPE) }
+    fun startScan(context: Context, forward: Boolean) = withPlayback(context) { it.startScan(forward) }
+    fun stopScan(context: Context) = withPlayback(context) { it.stopScan() }
 }

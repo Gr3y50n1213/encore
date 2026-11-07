@@ -8,6 +8,10 @@ import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
@@ -113,10 +117,18 @@ fun irisDarkScheme(): ColorScheme = with(Iris.Dark) {
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun EncoreTheme(dark: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+fun EncoreTheme(dark: Boolean? = null, content: @Composable () -> Unit) {
     val type = typeForWindow()
+    val choice by Appearance.choice.collectAsState()
+    val context = LocalContext.current
+    val isDark = dark ?: when (choice.mode) {
+        ThemeMode.System -> isSystemInDarkTheme()
+        ThemeMode.Light -> false
+        ThemeMode.Dark -> true
+    }
+    val scheme = remember(choice.accent, isDark) { accentScheme(context, choice.accent, isDark) }
     MaterialExpressiveTheme(
-        colorScheme = if (dark) irisDarkScheme() else irisLightScheme(),
+        colorScheme = scheme,
         motionScheme = MotionScheme.expressive(),
         typography = materialTypography(type),
     ) {

@@ -266,6 +266,27 @@ val checkVerifierVersion = tasks.register<CheckVerifierVersion>("checkVerifierVe
 }
 tasks.named("preBuild") { dependsOn(checkVerifierVersion) }
 
+/** Board 17, About and licenses: the app's and the core's licence lists, shipped as an asset. */
+abstract class LicenceAssets : DefaultTask() {
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val sources: ConfigurableFileCollection
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun write() {
+        val out = File(outputDir.get().asFile, "licenses").apply { mkdirs() }
+        File(out, "THIRD_PARTY_LICENSES.md").writeText(sources.files.sortedBy { it.path }.joinToString("\n\n") { it.readText() })
+    }
+}
+
+val licenceAssets = tasks.register<LicenceAssets>("licenceAssets") {
+    sources.from(rootProject.layout.projectDirectory.file("THIRD_PARTY_LICENSES.md"), coreRoot.file("THIRD_PARTY_LICENSES.md"))
+    outputDir.set(layout.buildDirectory.dir("generated/licenceAssets"))
+}
+
 // The name people see comes from the core's one brand constant (core/encore-core/src/brand.rs).
 val appName: Provider<String> = providers.fileContents(coreRoot.file("encore-core/src/brand.rs")).asText.map { text ->
     Regex("""pub const APP_NAME: &str = "([^"]+)";""").find(text)?.groupValues?.get(1)
@@ -287,6 +308,7 @@ androidComponents {
             addStaticSourceDirectory(coreRoot.dir("bindings/kotlin-android").asFile.absolutePath)
             addStaticSourceDirectory(coreRoot.dir("bindings/tokens").asFile.absolutePath)
         }
+        variant.sources.assets?.addGeneratedSourceDirectory(licenceAssets, LicenceAssets::outputDir)
         variant.resValues.put(
             variant.makeResValueKey("string", "app_name"),
             appName.map { ResValue(it, "From core/encore-core/src/brand.rs") },
@@ -317,4 +339,5 @@ dependencies {
     androidTestImplementation(libs.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.espresso)
 }

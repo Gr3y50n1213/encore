@@ -108,6 +108,9 @@ fun LibraryScreen(host: CoreHost, onOpen: (Route) -> Unit, playingSongId: Long?,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text("Library", style = type.pageTitle, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+            // Board 17: Settings sits in the Library tab on phones.
+            FilledTonalIconButton(onClick = { onOpen(Route.Settings()) }) { Icon(Icons.settings(), contentDescription = "Settings") }
+            Spacer(Modifier.size(Grid.base.dp))
             val sortable = shelf == Shelf.Albums || shelf == Shelf.Songs
             Box {
                 // Item 2: Sort.
@@ -255,7 +258,7 @@ private fun AlbumsList(host: CoreHost, sort: AlbumSort, grid: Boolean, generatio
 
 @Composable
 private fun SongsList(host: CoreHost, sort: SongSort, generation: Int, playingSongId: Long?, padding: PaddingValues) {
-    val context = LocalContext.current
+    val actions = uk.gcartee.encore.app.ui.components.LocalAppActions.current
     val pager = rememberPager(sort, generation) { o, l -> host.core.songs(sort, o.toUInt(), l.toUInt()) }
     if (pager.items.isEmpty()) {
         EmptyState("Nothing here yet", "Songs appear once your library has synced.")
@@ -265,10 +268,9 @@ private fun SongsList(host: CoreHost, sort: SongSort, generation: Int, playingSo
     LoadMore(state, pager)
     LazyColumn(state = state, contentPadding = PaddingValues(bottom = padding.calculateBottomPadding())) {
         itemsIndexed(pager.items, key = { _, s -> s.id }) { i, song ->
-            SongRow(song, playing = song.id == playingSongId, onClick = {
-                // The loaded page plays from this song (StartedFrom Songs).
-                host.core.play(pager.items.map { it.id }, i.toUInt(), StartedFrom.SONGS, null)
-                PlaybackHub.playCurrent(context)
+            uk.gcartee.encore.app.ui.components.SongItem(song, playing = song.id == playingSongId, onClick = {
+                // The loaded pages play from this song (StartedFrom Songs).
+                actions.play(pager.items.map { it.id }, i, StartedFrom.SONGS, null, "Songs")
             })
         }
     }
