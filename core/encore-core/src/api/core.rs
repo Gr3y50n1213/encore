@@ -1509,6 +1509,11 @@ impl EncoreCore {
                     removed: stats.removed as u32,
                 });
             }
+            // The companion server builds the mixes from this song list.
+            let session = lock(&p.companion)?.clone();
+            if let Some(s) = session {
+                let _ = recs::upload_catalog(&inner, &p, &s).await;
+            }
             Ok(results)
         })
         .await

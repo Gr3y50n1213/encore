@@ -888,15 +888,21 @@ impl EncoreCore {
     /// due (up to `smartPicks.budgets.mixBuildSeconds`). Async.
     pub async fn home(&self) -> Result<Home, EncoreError> {
         let inner = self.inner.clone();
-        self.spawn(async move { tokio::task::block_in_place(|| home_of(&inner, false)) })
-            .await
+        self.spawn(async move {
+            let from_server = server_set(&inner, false).await;
+            tokio::task::block_in_place(|| home_of(&inner, false, from_server))
+        })
+        .await
     }
 
     /// A new set now (Regenerate). Async.
     pub async fn regenerate_mixes(&self) -> Result<Home, EncoreError> {
         let inner = self.inner.clone();
-        self.spawn(async move { tokio::task::block_in_place(|| home_of(&inner, true)) })
-            .await
+        self.spawn(async move {
+            let from_server = server_set(&inner, true).await;
+            tokio::task::block_in_place(|| home_of(&inner, true, from_server))
+        })
+        .await
     }
 
     /// A mix's page (board 15), each song with one reason.
@@ -1124,13 +1130,20 @@ impl EncoreCore {
     }
 }
 
-fn home_of(inner: &Inner, regenerate: bool) -> Result<Home, EncoreError> {
+fn home_of(
+    inner: &Inner,
+    regenerate: bool,
+    from_server: Option<recs::MixSet>,
+) -> Result<Home, EncoreError> {
     use crate::playlog::ListeningMode as M;
     let p = inner.profile()?;
     let mode = lock(&p.playback)?.log.mode();
     let (model, catalog, ids) = inner.recs_model(&p)?;
+    let from_companion = from_server.is_some() && mode != M::LearningOff;
     let set = if mode == M::LearningOff {
         None
+    } else if let Some(set) = from_server {
+        Some(set)
     } else {
         Some(inner.mix_set(regenerate)?)
     };
@@ -1198,6 +1211,7 @@ fn home_of(inner: &Inner, regenerate: bool) -> Result<Home, EncoreError> {
             plays_so_far: model.plays_counted.min(p_full),
             plays_needed: p_full,
             made_utc_ms: made,
+            from_companion,
         },
         rediscover: shelves
             .rediscover
@@ -1214,4 +1228,90 @@ fn home_of(inner: &Inner, regenerate: bool) -> Result<Home, EncoreError> {
         recently_added,
         most_played,
     })
+}
+
+/// The profile's song list for the companion server, and its hash (SHA-256 of
+/// the JSON, so an unchanged list isn't sent again).
+fn catalog_payload(store: &Store) -> Result<(serde_json::Value, String), EncoreError> {
+    use sha2::{Digest, Sha256};
+    let (catalog, _, _) = inputs(store, true)?;
+    let songs = serde_json::to_value(catalog.songs()).map_err(EncoreError::internal)?;
+    let hash: String = Sha256::digest(songs.to_string().as_bytes())
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    Ok((songs, hash))
+}
+
+/// Send the song list to the companion server if it doesn't have this one.
+pub(super) async fn upload_catalog(
+    inner: &Inner,
+    p: &Profile,
+    s: &super::sync_loop::Session,
+) -> Result<bool, crate::companion::CompanionError> {
+    let local = |e: EncoreError| crate::companion::CompanionError::Refused(e.to_string());
+    let (songs, hash) = {
+        let store = lock(&p.store).map_err(local)?;
+        catalog_payload(&store).map_err(local)?
+    };
+    let held =
+        super::sync_loop::signed(inner, s, |a| async move { s.client.catalog_hash(&a).await })
+            .await?;
+    if held.as_deref() == Some(hash.as_str()) {
+        return Ok(false);
+    }
+    let (songs, hash) = (&songs, &hash);
+    super::sync_loop::signed(inner, s, |a| async move {
+        s.client.put_catalog(&a, hash, songs).await
+    })
+    .await?;
+    Ok(true)
+}
+
+/// Today's set from the companion server, when the profile has one and it
+/// answers; None otherwise (the device builds it itself).
+async fn server_set(inner: &Arc<Inner>, regenerate: bool) -> Option<recs::MixSet> {
+    use crate::playlog::ListeningMode as M;
+    let p = inner.profile().ok()?;
+    if lock(&p.playback).ok()?.log.mode() == M::LearningOff {
+        return None;
+    }
+    let s = lock(&p.companion).ok()?.clone()?;
+    let (offset, playing) = {
+        let pb = lock(&p.playback).ok()?;
+        (
+            pb.utc_offset_minutes,
+            pb.queue.current().and_then(|c| c.context_id.clone()),
+        )
+    };
+    let (hidden, titles) = {
+        let store = lock(&p.store).ok()?;
+        let hidden: Vec<String> = Inner::stored(&store, HIDDEN_KEY).unwrap_or_default();
+        let titles: Vec<(i64, String)> = Inner::stored(&store, TITLES_KEY).unwrap_or_default();
+        (
+            hidden,
+            titles.into_iter().map(|(_, t)| t).collect::<Vec<String>>(),
+        )
+    };
+    let body = serde_json::json!({ "utcOffsetMinutes": offset, "hidden": hidden,
+        "recentTitles": titles, "regenerate": regenerate, "playingMixId": playing });
+    let ask = || {
+        let (s, body) = (&s, &body);
+        super::sync_loop::signed(inner, s, move |a| async move {
+            s.client.recs_home(&a, body).await
+        })
+    };
+    let reply = match ask().await {
+        // No song list there yet: send it, then ask again.
+        Err(crate::companion::CompanionError::Refused(_)) => {
+            upload_catalog(inner, &p, &s).await.ok()?;
+            ask().await.ok()?
+        }
+        other => other.ok()?,
+    };
+    let set: recs::MixSet = serde_json::from_value(reply).ok()?;
+    if let Ok(store) = lock(&p.store) {
+        let _ = Inner::store_json(&store, MIX_SET_KEY, &set);
+    }
+    Some(set)
 }

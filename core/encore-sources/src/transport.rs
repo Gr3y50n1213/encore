@@ -18,6 +18,7 @@ pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 pub enum Method {
     Get,
     Post,
+    Put,
     Delete,
 }
 
@@ -26,6 +27,7 @@ impl Method {
         match self {
             Method::Get => "GET",
             Method::Post => "POST",
+            Method::Put => "PUT",
             Method::Delete => "DELETE",
         }
     }

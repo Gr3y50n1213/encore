@@ -7,6 +7,7 @@ mod config;
 mod db;
 mod error;
 mod limit;
+mod recs;
 mod sync;
 #[cfg(test)]
 mod tests;
@@ -28,6 +29,7 @@ pub use config::{
     BIND_ENV, Config, DATA_DIR_ENV, DEFAULT_BIND, JELLYFIN_URLS_ENV, bind_address, jellyfin_urls,
 };
 pub use db::{DeviceRow, Event, Status};
+pub use recs::history_from;
 pub use sync::{MAX_PULL, MAX_PUSH};
 
 use error::ApiError;
@@ -133,7 +135,14 @@ pub fn app(state: Arc<AppState>) -> Router {
         .route("/sync/push", post(sync::push))
         .route("/sync/pull", get(sync::pull))
         .route("/admin/status", get(admin_status))
+        .route("/recs/home", post(recs::home))
+        .route("/catalog/hash", get(recs::catalog_hash))
         .layer(DefaultBodyLimit::max(4 * 1024 * 1024))
+        // A big library's song list is larger than any other request.
+        .route(
+            "/catalog",
+            axum::routing::put(recs::put_catalog).layer(DefaultBodyLimit::max(64 * 1024 * 1024)),
+        )
         .with_state(state)
 }
 

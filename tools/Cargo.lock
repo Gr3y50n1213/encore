@@ -630,6 +630,7 @@ name = "recs-replay"
 version = "0.1.0"
 dependencies = [
  "encore-recs",
+ "serde_json",
 ]
 
 [[package]]

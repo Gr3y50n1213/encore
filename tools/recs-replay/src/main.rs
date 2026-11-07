@@ -4,6 +4,7 @@
 //! numbers saved in CI"; docs/adr/core-0014).
 //!
 //!   cargo run --release -p recs-replay -- [--out docs/core/REPLAY-RESULTS.md] [--check]
+//!   cargo run --release -p recs-replay -- --private target/private-history/history.json
 //!
 //! For each generated listener: after their history, in 120 listening sessions
 //! the listener picks a song, and then autoplay picks 10, or plain shuffle picks
@@ -13,6 +14,7 @@
 //! listener, and the budgets hold (a 20,000-song library and 20,000 plays: model
 //! and five mixes under 20 s and 150 MB; the next-song pick under 50 ms).
 
+mod private;
 mod sim;
 
 use std::alloc::{GlobalAlloc, Layout, System};
@@ -168,6 +170,22 @@ fn pct(x: f64) -> String {
 
 fn main() -> std::process::ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    // The owner's own history, on the owner's PC only (fixture-recorder --phase5).
+    if let Some(i) = args.iter().position(|a| a == "--private") {
+        let path = args
+            .get(i + 1)
+            .map_or("../target/private-history/history.json", String::as_str);
+        return match private::run(path) {
+            Ok(report) => {
+                print!("{report}");
+                std::process::ExitCode::SUCCESS
+            }
+            Err(e) => {
+                eprintln!("{e}");
+                std::process::ExitCode::FAILURE
+            }
+        };
+    }
     let check = args.iter().any(|a| a == "--check");
     let out = args
         .iter()

@@ -246,6 +246,7 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "encore-core",
+ "encore-recs",
  "encore-sources",
  "getrandom 0.4.3",
  "http-body-util",

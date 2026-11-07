@@ -13,7 +13,29 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 /// Every migration, oldest first. Append only.
-const MIGRATIONS: &[&str] = &[V1];
+const MIGRATIONS: &[&str] = &[V1, V2];
+
+/// Smart picks on the server (Phase 5; docs/adr/core-0013): the song list a
+/// device sends (the server has no media-server token of its own), today's mix
+/// set, and per-profile state (when the history was last cleared).
+const V2: &str = r#"
+CREATE TABLE catalogs (
+    profile_id      INTEGER PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
+    hash            TEXT    NOT NULL,
+    songs           TEXT    NOT NULL,
+    updated_utc_ms  INTEGER NOT NULL
+);
+CREATE TABLE mix_sets (
+    profile_id      INTEGER PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
+    set_json        TEXT    NOT NULL
+);
+CREATE TABLE profile_state (
+    profile_id      INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    key             TEXT    NOT NULL,
+    value           TEXT    NOT NULL,
+    PRIMARY KEY (profile_id, key)
+);
+"#;
 
 const V1: &str = r#"
 -- One row per media-server account: a profile is (media server, user ID), plan
@@ -74,6 +96,9 @@ CREATE INDEX events_by_profile ON events (profile_id, seq);
 "#;
 
 pub(crate) type Result<T> = std::result::Result<T, rusqlite::Error>;
+
+/// When the profile's listening history was last cleared (UTC ms), in profile_state.
+pub(crate) const CLEARED_KEY: &str = "clearedBeforeUtcMs";
 
 /// How long the same refresh token may be retried while its replacement is unused.
 pub(crate) const RETRY_WINDOW_MS: i64 = 120_000;
@@ -464,7 +489,45 @@ impl Db {
         let tx = c.transaction()?;
         let mut accepted = Vec::with_capacity(events.len());
         let mut changed = false;
+        let state = |tx: &rusqlite::Transaction<'_>, key: &str| -> Result<Option<i64>> {
+            Ok(tx
+                .query_row(
+                    "SELECT value FROM profile_state WHERE profile_id = ?1 AND key = ?2",
+                    params![authed.profile_id, key],
+                    |r| r.get::<_, String>(0),
+                )
+                .optional()?
+                .and_then(|v| v.parse().ok()))
+        };
+        let mut cleared_before = state(&tx, CLEARED_KEY)?.unwrap_or(i64::MIN);
         for e in events {
+            // Clear listening history: plays before it go, and stay gone (an older
+            // play pushed later is accepted and dropped, so the device stops sending).
+            if e.kind == "clearHistory"
+                && let Some(t) = e.payload["beforeUtcMs"].as_i64()
+                && t > cleared_before
+            {
+                cleared_before = t;
+                tx.execute(
+                    "INSERT INTO profile_state (profile_id, key, value) VALUES (?1, ?2, ?3)
+                     ON CONFLICT (profile_id, key) DO UPDATE SET value = excluded.value",
+                    params![authed.profile_id, CLEARED_KEY, t.to_string()],
+                )?;
+                tx.execute(
+                    "DELETE FROM events WHERE profile_id = ?1 AND kind IN ('play', 'lyricJump')
+                         AND created_utc_ms < ?2",
+                    params![authed.profile_id, t],
+                )?;
+                tx.execute(
+                    "DELETE FROM mix_sets WHERE profile_id = ?1",
+                    [authed.profile_id],
+                )?;
+            }
+            if matches!(e.kind.as_str(), "play" | "lyricJump") && e.created_utc_ms < cleared_before
+            {
+                accepted.push(e.id.clone());
+                continue;
+            }
             let held: Option<i64> = tx
                 .query_row(
                     "SELECT version FROM events WHERE profile_id = ?1 AND id = ?2",
@@ -547,6 +610,75 @@ impl Db {
             }
         }
         Ok((out, next, more))
+    }
+
+    /// The profile's song list (smart picks): replaced whole.
+    pub(crate) fn put_catalog(
+        &self,
+        profile_id: i64,
+        hash: &str,
+        songs: &str,
+        now: i64,
+    ) -> Result<()> {
+        self.conn().execute(
+            "INSERT INTO catalogs (profile_id, hash, songs, updated_utc_ms) VALUES (?1, ?2, ?3, ?4)
+             ON CONFLICT (profile_id) DO UPDATE SET hash = excluded.hash, songs = excluded.songs,
+                 updated_utc_ms = excluded.updated_utc_ms",
+            params![profile_id, hash, songs, now],
+        )?;
+        Ok(())
+    }
+
+    /// (hash, songs JSON).
+    pub(crate) fn catalog(&self, profile_id: i64) -> Result<Option<(String, String)>> {
+        self.conn()
+            .query_row(
+                "SELECT hash, songs FROM catalogs WHERE profile_id = ?1",
+                [profile_id],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .optional()
+    }
+
+    /// Every event of the profile, oldest first (what smart picks learns from).
+    pub(crate) fn all_events(&self, profile_id: i64) -> Result<Vec<Event>> {
+        let c = self.conn();
+        let mut st = c.prepare(
+            "SELECT id, device_id, kind, hlc, version, payload, created_utc_ms
+             FROM events WHERE profile_id = ?1 ORDER BY seq",
+        )?;
+        st.query_map([profile_id], |r| {
+            let payload: String = r.get(5)?;
+            Ok(Event {
+                id: r.get(0)?,
+                device_id: r.get(1)?,
+                kind: r.get(2)?,
+                hlc: r.get(3)?,
+                version: r.get(4)?,
+                payload: serde_json::from_str(&payload).unwrap_or(serde_json::Value::Null),
+                created_utc_ms: r.get(6)?,
+            })
+        })?
+        .collect()
+    }
+
+    pub(crate) fn mix_set(&self, profile_id: i64) -> Result<Option<String>> {
+        self.conn()
+            .query_row(
+                "SELECT set_json FROM mix_sets WHERE profile_id = ?1",
+                [profile_id],
+                |r| r.get(0),
+            )
+            .optional()
+    }
+
+    pub(crate) fn put_mix_set(&self, profile_id: i64, json: &str) -> Result<()> {
+        self.conn().execute(
+            "INSERT INTO mix_sets (profile_id, set_json) VALUES (?1, ?2)
+             ON CONFLICT (profile_id) DO UPDATE SET set_json = excluded.set_json",
+            params![profile_id, json],
+        )?;
+        Ok(())
     }
 
     pub(crate) fn status(&self) -> Result<Status> {

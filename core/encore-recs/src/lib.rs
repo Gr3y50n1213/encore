@@ -27,7 +27,7 @@ use serde::{Deserialize, Serialize};
 
 pub use mixes::{Mix, MixSet, MixSlot, Previous, Shelves, build_mixes, build_shelves};
 pub use model::Model;
-pub use rank::{Context, Pick, Reason, autoplay, radio, smart_shuffle, sounds_like, why};
+pub use rank::{Context, Pick, Reason, autoplay, radio, score_of, smart_shuffle, sounds_like, why};
 pub use stats::{ShelfStats, Stats, stats};
 
 /// One song of the library, as the engine needs it.

@@ -433,3 +433,62 @@ fn a_like_shows_on_the_mac_within_a_second_through_the_docker_image() {
     assert!(latency < Duration::from_secs(1), "{latency:?}");
     assert!(mac.are_liked(vec![song]).unwrap()[0]);
 }
+
+/// Phase 5, the owner's choice: the mixes are built on the companion server, and
+/// every device of the profile shows the same set; with the server gone, a device
+/// builds its own.
+#[test]
+fn the_mixes_come_from_the_companion_server_and_the_device_builds_them_without_it() {
+    let server_dir = temp_dir("server-mixes");
+    let (addr, server) = start_server(&server_dir);
+    let url = format!("http://127.0.0.1:{}", addr.port());
+    let (_pd, phone, _pe, _) = device("phone", addr);
+    let (_md, mac, _me, _) = device("mac", addr);
+    block(phone.connect_companion(url.clone())).unwrap();
+    block(mac.connect_companion(url)).unwrap();
+
+    // The phone listens to 60 songs; its plays and its song list reach the server.
+    let ids: Vec<i64> = phone
+        .songs(SongSort::Title, 0, 1000)
+        .unwrap()
+        .iter()
+        .map(|s| s.id)
+        .collect();
+    for k in 0..60 {
+        let state = phone
+            .play(vec![ids[k % ids.len()]], 0, StartedFrom::Songs, None)
+            .unwrap();
+        phone
+            .playback_started(state.current.unwrap().uid, 60)
+            .unwrap();
+        phone.playback_ended(EndReason::Finished, 200_000).unwrap();
+    }
+    block(phone.sync_now()).unwrap();
+    block(phone.sync_library()).unwrap();
+    block(mac.sync_now()).unwrap();
+
+    let on_phone = block(phone.home()).unwrap().made_for_you;
+    let on_mac = block(mac.home()).unwrap().made_for_you;
+    assert!(
+        on_phone.from_companion && on_mac.from_companion,
+        "both from the server"
+    );
+    assert!(!on_phone.mixes.is_empty(), "{on_phone:?}");
+    let titles = |s: &encore_core::api::MixShelf| {
+        s.mixes
+            .iter()
+            .map(|m| (m.mix_id.clone(), m.title.clone()))
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(
+        titles(&on_phone),
+        titles(&on_mac),
+        "every device shows the same set"
+    );
+
+    // The server goes away: the phone builds its own set, from the same log.
+    drop(server);
+    let alone = block(phone.regenerate_mixes()).unwrap().made_for_you;
+    assert!(!alone.from_companion);
+    assert!(!alone.mixes.is_empty());
+}

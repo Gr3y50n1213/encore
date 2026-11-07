@@ -655,6 +655,55 @@ impl JellyfinClient {
         Ok(out)
     }
 
+    /// Jellyfin's own "similar items" for an item (by its metadata): IDs, at most
+    /// `limit`. A candidate pool for smart picks when there is little history.
+    pub async fn similar(&self, item_id: &str, limit: u32) -> Result<Vec<String>> {
+        let limit = limit.to_string();
+        let page: ItemsResult = self
+            .get_json(
+                &format!("/Items/{item_id}/Similar"),
+                &[("limit", limit.as_str())],
+            )
+            .await?;
+        Ok(page
+            .items
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|i| i.id)
+            .collect())
+    }
+
+    /// The installed plugins' names (needs an administrator's token).
+    pub async fn plugin_names(&self) -> Result<Vec<String>> {
+        let list: Vec<serde_json::Value> = self.get_json("/Plugins", &[]).await?;
+        Ok(list
+            .iter()
+            .filter_map(|p| p["Name"].as_str().map(str::to_owned))
+            .collect())
+    }
+
+    /// A read-only query of the Playback Reporting plugin's play log
+    /// (`POST /user_usage_stats/submit_custom_query`, administrators only). The
+    /// reply is the plugin's own JSON (`colums`, `results`).
+    pub async fn playback_reporting_query(&self, select: &str) -> Result<serde_json::Value> {
+        if !select
+            .trim_start()
+            .to_ascii_uppercase()
+            .starts_with("SELECT")
+        {
+            return Err(SourceError::Protocol("only a SELECT may be sent".into()));
+        }
+        let body = serde_json::json!({ "CustomQueryString": select, "ReplaceUserId": false });
+        let resp = self
+            .send(
+                Method::Post,
+                self.url("/user_usage_stats/submit_custom_query", &[])?,
+                Some(body),
+            )
+            .await?;
+        Self::check(resp, SourceError::SessionExpired)?.json()
+    }
+
     /// The primary image as PNG, at most `size_px` on its longer side, for colour
     /// sampling (board 04). PNG because it is lossless: every device decodes the
     /// same pixels, so every device makes the same palette. `tag` (the image tag)

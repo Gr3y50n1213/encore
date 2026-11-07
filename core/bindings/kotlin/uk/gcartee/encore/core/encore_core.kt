@@ -846,6 +846,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_servers(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_set_autoplay(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_set_listener(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_set_listening_mode(
@@ -911,6 +913,52 @@ internal object IntegrityCheckingUniffiLib {
     external fun uniffi_encore_core_checksum_method_encorecore_switch_profile(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_unlock_profile(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_adventurousness(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_clear_listening_history(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_clear_not_interested(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_fewer_like_this(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_hide_mix(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_home(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_mix(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_more_like_this(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_not_in_this_mix(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_not_interested_artist(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_not_interested_list(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_not_interested_song(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_pin_mix(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_refresh_autoplay(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_regenerate_mixes(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_remove_not_interested(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_reset_suggestions(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_save_mix_as_playlist(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_set_adventurousness(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_smart_shuffle(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_start_radio(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_suggestion_stats(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_why_this_song(
     ): Int
     external fun uniffi_encore_core_checksum_method_corelistener_on_event(
     ): Int
@@ -1079,6 +1127,8 @@ internal object UniffiLib {
     ): Long
     external fun uniffi_encore_core_fn_method_encorecore_servers(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_set_autoplay(`ptr`: Long,`enabled`: Byte,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_set_listener(`ptr`: Long,`listener`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_encore_core_fn_method_encorecore_set_listening_mode(`ptr`: Long,`mode`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -1145,6 +1195,52 @@ internal object UniffiLib {
     ): Long
     external fun uniffi_encore_core_fn_method_encorecore_unlock_profile(`ptr`: Long,`profileId`: RustBuffer.ByValue,`pinIn`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_adventurousness(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_clear_listening_history(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Int
+    external fun uniffi_encore_core_fn_method_encorecore_clear_not_interested(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_fewer_like_this(`ptr`: Long,`songId`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_hide_mix(`ptr`: Long,`mixId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_home(`ptr`: Long,
+    ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_mix(`ptr`: Long,`mixId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_more_like_this(`ptr`: Long,`songId`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_not_in_this_mix(`ptr`: Long,`mixId`: RustBuffer.ByValue,`songId`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_not_interested_artist(`ptr`: Long,`artist`: RustBuffer.ByValue,`reason`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_not_interested_list(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_not_interested_song(`ptr`: Long,`songId`: Long,`reason`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_pin_mix(`ptr`: Long,`mixId`: RustBuffer.ByValue,`pinned`: Byte,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_refresh_autoplay(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_regenerate_mixes(`ptr`: Long,
+    ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_remove_not_interested(`ptr`: Long,`item`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_reset_suggestions(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_save_mix_as_playlist(`ptr`: Long,`mixId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_set_adventurousness(`ptr`: Long,`level`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_smart_shuffle(`ptr`: Long,`songIds`: RustBuffer.ByValue,`startedFrom`: RustBuffer.ByValue,`contextId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_start_radio(`ptr`: Long,`seed`: RustBuffer.ByValue,`id`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_suggestion_stats(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_why_this_song(`ptr`: Long,`songId`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_clone_corelistener(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Long
     external fun uniffi_encore_core_fn_free_corelistener(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -1491,6 +1587,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_encore_core_checksum_method_encorecore_servers() and 0xFFFF) != 57243) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_set_autoplay() and 0xFFFF) != 43403) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_set_listener() and 0xFFFF) != 52298) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1588,6 +1687,75 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_unlock_profile() and 0xFFFF) != 64461) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_adventurousness() and 0xFFFF) != 59213) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_clear_listening_history() and 0xFFFF) != 39419) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_clear_not_interested() and 0xFFFF) != 1236) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_fewer_like_this() and 0xFFFF) != 5586) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_hide_mix() and 0xFFFF) != 6726) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_home() and 0xFFFF) != 50790) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_mix() and 0xFFFF) != 9008) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_more_like_this() and 0xFFFF) != 23956) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_not_in_this_mix() and 0xFFFF) != 61238) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_not_interested_artist() and 0xFFFF) != 17691) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_not_interested_list() and 0xFFFF) != 17188) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_not_interested_song() and 0xFFFF) != 3938) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_pin_mix() and 0xFFFF) != 32977) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_refresh_autoplay() and 0xFFFF) != 60141) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_regenerate_mixes() and 0xFFFF) != 21268) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_remove_not_interested() and 0xFFFF) != 12588) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_reset_suggestions() and 0xFFFF) != 25035) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_save_mix_as_playlist() and 0xFFFF) != 6768) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_set_adventurousness() and 0xFFFF) != 41073) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_smart_shuffle() and 0xFFFF) != 41403) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_start_radio() and 0xFFFF) != 22365) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_suggestion_stats() and 0xFFFF) != 33503) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_why_this_song() and 0xFFFF) != 5198) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_corelistener_on_event() and 0xFFFF) != 61302) {
@@ -2812,6 +2980,12 @@ public interface EncoreCoreInterface {
     fun `servers`(): List<ServerRow>
     
     /**
+     * The queue's Autoplay switch (board 11). Off: the queue ends with its last
+     * song, and the Autoplay section empties.
+     */
+    fun `setAutoplay`(`enabled`: kotlin.Boolean): QueueState
+    
+    /**
      * Receive events (queue changed, now playing, preload, sync progress).
      */
     fun `setListener`(`listener`: CoreListener)
@@ -2988,6 +3162,131 @@ public interface EncoreCoreInterface {
      * PINs lock it for 30 s, then longer; the reason says how long.
      */
     fun `unlockProfile`(`profileId`: kotlin.String, `pinIn`: kotlin.String?)
+    
+    fun `adventurousness`(): Adventurousness
+    
+    /**
+     * Clear listening history (board 38, note 6): every play and lyric tap so
+     * far is deleted, on this device, the companion server and every device of
+     * the profile; none can bring them back. The yearly recap starts again today.
+     */
+    fun `clearListeningHistory`(): kotlin.UInt
+    
+    /**
+     * Clear list (Not interested has its own; Reset suggestions leaves it).
+     */
+    fun `clearNotInterested`()
+    
+    fun `fewerLikeThis`(`songId`: kotlin.Long)
+    
+    /**
+     * Hide a mix from today's set (Undo: `unhide_mix`).
+     */
+    fun `hideMix`(`mixId`: kotlin.String)
+    
+    /**
+     * Home (the surfaces table of section 21): Made for you, Rediscover, Recently
+     * played, Deep Cuts, Recently added and Most played. Builds today's mixes when
+     * due (up to `smartPicks.budgets.mixBuildSeconds`). Async.
+     */
+    suspend fun `home`(): Home
+    
+    /**
+     * A mix's page (board 15), each song with one reason.
+     */
+    fun `mix`(`mixId`: kotlin.String): MixPage
+    
+    /**
+     * More like this (+1.5 for the song and its neighbours here; not a like) or
+     * Fewer like this (-1). Show a one-line confirmation.
+     */
+    fun `moreLikeThis`(`songId`: kotlin.Long)
+    
+    /**
+     * Not in this mix (board 15, item 5): the song leaves the mix and the mix's
+     * mood learns it doesn't fit (Fewer like this at this time of day).
+     */
+    fun `notInThisMix`(`mixId`: kotlin.String, `songId`: kotlin.Long)
+    
+    /**
+     * Not interested in an artist: none of their songs are suggested.
+     */
+    fun `notInterestedArtist`(`artist`: kotlin.String, `reason`: NotInterestedReason): NotInterestedItem
+    
+    /**
+     * Settings, Not interested.
+     */
+    fun `notInterestedList`(): List<NotInterestedItem>
+    
+    /**
+     * Not interested in a song (board 38): it leaves every smart surface at once
+     * but still plays when picked. Undo for 5 s with `remove_not_interested`.
+     */
+    fun `notInterestedSong`(`songId`: kotlin.Long, `reason`: NotInterestedReason): NotInterestedItem
+    
+    /**
+     * Pin (kept past tomorrow; up to 10) or unpin a mix.
+     */
+    fun `pinMix`(`mixId`: kotlin.String, `pinned`: kotlin.Boolean)
+    
+    /**
+     * Fill Autoplay now with 10 songs seeded by the current song and the last ones
+     * finished (the core also does this by itself when fewer than 5 are
+     * upcoming). Only the Autoplay section changes; songs the user queued are
+     * never touched.
+     */
+    fun `refreshAutoplay`(): QueueState
+    
+    /**
+     * A new set now (Regenerate). Async.
+     */
+    suspend fun `regenerateMixes`(): Home
+    
+    /**
+     * Undo, or remove from Settings' list.
+     */
+    fun `removeNotInterested`(`item`: NotInterestedItem)
+    
+    /**
+     * Reset suggestions (board 38, note 5): a new learning epoch. Plays and
+     * feedback before now stop counting; likes, playlists, history and the Not
+     * interested list stay. Syncs as a tombstone no device can undo.
+     */
+    fun `resetSuggestions`()
+    
+    /**
+     * Save as playlist (board 15): a normal playlist with the mix's songs and
+     * title, written to the media server like any other.
+     */
+    fun `saveMixAsPlaylist`(`mixId`: kotlin.String): EditResult
+    
+    /**
+     * How adventurous (board 38); applies from the next refill.
+     */
+    fun `setAdventurousness`(`level`: Adventurousness)
+    
+    /**
+     * Smart shuffle (section 21, New): the list shuffled, with one suggestion
+     * after every 4 songs. Suggestions have `chosen_by` App (show the spark mark;
+     * a swipe removes one).
+     */
+    fun `smartShuffle`(`songIds`: List<kotlin.Long>, `startedFrom`: StartedFrom, `contextId`: kotlin.String?): QueueState
+    
+    /**
+     * Radio from a song, album, artist or playlist (section 21): it plays the
+     * seed, then Autoplay keeps the seed for the whole session.
+     */
+    fun `startRadio`(`seed`: RadioSeed, `id`: kotlin.Long): QueueState
+    
+    /**
+     * How suggestions are doing (board 38, note 7): local, the last 4 weeks.
+     */
+    fun `suggestionStats`(): SuggestionStats
+    
+    /**
+     * Why this song (board 38): one or two reasons and up to two "sounds like".
+     */
+    fun `whyThisSong`(`songId`: kotlin.Long): WhyThisSong
     
     companion object
 }
@@ -4437,6 +4736,25 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
 
     
     /**
+     * The queue's Autoplay switch (board 11). Off: the queue ends with its last
+     * song, and the Autoplay section empties.
+     */
+    @Throws(EncoreException::class)override fun `setAutoplay`(`enabled`: kotlin.Boolean): QueueState {
+            return FfiConverterTypeQueueState.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_set_autoplay(
+        it,
+        
+        FfiConverterBoolean.lower(`enabled`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
      * Receive events (queue changed, now playing, preload, sync progress).
      */override fun `setListener`(`listener`: CoreListener)
         = 
@@ -5066,6 +5384,433 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
 }
     }
     
+    
+
+    
+    @Throws(EncoreException::class)override fun `adventurousness`(): Adventurousness {
+            return FfiConverterTypeAdventurousness.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_adventurousness(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Clear listening history (board 38, note 6): every play and lyric tap so
+     * far is deleted, on this device, the companion server and every device of
+     * the profile; none can bring them back. The yearly recap starts again today.
+     */
+    @Throws(EncoreException::class)override fun `clearListeningHistory`(): kotlin.UInt {
+            return FfiConverterUInt.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_clear_listening_history(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Clear list (Not interested has its own; Reset suggestions leaves it).
+     */
+    @Throws(EncoreException::class)override fun `clearNotInterested`()
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_clear_not_interested(
+        it,
+        _status)
+}
+    }
+    
+    
+
+    
+    @Throws(EncoreException::class)override fun `fewerLikeThis`(`songId`: kotlin.Long)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_fewer_like_this(
+        it,
+        
+        FfiConverterLong.lower(`songId`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Hide a mix from today's set (Undo: `unhide_mix`).
+     */
+    @Throws(EncoreException::class)override fun `hideMix`(`mixId`: kotlin.String)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_hide_mix(
+        it,
+        
+        FfiConverterString.lower(`mixId`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Home (the surfaces table of section 21): Made for you, Rediscover, Recently
+     * played, Deep Cuts, Recently added and Most played. Builds today's mixes when
+     * due (up to `smartPicks.budgets.mixBuildSeconds`). Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `home`() : Home {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_home(
+                uniffiHandle,
+                
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeHome.lift(it) },
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * A mix's page (board 15), each song with one reason.
+     */
+    @Throws(EncoreException::class)override fun `mix`(`mixId`: kotlin.String): MixPage {
+            return FfiConverterTypeMixPage.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_mix(
+        it,
+        
+        FfiConverterString.lower(`mixId`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * More like this (+1.5 for the song and its neighbours here; not a like) or
+     * Fewer like this (-1). Show a one-line confirmation.
+     */
+    @Throws(EncoreException::class)override fun `moreLikeThis`(`songId`: kotlin.Long)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_more_like_this(
+        it,
+        
+        FfiConverterLong.lower(`songId`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Not in this mix (board 15, item 5): the song leaves the mix and the mix's
+     * mood learns it doesn't fit (Fewer like this at this time of day).
+     */
+    @Throws(EncoreException::class)override fun `notInThisMix`(`mixId`: kotlin.String, `songId`: kotlin.Long)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_not_in_this_mix(
+        it,
+        
+        FfiConverterString.lower(`mixId`),
+        FfiConverterLong.lower(`songId`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Not interested in an artist: none of their songs are suggested.
+     */
+    @Throws(EncoreException::class)override fun `notInterestedArtist`(`artist`: kotlin.String, `reason`: NotInterestedReason): NotInterestedItem {
+            return FfiConverterTypeNotInterestedItem.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_not_interested_artist(
+        it,
+        
+        FfiConverterString.lower(`artist`),
+        FfiConverterTypeNotInterestedReason.lower(`reason`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Settings, Not interested.
+     */
+    @Throws(EncoreException::class)override fun `notInterestedList`(): List<NotInterestedItem> {
+            return FfiConverterSequenceTypeNotInterestedItem.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_not_interested_list(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Not interested in a song (board 38): it leaves every smart surface at once
+     * but still plays when picked. Undo for 5 s with `remove_not_interested`.
+     */
+    @Throws(EncoreException::class)override fun `notInterestedSong`(`songId`: kotlin.Long, `reason`: NotInterestedReason): NotInterestedItem {
+            return FfiConverterTypeNotInterestedItem.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_not_interested_song(
+        it,
+        
+        FfiConverterLong.lower(`songId`),
+        FfiConverterTypeNotInterestedReason.lower(`reason`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Pin (kept past tomorrow; up to 10) or unpin a mix.
+     */
+    @Throws(EncoreException::class)override fun `pinMix`(`mixId`: kotlin.String, `pinned`: kotlin.Boolean)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_pin_mix(
+        it,
+        
+        FfiConverterString.lower(`mixId`),
+        FfiConverterBoolean.lower(`pinned`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Fill Autoplay now with 10 songs seeded by the current song and the last ones
+     * finished (the core also does this by itself when fewer than 5 are
+     * upcoming). Only the Autoplay section changes; songs the user queued are
+     * never touched.
+     */
+    @Throws(EncoreException::class)override fun `refreshAutoplay`(): QueueState {
+            return FfiConverterTypeQueueState.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_refresh_autoplay(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * A new set now (Regenerate). Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `regenerateMixes`() : Home {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_regenerate_mixes(
+                uniffiHandle,
+                
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeHome.lift(it) },
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * Undo, or remove from Settings' list.
+     */
+    @Throws(EncoreException::class)override fun `removeNotInterested`(`item`: NotInterestedItem)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_remove_not_interested(
+        it,
+        
+        FfiConverterTypeNotInterestedItem.lower(`item`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Reset suggestions (board 38, note 5): a new learning epoch. Plays and
+     * feedback before now stop counting; likes, playlists, history and the Not
+     * interested list stay. Syncs as a tombstone no device can undo.
+     */
+    @Throws(EncoreException::class)override fun `resetSuggestions`()
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_reset_suggestions(
+        it,
+        _status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Save as playlist (board 15): a normal playlist with the mix's songs and
+     * title, written to the media server like any other.
+     */
+    @Throws(EncoreException::class)override fun `saveMixAsPlaylist`(`mixId`: kotlin.String): EditResult {
+            return FfiConverterTypeEditResult.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_save_mix_as_playlist(
+        it,
+        
+        FfiConverterString.lower(`mixId`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * How adventurous (board 38); applies from the next refill.
+     */
+    @Throws(EncoreException::class)override fun `setAdventurousness`(`level`: Adventurousness)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_set_adventurousness(
+        it,
+        
+        FfiConverterTypeAdventurousness.lower(`level`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Smart shuffle (section 21, New): the list shuffled, with one suggestion
+     * after every 4 songs. Suggestions have `chosen_by` App (show the spark mark;
+     * a swipe removes one).
+     */
+    @Throws(EncoreException::class)override fun `smartShuffle`(`songIds`: List<kotlin.Long>, `startedFrom`: StartedFrom, `contextId`: kotlin.String?): QueueState {
+            return FfiConverterTypeQueueState.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_smart_shuffle(
+        it,
+        
+        FfiConverterSequenceLong.lower(`songIds`),
+        FfiConverterTypeStartedFrom.lower(`startedFrom`),
+        FfiConverterOptionalString.lower(`contextId`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Radio from a song, album, artist or playlist (section 21): it plays the
+     * seed, then Autoplay keeps the seed for the whole session.
+     */
+    @Throws(EncoreException::class)override fun `startRadio`(`seed`: RadioSeed, `id`: kotlin.Long): QueueState {
+            return FfiConverterTypeQueueState.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_start_radio(
+        it,
+        
+        FfiConverterTypeRadioSeed.lower(`seed`),
+        FfiConverterLong.lower(`id`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * How suggestions are doing (board 38, note 7): local, the last 4 weeks.
+     */
+    @Throws(EncoreException::class)override fun `suggestionStats`(): SuggestionStats {
+            return FfiConverterTypeSuggestionStats.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_suggestion_stats(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Why this song (board 38): one or two reasons and up to two "sounds like".
+     */
+    @Throws(EncoreException::class)override fun `whyThisSong`(`songId`: kotlin.Long): WhyThisSong {
+            return FfiConverterTypeWhyThisSong.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_why_this_song(
+        it,
+        
+        FfiConverterLong.lower(`songId`),_status)
+}
+    }
+    )
+    }
     
 
     
@@ -5966,6 +6711,79 @@ public object FfiConverterTypeGuestSession: FfiConverterRustBuffer<GuestSession>
 
 
 
+/**
+ * Home (boards 05 and 23; the surfaces table of section 21).
+ */
+data class Home (
+    var `madeForYou`: MixShelf
+    , 
+    /**
+     * Loved songs not heard for 60+ days (12), else random liked songs.
+     */
+    var `rediscover`: List<Song>
+    , 
+    /**
+     * Plain history order, no smarts.
+     */
+    var `recentlyPlayed`: List<Song>
+    , 
+    /**
+     * Never played, matching the user's taste.
+     */
+    var `deepCuts`: List<Song>
+    , 
+    var `recentlyAdded`: List<Song>
+    , 
+    /**
+     * The Learning-off fallback (also shown when there is little else).
+     */
+    var `mostPlayed`: List<Song>
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeHome: FfiConverterRustBuffer<Home> {
+    override fun read(buf: ByteBuffer): Home {
+        return Home(
+            FfiConverterTypeMixShelf.read(buf),
+            FfiConverterSequenceTypeSong.read(buf),
+            FfiConverterSequenceTypeSong.read(buf),
+            FfiConverterSequenceTypeSong.read(buf),
+            FfiConverterSequenceTypeSong.read(buf),
+            FfiConverterSequenceTypeSong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: Home) = (
+            FfiConverterTypeMixShelf.allocationSize(value.`madeForYou`) +
+            FfiConverterSequenceTypeSong.allocationSize(value.`rediscover`) +
+            FfiConverterSequenceTypeSong.allocationSize(value.`recentlyPlayed`) +
+            FfiConverterSequenceTypeSong.allocationSize(value.`deepCuts`) +
+            FfiConverterSequenceTypeSong.allocationSize(value.`recentlyAdded`) +
+            FfiConverterSequenceTypeSong.allocationSize(value.`mostPlayed`)
+    )
+
+    override fun write(value: Home, buf: ByteBuffer) {
+            FfiConverterTypeMixShelf.write(value.`madeForYou`, buf)
+            FfiConverterSequenceTypeSong.write(value.`rediscover`, buf)
+            FfiConverterSequenceTypeSong.write(value.`recentlyPlayed`, buf)
+            FfiConverterSequenceTypeSong.write(value.`deepCuts`, buf)
+            FfiConverterSequenceTypeSong.write(value.`recentlyAdded`, buf)
+            FfiConverterSequenceTypeSong.write(value.`mostPlayed`, buf)
+    }
+}
+
+
+
 data class HttpHeader (
     var `name`: kotlin.String
     , 
@@ -6300,6 +7118,305 @@ public object FfiConverterTypeLyricWord: FfiConverterRustBuffer<LyricWord> {
 
 
 
+data class MixPage (
+    var `summary`: MixSummary
+    , 
+    var `songs`: List<MixSong>
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeMixPage: FfiConverterRustBuffer<MixPage> {
+    override fun read(buf: ByteBuffer): MixPage {
+        return MixPage(
+            FfiConverterTypeMixSummary.read(buf),
+            FfiConverterSequenceTypeMixSong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: MixPage) = (
+            FfiConverterTypeMixSummary.allocationSize(value.`summary`) +
+            FfiConverterSequenceTypeMixSong.allocationSize(value.`songs`)
+    )
+
+    override fun write(value: MixPage, buf: ByteBuffer) {
+            FfiConverterTypeMixSummary.write(value.`summary`, buf)
+            FfiConverterSequenceTypeMixSong.write(value.`songs`, buf)
+    }
+}
+
+
+
+data class MixShelf (
+    var `state`: MixState
+    , 
+    /**
+     * Pinned first, then today's set.
+     */
+    var `mixes`: List<MixSummary>
+    , 
+    var `playsSoFar`: kotlin.UInt
+    , 
+    var `playsNeeded`: kotlin.UInt
+    , 
+    /**
+     * When the set was made; None before the first build.
+     */
+    var `madeUtcMs`: kotlin.Long?
+    , 
+    /**
+     * Made by the companion server (else on this device).
+     */
+    var `fromCompanion`: kotlin.Boolean
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeMixShelf: FfiConverterRustBuffer<MixShelf> {
+    override fun read(buf: ByteBuffer): MixShelf {
+        return MixShelf(
+            FfiConverterTypeMixState.read(buf),
+            FfiConverterSequenceTypeMixSummary.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterOptionalLong.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: MixShelf) = (
+            FfiConverterTypeMixState.allocationSize(value.`state`) +
+            FfiConverterSequenceTypeMixSummary.allocationSize(value.`mixes`) +
+            FfiConverterUInt.allocationSize(value.`playsSoFar`) +
+            FfiConverterUInt.allocationSize(value.`playsNeeded`) +
+            FfiConverterOptionalLong.allocationSize(value.`madeUtcMs`) +
+            FfiConverterBoolean.allocationSize(value.`fromCompanion`)
+    )
+
+    override fun write(value: MixShelf, buf: ByteBuffer) {
+            FfiConverterTypeMixState.write(value.`state`, buf)
+            FfiConverterSequenceTypeMixSummary.write(value.`mixes`, buf)
+            FfiConverterUInt.write(value.`playsSoFar`, buf)
+            FfiConverterUInt.write(value.`playsNeeded`, buf)
+            FfiConverterOptionalLong.write(value.`madeUtcMs`, buf)
+            FfiConverterBoolean.write(value.`fromCompanion`, buf)
+    }
+}
+
+
+
+data class MixSong (
+    var `song`: Song
+    , 
+    /**
+     * One short reason for the row (board 15, item 5).
+     */
+    var `reason`: PickReason?
+    , 
+    /**
+     * New to the user (the stretch mix's 30%).
+     */
+    var `newToYou`: kotlin.Boolean
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeMixSong: FfiConverterRustBuffer<MixSong> {
+    override fun read(buf: ByteBuffer): MixSong {
+        return MixSong(
+            FfiConverterTypeSong.read(buf),
+            FfiConverterOptionalTypePickReason.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: MixSong) = (
+            FfiConverterTypeSong.allocationSize(value.`song`) +
+            FfiConverterOptionalTypePickReason.allocationSize(value.`reason`) +
+            FfiConverterBoolean.allocationSize(value.`newToYou`)
+    )
+
+    override fun write(value: MixSong, buf: ByteBuffer) {
+            FfiConverterTypeSong.write(value.`song`, buf)
+            FfiConverterOptionalTypePickReason.write(value.`reason`, buf)
+            FfiConverterBoolean.write(value.`newToYou`, buf)
+    }
+}
+
+
+
+/**
+ * A mix tile (Home's Made for you, the Mixes tab).
+ */
+data class MixSummary (
+    var `mixId`: kotlin.String
+    , 
+    var `kind`: MixKind
+    , 
+    /**
+     * 2 to 4 plain words (the section 7.1 rules, enforced in the core).
+     */
+    var `title`: kotlin.String
+    , 
+    /**
+     * "Mostly A, B and 12 more".
+     */
+    var `subtitle`: kotlin.String
+    , 
+    /**
+     * The songs for the 2×2 cover mosaic (up to 4, different albums).
+     */
+    var `coverSongIds`: List<kotlin.Long>
+    , 
+    var `songCount`: kotlin.UInt
+    , 
+    var `pinned`: kotlin.Boolean
+    , 
+    var `madeUtcMs`: kotlin.Long
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeMixSummary: FfiConverterRustBuffer<MixSummary> {
+    override fun read(buf: ByteBuffer): MixSummary {
+        return MixSummary(
+            FfiConverterString.read(buf),
+            FfiConverterTypeMixKind.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterSequenceLong.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterLong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: MixSummary) = (
+            FfiConverterString.allocationSize(value.`mixId`) +
+            FfiConverterTypeMixKind.allocationSize(value.`kind`) +
+            FfiConverterString.allocationSize(value.`title`) +
+            FfiConverterString.allocationSize(value.`subtitle`) +
+            FfiConverterSequenceLong.allocationSize(value.`coverSongIds`) +
+            FfiConverterUInt.allocationSize(value.`songCount`) +
+            FfiConverterBoolean.allocationSize(value.`pinned`) +
+            FfiConverterLong.allocationSize(value.`madeUtcMs`)
+    )
+
+    override fun write(value: MixSummary, buf: ByteBuffer) {
+            FfiConverterString.write(value.`mixId`, buf)
+            FfiConverterTypeMixKind.write(value.`kind`, buf)
+            FfiConverterString.write(value.`title`, buf)
+            FfiConverterString.write(value.`subtitle`, buf)
+            FfiConverterSequenceLong.write(value.`coverSongIds`, buf)
+            FfiConverterUInt.write(value.`songCount`, buf)
+            FfiConverterBoolean.write(value.`pinned`, buf)
+            FfiConverterLong.write(value.`madeUtcMs`, buf)
+    }
+}
+
+
+
+/**
+ * One entry of Settings, Not interested.
+ */
+data class NotInterestedItem (
+    /**
+     * Set for a song (the song still plays when the user picks it).
+     */
+    var `songId`: kotlin.Long?
+    , 
+    /**
+     * Set for an artist.
+     */
+    var `artist`: kotlin.String?
+    , 
+    /**
+     * The song's title or the artist's name, for the list.
+     */
+    var `label`: kotlin.String
+    , 
+    var `reason`: NotInterestedReason
+    , 
+    var `addedUtcMs`: kotlin.Long
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeNotInterestedItem: FfiConverterRustBuffer<NotInterestedItem> {
+    override fun read(buf: ByteBuffer): NotInterestedItem {
+        return NotInterestedItem(
+            FfiConverterOptionalLong.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterTypeNotInterestedReason.read(buf),
+            FfiConverterLong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: NotInterestedItem) = (
+            FfiConverterOptionalLong.allocationSize(value.`songId`) +
+            FfiConverterOptionalString.allocationSize(value.`artist`) +
+            FfiConverterString.allocationSize(value.`label`) +
+            FfiConverterTypeNotInterestedReason.allocationSize(value.`reason`) +
+            FfiConverterLong.allocationSize(value.`addedUtcMs`)
+    )
+
+    override fun write(value: NotInterestedItem, buf: ByteBuffer) {
+            FfiConverterOptionalLong.write(value.`songId`, buf)
+            FfiConverterOptionalString.write(value.`artist`, buf)
+            FfiConverterString.write(value.`label`, buf)
+            FfiConverterTypeNotInterestedReason.write(value.`reason`, buf)
+            FfiConverterLong.write(value.`addedUtcMs`, buf)
+    }
+}
+
+
+
 /**
  * One colour sampled from the cover and its share of it (0 to 1).
  */
@@ -6336,6 +7453,74 @@ public object FfiConverterTypePaletteSwatch: FfiConverterRustBuffer<PaletteSwatc
     override fun write(value: PaletteSwatch, buf: ByteBuffer) {
             FfiConverterString.write(value.`colour`, buf)
             FfiConverterDouble.write(value.`share`, buf)
+    }
+}
+
+
+
+data class PickReason (
+    var `kind`: ReasonKind
+    , 
+    var `song`: Song?
+    , 
+    var `count`: kotlin.UInt?
+    , 
+    var `of`: kotlin.UInt?
+    , 
+    var `days`: kotlin.UInt?
+    , 
+    var `timeOfDay`: TimeOfDay?
+    , 
+    var `artist`: kotlin.String?
+    , 
+    var `genre`: kotlin.String?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypePickReason: FfiConverterRustBuffer<PickReason> {
+    override fun read(buf: ByteBuffer): PickReason {
+        return PickReason(
+            FfiConverterTypeReasonKind.read(buf),
+            FfiConverterOptionalTypeSong.read(buf),
+            FfiConverterOptionalUInt.read(buf),
+            FfiConverterOptionalUInt.read(buf),
+            FfiConverterOptionalUInt.read(buf),
+            FfiConverterOptionalTypeTimeOfDay.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: PickReason) = (
+            FfiConverterTypeReasonKind.allocationSize(value.`kind`) +
+            FfiConverterOptionalTypeSong.allocationSize(value.`song`) +
+            FfiConverterOptionalUInt.allocationSize(value.`count`) +
+            FfiConverterOptionalUInt.allocationSize(value.`of`) +
+            FfiConverterOptionalUInt.allocationSize(value.`days`) +
+            FfiConverterOptionalTypeTimeOfDay.allocationSize(value.`timeOfDay`) +
+            FfiConverterOptionalString.allocationSize(value.`artist`) +
+            FfiConverterOptionalString.allocationSize(value.`genre`)
+    )
+
+    override fun write(value: PickReason, buf: ByteBuffer) {
+            FfiConverterTypeReasonKind.write(value.`kind`, buf)
+            FfiConverterOptionalTypeSong.write(value.`song`, buf)
+            FfiConverterOptionalUInt.write(value.`count`, buf)
+            FfiConverterOptionalUInt.write(value.`of`, buf)
+            FfiConverterOptionalUInt.write(value.`days`, buf)
+            FfiConverterOptionalTypeTimeOfDay.write(value.`timeOfDay`, buf)
+            FfiConverterOptionalString.write(value.`artist`, buf)
+            FfiConverterOptionalString.write(value.`genre`, buf)
     }
 }
 
@@ -7044,6 +8229,76 @@ public object FfiConverterTypeServerRow: FfiConverterRustBuffer<ServerRow> {
 
 
 /**
+ * One shelf of How suggestions are doing (board 38, note 7): the last 4 weeks.
+ */
+data class ShelfStat (
+    /**
+     * "autoplay", "mix", "radio", "smartShuffle".
+     */
+    var `shelf`: kotlin.String
+    , 
+    var `plays`: kotlin.UInt
+    , 
+    /**
+     * Per 1,000 plays (show as a percentage: 123 is 12.3%).
+     */
+    var `earlySkipsPer1000`: kotlin.UInt
+    , 
+    var `finishedPer1000`: kotlin.UInt
+    , 
+    /**
+     * Distinct artists in each run of 20 songs, times 10 (show 87 as 8.7).
+     */
+    var `artistsPer20X10`: kotlin.UInt
+    , 
+    var `repeatsPer1000`: kotlin.UInt
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeShelfStat: FfiConverterRustBuffer<ShelfStat> {
+    override fun read(buf: ByteBuffer): ShelfStat {
+        return ShelfStat(
+            FfiConverterString.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: ShelfStat) = (
+            FfiConverterString.allocationSize(value.`shelf`) +
+            FfiConverterUInt.allocationSize(value.`plays`) +
+            FfiConverterUInt.allocationSize(value.`earlySkipsPer1000`) +
+            FfiConverterUInt.allocationSize(value.`finishedPer1000`) +
+            FfiConverterUInt.allocationSize(value.`artistsPer20X10`) +
+            FfiConverterUInt.allocationSize(value.`repeatsPer1000`)
+    )
+
+    override fun write(value: ShelfStat, buf: ByteBuffer) {
+            FfiConverterString.write(value.`shelf`, buf)
+            FfiConverterUInt.write(value.`plays`, buf)
+            FfiConverterUInt.write(value.`earlySkipsPer1000`, buf)
+            FfiConverterUInt.write(value.`finishedPer1000`, buf)
+            FfiConverterUInt.write(value.`artistsPer20X10`, buf)
+            FfiConverterUInt.write(value.`repeatsPer1000`, buf)
+    }
+}
+
+
+
+/**
  * The result of signing in. Store `token` in the OS keychain or keystore under
  * `credential_key`; the core never stores it (plan section 12).
  */
@@ -7475,6 +8730,44 @@ public object FfiConverterTypeStreamInfo: FfiConverterRustBuffer<StreamInfo> {
 
 
 
+data class SuggestionStats (
+    var `sinceUtcMs`: kotlin.Long
+    , 
+    var `shelves`: List<ShelfStat>
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSuggestionStats: FfiConverterRustBuffer<SuggestionStats> {
+    override fun read(buf: ByteBuffer): SuggestionStats {
+        return SuggestionStats(
+            FfiConverterLong.read(buf),
+            FfiConverterSequenceTypeShelfStat.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: SuggestionStats) = (
+            FfiConverterLong.allocationSize(value.`sinceUtcMs`) +
+            FfiConverterSequenceTypeShelfStat.allocationSize(value.`shelves`)
+    )
+
+    override fun write(value: SuggestionStats, buf: ByteBuffer) {
+            FfiConverterLong.write(value.`sinceUtcMs`, buf)
+            FfiConverterSequenceTypeShelfStat.write(value.`shelves`, buf)
+    }
+}
+
+
+
 data class SyncResult (
     var `sourceId`: kotlin.Long
     , 
@@ -7648,6 +8941,87 @@ public object FfiConverterTypeTopResult: FfiConverterRustBuffer<TopResult> {
             FfiConverterOptionalTypePlaylistSummary.write(value.`playlist`, buf)
     }
 }
+
+
+
+/**
+ * Why this song (board 38): one or two reasons, and up to two songs it sounds
+ * like (they open on tap).
+ */
+data class WhyThisSong (
+    var `reasons`: List<PickReason>
+    , 
+    var `soundsLike`: List<Song>
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeWhyThisSong: FfiConverterRustBuffer<WhyThisSong> {
+    override fun read(buf: ByteBuffer): WhyThisSong {
+        return WhyThisSong(
+            FfiConverterSequenceTypePickReason.read(buf),
+            FfiConverterSequenceTypeSong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: WhyThisSong) = (
+            FfiConverterSequenceTypePickReason.allocationSize(value.`reasons`) +
+            FfiConverterSequenceTypeSong.allocationSize(value.`soundsLike`)
+    )
+
+    override fun write(value: WhyThisSong, buf: ByteBuffer) {
+            FfiConverterSequenceTypePickReason.write(value.`reasons`, buf)
+            FfiConverterSequenceTypeSong.write(value.`soundsLike`, buf)
+    }
+}
+
+
+
+/**
+ * How many picks are new to the user (board 38): Familiar 5%, Balanced 10%,
+ * Adventurous 20% of slots.
+ */
+
+enum class Adventurousness {
+    
+    FAMILIAR,
+    BALANCED,
+    ADVENTUROUS;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeAdventurousness: FfiConverterRustBuffer<Adventurousness> {
+    override fun read(buf: ByteBuffer) = try {
+        Adventurousness.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: Adventurousness) = 4UL
+
+    override fun write(value: Adventurousness, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
 
 
 
@@ -8683,6 +10057,110 @@ public object FfiConverterTypeLyricsSync: FfiConverterRustBuffer<LyricsSync> {
 
 
 
+enum class MixKind {
+    
+    STRONGEST,
+    SECOND,
+    TIME_OF_DAY,
+    /**
+     * Where taste has drifted in the last 30 days.
+     */
+    DRIFT,
+    /**
+     * About 30% new to the user.
+     */
+    STRETCH,
+    /**
+     * While still learning: a mix by mood family.
+     */
+    FAMILY,
+    /**
+     * No plays yet: from the media server's favourites and most played.
+     */
+    STARTER;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeMixKind: FfiConverterRustBuffer<MixKind> {
+    override fun read(buf: ByteBuffer) = try {
+        MixKind.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: MixKind) = 4UL
+
+    override fun write(value: MixKind, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+/**
+ * A mix card's state (board 38); every state has a text label in the app.
+ */
+
+enum class MixState {
+    
+    FRESH,
+    /**
+     * No good build for 48 hours: show the age and Refresh, never an empty tile.
+     */
+    OUT_OF_DATE,
+    /**
+     * Under `smartPicks.coldStart.fullFromPlays`: "Encore is still learning",
+     * with `plays_so_far` of `plays_needed`. Starter or family mixes may sit beside it.
+     */
+    NOT_ENOUGH_PLAYS,
+    /**
+     * Learn from my listening is off: Recently added and Most played instead.
+     */
+    LEARNING_OFF,
+    /**
+     * Private listening or Guest is on: suggestions don't change from this session.
+     */
+    PRIVATE;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeMixState: FfiConverterRustBuffer<MixState> {
+    override fun read(buf: ByteBuffer) = try {
+        MixState.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: MixState) = 4UL
+
+    override fun write(value: MixState, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+
 enum class Network {
     
     WIFI,
@@ -8708,6 +10186,50 @@ public object FfiConverterTypeNetwork: FfiConverterRustBuffer<Network> {
     override fun allocationSize(value: Network) = 4UL
 
     override fun write(value: Network, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+
+enum class NotInterestedReason {
+    
+    /**
+     * Lowers the song and its neighbours (also the default).
+     */
+    NOT_MY_TASTE,
+    /**
+     * Rests the song for 30 days only.
+     */
+    HEARD_TOO_MUCH,
+    /**
+     * Lowers it at this time of day only.
+     */
+    WRONG_MOMENT;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeNotInterestedReason: FfiConverterRustBuffer<NotInterestedReason> {
+    override fun read(buf: ByteBuffer) = try {
+        NotInterestedReason.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: NotInterestedReason) = 4UL
+
+    override fun write(value: NotInterestedReason, buf: ByteBuffer) {
         buf.putInt(value.ordinal + 1)
     }
 }
@@ -8788,6 +10310,122 @@ public object FfiConverterTypePreviousResult: FfiConverterRustBuffer<PreviousRes
     override fun allocationSize(value: PreviousResult) = 4UL
 
     override fun write(value: PreviousResult, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+/**
+ * What a radio is started from.
+ */
+
+enum class RadioSeed {
+    
+    SONG,
+    ALBUM,
+    ARTIST,
+    PLAYLIST;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRadioSeed: FfiConverterRustBuffer<RadioSeed> {
+    override fun read(buf: ByteBuffer) = try {
+        RadioSeed.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: RadioSeed) = 4UL
+
+    override fun write(value: RadioSeed, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+/**
+ * What a reason says; the fields it uses are set (board 38: plain facts the user
+ * can check, never mood, health or place).
+ */
+
+enum class ReasonKind {
+    
+    /**
+     * `song`, `count` of `of`: "You finished Night Market 9 of the last 10 times, and
+     * this sounds like it."
+     */
+    FINISHED_OFTEN,
+    /**
+     * `song`: "You often play this with Night Market."
+     */
+    PLAYED_TOGETHER,
+    /**
+     * `time_of_day`: "You often play songs like this in the evening."
+     */
+    TIME_OF_DAY,
+    /**
+     * "You liked this."
+     */
+    YOU_LIKED_IT,
+    /**
+     * `days`: "You loved this and haven't played it for 74 days."
+     */
+    REDISCOVER,
+    /**
+     * `artist`: "More from Ember Cove, whom you play often."
+     */
+    SAME_ARTIST,
+    /**
+     * `genre`: "Like the folk you play."
+     */
+    SAME_GENRE,
+    /**
+     * `count`: "Played 14 times in your other apps."
+     */
+    PLAYED_ELSEWHERE,
+    /**
+     * "New to you: picked so Encore keeps learning."
+     */
+    NEW_TO_YOU,
+    /**
+     * "Added to your library recently."
+     */
+    RECENTLY_ADDED;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeReasonKind: FfiConverterRustBuffer<ReasonKind> {
+    override fun read(buf: ByteBuffer) = try {
+        ReasonKind.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: ReasonKind) = 4UL
+
+    override fun write(value: ReasonKind, buf: ByteBuffer) {
         buf.putInt(value.ordinal + 1)
     }
 }
@@ -9122,6 +10760,48 @@ public object FfiConverterTypeSyncState: FfiConverterRustBuffer<SyncState> {
 
 
 
+enum class TimeOfDay {
+    
+    /**
+     * 0:00 to 5:59.
+     */
+    NIGHT,
+    MORNING,
+    AFTERNOON,
+    /**
+     * 18:00 to 23:59.
+     */
+    EVENING;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeTimeOfDay: FfiConverterRustBuffer<TimeOfDay> {
+    override fun read(buf: ByteBuffer) = try {
+        TimeOfDay.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: TimeOfDay) = 4UL
+
+    override fun write(value: TimeOfDay, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+
 enum class TranscodeCodec {
     
     AAC,
@@ -9447,6 +11127,38 @@ public object FfiConverterOptionalTypeGuestSession: FfiConverterRustBuffer<Guest
 /**
  * @suppress
  */
+public object FfiConverterOptionalTypePickReason: FfiConverterRustBuffer<PickReason?> {
+    override fun read(buf: ByteBuffer): PickReason? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypePickReason.read(buf)
+    }
+
+    override fun allocationSize(value: PickReason?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypePickReason.allocationSize(value)
+        }
+    }
+
+    override fun write(value: PickReason?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypePickReason.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalTypePlaylistSummary: FfiConverterRustBuffer<PlaylistSummary?> {
     override fun read(buf: ByteBuffer): PlaylistSummary? {
         if (buf.get().toInt() == 0) {
@@ -9757,6 +11469,38 @@ public object FfiConverterOptionalTypeDropRefusal: FfiConverterRustBuffer<DropRe
         } else {
             buf.put(1)
             FfiConverterTypeDropRefusal.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeTimeOfDay: FfiConverterRustBuffer<TimeOfDay?> {
+    override fun read(buf: ByteBuffer): TimeOfDay? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeTimeOfDay.read(buf)
+    }
+
+    override fun allocationSize(value: TimeOfDay?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeTimeOfDay.allocationSize(value)
+        }
+    }
+
+    override fun write(value: TimeOfDay?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeTimeOfDay.write(value, buf)
         }
     }
 }
@@ -10187,6 +11931,90 @@ public object FfiConverterSequenceTypeLyricWord: FfiConverterRustBuffer<List<Lyr
 /**
  * @suppress
  */
+public object FfiConverterSequenceTypeMixSong: FfiConverterRustBuffer<List<MixSong>> {
+    override fun read(buf: ByteBuffer): List<MixSong> {
+        val len = buf.getInt()
+        return List<MixSong>(len) {
+            FfiConverterTypeMixSong.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<MixSong>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeMixSong.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<MixSong>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeMixSong.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeMixSummary: FfiConverterRustBuffer<List<MixSummary>> {
+    override fun read(buf: ByteBuffer): List<MixSummary> {
+        val len = buf.getInt()
+        return List<MixSummary>(len) {
+            FfiConverterTypeMixSummary.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<MixSummary>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeMixSummary.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<MixSummary>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeMixSummary.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeNotInterestedItem: FfiConverterRustBuffer<List<NotInterestedItem>> {
+    override fun read(buf: ByteBuffer): List<NotInterestedItem> {
+        val len = buf.getInt()
+        return List<NotInterestedItem>(len) {
+            FfiConverterTypeNotInterestedItem.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<NotInterestedItem>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeNotInterestedItem.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<NotInterestedItem>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeNotInterestedItem.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterSequenceTypePaletteSwatch: FfiConverterRustBuffer<List<PaletteSwatch>> {
     override fun read(buf: ByteBuffer): List<PaletteSwatch> {
         val len = buf.getInt()
@@ -10205,6 +12033,34 @@ public object FfiConverterSequenceTypePaletteSwatch: FfiConverterRustBuffer<List
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypePaletteSwatch.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypePickReason: FfiConverterRustBuffer<List<PickReason>> {
+    override fun read(buf: ByteBuffer): List<PickReason> {
+        val len = buf.getInt()
+        return List<PickReason>(len) {
+            FfiConverterTypePickReason.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<PickReason>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypePickReason.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<PickReason>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypePickReason.write(it, buf)
         }
     }
 }
@@ -10345,6 +12201,34 @@ public object FfiConverterSequenceTypeServerRow: FfiConverterRustBuffer<List<Ser
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeServerRow.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeShelfStat: FfiConverterRustBuffer<List<ShelfStat>> {
+    override fun read(buf: ByteBuffer): List<ShelfStat> {
+        val len = buf.getInt()
+        return List<ShelfStat>(len) {
+            FfiConverterTypeShelfStat.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<ShelfStat>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeShelfStat.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<ShelfStat>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeShelfStat.write(it, buf)
         }
     }
 }

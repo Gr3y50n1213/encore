@@ -598,3 +598,201 @@ async fn the_jellyfin_check_on_the_recorded_server() {
         Err(CheckError::UnknownServer)
     );
 }
+
+fn catalog_json(artists: usize) -> Value {
+    let mut songs = Vec::new();
+    for a in 0..artists {
+        let genre = ["Folk", "Rock", "Jazz"][a % 3];
+        for t in 0..6 {
+            songs.push(json!({
+                "key": format!("k{a:02}-{t}"), "title": format!("Song {t}"), "artists": [format!("Artist {a}")],
+                "album": format!("Album {a}"), "album_artist": format!("Artist {a}"),
+                "genres": [genre], "year": 1990 + a as i64,
+                "duration_ms": 200000, "added_utc_ms": 1, "server_play_count": 0,
+                "server_last_played_utc_ms": null, "server_favorite": false, "explicit": false
+            }));
+        }
+    }
+    json!({ "hash": format!("h{artists}"), "songs": songs })
+}
+
+fn play_event(id: usize, key: &str, at: i64) -> Value {
+    json!({ "id": format!("p{id}"), "kind": "play", "hlc": format!("{:013}-0000", at), "version": 1,
+            "created_utc_ms": at, "payload": { "songKey": key, "startedUtcMs": at, "utcOffsetMinutes": 0,
+            "listenedMs": 200000, "signal": "finished", "chosenBy": "user", "startedFrom": "album" } })
+}
+
+/// Phase 5: the server builds the mixes from the synced plays and the song list a
+/// device sent, keeps them until a new set is due, and Clear history clears them.
+#[tokio::test]
+async fn the_server_builds_mixes_from_the_log_and_the_catalog() {
+    let (app, state) = server();
+    let t = sign_in(&app, "good-sam", "phone").await["access_token"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    // No song list yet: the device builds its own.
+    let (s, _) = call(&app, "POST", "/recs/home", Some(&t), Some(json!({}))).await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+    let (_, h) = call(&app, "GET", "/catalog/hash", Some(&t), None).await;
+    assert_eq!(h["hash"], Value::Null);
+    let (s, _) = call(&app, "PUT", "/catalog", Some(&t), Some(catalog_json(20))).await;
+    assert_eq!(s, StatusCode::OK);
+    let (_, h) = call(&app, "GET", "/catalog/hash", Some(&t), None).await;
+    assert_eq!(h["hash"], "h20");
+
+    // 60 plays spread over the last 40 days.
+    let now = now_ms();
+    let plays: Vec<Value> = (0..60)
+        .map(|i| {
+            play_event(
+                i,
+                &format!("k{:02}-{}", i % 20, i % 6),
+                now - (40 - i as i64 * 2 / 3) * 86_400_000,
+            )
+        })
+        .collect();
+    call(
+        &app,
+        "POST",
+        "/sync/push",
+        Some(&t),
+        Some(json!({ "events": plays })),
+    )
+    .await;
+    let (s, r) = call(
+        &app,
+        "POST",
+        "/recs/home",
+        Some(&t),
+        Some(json!({ "utcOffsetMinutes": 60 })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{r}");
+    assert_eq!(r["builtNow"], true);
+    let mixes = r["set"]["mixes"].as_array().unwrap();
+    assert!(!mixes.is_empty(), "{r}");
+    assert_eq!(r["set"]["playsCounted"], 60);
+    // Asked again: the same set, not rebuilt.
+    let (_, again) = call(
+        &app,
+        "POST",
+        "/recs/home",
+        Some(&t),
+        Some(json!({ "utcOffsetMinutes": 60 })),
+    )
+    .await;
+    assert_eq!(again["builtNow"], false);
+    assert_eq!(again["set"], r["set"]);
+    // Regenerate builds anew.
+    let (_, re) = call(
+        &app,
+        "POST",
+        "/recs/home",
+        Some(&t),
+        Some(json!({ "utcOffsetMinutes": 60, "regenerate": true })),
+    )
+    .await;
+    assert_eq!(re["builtNow"], true);
+
+    // Clear listening history: the plays go, and a late older play stays gone.
+    let clear = json!({ "id": "c1", "kind": "clearHistory", "hlc": format!("{:013}-0000", now), "version": 0,
+                        "created_utc_ms": now, "payload": { "beforeUtcMs": now } });
+    call(
+        &app,
+        "POST",
+        "/sync/push",
+        Some(&t),
+        Some(json!({ "events": [clear] })),
+    )
+    .await;
+    let late = play_event(99, "k00-0", now - 1000);
+    let (_, r) = call(
+        &app,
+        "POST",
+        "/sync/push",
+        Some(&t),
+        Some(json!({ "events": [late] })),
+    )
+    .await;
+    assert_eq!(
+        r["accepted"][0], "p99",
+        "accepted, so the device stops sending it"
+    );
+    let left = state.db.all_events(1).unwrap();
+    assert!(
+        left.iter().all(|e| e.kind != "play"),
+        "no play survives the clear"
+    );
+    let (_, r) = call(
+        &app,
+        "POST",
+        "/recs/home",
+        Some(&t),
+        Some(json!({ "utcOffsetMinutes": 60 })),
+    )
+    .await;
+    assert_eq!(r["set"]["playsCounted"], 0);
+}
+
+#[test]
+fn the_servers_history_merges_likes_and_not_interested_by_the_latest_change() {
+    let ev = |id: &str, kind: &str, hlc: &str, device: &str, payload: Value| Event {
+        id: id.into(),
+        device_id: device.into(),
+        kind: kind.into(),
+        hlc: hlc.into(),
+        version: 0,
+        payload,
+        created_utc_ms: 5,
+    };
+    let songs: Vec<encore_recs::Song> =
+        serde_json::from_value(catalog_json(2)["songs"].clone()).unwrap();
+    let cat = encore_recs::Catalog::new(songs);
+    let events = vec![
+        ev(
+            "1",
+            "like",
+            "h1",
+            "phone",
+            json!({ "songKeys": ["k00-0", "k00-1"] }),
+        ),
+        ev("2", "unlike", "h2", "mac", json!({ "songKeys": ["k00-1"] })),
+        ev(
+            "3",
+            "undo",
+            "h0",
+            "pad",
+            json!({ "undoes": "like", "songKeys": ["k00-0"] }),
+        ),
+        ev(
+            "4",
+            "notInterested",
+            "h3",
+            "phone",
+            json!({ "scope": "artist", "value": "Artist 1", "removed": false }),
+        ),
+        ev(
+            "5",
+            "notInterested",
+            "h4",
+            "mac",
+            json!({ "scope": "artist", "value": "Artist 1", "removed": true }),
+        ),
+        ev(
+            "6",
+            "resetSuggestions",
+            "h5",
+            "mac",
+            json!({ "epochUtcMs": 77 }),
+        ),
+    ];
+    let h = crate::history_from(&events, &cat);
+    assert_eq!(
+        h.likes.iter().map(|(k, _)| k.as_str()).collect::<Vec<_>>(),
+        ["k00-0"],
+        "the older undo loses"
+    );
+    assert!(h.not_interested.is_empty(), "the later removal wins");
+    assert_eq!(h.epoch_start_utc_ms, 77);
+}

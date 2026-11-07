@@ -1027,6 +1027,8 @@ pub struct MixShelf {
     pub plays_needed: u32,
     /// When the set was made; None before the first build.
     pub made_utc_ms: Option<i64>,
+    /// Made by the companion server (else on this device).
+    pub from_companion: bool,
 }
 
 /// Home (boards 05 and 23; the surfaces table of section 21).

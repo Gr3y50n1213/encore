@@ -1194,6 +1194,12 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     func servers() throws  -> [ServerRow]
     
     /**
+     * The queue's Autoplay switch (board 11). Off: the queue ends with its last
+     * song, and the Autoplay section empties.
+     */
+    func setAutoplay(enabled: Bool) throws  -> QueueState
+    
+    /**
      * Receive events (queue changed, now playing, preload, sync progress).
      */
     func setListener(listener: CoreListener) 
@@ -1370,6 +1376,131 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
      * PINs lock it for 30 s, then longer; the reason says how long.
      */
     func unlockProfile(profileId: String, pinIn: String?) throws 
+    
+    func adventurousness() throws  -> Adventurousness
+    
+    /**
+     * Clear listening history (board 38, note 6): every play and lyric tap so
+     * far is deleted, on this device, the companion server and every device of
+     * the profile; none can bring them back. The yearly recap starts again today.
+     */
+    func clearListeningHistory() throws  -> UInt32
+    
+    /**
+     * Clear list (Not interested has its own; Reset suggestions leaves it).
+     */
+    func clearNotInterested() throws 
+    
+    func fewerLikeThis(songId: Int64) throws 
+    
+    /**
+     * Hide a mix from today's set (Undo: `unhide_mix`).
+     */
+    func hideMix(mixId: String) throws 
+    
+    /**
+     * Home (the surfaces table of section 21): Made for you, Rediscover, Recently
+     * played, Deep Cuts, Recently added and Most played. Builds today's mixes when
+     * due (up to `smartPicks.budgets.mixBuildSeconds`). Async.
+     */
+    func home() async throws  -> Home
+    
+    /**
+     * A mix's page (board 15), each song with one reason.
+     */
+    func mix(mixId: String) throws  -> MixPage
+    
+    /**
+     * More like this (+1.5 for the song and its neighbours here; not a like) or
+     * Fewer like this (-1). Show a one-line confirmation.
+     */
+    func moreLikeThis(songId: Int64) throws 
+    
+    /**
+     * Not in this mix (board 15, item 5): the song leaves the mix and the mix's
+     * mood learns it doesn't fit (Fewer like this at this time of day).
+     */
+    func notInThisMix(mixId: String, songId: Int64) throws 
+    
+    /**
+     * Not interested in an artist: none of their songs are suggested.
+     */
+    func notInterestedArtist(artist: String, reason: NotInterestedReason) throws  -> NotInterestedItem
+    
+    /**
+     * Settings, Not interested.
+     */
+    func notInterestedList() throws  -> [NotInterestedItem]
+    
+    /**
+     * Not interested in a song (board 38): it leaves every smart surface at once
+     * but still plays when picked. Undo for 5 s with `remove_not_interested`.
+     */
+    func notInterestedSong(songId: Int64, reason: NotInterestedReason) throws  -> NotInterestedItem
+    
+    /**
+     * Pin (kept past tomorrow; up to 10) or unpin a mix.
+     */
+    func pinMix(mixId: String, pinned: Bool) throws 
+    
+    /**
+     * Fill Autoplay now with 10 songs seeded by the current song and the last ones
+     * finished (the core also does this by itself when fewer than 5 are
+     * upcoming). Only the Autoplay section changes; songs the user queued are
+     * never touched.
+     */
+    func refreshAutoplay() throws  -> QueueState
+    
+    /**
+     * A new set now (Regenerate). Async.
+     */
+    func regenerateMixes() async throws  -> Home
+    
+    /**
+     * Undo, or remove from Settings' list.
+     */
+    func removeNotInterested(item: NotInterestedItem) throws 
+    
+    /**
+     * Reset suggestions (board 38, note 5): a new learning epoch. Plays and
+     * feedback before now stop counting; likes, playlists, history and the Not
+     * interested list stay. Syncs as a tombstone no device can undo.
+     */
+    func resetSuggestions() throws 
+    
+    /**
+     * Save as playlist (board 15): a normal playlist with the mix's songs and
+     * title, written to the media server like any other.
+     */
+    func saveMixAsPlaylist(mixId: String) throws  -> EditResult
+    
+    /**
+     * How adventurous (board 38); applies from the next refill.
+     */
+    func setAdventurousness(level: Adventurousness) throws 
+    
+    /**
+     * Smart shuffle (section 21, New): the list shuffled, with one suggestion
+     * after every 4 songs. Suggestions have `chosen_by` App (show the spark mark;
+     * a swipe removes one).
+     */
+    func smartShuffle(songIds: [Int64], startedFrom: StartedFrom, contextId: String?) throws  -> QueueState
+    
+    /**
+     * Radio from a song, album, artist or playlist (section 21): it plays the
+     * seed, then Autoplay keeps the seed for the whole session.
+     */
+    func startRadio(seed: RadioSeed, id: Int64) throws  -> QueueState
+    
+    /**
+     * How suggestions are doing (board 38, note 7): local, the last 4 weeks.
+     */
+    func suggestionStats() throws  -> SuggestionStats
+    
+    /**
+     * Why this song (board 38): one or two reasons and up to two "sounds like".
+     */
+    func whyThisSong(songId: Int64) throws  -> WhyThisSong
     
 }
 /**
@@ -2417,6 +2548,20 @@ open func servers()throws  -> [ServerRow]  {
 }
     
     /**
+     * The queue's Autoplay switch (board 11). Off: the queue ends with its last
+     * song, and the Autoplay section empties.
+     */
+open func setAutoplay(enabled: Bool)throws  -> QueueState  {
+    return try  FfiConverterTypeQueueState_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_set_autoplay(
+            self.uniffiCloneHandle(),
+        FfiConverterBool.lower(enabled),uniffiCallStatus
+    )
+})
+}
+    
+    /**
      * Receive events (queue changed, now playing, preload, sync progress).
      */
 open func setListener(listener: CoreListener)  {try! rustCall() {
@@ -2876,6 +3021,318 @@ open func unlockProfile(profileId: String, pinIn: String?)throws   {try rustCall
         FfiConverterOptionString.lower(pinIn),uniffiCallStatus
     )
 }
+}
+    
+open func adventurousness()throws  -> Adventurousness  {
+    return try  FfiConverterTypeAdventurousness_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_adventurousness(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Clear listening history (board 38, note 6): every play and lyric tap so
+     * far is deleted, on this device, the companion server and every device of
+     * the profile; none can bring them back. The yearly recap starts again today.
+     */
+open func clearListeningHistory()throws  -> UInt32  {
+    return try  FfiConverterUInt32.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_clear_listening_history(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Clear list (Not interested has its own; Reset suggestions leaves it).
+     */
+open func clearNotInterested()throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_clear_not_interested(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+}
+}
+    
+open func fewerLikeThis(songId: Int64)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_fewer_like_this(
+            self.uniffiCloneHandle(),
+        FfiConverterInt64.lower(songId),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * Hide a mix from today's set (Undo: `unhide_mix`).
+     */
+open func hideMix(mixId: String)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_hide_mix(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(mixId),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * Home (the surfaces table of section 21): Made for you, Rediscover, Recently
+     * played, Deep Cuts, Recently added and Most played. Builds today's mixes when
+     * due (up to `smartPicks.budgets.mixBuildSeconds`). Async.
+     */
+open func home()async throws  -> Home  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_home(
+                        self.uniffiCloneHandle()
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_rust_buffer,
+            completeFunc: ffi_encore_core_rust_future_complete_rust_buffer,
+            freeFunc: ffi_encore_core_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterTypeHome_lift,
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
+}
+    
+    /**
+     * A mix's page (board 15), each song with one reason.
+     */
+open func mix(mixId: String)throws  -> MixPage  {
+    return try  FfiConverterTypeMixPage_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_mix(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(mixId),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * More like this (+1.5 for the song and its neighbours here; not a like) or
+     * Fewer like this (-1). Show a one-line confirmation.
+     */
+open func moreLikeThis(songId: Int64)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_more_like_this(
+            self.uniffiCloneHandle(),
+        FfiConverterInt64.lower(songId),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * Not in this mix (board 15, item 5): the song leaves the mix and the mix's
+     * mood learns it doesn't fit (Fewer like this at this time of day).
+     */
+open func notInThisMix(mixId: String, songId: Int64)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_not_in_this_mix(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(mixId),
+        FfiConverterInt64.lower(songId),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * Not interested in an artist: none of their songs are suggested.
+     */
+open func notInterestedArtist(artist: String, reason: NotInterestedReason)throws  -> NotInterestedItem  {
+    return try  FfiConverterTypeNotInterestedItem_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_not_interested_artist(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(artist),
+        FfiConverterTypeNotInterestedReason_lower(reason),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Settings, Not interested.
+     */
+open func notInterestedList()throws  -> [NotInterestedItem]  {
+    return try  FfiConverterSequenceTypeNotInterestedItem.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_not_interested_list(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Not interested in a song (board 38): it leaves every smart surface at once
+     * but still plays when picked. Undo for 5 s with `remove_not_interested`.
+     */
+open func notInterestedSong(songId: Int64, reason: NotInterestedReason)throws  -> NotInterestedItem  {
+    return try  FfiConverterTypeNotInterestedItem_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_not_interested_song(
+            self.uniffiCloneHandle(),
+        FfiConverterInt64.lower(songId),
+        FfiConverterTypeNotInterestedReason_lower(reason),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Pin (kept past tomorrow; up to 10) or unpin a mix.
+     */
+open func pinMix(mixId: String, pinned: Bool)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_pin_mix(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(mixId),
+        FfiConverterBool.lower(pinned),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * Fill Autoplay now with 10 songs seeded by the current song and the last ones
+     * finished (the core also does this by itself when fewer than 5 are
+     * upcoming). Only the Autoplay section changes; songs the user queued are
+     * never touched.
+     */
+open func refreshAutoplay()throws  -> QueueState  {
+    return try  FfiConverterTypeQueueState_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_refresh_autoplay(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * A new set now (Regenerate). Async.
+     */
+open func regenerateMixes()async throws  -> Home  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_regenerate_mixes(
+                        self.uniffiCloneHandle()
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_rust_buffer,
+            completeFunc: ffi_encore_core_rust_future_complete_rust_buffer,
+            freeFunc: ffi_encore_core_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterTypeHome_lift,
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
+}
+    
+    /**
+     * Undo, or remove from Settings' list.
+     */
+open func removeNotInterested(item: NotInterestedItem)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_remove_not_interested(
+            self.uniffiCloneHandle(),
+        FfiConverterTypeNotInterestedItem_lower(item),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * Reset suggestions (board 38, note 5): a new learning epoch. Plays and
+     * feedback before now stop counting; likes, playlists, history and the Not
+     * interested list stay. Syncs as a tombstone no device can undo.
+     */
+open func resetSuggestions()throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_reset_suggestions(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * Save as playlist (board 15): a normal playlist with the mix's songs and
+     * title, written to the media server like any other.
+     */
+open func saveMixAsPlaylist(mixId: String)throws  -> EditResult  {
+    return try  FfiConverterTypeEditResult_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_save_mix_as_playlist(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(mixId),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * How adventurous (board 38); applies from the next refill.
+     */
+open func setAdventurousness(level: Adventurousness)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_set_adventurousness(
+            self.uniffiCloneHandle(),
+        FfiConverterTypeAdventurousness_lower(level),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * Smart shuffle (section 21, New): the list shuffled, with one suggestion
+     * after every 4 songs. Suggestions have `chosen_by` App (show the spark mark;
+     * a swipe removes one).
+     */
+open func smartShuffle(songIds: [Int64], startedFrom: StartedFrom, contextId: String?)throws  -> QueueState  {
+    return try  FfiConverterTypeQueueState_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_smart_shuffle(
+            self.uniffiCloneHandle(),
+        FfiConverterSequenceInt64.lower(songIds),
+        FfiConverterTypeStartedFrom_lower(startedFrom),
+        FfiConverterOptionString.lower(contextId),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Radio from a song, album, artist or playlist (section 21): it plays the
+     * seed, then Autoplay keeps the seed for the whole session.
+     */
+open func startRadio(seed: RadioSeed, id: Int64)throws  -> QueueState  {
+    return try  FfiConverterTypeQueueState_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_start_radio(
+            self.uniffiCloneHandle(),
+        FfiConverterTypeRadioSeed_lower(seed),
+        FfiConverterInt64.lower(id),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * How suggestions are doing (board 38, note 7): local, the last 4 weeks.
+     */
+open func suggestionStats()throws  -> SuggestionStats  {
+    return try  FfiConverterTypeSuggestionStats_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_suggestion_stats(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Why this song (board 38): one or two reasons and up to two "sounds like".
+     */
+open func whyThisSong(songId: Int64)throws  -> WhyThisSong  {
+    return try  FfiConverterTypeWhyThisSong_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_why_this_song(
+            self.uniffiCloneHandle(),
+        FfiConverterInt64.lower(songId),uniffiCallStatus
+    )
+})
 }
     
 
@@ -4042,6 +4499,103 @@ public func FfiConverterTypeGuestSession_lower(_ value: GuestSession) -> RustBuf
 }
 
 
+/**
+ * Home (boards 05 and 23; the surfaces table of section 21).
+ */
+public struct Home: Equatable, Hashable {
+    public var madeForYou: MixShelf
+    /**
+     * Loved songs not heard for 60+ days (12), else random liked songs.
+     */
+    public var rediscover: [Song]
+    /**
+     * Plain history order, no smarts.
+     */
+    public var recentlyPlayed: [Song]
+    /**
+     * Never played, matching the user's taste.
+     */
+    public var deepCuts: [Song]
+    public var recentlyAdded: [Song]
+    /**
+     * The Learning-off fallback (also shown when there is little else).
+     */
+    public var mostPlayed: [Song]
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(madeForYou: MixShelf, 
+        /**
+         * Loved songs not heard for 60+ days (12), else random liked songs.
+         */rediscover: [Song], 
+        /**
+         * Plain history order, no smarts.
+         */recentlyPlayed: [Song], 
+        /**
+         * Never played, matching the user's taste.
+         */deepCuts: [Song], recentlyAdded: [Song], 
+        /**
+         * The Learning-off fallback (also shown when there is little else).
+         */mostPlayed: [Song]) {
+        self.madeForYou = madeForYou
+        self.rediscover = rediscover
+        self.recentlyPlayed = recentlyPlayed
+        self.deepCuts = deepCuts
+        self.recentlyAdded = recentlyAdded
+        self.mostPlayed = mostPlayed
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension Home: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeHome: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Home {
+        return
+            try Home(
+                madeForYou: FfiConverterTypeMixShelf.read(from: &buf), 
+                rediscover: FfiConverterSequenceTypeSong.read(from: &buf), 
+                recentlyPlayed: FfiConverterSequenceTypeSong.read(from: &buf), 
+                deepCuts: FfiConverterSequenceTypeSong.read(from: &buf), 
+                recentlyAdded: FfiConverterSequenceTypeSong.read(from: &buf), 
+                mostPlayed: FfiConverterSequenceTypeSong.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: Home, into buf: inout [UInt8]) {
+        FfiConverterTypeMixShelf.write(value.madeForYou, into: &buf)
+        FfiConverterSequenceTypeSong.write(value.rediscover, into: &buf)
+        FfiConverterSequenceTypeSong.write(value.recentlyPlayed, into: &buf)
+        FfiConverterSequenceTypeSong.write(value.deepCuts, into: &buf)
+        FfiConverterSequenceTypeSong.write(value.recentlyAdded, into: &buf)
+        FfiConverterSequenceTypeSong.write(value.mostPlayed, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeHome_lift(_ buf: RustBuffer) throws -> Home {
+    return try FfiConverterTypeHome.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeHome_lower(_ value: Home) -> RustBuffer {
+    return FfiConverterTypeHome.lower(value)
+}
+
+
 public struct HttpHeader: Equatable, Hashable {
     public var name: String
     public var value: String
@@ -4473,6 +5027,404 @@ public func FfiConverterTypeLyricWord_lower(_ value: LyricWord) -> RustBuffer {
 }
 
 
+public struct MixPage: Equatable, Hashable {
+    public var summary: MixSummary
+    public var songs: [MixSong]
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(summary: MixSummary, songs: [MixSong]) {
+        self.summary = summary
+        self.songs = songs
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension MixPage: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeMixPage: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> MixPage {
+        return
+            try MixPage(
+                summary: FfiConverterTypeMixSummary.read(from: &buf), 
+                songs: FfiConverterSequenceTypeMixSong.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: MixPage, into buf: inout [UInt8]) {
+        FfiConverterTypeMixSummary.write(value.summary, into: &buf)
+        FfiConverterSequenceTypeMixSong.write(value.songs, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMixPage_lift(_ buf: RustBuffer) throws -> MixPage {
+    return try FfiConverterTypeMixPage.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMixPage_lower(_ value: MixPage) -> RustBuffer {
+    return FfiConverterTypeMixPage.lower(value)
+}
+
+
+public struct MixShelf: Equatable, Hashable {
+    public var state: MixState
+    /**
+     * Pinned first, then today's set.
+     */
+    public var mixes: [MixSummary]
+    public var playsSoFar: UInt32
+    public var playsNeeded: UInt32
+    /**
+     * When the set was made; None before the first build.
+     */
+    public var madeUtcMs: Int64?
+    /**
+     * Made by the companion server (else on this device).
+     */
+    public var fromCompanion: Bool
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(state: MixState, 
+        /**
+         * Pinned first, then today's set.
+         */mixes: [MixSummary], playsSoFar: UInt32, playsNeeded: UInt32, 
+        /**
+         * When the set was made; None before the first build.
+         */madeUtcMs: Int64?, 
+        /**
+         * Made by the companion server (else on this device).
+         */fromCompanion: Bool) {
+        self.state = state
+        self.mixes = mixes
+        self.playsSoFar = playsSoFar
+        self.playsNeeded = playsNeeded
+        self.madeUtcMs = madeUtcMs
+        self.fromCompanion = fromCompanion
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension MixShelf: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeMixShelf: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> MixShelf {
+        return
+            try MixShelf(
+                state: FfiConverterTypeMixState.read(from: &buf), 
+                mixes: FfiConverterSequenceTypeMixSummary.read(from: &buf), 
+                playsSoFar: FfiConverterUInt32.read(from: &buf), 
+                playsNeeded: FfiConverterUInt32.read(from: &buf), 
+                madeUtcMs: FfiConverterOptionInt64.read(from: &buf), 
+                fromCompanion: FfiConverterBool.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: MixShelf, into buf: inout [UInt8]) {
+        FfiConverterTypeMixState.write(value.state, into: &buf)
+        FfiConverterSequenceTypeMixSummary.write(value.mixes, into: &buf)
+        FfiConverterUInt32.write(value.playsSoFar, into: &buf)
+        FfiConverterUInt32.write(value.playsNeeded, into: &buf)
+        FfiConverterOptionInt64.write(value.madeUtcMs, into: &buf)
+        FfiConverterBool.write(value.fromCompanion, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMixShelf_lift(_ buf: RustBuffer) throws -> MixShelf {
+    return try FfiConverterTypeMixShelf.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMixShelf_lower(_ value: MixShelf) -> RustBuffer {
+    return FfiConverterTypeMixShelf.lower(value)
+}
+
+
+public struct MixSong: Equatable, Hashable {
+    public var song: Song
+    /**
+     * One short reason for the row (board 15, item 5).
+     */
+    public var reason: PickReason?
+    /**
+     * New to the user (the stretch mix's 30%).
+     */
+    public var newToYou: Bool
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(song: Song, 
+        /**
+         * One short reason for the row (board 15, item 5).
+         */reason: PickReason?, 
+        /**
+         * New to the user (the stretch mix's 30%).
+         */newToYou: Bool) {
+        self.song = song
+        self.reason = reason
+        self.newToYou = newToYou
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension MixSong: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeMixSong: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> MixSong {
+        return
+            try MixSong(
+                song: FfiConverterTypeSong.read(from: &buf), 
+                reason: FfiConverterOptionTypePickReason.read(from: &buf), 
+                newToYou: FfiConverterBool.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: MixSong, into buf: inout [UInt8]) {
+        FfiConverterTypeSong.write(value.song, into: &buf)
+        FfiConverterOptionTypePickReason.write(value.reason, into: &buf)
+        FfiConverterBool.write(value.newToYou, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMixSong_lift(_ buf: RustBuffer) throws -> MixSong {
+    return try FfiConverterTypeMixSong.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMixSong_lower(_ value: MixSong) -> RustBuffer {
+    return FfiConverterTypeMixSong.lower(value)
+}
+
+
+/**
+ * A mix tile (Home's Made for you, the Mixes tab).
+ */
+public struct MixSummary: Equatable, Hashable {
+    public var mixId: String
+    public var kind: MixKind
+    /**
+     * 2 to 4 plain words (the section 7.1 rules, enforced in the core).
+     */
+    public var title: String
+    /**
+     * "Mostly A, B and 12 more".
+     */
+    public var subtitle: String
+    /**
+     * The songs for the 2×2 cover mosaic (up to 4, different albums).
+     */
+    public var coverSongIds: [Int64]
+    public var songCount: UInt32
+    public var pinned: Bool
+    public var madeUtcMs: Int64
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(mixId: String, kind: MixKind, 
+        /**
+         * 2 to 4 plain words (the section 7.1 rules, enforced in the core).
+         */title: String, 
+        /**
+         * "Mostly A, B and 12 more".
+         */subtitle: String, 
+        /**
+         * The songs for the 2×2 cover mosaic (up to 4, different albums).
+         */coverSongIds: [Int64], songCount: UInt32, pinned: Bool, madeUtcMs: Int64) {
+        self.mixId = mixId
+        self.kind = kind
+        self.title = title
+        self.subtitle = subtitle
+        self.coverSongIds = coverSongIds
+        self.songCount = songCount
+        self.pinned = pinned
+        self.madeUtcMs = madeUtcMs
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension MixSummary: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeMixSummary: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> MixSummary {
+        return
+            try MixSummary(
+                mixId: FfiConverterString.read(from: &buf), 
+                kind: FfiConverterTypeMixKind.read(from: &buf), 
+                title: FfiConverterString.read(from: &buf), 
+                subtitle: FfiConverterString.read(from: &buf), 
+                coverSongIds: FfiConverterSequenceInt64.read(from: &buf), 
+                songCount: FfiConverterUInt32.read(from: &buf), 
+                pinned: FfiConverterBool.read(from: &buf), 
+                madeUtcMs: FfiConverterInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: MixSummary, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.mixId, into: &buf)
+        FfiConverterTypeMixKind.write(value.kind, into: &buf)
+        FfiConverterString.write(value.title, into: &buf)
+        FfiConverterString.write(value.subtitle, into: &buf)
+        FfiConverterSequenceInt64.write(value.coverSongIds, into: &buf)
+        FfiConverterUInt32.write(value.songCount, into: &buf)
+        FfiConverterBool.write(value.pinned, into: &buf)
+        FfiConverterInt64.write(value.madeUtcMs, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMixSummary_lift(_ buf: RustBuffer) throws -> MixSummary {
+    return try FfiConverterTypeMixSummary.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMixSummary_lower(_ value: MixSummary) -> RustBuffer {
+    return FfiConverterTypeMixSummary.lower(value)
+}
+
+
+/**
+ * One entry of Settings, Not interested.
+ */
+public struct NotInterestedItem: Equatable, Hashable {
+    /**
+     * Set for a song (the song still plays when the user picks it).
+     */
+    public var songId: Int64?
+    /**
+     * Set for an artist.
+     */
+    public var artist: String?
+    /**
+     * The song's title or the artist's name, for the list.
+     */
+    public var label: String
+    public var reason: NotInterestedReason
+    public var addedUtcMs: Int64
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * Set for a song (the song still plays when the user picks it).
+         */songId: Int64?, 
+        /**
+         * Set for an artist.
+         */artist: String?, 
+        /**
+         * The song's title or the artist's name, for the list.
+         */label: String, reason: NotInterestedReason, addedUtcMs: Int64) {
+        self.songId = songId
+        self.artist = artist
+        self.label = label
+        self.reason = reason
+        self.addedUtcMs = addedUtcMs
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension NotInterestedItem: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeNotInterestedItem: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> NotInterestedItem {
+        return
+            try NotInterestedItem(
+                songId: FfiConverterOptionInt64.read(from: &buf), 
+                artist: FfiConverterOptionString.read(from: &buf), 
+                label: FfiConverterString.read(from: &buf), 
+                reason: FfiConverterTypeNotInterestedReason.read(from: &buf), 
+                addedUtcMs: FfiConverterInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: NotInterestedItem, into buf: inout [UInt8]) {
+        FfiConverterOptionInt64.write(value.songId, into: &buf)
+        FfiConverterOptionString.write(value.artist, into: &buf)
+        FfiConverterString.write(value.label, into: &buf)
+        FfiConverterTypeNotInterestedReason.write(value.reason, into: &buf)
+        FfiConverterInt64.write(value.addedUtcMs, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeNotInterestedItem_lift(_ buf: RustBuffer) throws -> NotInterestedItem {
+    return try FfiConverterTypeNotInterestedItem.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeNotInterestedItem_lower(_ value: NotInterestedItem) -> RustBuffer {
+    return FfiConverterTypeNotInterestedItem.lower(value)
+}
+
+
 /**
  * One colour sampled from the cover and its share of it (0 to 1).
  */
@@ -4527,6 +5479,84 @@ public func FfiConverterTypePaletteSwatch_lift(_ buf: RustBuffer) throws -> Pale
 #endif
 public func FfiConverterTypePaletteSwatch_lower(_ value: PaletteSwatch) -> RustBuffer {
     return FfiConverterTypePaletteSwatch.lower(value)
+}
+
+
+public struct PickReason: Equatable, Hashable {
+    public var kind: ReasonKind
+    public var song: Song?
+    public var count: UInt32?
+    public var of: UInt32?
+    public var days: UInt32?
+    public var timeOfDay: TimeOfDay?
+    public var artist: String?
+    public var genre: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(kind: ReasonKind, song: Song?, count: UInt32?, of: UInt32?, days: UInt32?, timeOfDay: TimeOfDay?, artist: String?, genre: String?) {
+        self.kind = kind
+        self.song = song
+        self.count = count
+        self.of = of
+        self.days = days
+        self.timeOfDay = timeOfDay
+        self.artist = artist
+        self.genre = genre
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension PickReason: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypePickReason: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> PickReason {
+        return
+            try PickReason(
+                kind: FfiConverterTypeReasonKind.read(from: &buf), 
+                song: FfiConverterOptionTypeSong.read(from: &buf), 
+                count: FfiConverterOptionUInt32.read(from: &buf), 
+                of: FfiConverterOptionUInt32.read(from: &buf), 
+                days: FfiConverterOptionUInt32.read(from: &buf), 
+                timeOfDay: FfiConverterOptionTypeTimeOfDay.read(from: &buf), 
+                artist: FfiConverterOptionString.read(from: &buf), 
+                genre: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: PickReason, into buf: inout [UInt8]) {
+        FfiConverterTypeReasonKind.write(value.kind, into: &buf)
+        FfiConverterOptionTypeSong.write(value.song, into: &buf)
+        FfiConverterOptionUInt32.write(value.count, into: &buf)
+        FfiConverterOptionUInt32.write(value.of, into: &buf)
+        FfiConverterOptionUInt32.write(value.days, into: &buf)
+        FfiConverterOptionTypeTimeOfDay.write(value.timeOfDay, into: &buf)
+        FfiConverterOptionString.write(value.artist, into: &buf)
+        FfiConverterOptionString.write(value.genre, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypePickReason_lift(_ buf: RustBuffer) throws -> PickReason {
+    return try FfiConverterTypePickReason.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypePickReason_lower(_ value: PickReason) -> RustBuffer {
+    return FfiConverterTypePickReason.lower(value)
 }
 
 
@@ -5460,6 +6490,97 @@ public func FfiConverterTypeServerRow_lower(_ value: ServerRow) -> RustBuffer {
 
 
 /**
+ * One shelf of How suggestions are doing (board 38, note 7): the last 4 weeks.
+ */
+public struct ShelfStat: Equatable, Hashable {
+    /**
+     * "autoplay", "mix", "radio", "smartShuffle".
+     */
+    public var shelf: String
+    public var plays: UInt32
+    /**
+     * Per 1,000 plays (show as a percentage: 123 is 12.3%).
+     */
+    public var earlySkipsPer1000: UInt32
+    public var finishedPer1000: UInt32
+    /**
+     * Distinct artists in each run of 20 songs, times 10 (show 87 as 8.7).
+     */
+    public var artistsPer20X10: UInt32
+    public var repeatsPer1000: UInt32
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * "autoplay", "mix", "radio", "smartShuffle".
+         */shelf: String, plays: UInt32, 
+        /**
+         * Per 1,000 plays (show as a percentage: 123 is 12.3%).
+         */earlySkipsPer1000: UInt32, finishedPer1000: UInt32, 
+        /**
+         * Distinct artists in each run of 20 songs, times 10 (show 87 as 8.7).
+         */artistsPer20X10: UInt32, repeatsPer1000: UInt32) {
+        self.shelf = shelf
+        self.plays = plays
+        self.earlySkipsPer1000 = earlySkipsPer1000
+        self.finishedPer1000 = finishedPer1000
+        self.artistsPer20X10 = artistsPer20X10
+        self.repeatsPer1000 = repeatsPer1000
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension ShelfStat: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeShelfStat: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ShelfStat {
+        return
+            try ShelfStat(
+                shelf: FfiConverterString.read(from: &buf), 
+                plays: FfiConverterUInt32.read(from: &buf), 
+                earlySkipsPer1000: FfiConverterUInt32.read(from: &buf), 
+                finishedPer1000: FfiConverterUInt32.read(from: &buf), 
+                artistsPer20X10: FfiConverterUInt32.read(from: &buf), 
+                repeatsPer1000: FfiConverterUInt32.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: ShelfStat, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.shelf, into: &buf)
+        FfiConverterUInt32.write(value.plays, into: &buf)
+        FfiConverterUInt32.write(value.earlySkipsPer1000, into: &buf)
+        FfiConverterUInt32.write(value.finishedPer1000, into: &buf)
+        FfiConverterUInt32.write(value.artistsPer20X10, into: &buf)
+        FfiConverterUInt32.write(value.repeatsPer1000, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeShelfStat_lift(_ buf: RustBuffer) throws -> ShelfStat {
+    return try FfiConverterTypeShelfStat.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeShelfStat_lower(_ value: ShelfStat) -> RustBuffer {
+    return FfiConverterTypeShelfStat.lower(value)
+}
+
+
+/**
  * The result of signing in. Store `token` in the OS keychain or keystore under
  * `credential_key`; the core never stores it (plan section 12).
  */
@@ -5981,6 +7102,60 @@ public func FfiConverterTypeStreamInfo_lower(_ value: StreamInfo) -> RustBuffer 
 }
 
 
+public struct SuggestionStats: Equatable, Hashable {
+    public var sinceUtcMs: Int64
+    public var shelves: [ShelfStat]
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(sinceUtcMs: Int64, shelves: [ShelfStat]) {
+        self.sinceUtcMs = sinceUtcMs
+        self.shelves = shelves
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension SuggestionStats: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSuggestionStats: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SuggestionStats {
+        return
+            try SuggestionStats(
+                sinceUtcMs: FfiConverterInt64.read(from: &buf), 
+                shelves: FfiConverterSequenceTypeShelfStat.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: SuggestionStats, into buf: inout [UInt8]) {
+        FfiConverterInt64.write(value.sinceUtcMs, into: &buf)
+        FfiConverterSequenceTypeShelfStat.write(value.shelves, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSuggestionStats_lift(_ buf: RustBuffer) throws -> SuggestionStats {
+    return try FfiConverterTypeSuggestionStats.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSuggestionStats_lower(_ value: SuggestionStats) -> RustBuffer {
+    return FfiConverterTypeSuggestionStats.lower(value)
+}
+
+
 public struct SyncResult: Equatable, Hashable {
     public var sourceId: Int64
     public var artists: UInt32
@@ -6202,6 +7377,141 @@ public func FfiConverterTypeTopResult_lift(_ buf: RustBuffer) throws -> TopResul
 public func FfiConverterTypeTopResult_lower(_ value: TopResult) -> RustBuffer {
     return FfiConverterTypeTopResult.lower(value)
 }
+
+
+/**
+ * Why this song (board 38): one or two reasons, and up to two songs it sounds
+ * like (they open on tap).
+ */
+public struct WhyThisSong: Equatable, Hashable {
+    public var reasons: [PickReason]
+    public var soundsLike: [Song]
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(reasons: [PickReason], soundsLike: [Song]) {
+        self.reasons = reasons
+        self.soundsLike = soundsLike
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension WhyThisSong: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeWhyThisSong: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> WhyThisSong {
+        return
+            try WhyThisSong(
+                reasons: FfiConverterSequenceTypePickReason.read(from: &buf), 
+                soundsLike: FfiConverterSequenceTypeSong.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: WhyThisSong, into buf: inout [UInt8]) {
+        FfiConverterSequenceTypePickReason.write(value.reasons, into: &buf)
+        FfiConverterSequenceTypeSong.write(value.soundsLike, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeWhyThisSong_lift(_ buf: RustBuffer) throws -> WhyThisSong {
+    return try FfiConverterTypeWhyThisSong.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeWhyThisSong_lower(_ value: WhyThisSong) -> RustBuffer {
+    return FfiConverterTypeWhyThisSong.lower(value)
+}
+
+
+/**
+ * How many picks are new to the user (board 38): Familiar 5%, Balanced 10%,
+ * Adventurous 20% of slots.
+ */
+
+public enum Adventurousness: Equatable, Hashable {
+    
+    case familiar
+    case balanced
+    case adventurous
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension Adventurousness: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeAdventurousness: FfiConverterRustBuffer {
+    typealias SwiftType = Adventurousness
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Adventurousness {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .familiar
+        
+        case 2: return .balanced
+        
+        case 3: return .adventurous
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: Adventurousness, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .familiar:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .balanced:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .adventurous:
+            writeInt(&buf, Int32(3))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeAdventurousness_lift(_ buf: RustBuffer) throws -> Adventurousness {
+    return try FfiConverterTypeAdventurousness.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeAdventurousness_lower(_ value: Adventurousness) -> RustBuffer {
+    return FfiConverterTypeAdventurousness.lower(value)
+}
+
 
 
 
@@ -7776,6 +9086,222 @@ public func FfiConverterTypeLyricsSync_lower(_ value: LyricsSync) -> RustBuffer 
 
 
 
+public enum MixKind: Equatable, Hashable {
+    
+    case strongest
+    case second
+    case timeOfDay
+    /**
+     * Where taste has drifted in the last 30 days.
+     */
+    case drift
+    /**
+     * About 30% new to the user.
+     */
+    case stretch
+    /**
+     * While still learning: a mix by mood family.
+     */
+    case family
+    /**
+     * No plays yet: from the media server's favourites and most played.
+     */
+    case starter
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension MixKind: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeMixKind: FfiConverterRustBuffer {
+    typealias SwiftType = MixKind
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> MixKind {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .strongest
+        
+        case 2: return .second
+        
+        case 3: return .timeOfDay
+        
+        case 4: return .drift
+        
+        case 5: return .stretch
+        
+        case 6: return .family
+        
+        case 7: return .starter
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: MixKind, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .strongest:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .second:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .timeOfDay:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .drift:
+            writeInt(&buf, Int32(4))
+        
+        
+        case .stretch:
+            writeInt(&buf, Int32(5))
+        
+        
+        case .family:
+            writeInt(&buf, Int32(6))
+        
+        
+        case .starter:
+            writeInt(&buf, Int32(7))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMixKind_lift(_ buf: RustBuffer) throws -> MixKind {
+    return try FfiConverterTypeMixKind.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMixKind_lower(_ value: MixKind) -> RustBuffer {
+    return FfiConverterTypeMixKind.lower(value)
+}
+
+
+
+/**
+ * A mix card's state (board 38); every state has a text label in the app.
+ */
+
+public enum MixState: Equatable, Hashable {
+    
+    case fresh
+    /**
+     * No good build for 48 hours: show the age and Refresh, never an empty tile.
+     */
+    case outOfDate
+    /**
+     * Under `smartPicks.coldStart.fullFromPlays`: "Encore is still learning",
+     * with `plays_so_far` of `plays_needed`. Starter or family mixes may sit beside it.
+     */
+    case notEnoughPlays
+    /**
+     * Learn from my listening is off: Recently added and Most played instead.
+     */
+    case learningOff
+    /**
+     * Private listening or Guest is on: suggestions don't change from this session.
+     */
+    case `private`
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension MixState: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeMixState: FfiConverterRustBuffer {
+    typealias SwiftType = MixState
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> MixState {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .fresh
+        
+        case 2: return .outOfDate
+        
+        case 3: return .notEnoughPlays
+        
+        case 4: return .learningOff
+        
+        case 5: return .`private`
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: MixState, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .fresh:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .outOfDate:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .notEnoughPlays:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .learningOff:
+            writeInt(&buf, Int32(4))
+        
+        
+        case .`private`:
+            writeInt(&buf, Int32(5))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMixState_lift(_ buf: RustBuffer) throws -> MixState {
+    return try FfiConverterTypeMixState.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMixState_lower(_ value: MixState) -> RustBuffer {
+    return FfiConverterTypeMixState.lower(value)
+}
+
+
+
+
 public enum Network: Equatable, Hashable {
     
     case wifi
@@ -7837,6 +9363,88 @@ public func FfiConverterTypeNetwork_lift(_ buf: RustBuffer) throws -> Network {
 #endif
 public func FfiConverterTypeNetwork_lower(_ value: Network) -> RustBuffer {
     return FfiConverterTypeNetwork.lower(value)
+}
+
+
+
+
+public enum NotInterestedReason: Equatable, Hashable {
+    
+    /**
+     * Lowers the song and its neighbours (also the default).
+     */
+    case notMyTaste
+    /**
+     * Rests the song for 30 days only.
+     */
+    case heardTooMuch
+    /**
+     * Lowers it at this time of day only.
+     */
+    case wrongMoment
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension NotInterestedReason: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeNotInterestedReason: FfiConverterRustBuffer {
+    typealias SwiftType = NotInterestedReason
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> NotInterestedReason {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .notMyTaste
+        
+        case 2: return .heardTooMuch
+        
+        case 3: return .wrongMoment
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: NotInterestedReason, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .notMyTaste:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .heardTooMuch:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .wrongMoment:
+            writeInt(&buf, Int32(3))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeNotInterestedReason_lift(_ buf: RustBuffer) throws -> NotInterestedReason {
+    return try FfiConverterTypeNotInterestedReason.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeNotInterestedReason_lower(_ value: NotInterestedReason) -> RustBuffer {
+    return FfiConverterTypeNotInterestedReason.lower(value)
 }
 
 
@@ -7981,6 +9589,246 @@ public func FfiConverterTypePreviousResult_lift(_ buf: RustBuffer) throws -> Pre
 #endif
 public func FfiConverterTypePreviousResult_lower(_ value: PreviousResult) -> RustBuffer {
     return FfiConverterTypePreviousResult.lower(value)
+}
+
+
+
+/**
+ * What a radio is started from.
+ */
+
+public enum RadioSeed: Equatable, Hashable {
+    
+    case song
+    case album
+    case artist
+    case playlist
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension RadioSeed: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeRadioSeed: FfiConverterRustBuffer {
+    typealias SwiftType = RadioSeed
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> RadioSeed {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .song
+        
+        case 2: return .album
+        
+        case 3: return .artist
+        
+        case 4: return .playlist
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: RadioSeed, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .song:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .album:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .artist:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .playlist:
+            writeInt(&buf, Int32(4))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRadioSeed_lift(_ buf: RustBuffer) throws -> RadioSeed {
+    return try FfiConverterTypeRadioSeed.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRadioSeed_lower(_ value: RadioSeed) -> RustBuffer {
+    return FfiConverterTypeRadioSeed.lower(value)
+}
+
+
+
+/**
+ * What a reason says; the fields it uses are set (board 38: plain facts the user
+ * can check, never mood, health or place).
+ */
+
+public enum ReasonKind: Equatable, Hashable {
+    
+    /**
+     * `song`, `count` of `of`: "You finished Night Market 9 of the last 10 times, and
+     * this sounds like it."
+     */
+    case finishedOften
+    /**
+     * `song`: "You often play this with Night Market."
+     */
+    case playedTogether
+    /**
+     * `time_of_day`: "You often play songs like this in the evening."
+     */
+    case timeOfDay
+    /**
+     * "You liked this."
+     */
+    case youLikedIt
+    /**
+     * `days`: "You loved this and haven't played it for 74 days."
+     */
+    case rediscover
+    /**
+     * `artist`: "More from Ember Cove, whom you play often."
+     */
+    case sameArtist
+    /**
+     * `genre`: "Like the folk you play."
+     */
+    case sameGenre
+    /**
+     * `count`: "Played 14 times in your other apps."
+     */
+    case playedElsewhere
+    /**
+     * "New to you: picked so Encore keeps learning."
+     */
+    case newToYou
+    /**
+     * "Added to your library recently."
+     */
+    case recentlyAdded
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension ReasonKind: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeReasonKind: FfiConverterRustBuffer {
+    typealias SwiftType = ReasonKind
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ReasonKind {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .finishedOften
+        
+        case 2: return .playedTogether
+        
+        case 3: return .timeOfDay
+        
+        case 4: return .youLikedIt
+        
+        case 5: return .rediscover
+        
+        case 6: return .sameArtist
+        
+        case 7: return .sameGenre
+        
+        case 8: return .playedElsewhere
+        
+        case 9: return .newToYou
+        
+        case 10: return .recentlyAdded
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: ReasonKind, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .finishedOften:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .playedTogether:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .timeOfDay:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .youLikedIt:
+            writeInt(&buf, Int32(4))
+        
+        
+        case .rediscover:
+            writeInt(&buf, Int32(5))
+        
+        
+        case .sameArtist:
+            writeInt(&buf, Int32(6))
+        
+        
+        case .sameGenre:
+            writeInt(&buf, Int32(7))
+        
+        
+        case .playedElsewhere:
+            writeInt(&buf, Int32(8))
+        
+        
+        case .newToYou:
+            writeInt(&buf, Int32(9))
+        
+        
+        case .recentlyAdded:
+            writeInt(&buf, Int32(10))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeReasonKind_lift(_ buf: RustBuffer) throws -> ReasonKind {
+    return try FfiConverterTypeReasonKind.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeReasonKind_lower(_ value: ReasonKind) -> RustBuffer {
+    return FfiConverterTypeReasonKind.lower(value)
 }
 
 
@@ -8711,6 +10559,92 @@ public func FfiConverterTypeSyncState_lower(_ value: SyncState) -> RustBuffer {
 
 
 
+public enum TimeOfDay: Equatable, Hashable {
+    
+    /**
+     * 0:00 to 5:59.
+     */
+    case night
+    case morning
+    case afternoon
+    /**
+     * 18:00 to 23:59.
+     */
+    case evening
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension TimeOfDay: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeTimeOfDay: FfiConverterRustBuffer {
+    typealias SwiftType = TimeOfDay
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> TimeOfDay {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .night
+        
+        case 2: return .morning
+        
+        case 3: return .afternoon
+        
+        case 4: return .evening
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: TimeOfDay, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .night:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .morning:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .afternoon:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .evening:
+            writeInt(&buf, Int32(4))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeTimeOfDay_lift(_ buf: RustBuffer) throws -> TimeOfDay {
+    return try FfiConverterTypeTimeOfDay.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeTimeOfDay_lower(_ value: TimeOfDay) -> RustBuffer {
+    return FfiConverterTypeTimeOfDay.lower(value)
+}
+
+
+
+
 public enum TranscodeCodec: Equatable, Hashable {
     
     case aac
@@ -8994,6 +10928,30 @@ fileprivate struct FfiConverterOptionTypeGuestSession: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterOptionTypePickReason: FfiConverterRustBuffer {
+    typealias SwiftType = PickReason?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypePickReason.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypePickReason.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterOptionTypePlaylistSummary: FfiConverterRustBuffer {
     typealias SwiftType = PlaylistSummary?
 
@@ -9226,6 +11184,30 @@ fileprivate struct FfiConverterOptionTypeDropRefusal: FfiConverterRustBuffer {
         switch try readInt(&buf) as Int8 {
         case 0: return nil
         case 1: return try FfiConverterTypeDropRefusal.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeTimeOfDay: FfiConverterRustBuffer {
+    typealias SwiftType = TimeOfDay?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeTimeOfDay.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeTimeOfDay.read(from: &buf)
         default: throw UniffiInternalError.unexpectedOptionalTag
         }
     }
@@ -9609,6 +11591,81 @@ fileprivate struct FfiConverterSequenceTypeLyricWord: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterSequenceTypeMixSong: FfiConverterRustBuffer {
+    typealias SwiftType = [MixSong]
+
+    public static func write(_ value: [MixSong], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeMixSong.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [MixSong] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [MixSong]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeMixSong.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeMixSummary: FfiConverterRustBuffer {
+    typealias SwiftType = [MixSummary]
+
+    public static func write(_ value: [MixSummary], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeMixSummary.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [MixSummary] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [MixSummary]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeMixSummary.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeNotInterestedItem: FfiConverterRustBuffer {
+    typealias SwiftType = [NotInterestedItem]
+
+    public static func write(_ value: [NotInterestedItem], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeNotInterestedItem.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [NotInterestedItem] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [NotInterestedItem]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeNotInterestedItem.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterSequenceTypePaletteSwatch: FfiConverterRustBuffer {
     typealias SwiftType = [PaletteSwatch]
 
@@ -9626,6 +11683,31 @@ fileprivate struct FfiConverterSequenceTypePaletteSwatch: FfiConverterRustBuffer
         seq.reserveCapacity(Int(len))
         for _ in 0 ..< len {
             seq.append(try FfiConverterTypePaletteSwatch.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypePickReason: FfiConverterRustBuffer {
+    typealias SwiftType = [PickReason]
+
+    public static func write(_ value: [PickReason], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypePickReason.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [PickReason] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [PickReason]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypePickReason.read(from: &buf))
         }
         return seq
     }
@@ -9751,6 +11833,31 @@ fileprivate struct FfiConverterSequenceTypeServerRow: FfiConverterRustBuffer {
         seq.reserveCapacity(Int(len))
         for _ in 0 ..< len {
             seq.append(try FfiConverterTypeServerRow.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeShelfStat: FfiConverterRustBuffer {
+    typealias SwiftType = [ShelfStat]
+
+    public static func write(_ value: [ShelfStat], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeShelfStat.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [ShelfStat] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [ShelfStat]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeShelfStat.read(from: &buf))
         }
         return seq
     }
@@ -10167,6 +12274,9 @@ private let initializationResult: InitializationResult = {
     if (uniffi_encore_core_checksum_method_encorecore_servers() != 57243) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_encore_core_checksum_method_encorecore_set_autoplay() != 43403) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_encore_core_checksum_method_encorecore_set_listener() != 52298) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -10264,6 +12374,75 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_unlock_profile() != 64461) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_adventurousness() != 59213) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_clear_listening_history() != 39419) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_clear_not_interested() != 1236) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_fewer_like_this() != 5586) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_hide_mix() != 6726) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_home() != 50790) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_mix() != 9008) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_more_like_this() != 23956) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_not_in_this_mix() != 61238) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_not_interested_artist() != 17691) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_not_interested_list() != 17188) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_not_interested_song() != 3938) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_pin_mix() != 32977) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_refresh_autoplay() != 60141) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_regenerate_mixes() != 21268) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_remove_not_interested() != 12588) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_reset_suggestions() != 25035) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_save_mix_as_playlist() != 6768) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_set_adventurousness() != 41073) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_smart_shuffle() != 41403) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_start_radio() != 22365) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_suggestion_stats() != 33503) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_why_this_song() != 5198) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_corelistener_on_event() != 61302) {

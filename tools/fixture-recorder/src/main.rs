@@ -23,6 +23,7 @@
 mod anonymize;
 mod phase3;
 mod phase4;
+mod phase5;
 
 use std::collections::{BTreeMap, HashSet};
 use std::hash::{BuildHasher, RandomState};
@@ -170,6 +171,11 @@ struct Args {
     /// Phase 4 only: sign in, `/Users/Me`, the user image, sign out, `/Users/Me`
     /// again; read-only, written to recorded-phase4.json.
     phase4: bool,
+    /// Phase 5 only: the whole library with play counts, the Playback Reporting
+    /// log if installed, similar items; read-only. The history goes to
+    /// `private_dir` only; recorded-phase5.json gets three scrubbed rows of each.
+    phase5: bool,
+    private_dir: PathBuf,
 }
 
 fn args() -> std::result::Result<Args, String> {
@@ -183,6 +189,11 @@ fn args() -> std::result::Result<Args, String> {
             "/../target/private-covers"
         )),
         phase4: false,
+        phase5: false,
+        private_dir: PathBuf::from(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../target/private-history"
+        )),
     };
     let mut it = std::env::args().skip(1);
     while let Some(flag) = it.next() {
@@ -196,6 +207,8 @@ fn args() -> std::result::Result<Args, String> {
             "--out" => a.out = PathBuf::from(value()?),
             "--covers-dir" => a.covers_dir = PathBuf::from(value()?),
             "--phase4" => a.phase4 = true,
+            "--phase5" => a.phase5 = true,
+            "--private-dir" => a.private_dir = PathBuf::from(value()?),
             "-h" | "--help" => {
                 return Err(include_str!("main.rs")
                     .lines()
@@ -295,8 +308,19 @@ fn publish(
     secret: &str,
     server_id: &str,
 ) -> std::result::Result<String, String> {
-    let mut anon = Anonymizer::new(key);
     let log = recorder.log.lock().map(|l| l.clone()).unwrap_or_default();
+    publish_log(&log, key, session, secret, server_id)
+}
+
+/// `publish` for a chosen part of the log.
+fn publish_log(
+    log: &[Exchange],
+    key: [u8; 32],
+    session: &jellyfin::Session,
+    secret: &str,
+    server_id: &str,
+) -> std::result::Result<String, String> {
+    let mut anon = Anonymizer::new(key);
     let exchanges = Value::Array(log.iter().map(|x| to_fixture(&mut anon, x)).collect());
     if let Some(path) = anon.find_leak(&exchanges) {
         return Err(format!(
@@ -345,7 +369,7 @@ async fn run() -> std::result::Result<(), String> {
     let recorder = Arc::new(Recorder {
         inner: http,
         base_path,
-        limit: a.limit,
+        limit: if a.phase5 { u64::MAX / 2 } else { a.limit },
         log: Mutex::new(Vec::new()),
         kept: Mutex::new(Vec::new()),
     });
@@ -400,6 +424,84 @@ async fn run() -> std::result::Result<(), String> {
         .map_err(|e| e.to_string())?;
     println!("Signed in as {}.", session.user_name);
     let client = client.signed_in(session.token.clone(), session.user_id.clone());
+
+    if a.phase5 {
+        // Read-only: nothing on the server changes.
+        let progress =
+            |p: jellyfin::SyncProgress| print!("\rLibrary: {} of {}   ", p.done, p.total);
+        let library =
+            jellyfin::sync_library(&client, None, &HashSet::new(), a.page_size, &progress)
+                .await
+                .map_err(|e| e.to_string())?;
+        println!();
+        let p5 = phase5::run(&client, &session.user_id, &library).await;
+        client.sign_out().await.map_err(|e| e.to_string())?;
+        println!("Signed out; the recorder's token is gone from the server.");
+        phase5::write_private(&a.private_dir, key, &library, &p5).map_err(|e| e.to_string())?;
+        println!(
+            "Your history is in {} (never committed).",
+            a.private_dir.display()
+        );
+        // The committed fixture: one of each reply, three rows, values scrubbed.
+        let log = recorder.log.lock().map(|l| l.clone()).unwrap_or_default();
+        let mut seen = HashSet::new();
+        let mut keep = Vec::new();
+        for mut x in log {
+            let path = x.url.path().to_owned();
+            let kind = if path.ends_with("/Plugins") {
+                "plugins"
+            } else if path.ends_with("submit_custom_query") {
+                "query"
+            } else if path.ends_with("/Similar") {
+                "similar"
+            } else if path.ends_with("/Items")
+                && query(&x.url, "filters").as_deref() == Some("IsPlayed")
+            {
+                "userData"
+            } else {
+                continue;
+            };
+            if !seen.insert(kind) {
+                continue;
+            }
+            if let Ok(r) = &mut x.outcome
+                && let Ok(mut v) = serde_json::from_slice::<Value>(&r.body)
+            {
+                phase5::scrub(&path, &mut v);
+                r.body = serde_json::to_vec(&v).unwrap_or_default();
+            }
+            keep.push(x);
+        }
+        let published = publish_log(&keep, key, &session, &code.secret, &info.server_id)?;
+        std::fs::create_dir_all(&a.out).map_err(|e| e.to_string())?;
+        std::fs::write(a.out.join("recorded-phase5.json"), format!("{published}\n"))
+            .map_err(|e| e.to_string())?;
+        let notes = format!(
+            "# Jellyfin fixtures: Phase 5\n\n\
+             `recorded-phase5.json` holds the shapes of what smart picks reads from a real Jellyfin {version}\n\
+             server (`tools/fixture-recorder --phase5`, read-only): one page of Jellyfin's own user data, the\n\
+             plugin list, the Playback Reporting query when the plugin is there, and one similar-items reply;\n\
+             three rows each, with play counts and dates replaced, anonymized like the other recordings.\n\
+             The owner's history itself stays on the owner's PC (`tools/target/private-history`, git-ignored).\n\n{lines}\n",
+            version = info.version,
+            lines = p5
+                .lines
+                .iter()
+                .map(|l| format!("- {l}"))
+                .chain(p5.warnings.iter().map(|w| format!("- Warning: {w}")))
+                .collect::<Vec<_>>()
+                .join("\n"),
+        );
+        std::fs::write(a.out.join("RECORDING-PHASE5.md"), notes).map_err(|e| e.to_string())?;
+        println!("Wrote {} exchanges to recorded-phase5.json.", keep.len());
+        for l in &p5.lines {
+            println!("{l}");
+        }
+        for w in &p5.warnings {
+            println!("Warning: {w}");
+        }
+        return Ok(());
+    }
 
     if a.phase4 {
         // Read-only: nothing on the server changes.

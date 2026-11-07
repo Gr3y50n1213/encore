@@ -385,6 +385,13 @@ fn pick(model: &Model, cat: &Catalog, ctx: &Context, n: usize, p: &Params) -> Ve
     picks
 }
 
+/// The ranker's score for one song in this context (for the offline replay's
+/// ranking check; picks use the same score). None when the song isn't known.
+pub fn score_of(model: &Model, cat: &Catalog, ctx: &Context, key: &str) -> Option<f64> {
+    let i = cat.find(key)?;
+    score_all(model, cat, ctx, &[i]).first().map(|s| s.score)
+}
+
 /// Autoplay: `n` songs seeded by the current song and the last ones finished
 /// (board 37: 10, refilled when fewer than 5 are upcoming).
 pub fn autoplay(model: &Model, cat: &Catalog, ctx: &Context, n: usize, p: &Params) -> Vec<Pick> {

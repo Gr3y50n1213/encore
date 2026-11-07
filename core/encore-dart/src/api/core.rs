@@ -195,6 +195,7 @@ pub struct _MixShelf {
     pub plays_so_far: u32,
     pub plays_needed: u32,
     pub made_utc_ms: Option<i64>,
+    pub from_companion: bool,
 }
 
 #[frb(mirror(Home))]

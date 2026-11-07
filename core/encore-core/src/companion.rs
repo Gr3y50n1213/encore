@@ -374,6 +374,59 @@ impl Client {
         Ok((v["this_device"].as_str().unwrap_or("").to_owned(), list))
     }
 
+    /// `GET /catalog/hash`: the song list's hash the server holds, if any.
+    pub(crate) async fn catalog_hash(
+        &self,
+        access: &str,
+    ) -> Result<Option<String>, CompanionError> {
+        let v = self
+            .send(
+                Method::Get,
+                "/catalog/hash",
+                Some(access),
+                None,
+                Self::QUICK,
+            )
+            .await?;
+        Ok(v["hash"].as_str().map(str::to_owned))
+    }
+
+    /// `PUT /catalog`: the profile's song list, replaced whole.
+    pub(crate) async fn put_catalog(
+        &self,
+        access: &str,
+        hash: &str,
+        songs: &Value,
+    ) -> Result<(), CompanionError> {
+        self.send(
+            Method::Put,
+            "/catalog",
+            Some(access),
+            Some(json!({ "hash": hash, "songs": songs })),
+            Duration::from_secs(120),
+        )
+        .await
+        .map(drop)
+    }
+
+    /// `POST /recs/home`: today's mix set from the server.
+    pub(crate) async fn recs_home(
+        &self,
+        access: &str,
+        body: &Value,
+    ) -> Result<Value, CompanionError> {
+        let v = self
+            .send(
+                Method::Post,
+                "/recs/home",
+                Some(access),
+                Some(body.clone()),
+                Duration::from_secs(40),
+            )
+            .await?;
+        Ok(v["set"].clone())
+    }
+
     /// `DELETE /devices/{id}`.
     pub(crate) async fn revoke(&self, access: &str, id: &str) -> Result<(), CompanionError> {
         let id: String = url::form_urlencoded::byte_serialize(id.as_bytes()).collect();

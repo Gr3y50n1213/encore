@@ -204,6 +204,7 @@ impl Transport for HttpTransport {
             let mut b = match req.method {
                 Method::Get => self.client.get(req.url),
                 Method::Post => self.client.post(req.url),
+                Method::Put => self.client.put(req.url),
                 Method::Delete => self.client.delete(req.url),
             };
             for (k, v) in &req.headers {
