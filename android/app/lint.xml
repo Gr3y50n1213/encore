@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+    <!-- The generated UniFFI bindings use java.lang.ref.Cleaner (API 33) only after
+         checking at run time that the class exists, and fall back to JNA's cleaner on
+         older Android (encore_core.kt, UniffiCleaner.create). Lint cannot see the check.
+         Only the generated files are exempt; the app's own code keeps the check. -->
+    <issue id="NewApi">
+        <ignore path="**/core/bindings/kotlin/**" />
+    </issue>
+    <!-- Plan section 19: target API 36 on purpose; compileSdk is 37 for Material 3 1.5. -->
+    <issue id="OldTargetApi" severity="ignore" />
+</lint>
