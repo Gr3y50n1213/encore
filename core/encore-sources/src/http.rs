@@ -215,13 +215,15 @@ impl HttpTransport {
 /// The TLS library's own words, when `err` is (or wraps, as I/O errors do) one of
 /// its errors. An I/O error's `source()` skips the error it wraps, so look inside.
 fn tls_reason(err: &(dyn std::error::Error + 'static)) -> Option<String> {
-    if let Some(t) = err.downcast_ref::<rustls::Error>() {
-        return Some(t.to_string());
+    // The client nests them: an I/O error holding an I/O error holding the TLS
+    // error, so unwrap I/O errors to any depth.
+    let mut cur = err;
+    loop {
+        if let Some(t) = cur.downcast_ref::<rustls::Error>() {
+            return Some(t.to_string());
+        }
+        cur = cur.downcast_ref::<std::io::Error>()?.get_ref()?;
     }
-    err.downcast_ref::<std::io::Error>()
-        .and_then(|io| io.get_ref())
-        .and_then(|inner| inner.downcast_ref::<rustls::Error>())
-        .map(|t| t.to_string())
 }
 
 impl Transport for HttpTransport {
@@ -284,9 +286,52 @@ mod tls_reason_tests {
             "Android certificate checks are not set up: call EncoreTls.initialize(context) when the app starts".into(),
         );
         let wrapped = std::io::Error::new(std::io::ErrorKind::InvalidData, guard);
-        let reason = tls_reason(&wrapped).expect("found inside the I/O error");
+        // As the HTTP client hands it over: wrapped once more.
+        let wrapped = std::io::Error::other(wrapped);
+        let reason = tls_reason(&wrapped).expect("found inside the I/O errors");
         assert!(reason.contains("EncoreTls.initialize"), "{reason}");
         let plain = std::io::Error::new(std::io::ErrorKind::ConnectionRefused, "refused");
         assert_eq!(tls_reason(&plain), None);
+    }
+}
+
+#[cfg(test)]
+mod tls_failure_tests {
+    use std::time::Duration;
+
+    use crate::error::{SourceError, Unreachable};
+    use crate::transport::{Method, Request, Transport};
+
+    /// A server that reads the TLS hello and answers with something that isn't
+    /// TLS: the transport must say it was a TLS failure, with its reason, not
+    /// "error sending request" (found on Android phones, 7 November 2026).
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_real_tls_failure_says_so() {
+        let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = l.local_addr().unwrap().port();
+        std::thread::spawn(move || {
+            use std::io::{Read, Write};
+            for mut s in l.incoming().flatten() {
+                let mut hello = [0u8; 512];
+                let _ = s.read(&mut hello);
+                let _ = s.write_all(b"HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n");
+                std::thread::sleep(Duration::from_millis(500));
+            }
+        });
+        let t = super::HttpTransport::new(None, Duration::from_secs(5)).unwrap();
+        let err = t
+            .send(Request {
+                method: Method::Get,
+                url: url::Url::parse(&format!("https://127.0.0.1:{port}/")).unwrap(),
+                headers: Vec::new(),
+                body: None,
+                timeout: Duration::from_secs(5),
+            })
+            .await
+            .unwrap_err();
+        assert!(
+            matches!(err, SourceError::Unreachable(Unreachable::Tls(_))),
+            "{err:?}"
+        );
     }
 }
