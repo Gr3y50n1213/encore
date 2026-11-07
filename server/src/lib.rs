@@ -1,12 +1,14 @@
 //! The companion server (plan section 5): profiles, sign-in by media-server token,
 //! the synced event log, and a status page. It never stores music. Auth, sync and
-//! status are Phase 4; the WebSocket, jobs and recaps arrive in their own phases.
+//! status are Phase 4; mixes Phase 5; the live link (`/ws`: presence, handoff,
+//! remote control) Phase 7; jobs and recaps arrive in their own phases.
 
 mod auth;
 mod config;
 mod db;
 mod error;
 mod limit;
+mod live;
 mod recs;
 mod sync;
 #[cfg(test)]
@@ -29,6 +31,7 @@ pub use config::{
     BIND_ENV, Config, DATA_DIR_ENV, DEFAULT_BIND, JELLYFIN_URLS_ENV, bind_address, jellyfin_urls,
 };
 pub use db::{DeviceRow, Event, Status};
+pub use live::{MAX_MESSAGE_BYTES, MAX_PER_SECOND, PING_EVERY};
 pub use recs::history_from;
 pub use sync::{MAX_PULL, MAX_PUSH};
 
@@ -52,6 +55,8 @@ pub struct AppState {
     limiter: limit::RateLimiter,
     /// One waiter per profile, woken when one of its devices pushes.
     waiters: Mutex<HashMap<i64, Arc<Notify>>>,
+    /// Open live links (Phase 7).
+    live: live::Hub,
     config: Config,
     started: Instant,
 }
@@ -72,6 +77,7 @@ impl AppState {
             check,
             limiter: limit::RateLimiter::new(10, Duration::from_secs(60)),
             waiters: Mutex::new(HashMap::new()),
+            live: live::Hub::default(),
             config,
             started: Instant::now(),
         }
@@ -130,7 +136,8 @@ pub fn app(state: Arc<AppState>) -> Router {
         .route("/auth/exchange", post(auth::exchange))
         .route("/auth/refresh", post(auth::refresh))
         .route("/devices", get(auth::devices))
-        .route("/devices/{id}", delete(auth::revoke))
+        .route("/devices/{id}", delete(auth::revoke).patch(auth::rename))
+        .route("/ws", get(live::ws))
         .route("/profile", delete(auth::delete_profile))
         .route("/sync/push", post(sync::push))
         .route("/sync/pull", get(sync::pull))

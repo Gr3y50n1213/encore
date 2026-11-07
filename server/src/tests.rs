@@ -796,3 +796,284 @@ fn the_servers_history_merges_likes_and_not_interested_by_the_latest_change() {
     assert!(h.not_interested.is_empty(), "the later removal wins");
     assert_eq!(h.epoch_start_utc_ms, 77);
 }
+
+// ---- Phase 7: the live link (`GET /ws`) over a real socket ----
+
+use futures_util::{SinkExt, StreamExt};
+use tokio_tungstenite::tungstenite::{self, client::IntoClientRequest};
+
+type Ws =
+    tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>;
+
+/// The same state over a real loopback socket (the in-process router can't upgrade).
+async fn serve(state: &Arc<AppState>) -> SocketAddr {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let app = app(state.clone());
+    tokio::spawn(async move {
+        axum::serve(
+            listener,
+            app.into_make_service_with_connect_info::<SocketAddr>(),
+        )
+        .await
+        .unwrap();
+    });
+    addr
+}
+
+async fn connect(addr: SocketAddr, token: &str) -> Result<Ws, tungstenite::Error> {
+    let mut req = format!("ws://{addr}/ws").into_client_request().unwrap();
+    req.headers_mut()
+        .insert("Authorization", format!("Bearer {token}").parse().unwrap());
+    tokio_tungstenite::connect_async(req)
+        .await
+        .map(|(ws, _)| ws)
+}
+
+async fn send(ws: &mut Ws, v: Value) {
+    ws.send(tungstenite::Message::Text(v.to_string().into()))
+        .await
+        .unwrap();
+}
+
+/// The next message of `kind`, skipping others; None after `limit` or a close.
+async fn next_of(ws: &mut Ws, kind: &str, limit: Duration) -> Option<Value> {
+    let deadline = tokio::time::Instant::now() + limit;
+    loop {
+        let msg = tokio::time::timeout_at(deadline, ws.next())
+            .await
+            .ok()??
+            .ok()?;
+        match msg {
+            tungstenite::Message::Text(t) => {
+                let v: Value = serde_json::from_str(t.as_str()).unwrap();
+                if v["type"] == kind {
+                    return Some(v);
+                }
+            }
+            tungstenite::Message::Close(f) => {
+                return (kind == "close")
+                    .then(|| json!({ "reason": f.map(|f| f.reason.to_string()) }));
+            }
+            _ => {}
+        }
+    }
+}
+
+const SOON: Duration = Duration::from_secs(3);
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_live_link_carries_presence_relays_and_nudges_within_one_profile_only() {
+    let (app, state) = server();
+    let addr = serve(&state).await;
+    let phone = sign_in(&app, "good-sam", "phone").await;
+    let mac = sign_in(&app, "good-sam", "mac").await;
+    let alex = sign_in(&app, "good-alex", "alex-ipad").await;
+    let tok = |v: &Value| v["access_token"].as_str().unwrap().to_owned();
+    let id = |v: &Value| v["device_id"].as_str().unwrap().to_owned();
+
+    // No token, or a bad one: no link.
+    assert!(connect(addr, "nonsense").await.is_err());
+
+    let mut p = connect(addr, &tok(&phone)).await.unwrap();
+    let welcome = next_of(&mut p, "welcome", SOON).await.unwrap();
+    assert_eq!(welcome["deviceId"], id(&phone));
+    assert_eq!(welcome["devices"], json!([]));
+    let mut m = connect(addr, &tok(&mac)).await.unwrap();
+    let welcome = next_of(&mut m, "welcome", SOON).await.unwrap();
+    assert_eq!(welcome["devices"][0]["deviceId"], id(&phone), "{welcome}");
+    let mut a = connect(addr, &tok(&alex)).await.unwrap();
+    assert_eq!(
+        next_of(&mut a, "welcome", SOON).await.unwrap()["devices"],
+        json!([])
+    );
+    // The phone hears the Mac come online.
+    let online = next_of(&mut p, "presence", SOON).await.unwrap();
+    assert_eq!(
+        (online["deviceId"].as_str(), online["online"].as_bool()),
+        (Some(id(&mac).as_str()), Some(true))
+    );
+
+    // Presence reaches the Mac, and never Alex.
+    send(
+        &mut p,
+        json!({ "type": "presence", "presence": { "state": "playing", "title": "Song" } }),
+    )
+    .await;
+    let seen = next_of(&mut m, "presence", SOON).await.unwrap();
+    assert_eq!(seen["presence"]["state"], "playing");
+    // A relay to the Mac arrives from the phone; one to Alex's iPad doesn't.
+    send(
+        &mut p,
+        json!({ "type": "relay", "to": id(&mac), "msgId": "m1", "body": { "kind": "offer" } }),
+    )
+    .await;
+    let got = next_of(&mut m, "relay", SOON).await.unwrap();
+    assert_eq!(
+        (got["from"].as_str(), got["msgId"].as_str()),
+        (Some(id(&phone).as_str()), Some("m1"))
+    );
+    assert!(got["serverMs"].as_i64().unwrap() > 0);
+    send(
+        &mut p,
+        json!({ "type": "relay", "to": id(&alex), "msgId": "m2", "body": {} }),
+    )
+    .await;
+    assert_eq!(
+        next_of(&mut p, "undeliverable", SOON).await.unwrap()["msgId"],
+        "m2"
+    );
+    assert!(
+        next_of(&mut a, "relay", Duration::from_millis(300))
+            .await
+            .is_none()
+    );
+    assert!(
+        next_of(&mut a, "presence", Duration::from_millis(100))
+            .await
+            .is_none()
+    );
+    // Ping carries the server's clock for the start position.
+    send(&mut m, json!({ "type": "ping", "t": 123 })).await;
+    let pong = next_of(&mut m, "pong", SOON).await.unwrap();
+    assert_eq!(pong["t"], 123);
+    assert!(pong["serverMs"].as_i64().unwrap() > 0);
+
+    // A push from the phone nudges the Mac (not the phone, not Alex).
+    let (s, _) = call(
+        &app,
+        "POST",
+        "/sync/push",
+        Some(&tok(&phone)),
+        Some(json!({ "events": [like("e1", "song-a")] })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+    assert!(next_of(&mut m, "nudge", SOON).await.is_some());
+    assert!(
+        next_of(&mut a, "nudge", Duration::from_millis(300))
+            .await
+            .is_none()
+    );
+
+    // /devices says who is online and what they play; rename tells every link.
+    let (_, list) = call(&app, "GET", "/devices", Some(&tok(&mac)), None).await;
+    let row = |name: &str| {
+        list["devices"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|d| d["name"] == name)
+            .cloned()
+            .unwrap()
+    };
+    assert_eq!(row("phone")["online"], true);
+    assert_eq!(row("phone")["presence"]["state"], "playing");
+    let path = format!("/devices/{}", id(&phone));
+    let (s, _) = call(
+        &app,
+        "PATCH",
+        &path,
+        Some(&tok(&mac)),
+        Some(json!({ "name": "Sam's Pixel" })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::NO_CONTENT);
+    assert!(next_of(&mut p, "devices", SOON).await.is_some());
+    let (s, _) = call(
+        &app,
+        "PATCH",
+        &path,
+        Some(&tok(&mac)),
+        Some(json!({ "name": "  " })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+    let other = format!("/devices/{}", id(&alex));
+    let (s, _) = call(
+        &app,
+        "PATCH",
+        &other,
+        Some(&tok(&mac)),
+        Some(json!({ "name": "Mine now" })),
+    )
+    .await;
+    assert_eq!(
+        s,
+        StatusCode::NOT_FOUND,
+        "another profile's device can't be renamed"
+    );
+
+    // Signing the Mac out from the phone closes its link at once.
+    let (s, _) = call(
+        &app,
+        "DELETE",
+        &format!("/devices/{}", id(&mac)),
+        Some(&tok(&phone)),
+        None,
+    )
+    .await;
+    assert_eq!(s, StatusCode::NO_CONTENT);
+    let closed = next_of(&mut m, "close", SOON).await.unwrap();
+    assert_eq!(closed["reason"], "signed out");
+    let gone = next_of(&mut p, "presence", SOON).await.unwrap();
+    assert_eq!(
+        (gone["deviceId"].as_str(), gone["online"].as_bool()),
+        (Some(id(&mac).as_str()), Some(false))
+    );
+    assert!(
+        connect(addr, &tok(&mac)).await.is_err(),
+        "a revoked token can't reconnect"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_live_link_is_bounded() {
+    let (app, state) = server();
+    let addr = serve(&state).await;
+    let phone = sign_in(&app, "good-sam", "phone").await;
+    let token = phone["access_token"].as_str().unwrap().to_owned();
+
+    // Too big: the link closes.
+    let mut p = connect(addr, &token).await.unwrap();
+    next_of(&mut p, "welcome", SOON).await.unwrap();
+    let big = "x".repeat(MAX_MESSAGE_BYTES + 1);
+    let _ = p.send(tungstenite::Message::Text(big.into())).await;
+    assert!(
+        next_of(&mut p, "welcome", SOON).await.is_none(),
+        "closed after a message over the limit"
+    );
+
+    // Too many in one second: closed with the reason.
+    let mut p = connect(addr, &token).await.unwrap();
+    next_of(&mut p, "welcome", SOON).await.unwrap();
+    for i in 0..(MAX_PER_SECOND + 5) {
+        if p.send(tungstenite::Message::Text(
+            json!({ "type": "ping", "t": i }).to_string().into(),
+        ))
+        .await
+        .is_err()
+        {
+            break;
+        }
+    }
+    let closed = next_of(&mut p, "close", SOON).await.unwrap();
+    assert_eq!(closed["reason"], "too many messages");
+
+    // Garbage gets an error, not a crash; the link stays.
+    let mut p = connect(addr, &token).await.unwrap();
+    next_of(&mut p, "welcome", SOON).await.unwrap();
+    p.send(tungstenite::Message::Text("{nope".into()))
+        .await
+        .unwrap();
+    assert!(next_of(&mut p, "error", SOON).await.is_some());
+    send(&mut p, json!({ "type": "ping", "t": 1 })).await;
+    assert!(next_of(&mut p, "pong", SOON).await.is_some());
+    // A newer link of the same device replaces the older one.
+    let mut q = connect(addr, &token).await.unwrap();
+    next_of(&mut q, "welcome", SOON).await.unwrap();
+    assert_eq!(
+        next_of(&mut p, "close", SOON).await.unwrap()["reason"],
+        "replaced by a newer connection"
+    );
+}

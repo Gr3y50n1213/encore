@@ -295,7 +295,16 @@ pub(crate) async fn refresh(
 #[derive(Serialize)]
 pub(crate) struct DevicesReply {
     this_device: String,
-    devices: Vec<DeviceRow>,
+    devices: Vec<DeviceReply>,
+}
+
+/// A device and, from the live link, whether it is online and what it plays.
+#[derive(Debug, Serialize)]
+pub(crate) struct DeviceReply {
+    #[serde(flatten)]
+    row: DeviceRow,
+    online: bool,
+    presence: Option<serde_json::Value>,
 }
 
 /// `GET /devices`: the profile's devices, for the Devices page.
@@ -303,10 +312,47 @@ pub(crate) async fn devices(
     State(state): State<Arc<AppState>>,
     Device(d): Device,
 ) -> Result<Json<DevicesReply>, ApiError> {
+    let online = state.live.online(d.profile_id);
+    let devices = state
+        .db
+        .devices(d.profile_id)?
+        .into_iter()
+        .map(|row| DeviceReply {
+            online: online.contains_key(&row.id),
+            presence: online.get(&row.id).cloned().flatten(),
+            row,
+        })
+        .collect();
     Ok(Json(DevicesReply {
-        devices: state.db.devices(d.profile_id)?,
+        devices,
         this_device: d.device_id,
     }))
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct RenameBody {
+    name: String,
+}
+
+/// `PATCH /devices/{id}`: board 12's Rename, for any device of the profile.
+pub(crate) async fn rename(
+    State(state): State<Arc<AppState>>,
+    Device(d): Device,
+    Path(id): Path<String>,
+    Json(body): Json<RenameBody>,
+) -> Result<StatusCode, ApiError> {
+    let name = body.name.trim();
+    if name.is_empty() || name.chars().count() > 100 {
+        return Err(ApiError::BadRequest(
+            "A device name is 1 to 100 characters.".into(),
+        ));
+    }
+    if state.db.rename_device(d.profile_id, &id, name)? {
+        state.live.devices_changed(d.profile_id);
+        Ok(StatusCode::NO_CONTENT)
+    } else {
+        Err(ApiError::NotFound("No such device on this profile.".into()))
+    }
 }
 
 /// `DELETE /devices/{id}`: sign that device out everywhere (plan section 12, "Lost
@@ -317,6 +363,8 @@ pub(crate) async fn revoke(
     Path(id): Path<String>,
 ) -> Result<StatusCode, ApiError> {
     if state.db.revoke_device(d.profile_id, &id, now_ms())? {
+        state.live.kick(d.profile_id, Some(&id));
+        state.live.devices_changed(d.profile_id);
         Ok(StatusCode::NO_CONTENT)
     } else {
         Err(ApiError::NotFound("No such device on this profile.".into()))
@@ -331,5 +379,6 @@ pub(crate) async fn delete_profile(
 ) -> Result<StatusCode, ApiError> {
     state.db.delete_profile(d.profile_id)?;
     state.wake(d.profile_id);
+    state.live.kick(d.profile_id, None);
     Ok(StatusCode::NO_CONTENT)
 }

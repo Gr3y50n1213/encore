@@ -66,6 +66,7 @@ pub(crate) async fn push(
     let (accepted, changed) = state.db.push(&d, &body.events, now_ms())?;
     if changed {
         state.wake(d.profile_id);
+        state.live.nudge(d.profile_id, &d.device_id);
     }
     Ok(Json(PushReply { accepted }))
 }

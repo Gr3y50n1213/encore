@@ -453,6 +453,29 @@ impl Db {
         .collect()
     }
 
+    /// When a live link opens or closes: the device was seen now.
+    pub(crate) fn touch_device(&self, device_id: &str, now: i64) -> Result<()> {
+        self.conn().execute(
+            "UPDATE devices SET last_seen_utc_ms = max(last_seen_utc_ms, ?2) WHERE id = ?1",
+            params![device_id, now],
+        )?;
+        Ok(())
+    }
+
+    /// Rename one of the profile's devices. False when it isn't the profile's.
+    pub(crate) fn rename_device(
+        &self,
+        profile_id: i64,
+        device_id: &str,
+        name: &str,
+    ) -> Result<bool> {
+        let n = self.conn().execute(
+            "UPDATE devices SET name = ?3 WHERE id = ?1 AND profile_id = ?2 AND revoked_utc_ms IS NULL",
+            params![device_id, profile_id, name],
+        )?;
+        Ok(n > 0)
+    }
+
     /// Revoke one of the profile's devices. False when it isn't the profile's.
     pub(crate) fn revoke_device(&self, profile_id: i64, device_id: &str, now: i64) -> Result<bool> {
         let mut c = self.conn();
