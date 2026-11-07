@@ -52,6 +52,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected ArtworkOf dco_decode_artwork_of(dynamic raw);
 
+@protected ArtworkPalette dco_decode_artwork_palette(dynamic raw);
+
 @protected ArtworkRequest dco_decode_artwork_request(dynamic raw);
 
 @protected bool dco_decode_bool(dynamic raw);
@@ -60,7 +62,13 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected ArtistSummary dco_decode_box_autoadd_artist_summary(dynamic raw);
 
+@protected ArtworkPalette dco_decode_box_autoadd_artwork_palette(dynamic raw);
+
 @protected CoreConfig dco_decode_box_autoadd_core_config(dynamic raw);
+
+@protected DropRefusal dco_decode_box_autoadd_drop_refusal(dynamic raw);
+
+@protected DropTarget dco_decode_box_autoadd_drop_target(dynamic raw);
 
 @protected double dco_decode_box_autoadd_f_64(dynamic raw);
 
@@ -76,6 +84,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected Song dco_decode_box_autoadd_song(dynamic raw);
 
+@protected SongLyrics dco_decode_box_autoadd_song_lyrics(dynamic raw);
+
 @protected TopResult dco_decode_box_autoadd_top_result(dynamic raw);
 
 @protected int dco_decode_box_autoadd_u_16(dynamic raw);
@@ -89,6 +99,16 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected CoreEvent dco_decode_core_event(dynamic raw);
 
 @protected CredentialKey dco_decode_credential_key(dynamic raw);
+
+@protected DropPreview dco_decode_drop_preview(dynamic raw);
+
+@protected DropRefusal dco_decode_drop_refusal(dynamic raw);
+
+@protected DropTarget dco_decode_drop_target(dynamic raw);
+
+@protected DropTargetKind dco_decode_drop_target_kind(dynamic raw);
+
+@protected EditResult dco_decode_edit_result(dynamic raw);
 
 @protected EndReason dco_decode_end_reason(dynamic raw);
 
@@ -106,11 +126,15 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected PlatformInt64 dco_decode_i_64(dynamic raw);
 
+@protected InterruptionKind dco_decode_interruption_kind(dynamic raw);
+
 @protected List<String> dco_decode_list_String(dynamic raw);
 
 @protected List<AlbumSummary> dco_decode_list_album_summary(dynamic raw);
 
 @protected List<ArtistSummary> dco_decode_list_artist_summary(dynamic raw);
+
+@protected List<bool> dco_decode_list_bool(dynamic raw);
 
 @protected List<CredentialKey> dco_decode_list_credential_key(dynamic raw);
 
@@ -118,11 +142,25 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected List<HttpHeader> dco_decode_list_http_header(dynamic raw);
 
+@protected List<LyricBackground> dco_decode_list_lyric_background(dynamic raw);
+
+@protected List<LyricGap> dco_decode_list_lyric_gap(dynamic raw);
+
+@protected List<LyricLine> dco_decode_list_lyric_line(dynamic raw);
+
+@protected List<LyricWord> dco_decode_list_lyric_word(dynamic raw);
+
+@protected List<PaletteSwatch> dco_decode_list_palette_swatch(dynamic raw);
+
 @protected List<PlaylistEntry> dco_decode_list_playlist_entry(dynamic raw);
 
 @protected List<PlaylistSummary> dco_decode_list_playlist_summary(dynamic raw);
 
 @protected Int64List dco_decode_list_prim_i_64_strict(dynamic raw);
+
+@protected List<int> dco_decode_list_prim_u_32_loose(dynamic raw);
+
+@protected Uint32List dco_decode_list_prim_u_32_strict(dynamic raw);
 
 @protected Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
@@ -132,6 +170,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected List<ServerRow> dco_decode_list_server_row(dynamic raw);
 
+@protected List<Singer> dco_decode_list_singer(dynamic raw);
+
 @protected List<Song> dco_decode_list_song(dynamic raw);
 
 @protected List<SourceToken> dco_decode_list_source_token(dynamic raw);
@@ -140,6 +180,22 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected ListeningMode dco_decode_listening_mode(dynamic raw);
 
+@protected LyricBackground dco_decode_lyric_background(dynamic raw);
+
+@protected LyricGap dco_decode_lyric_gap(dynamic raw);
+
+@protected LyricLine dco_decode_lyric_line(dynamic raw);
+
+@protected LyricSide dco_decode_lyric_side(dynamic raw);
+
+@protected LyricWord dco_decode_lyric_word(dynamic raw);
+
+@protected LyricsFormat dco_decode_lyrics_format(dynamic raw);
+
+@protected LyricsOrigin dco_decode_lyrics_origin(dynamic raw);
+
+@protected LyricsSync dco_decode_lyrics_sync(dynamic raw);
+
 @protected Network dco_decode_network(dynamic raw);
 
 @protected String? dco_decode_opt_String(dynamic raw);
@@ -147,6 +203,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected AlbumSummary? dco_decode_opt_box_autoadd_album_summary(dynamic raw);
 
 @protected ArtistSummary? dco_decode_opt_box_autoadd_artist_summary(dynamic raw);
+
+@protected ArtworkPalette? dco_decode_opt_box_autoadd_artwork_palette(dynamic raw);
+
+@protected DropRefusal? dco_decode_opt_box_autoadd_drop_refusal(dynamic raw);
 
 @protected double? dco_decode_opt_box_autoadd_f_64(dynamic raw);
 
@@ -162,11 +222,17 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected Song? dco_decode_opt_box_autoadd_song(dynamic raw);
 
+@protected SongLyrics? dco_decode_opt_box_autoadd_song_lyrics(dynamic raw);
+
 @protected TopResult? dco_decode_opt_box_autoadd_top_result(dynamic raw);
 
 @protected int? dco_decode_opt_box_autoadd_u_16(dynamic raw);
 
 @protected int? dco_decode_opt_box_autoadd_u_32(dynamic raw);
+
+@protected PaletteScheme dco_decode_palette_scheme(dynamic raw);
+
+@protected PaletteSwatch dco_decode_palette_swatch(dynamic raw);
 
 @protected PlaylistDetail dco_decode_playlist_detail(dynamic raw);
 
@@ -190,13 +256,25 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected SearchResults dco_decode_search_results(dynamic raw);
 
+@protected SentEdits dco_decode_sent_edits(dynamic raw);
+
 @protected ServerCheck dco_decode_server_check(dynamic raw);
 
 @protected ServerRow dco_decode_server_row(dynamic raw);
 
 @protected SignedIn dco_decode_signed_in(dynamic raw);
 
+@protected Singer dco_decode_singer(dynamic raw);
+
+@protected SingerKind dco_decode_singer_kind(dynamic raw);
+
+@protected SkipOrigin dco_decode_skip_origin(dynamic raw);
+
+@protected SkipTarget dco_decode_skip_target(dynamic raw);
+
 @protected Song dco_decode_song(dynamic raw);
+
+@protected SongLyrics dco_decode_song_lyrics(dynamic raw);
 
 @protected SongSort dco_decode_song_sort(dynamic raw);
 
@@ -250,6 +328,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected ArtworkOf sse_decode_artwork_of(SseDeserializer deserializer);
 
+@protected ArtworkPalette sse_decode_artwork_palette(SseDeserializer deserializer);
+
 @protected ArtworkRequest sse_decode_artwork_request(SseDeserializer deserializer);
 
 @protected bool sse_decode_bool(SseDeserializer deserializer);
@@ -258,7 +338,13 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected ArtistSummary sse_decode_box_autoadd_artist_summary(SseDeserializer deserializer);
 
+@protected ArtworkPalette sse_decode_box_autoadd_artwork_palette(SseDeserializer deserializer);
+
 @protected CoreConfig sse_decode_box_autoadd_core_config(SseDeserializer deserializer);
+
+@protected DropRefusal sse_decode_box_autoadd_drop_refusal(SseDeserializer deserializer);
+
+@protected DropTarget sse_decode_box_autoadd_drop_target(SseDeserializer deserializer);
 
 @protected double sse_decode_box_autoadd_f_64(SseDeserializer deserializer);
 
@@ -274,6 +360,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected Song sse_decode_box_autoadd_song(SseDeserializer deserializer);
 
+@protected SongLyrics sse_decode_box_autoadd_song_lyrics(SseDeserializer deserializer);
+
 @protected TopResult sse_decode_box_autoadd_top_result(SseDeserializer deserializer);
 
 @protected int sse_decode_box_autoadd_u_16(SseDeserializer deserializer);
@@ -287,6 +375,16 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected CoreEvent sse_decode_core_event(SseDeserializer deserializer);
 
 @protected CredentialKey sse_decode_credential_key(SseDeserializer deserializer);
+
+@protected DropPreview sse_decode_drop_preview(SseDeserializer deserializer);
+
+@protected DropRefusal sse_decode_drop_refusal(SseDeserializer deserializer);
+
+@protected DropTarget sse_decode_drop_target(SseDeserializer deserializer);
+
+@protected DropTargetKind sse_decode_drop_target_kind(SseDeserializer deserializer);
+
+@protected EditResult sse_decode_edit_result(SseDeserializer deserializer);
 
 @protected EndReason sse_decode_end_reason(SseDeserializer deserializer);
 
@@ -304,11 +402,15 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
 
+@protected InterruptionKind sse_decode_interruption_kind(SseDeserializer deserializer);
+
 @protected List<String> sse_decode_list_String(SseDeserializer deserializer);
 
 @protected List<AlbumSummary> sse_decode_list_album_summary(SseDeserializer deserializer);
 
 @protected List<ArtistSummary> sse_decode_list_artist_summary(SseDeserializer deserializer);
+
+@protected List<bool> sse_decode_list_bool(SseDeserializer deserializer);
 
 @protected List<CredentialKey> sse_decode_list_credential_key(SseDeserializer deserializer);
 
@@ -316,11 +418,25 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected List<HttpHeader> sse_decode_list_http_header(SseDeserializer deserializer);
 
+@protected List<LyricBackground> sse_decode_list_lyric_background(SseDeserializer deserializer);
+
+@protected List<LyricGap> sse_decode_list_lyric_gap(SseDeserializer deserializer);
+
+@protected List<LyricLine> sse_decode_list_lyric_line(SseDeserializer deserializer);
+
+@protected List<LyricWord> sse_decode_list_lyric_word(SseDeserializer deserializer);
+
+@protected List<PaletteSwatch> sse_decode_list_palette_swatch(SseDeserializer deserializer);
+
 @protected List<PlaylistEntry> sse_decode_list_playlist_entry(SseDeserializer deserializer);
 
 @protected List<PlaylistSummary> sse_decode_list_playlist_summary(SseDeserializer deserializer);
 
 @protected Int64List sse_decode_list_prim_i_64_strict(SseDeserializer deserializer);
+
+@protected List<int> sse_decode_list_prim_u_32_loose(SseDeserializer deserializer);
+
+@protected Uint32List sse_decode_list_prim_u_32_strict(SseDeserializer deserializer);
 
 @protected Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
@@ -330,6 +446,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected List<ServerRow> sse_decode_list_server_row(SseDeserializer deserializer);
 
+@protected List<Singer> sse_decode_list_singer(SseDeserializer deserializer);
+
 @protected List<Song> sse_decode_list_song(SseDeserializer deserializer);
 
 @protected List<SourceToken> sse_decode_list_source_token(SseDeserializer deserializer);
@@ -338,6 +456,22 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected ListeningMode sse_decode_listening_mode(SseDeserializer deserializer);
 
+@protected LyricBackground sse_decode_lyric_background(SseDeserializer deserializer);
+
+@protected LyricGap sse_decode_lyric_gap(SseDeserializer deserializer);
+
+@protected LyricLine sse_decode_lyric_line(SseDeserializer deserializer);
+
+@protected LyricSide sse_decode_lyric_side(SseDeserializer deserializer);
+
+@protected LyricWord sse_decode_lyric_word(SseDeserializer deserializer);
+
+@protected LyricsFormat sse_decode_lyrics_format(SseDeserializer deserializer);
+
+@protected LyricsOrigin sse_decode_lyrics_origin(SseDeserializer deserializer);
+
+@protected LyricsSync sse_decode_lyrics_sync(SseDeserializer deserializer);
+
 @protected Network sse_decode_network(SseDeserializer deserializer);
 
 @protected String? sse_decode_opt_String(SseDeserializer deserializer);
@@ -345,6 +479,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected AlbumSummary? sse_decode_opt_box_autoadd_album_summary(SseDeserializer deserializer);
 
 @protected ArtistSummary? sse_decode_opt_box_autoadd_artist_summary(SseDeserializer deserializer);
+
+@protected ArtworkPalette? sse_decode_opt_box_autoadd_artwork_palette(SseDeserializer deserializer);
+
+@protected DropRefusal? sse_decode_opt_box_autoadd_drop_refusal(SseDeserializer deserializer);
 
 @protected double? sse_decode_opt_box_autoadd_f_64(SseDeserializer deserializer);
 
@@ -360,11 +498,17 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected Song? sse_decode_opt_box_autoadd_song(SseDeserializer deserializer);
 
+@protected SongLyrics? sse_decode_opt_box_autoadd_song_lyrics(SseDeserializer deserializer);
+
 @protected TopResult? sse_decode_opt_box_autoadd_top_result(SseDeserializer deserializer);
 
 @protected int? sse_decode_opt_box_autoadd_u_16(SseDeserializer deserializer);
 
 @protected int? sse_decode_opt_box_autoadd_u_32(SseDeserializer deserializer);
+
+@protected PaletteScheme sse_decode_palette_scheme(SseDeserializer deserializer);
+
+@protected PaletteSwatch sse_decode_palette_swatch(SseDeserializer deserializer);
 
 @protected PlaylistDetail sse_decode_playlist_detail(SseDeserializer deserializer);
 
@@ -388,13 +532,25 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected SearchResults sse_decode_search_results(SseDeserializer deserializer);
 
+@protected SentEdits sse_decode_sent_edits(SseDeserializer deserializer);
+
 @protected ServerCheck sse_decode_server_check(SseDeserializer deserializer);
 
 @protected ServerRow sse_decode_server_row(SseDeserializer deserializer);
 
 @protected SignedIn sse_decode_signed_in(SseDeserializer deserializer);
 
+@protected Singer sse_decode_singer(SseDeserializer deserializer);
+
+@protected SingerKind sse_decode_singer_kind(SseDeserializer deserializer);
+
+@protected SkipOrigin sse_decode_skip_origin(SseDeserializer deserializer);
+
+@protected SkipTarget sse_decode_skip_target(SseDeserializer deserializer);
+
 @protected Song sse_decode_song(SseDeserializer deserializer);
+
+@protected SongLyrics sse_decode_song_lyrics(SseDeserializer deserializer);
 
 @protected SongSort sse_decode_song_sort(SseDeserializer deserializer);
 
@@ -448,6 +604,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_artwork_of(ArtworkOf self, SseSerializer serializer);
 
+@protected void sse_encode_artwork_palette(ArtworkPalette self, SseSerializer serializer);
+
 @protected void sse_encode_artwork_request(ArtworkRequest self, SseSerializer serializer);
 
 @protected void sse_encode_bool(bool self, SseSerializer serializer);
@@ -456,7 +614,13 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_box_autoadd_artist_summary(ArtistSummary self, SseSerializer serializer);
 
+@protected void sse_encode_box_autoadd_artwork_palette(ArtworkPalette self, SseSerializer serializer);
+
 @protected void sse_encode_box_autoadd_core_config(CoreConfig self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_drop_refusal(DropRefusal self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_drop_target(DropTarget self, SseSerializer serializer);
 
 @protected void sse_encode_box_autoadd_f_64(double self, SseSerializer serializer);
 
@@ -472,6 +636,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_box_autoadd_song(Song self, SseSerializer serializer);
 
+@protected void sse_encode_box_autoadd_song_lyrics(SongLyrics self, SseSerializer serializer);
+
 @protected void sse_encode_box_autoadd_top_result(TopResult self, SseSerializer serializer);
 
 @protected void sse_encode_box_autoadd_u_16(int self, SseSerializer serializer);
@@ -485,6 +651,16 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_core_event(CoreEvent self, SseSerializer serializer);
 
 @protected void sse_encode_credential_key(CredentialKey self, SseSerializer serializer);
+
+@protected void sse_encode_drop_preview(DropPreview self, SseSerializer serializer);
+
+@protected void sse_encode_drop_refusal(DropRefusal self, SseSerializer serializer);
+
+@protected void sse_encode_drop_target(DropTarget self, SseSerializer serializer);
+
+@protected void sse_encode_drop_target_kind(DropTargetKind self, SseSerializer serializer);
+
+@protected void sse_encode_edit_result(EditResult self, SseSerializer serializer);
 
 @protected void sse_encode_end_reason(EndReason self, SseSerializer serializer);
 
@@ -502,11 +678,15 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
 
+@protected void sse_encode_interruption_kind(InterruptionKind self, SseSerializer serializer);
+
 @protected void sse_encode_list_String(List<String> self, SseSerializer serializer);
 
 @protected void sse_encode_list_album_summary(List<AlbumSummary> self, SseSerializer serializer);
 
 @protected void sse_encode_list_artist_summary(List<ArtistSummary> self, SseSerializer serializer);
+
+@protected void sse_encode_list_bool(List<bool> self, SseSerializer serializer);
 
 @protected void sse_encode_list_credential_key(List<CredentialKey> self, SseSerializer serializer);
 
@@ -514,11 +694,25 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_list_http_header(List<HttpHeader> self, SseSerializer serializer);
 
+@protected void sse_encode_list_lyric_background(List<LyricBackground> self, SseSerializer serializer);
+
+@protected void sse_encode_list_lyric_gap(List<LyricGap> self, SseSerializer serializer);
+
+@protected void sse_encode_list_lyric_line(List<LyricLine> self, SseSerializer serializer);
+
+@protected void sse_encode_list_lyric_word(List<LyricWord> self, SseSerializer serializer);
+
+@protected void sse_encode_list_palette_swatch(List<PaletteSwatch> self, SseSerializer serializer);
+
 @protected void sse_encode_list_playlist_entry(List<PlaylistEntry> self, SseSerializer serializer);
 
 @protected void sse_encode_list_playlist_summary(List<PlaylistSummary> self, SseSerializer serializer);
 
 @protected void sse_encode_list_prim_i_64_strict(Int64List self, SseSerializer serializer);
+
+@protected void sse_encode_list_prim_u_32_loose(List<int> self, SseSerializer serializer);
+
+@protected void sse_encode_list_prim_u_32_strict(Uint32List self, SseSerializer serializer);
 
 @protected void sse_encode_list_prim_u_8_strict(Uint8List self, SseSerializer serializer);
 
@@ -528,6 +722,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_list_server_row(List<ServerRow> self, SseSerializer serializer);
 
+@protected void sse_encode_list_singer(List<Singer> self, SseSerializer serializer);
+
 @protected void sse_encode_list_song(List<Song> self, SseSerializer serializer);
 
 @protected void sse_encode_list_source_token(List<SourceToken> self, SseSerializer serializer);
@@ -536,6 +732,22 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_listening_mode(ListeningMode self, SseSerializer serializer);
 
+@protected void sse_encode_lyric_background(LyricBackground self, SseSerializer serializer);
+
+@protected void sse_encode_lyric_gap(LyricGap self, SseSerializer serializer);
+
+@protected void sse_encode_lyric_line(LyricLine self, SseSerializer serializer);
+
+@protected void sse_encode_lyric_side(LyricSide self, SseSerializer serializer);
+
+@protected void sse_encode_lyric_word(LyricWord self, SseSerializer serializer);
+
+@protected void sse_encode_lyrics_format(LyricsFormat self, SseSerializer serializer);
+
+@protected void sse_encode_lyrics_origin(LyricsOrigin self, SseSerializer serializer);
+
+@protected void sse_encode_lyrics_sync(LyricsSync self, SseSerializer serializer);
+
 @protected void sse_encode_network(Network self, SseSerializer serializer);
 
 @protected void sse_encode_opt_String(String? self, SseSerializer serializer);
@@ -543,6 +755,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_opt_box_autoadd_album_summary(AlbumSummary? self, SseSerializer serializer);
 
 @protected void sse_encode_opt_box_autoadd_artist_summary(ArtistSummary? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_artwork_palette(ArtworkPalette? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_drop_refusal(DropRefusal? self, SseSerializer serializer);
 
 @protected void sse_encode_opt_box_autoadd_f_64(double? self, SseSerializer serializer);
 
@@ -558,11 +774,17 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_opt_box_autoadd_song(Song? self, SseSerializer serializer);
 
+@protected void sse_encode_opt_box_autoadd_song_lyrics(SongLyrics? self, SseSerializer serializer);
+
 @protected void sse_encode_opt_box_autoadd_top_result(TopResult? self, SseSerializer serializer);
 
 @protected void sse_encode_opt_box_autoadd_u_16(int? self, SseSerializer serializer);
 
 @protected void sse_encode_opt_box_autoadd_u_32(int? self, SseSerializer serializer);
+
+@protected void sse_encode_palette_scheme(PaletteScheme self, SseSerializer serializer);
+
+@protected void sse_encode_palette_swatch(PaletteSwatch self, SseSerializer serializer);
 
 @protected void sse_encode_playlist_detail(PlaylistDetail self, SseSerializer serializer);
 
@@ -586,13 +808,25 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_search_results(SearchResults self, SseSerializer serializer);
 
+@protected void sse_encode_sent_edits(SentEdits self, SseSerializer serializer);
+
 @protected void sse_encode_server_check(ServerCheck self, SseSerializer serializer);
 
 @protected void sse_encode_server_row(ServerRow self, SseSerializer serializer);
 
 @protected void sse_encode_signed_in(SignedIn self, SseSerializer serializer);
 
+@protected void sse_encode_singer(Singer self, SseSerializer serializer);
+
+@protected void sse_encode_singer_kind(SingerKind self, SseSerializer serializer);
+
+@protected void sse_encode_skip_origin(SkipOrigin self, SseSerializer serializer);
+
+@protected void sse_encode_skip_target(SkipTarget self, SseSerializer serializer);
+
 @protected void sse_encode_song(Song self, SseSerializer serializer);
+
+@protected void sse_encode_song_lyrics(SongLyrics self, SseSerializer serializer);
 
 @protected void sse_encode_song_sort(SongSort self, SseSerializer serializer);
 

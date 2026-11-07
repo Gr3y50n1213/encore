@@ -19,13 +19,22 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
                      void  addRecentSearch({required String query });
 
 
+ EditResult  addTo({required DropTarget target , required Int64List songIds , int? position , required bool allowDuplicates });
+
+
  QueueState  addToUpNext({required Int64List songIds });
 
 
  AlbumDetail  album({required PlatformInt64 albumId });
 
 
+ Future<ArtworkPalette?>  albumPalette({required PlatformInt64 albumId });
+
+
  List<AlbumSummary>  albums({required AlbumSort sort , required int offset , required int limit });
+
+
+ List<bool>  areLiked({required Int64List songIds });
 
 
  ArtistDetail  artist({required PlatformInt64 artistId });
@@ -38,6 +47,9 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 
  ArtworkRequest  artwork({required ArtworkOf of , required PlatformInt64 id , required int sizePx });
+
+
+ Future<void>  backupProfile({required String profileId , required String destPath });
 
 
  Future<ServerCheck>  checkAddress({required String address });
@@ -59,6 +71,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  String?  currentProfile();
 
 
+ DropPreview  dropPreview({required DropTarget target , required Int64List songIds });
+
+
 /// Events: queue changed, now playing, preload, sync progress. One stream at a
 /// time: calling this again replaces the previous stream.
  Stream<CoreEvent>  events();
@@ -73,10 +88,22 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  QueueState  jumpTo({required PlatformInt64 uid });
 
 
+ EditResult  like({required Int64List songIds });
+
+
+ List<Song>  likedSongs({required int offset , required int limit });
+
+
  void  lyricLineTapped({required int lineIndex , required PlatformInt64 lineStartMs });
 
 
+ Future<SongLyrics?>  lyrics({required PlatformInt64 songId });
+
+
  Future<String?>  lyricsRaw({required PlatformInt64 songId });
+
+
+ EditResult  moveInPlaylist({required PlatformInt64 playlistId , required int fromPosition , required int toPosition });
 
 
  QueueState  moveInQueue({required PlatformInt64 uid , required int toIndex });
@@ -85,7 +112,13 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  QueueState  next();
 
 
+ SkipTarget  nextTarget();
+
+
  void  openProfile({required String profileId , required List<SourceToken> tokens });
+
+
+ int  pendingEdits();
 
 
  QueueState  play({required Int64List songIds , required int startIndex , required StartedFrom startedFrom , String? contextId });
@@ -97,7 +130,13 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  QueueEntry?  playbackEnded({required EndReason reason , required PlatformInt64 listenedMs });
 
 
+ void  playbackInterrupted({required InterruptionKind kind });
+
+
  void  playbackProgress({required PlatformInt64 positionMs , required PlatformInt64 listenedMs });
+
+
+ void  playbackSeeked({required PlatformInt64 fromMs , required PlatformInt64 toMs });
 
 
  void  playbackStarted({required PlatformInt64 uid , required int utcOffsetMinutes });
@@ -106,10 +145,16 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  PlaylistDetail  playlist({required PlatformInt64 playlistId });
 
 
+ Future<ArtworkPalette?>  playlistPalette({required PlatformInt64 playlistId });
+
+
  List<PlaylistSummary>  playlists({required int offset , required int limit });
 
 
  PreviousResult  previous({required PlatformInt64 positionMs , required bool fromSwipe });
+
+
+ SkipTarget  previousTarget();
 
 
  List<ProfileSummary>  profiles();
@@ -130,6 +175,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  List<String>  recentSearches();
 
 
+ EditResult  removeFromPlaylist({required PlatformInt64 playlistId , required List<int> positions });
+
+
  QueueState  removeFromQueue({required PlatformInt64 uid });
 
 
@@ -139,10 +187,19 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  void  removeServer({required PlatformInt64 sourceId });
 
 
+ EditResult  renamePlaylist({required PlatformInt64 playlistId , required String name });
+
+
  QueueState  replayFromHistory({required PlatformInt64 uid });
 
 
+ Future<void>  restoreProfile({required String profileId , required String fromPath });
+
+
  SearchResults  search({required String query });
+
+
+ Future<SentEdits>  sendEdits();
 
 
  List<ServerRow>  servers();
@@ -169,6 +226,12 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  Future<void>  signOut({required PlatformInt64 sourceId });
 
 
+ QueueState  skipNext({required SkipOrigin origin });
+
+
+ PreviousResult  skipPrevious({required SkipOrigin origin , required PlatformInt64 positionMs });
+
+
  Song  song({required PlatformInt64 songId });
 
 
@@ -192,7 +255,13 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  void  trustCertificate({required String address , required String sha256 });
 
 
+ void  undo({required String editId });
+
+
  QueueState  undoQueue();
+
+
+ EditResult  unlike({required Int64List songIds });
 
 
 
@@ -350,6 +419,34 @@ playlist,
                     
                 }
 
+class ArtworkPalette  {
+                final PaletteScheme scheme;
+final String base;
+final List<String> stops;
+final String text;
+final double lowestContrast;
+final List<PaletteSwatch> sampled;
+
+                const ArtworkPalette({required this.scheme ,required this.base ,required this.stops ,required this.text ,required this.lowestContrast ,required this.sampled ,});
+
+
+
+
+
+        @override
+        int get hashCode => scheme.hashCode^base.hashCode^stops.hashCode^text.hashCode^lowestContrast.hashCode^sampled.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is ArtworkPalette &&
+                runtimeType == other.runtimeType
+                && scheme == other.scheme&& base == other.base&& stops == other.stops&& text == other.text&& lowestContrast == other.lowestContrast&& sampled == other.sampled;
+
+            }
+
 class ArtworkRequest  {
                 final String url;
 final List<HttpHeader> headers;
@@ -460,6 +557,105 @@ final String key;
 
             }
 
+class DropPreview  {
+                final int count;
+final int alreadyThere;
+final bool needsConfirm;
+final String? suggestedName;
+final DropRefusal? refusal;
+final String? refusalReason;
+
+                const DropPreview({required this.count ,required this.alreadyThere ,required this.needsConfirm ,this.suggestedName ,this.refusal ,this.refusalReason ,});
+
+
+
+
+
+        @override
+        int get hashCode => count.hashCode^alreadyThere.hashCode^needsConfirm.hashCode^suggestedName.hashCode^refusal.hashCode^refusalReason.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is DropPreview &&
+                runtimeType == other.runtimeType
+                && count == other.count&& alreadyThere == other.alreadyThere&& needsConfirm == other.needsConfirm&& suggestedName == other.suggestedName&& refusal == other.refusal&& refusalReason == other.refusalReason;
+
+            }
+
+enum DropRefusal {
+                    guestCannotSave,
+albumsTakeNoSongs,
+playlistReadOnly,
+nothingToAdd,
+                    ;
+                    
+                }
+
+class DropTarget  {
+                final DropTargetKind kind;
+final PlatformInt64? id;
+
+                const DropTarget({required this.kind ,this.id ,});
+
+
+
+
+
+        @override
+        int get hashCode => kind.hashCode^id.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is DropTarget &&
+                runtimeType == other.runtimeType
+                && kind == other.kind&& id == other.id;
+
+            }
+
+enum DropTargetKind {
+                    playlist,
+newPlaylist,
+likedSongs,
+upNext,
+playNext,
+album,
+                    ;
+                    
+                }
+
+class EditResult  {
+                final String? editId;
+final int added;
+final int alreadyThere;
+final PlatformInt64? playlistId;
+final PlatformInt64? undoUntilUtcMs;
+
+                const EditResult({this.editId ,required this.added ,required this.alreadyThere ,this.playlistId ,this.undoUntilUtcMs ,});
+
+
+
+
+
+        @override
+        int get hashCode => editId.hashCode^added.hashCode^alreadyThere.hashCode^playlistId.hashCode^undoUntilUtcMs.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is EditResult &&
+                runtimeType == other.runtimeType
+                && editId == other.editId&& added == other.added&& alreadyThere == other.alreadyThere&& playlistId == other.playlistId&& undoUntilUtcMs == other.undoUntilUtcMs;
+
+            }
+
 enum EndReason {
                     finished,
 pausedAbandoned,
@@ -487,6 +683,7 @@ server,
 noProfile,
 storage,
 internal,
+notAllowed,
                     ;
                     
                 }
@@ -548,11 +745,164 @@ final String value;
 
             }
 
+enum InterruptionKind {
+                    headphonesUnplugged,
+outputChanged,
+call,
+assistant,
+                    ;
+                    
+                }
+
 enum ListeningMode {
                     normal,
 private,
 guest,
 learningOff,
+                    ;
+                    
+                }
+
+class LyricBackground  {
+                final String text;
+final PlatformInt64? startMs;
+final PlatformInt64? endMs;
+final List<LyricWord> words;
+
+                const LyricBackground({required this.text ,this.startMs ,this.endMs ,required this.words ,});
+
+
+
+
+
+        @override
+        int get hashCode => text.hashCode^startMs.hashCode^endMs.hashCode^words.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is LyricBackground &&
+                runtimeType == other.runtimeType
+                && text == other.text&& startMs == other.startMs&& endMs == other.endMs&& words == other.words;
+
+            }
+
+class LyricGap  {
+                final int? afterLine;
+final PlatformInt64 startMs;
+final PlatformInt64 endMs;
+
+                const LyricGap({this.afterLine ,required this.startMs ,required this.endMs ,});
+
+
+
+
+
+        @override
+        int get hashCode => afterLine.hashCode^startMs.hashCode^endMs.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is LyricGap &&
+                runtimeType == other.runtimeType
+                && afterLine == other.afterLine&& startMs == other.startMs&& endMs == other.endMs;
+
+            }
+
+class LyricLine  {
+                final String text;
+final PlatformInt64? startMs;
+final PlatformInt64? endMs;
+final List<LyricWord> words;
+final int? singer;
+final LyricSide side;
+final List<LyricBackground> background;
+final double confidence;
+final String? translation;
+final String? pronunciation;
+
+                const LyricLine({required this.text ,this.startMs ,this.endMs ,required this.words ,this.singer ,required this.side ,required this.background ,required this.confidence ,this.translation ,this.pronunciation ,});
+
+
+
+
+
+        @override
+        int get hashCode => text.hashCode^startMs.hashCode^endMs.hashCode^words.hashCode^singer.hashCode^side.hashCode^background.hashCode^confidence.hashCode^translation.hashCode^pronunciation.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is LyricLine &&
+                runtimeType == other.runtimeType
+                && text == other.text&& startMs == other.startMs&& endMs == other.endMs&& words == other.words&& singer == other.singer&& side == other.side&& background == other.background&& confidence == other.confidence&& translation == other.translation&& pronunciation == other.pronunciation;
+
+            }
+
+enum LyricSide {
+                    main,
+opposite,
+                    ;
+                    
+                }
+
+class LyricWord  {
+                final String text;
+final PlatformInt64 startMs;
+final PlatformInt64 endMs;
+final bool spaceAfter;
+
+                const LyricWord({required this.text ,required this.startMs ,required this.endMs ,required this.spaceAfter ,});
+
+
+
+
+
+        @override
+        int get hashCode => text.hashCode^startMs.hashCode^endMs.hashCode^spaceAfter.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is LyricWord &&
+                runtimeType == other.runtimeType
+                && text == other.text&& startMs == other.startMs&& endMs == other.endMs&& spaceAfter == other.spaceAfter;
+
+            }
+
+enum LyricsFormat {
+                    jellyfin,
+lrc,
+enhancedLrc,
+ttml,
+plain,
+                    ;
+                    
+                }
+
+enum LyricsOrigin {
+                    mediaServer,
+embeddedTag,
+sidecar,
+provider,
+generated,
+                    ;
+                    
+                }
+
+enum LyricsSync {
+                    word,
+line,
+unsynced,
                     ;
                     
                 }
@@ -563,6 +913,37 @@ cellular,
                     ;
                     
                 }
+
+enum PaletteScheme {
+                    dark,
+light,
+                    ;
+                    
+                }
+
+class PaletteSwatch  {
+                final String colour;
+final double share;
+
+                const PaletteSwatch({required this.colour ,required this.share ,});
+
+
+
+
+
+        @override
+        int get hashCode => colour.hashCode^share.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is PaletteSwatch &&
+                runtimeType == other.runtimeType
+                && colour == other.colour&& share == other.share;
+
+            }
 
 class PlaylistDetail  {
                 final PlaylistSummary playlist;
@@ -793,6 +1174,31 @@ final List<PlaylistSummary> playlists;
 
             }
 
+class SentEdits  {
+                final int sent;
+final int refused;
+final int waiting;
+
+                const SentEdits({required this.sent ,required this.refused ,required this.waiting ,});
+
+
+
+
+
+        @override
+        int get hashCode => sent.hashCode^refused.hashCode^waiting.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is SentEdits &&
+                runtimeType == other.runtimeType
+                && sent == other.sent&& refused == other.refused&& waiting == other.waiting;
+
+            }
+
 class ServerCheck  {
                 final String baseUrl;
 final String name;
@@ -878,6 +1284,74 @@ final String userName;
 
             }
 
+class Singer  {
+                final String id;
+final String? name;
+final SingerKind kind;
+
+                const Singer({required this.id ,this.name ,required this.kind ,});
+
+
+
+
+
+        @override
+        int get hashCode => id.hashCode^name.hashCode^kind.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is Singer &&
+                runtimeType == other.runtimeType
+                && id == other.id&& name == other.name&& kind == other.kind;
+
+            }
+
+enum SingerKind {
+                    person,
+group,
+other,
+                    ;
+                    
+                }
+
+enum SkipOrigin {
+                    button,
+swipe,
+headset,
+car,
+lockScreen,
+keyboard,
+                    ;
+                    
+                }
+
+class SkipTarget  {
+                final QueueEntry? song;
+final bool endOfQueue;
+
+                const SkipTarget({this.song ,required this.endOfQueue ,});
+
+
+
+
+
+        @override
+        int get hashCode => song.hashCode^endOfQueue.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is SkipTarget &&
+                runtimeType == other.runtimeType
+                && song == other.song&& endOfQueue == other.endOfQueue;
+
+            }
+
 class Song  {
                 final PlatformInt64 id;
 final PlatformInt64 sourceId;
@@ -912,6 +1386,38 @@ final double? albumGainDb;
             other is Song &&
                 runtimeType == other.runtimeType
                 && id == other.id&& sourceId == other.sourceId&& title == other.title&& artist == other.artist&& albumArtist == other.albumArtist&& albumId == other.albumId&& albumTitle == other.albumTitle&& discNumber == other.discNumber&& trackNumber == other.trackNumber&& durationMs == other.durationMs&& year == other.year&& container == other.container&& hasLyrics == other.hasLyrics&& trackGainDb == other.trackGainDb&& albumGainDb == other.albumGainDb;
+
+            }
+
+class SongLyrics  {
+                final PlatformInt64 songId;
+final LyricsSync sync_;
+final LyricsOrigin origin;
+final LyricsFormat format;
+final List<LyricLine> lines;
+final List<Singer> singers;
+final List<LyricGap> gaps;
+final bool instrumental;
+final String? language;
+final PlatformInt64 fetchedUtcMs;
+
+                const SongLyrics({required this.songId ,required this.sync_ ,required this.origin ,required this.format ,required this.lines ,required this.singers ,required this.gaps ,required this.instrumental ,this.language ,required this.fetchedUtcMs ,});
+
+
+
+
+
+        @override
+        int get hashCode => songId.hashCode^sync_.hashCode^origin.hashCode^format.hashCode^lines.hashCode^singers.hashCode^gaps.hashCode^instrumental.hashCode^language.hashCode^fetchedUtcMs.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is SongLyrics &&
+                runtimeType == other.runtimeType
+                && songId == other.songId&& sync_ == other.sync_&& origin == other.origin&& format == other.format&& lines == other.lines&& singers == other.singers&& gaps == other.gaps&& instrumental == other.instrumental&& language == other.language&& fetchedUtcMs == other.fetchedUtcMs;
 
             }
 
