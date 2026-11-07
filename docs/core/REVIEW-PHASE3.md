@@ -100,7 +100,7 @@ The owner asked for the two open items that were the core's to build.
   - unranked trigrams still took 174 ms on long phrases;
   - the word index measured on the owner's PC with lyrics on and off came out the same within noise.
 
-  The PC was at 100% CPU on its 2 cores at the time, so CI's number is the one that counts: CI_SEARCH.
+  The PC was at 100% CPU on its 2 cores at the time, so CI's number is the one that counts: in run 42338580047 (all four jobs green), with 400,000 lyric lines the slowest search median was **7.58 ms** (budget 50 ms), and lyrics added at most 0.7 ms to any query (the typo search: 7.58 ms with lyrics, 7.43 ms without).
 - **Export.** `export_profile` writes one JSON file (docs/core/EXPORT-FORMAT.md) with the play log, likes, playlists, settings and recent searches. It never holds a token, and it is refused in Guest mode. Tests:
   - `everything_the_profile_holds_is_in_one_json_file`;
   - `an_export_that_cannot_be_written_leaves_nothing_behind`;
