@@ -1282,20 +1282,49 @@ pub struct HandoffInfo {
 /// Remote control (board 12, "Remote control"): what a controller asks the playing
 /// device to do. Song IDs are the controller's; the playing device finds them in
 /// its own library. `uid`s are the playing device's (from `remote_queue`).
+///
+/// One record for every command (so Dart reads it too): `kind`, plus the field
+/// that kind uses: `position_ms` (SeekTo), `level` (SetVolume, 0 to 1), `song_ids`
+/// (PlayNext, AddToUpNext), `uid` (Remove, Move, JumpTo), `to_index` (Move).
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct RemoteCommand {
+    pub kind: RemoteCommandKind,
+    pub position_ms: Option<i64>,
+    pub level: Option<f64>,
+    pub song_ids: Vec<i64>,
+    pub uid: Option<i64>,
+    pub to_index: Option<u32>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
-pub enum RemoteCommand {
+pub enum RemoteCommandKind {
     Play,
     Pause,
     Next,
     Previous,
-    SeekTo { position_ms: i64 },
-    SetVolume { level: f64 },
-    PlayNext { song_ids: Vec<i64> },
-    AddToUpNext { song_ids: Vec<i64> },
-    Remove { uid: i64 },
-    Move { uid: i64, to_index: u32 },
-    JumpTo { uid: i64 },
+    SeekTo,
+    SetVolume,
+    PlayNext,
+    AddToUpNext,
+    Remove,
+    Move,
+    JumpTo,
+}
+
+impl RemoteCommand {
+    /// A command with no other fields set (fill in the one its kind needs).
+    pub fn of(kind: RemoteCommandKind) -> RemoteCommand {
+        RemoteCommand {
+            kind,
+            position_ms: None,
+            level: None,
+            song_ids: Vec::new(),
+            uid: None,
+            to_index: None,
+        }
+    }
 }
 
 /// One song of the playing device's queue, as the controller sees it.

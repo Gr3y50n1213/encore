@@ -2,17 +2,18 @@ openapi: 3.1.0
 info:
   title: Encore companion server
   version: 0.1.0
-  summary: Profiles, sign-in by media-server token, the synced event log (Phase 4), and the mixes (Phase 5).
+  summary: Profiles, sign-in by media-server token, the synced event log (Phase 4), the mixes (Phase 5), and the live link for handoff (Phase 7).
   description: |
     The optional companion server (plan section 5). It never stores music. Owned by
     the core and server track; the core's client is `core/encore-core/src/companion.rs`.
-    Design: docs/adr/core-0009-companion-auth.md and core-0010-sync.md.
+    Design: docs/adr/core-0009-companion-auth.md, core-0010-sync.md, core-0013 (mixes)
+    and core-0015 / core-0016 (the live link and handoff).
 
     Errors are JSON `{"error": kind, "reason": sentence}`; the sentence is written
     for a person and never contains a token. 401 means the device must refresh, or
     sign in again if refreshing fails; 429 carries `Retry-After`.
 
-    Not here yet: `GET /ws` (Phase 7), lyrics proxy,
+    Not here yet: lyrics proxy,
     recap (Phase 11), the admin page beyond status.
 servers:
   - url: http://encore:8097
@@ -66,6 +67,10 @@ components:
         created_utc_ms: { type: integer, format: int64 }
         last_seen_utc_ms: { type: integer, format: int64 }
         revoked: { type: boolean }
+        online: { type: boolean, description: Its live link is open now (GET /devices only). }
+        presence:
+          type: [object, "null"]
+          description: What it plays, as it last said over its live link (state, song, positionMs, atServerMs, volume, private).
   responses:
     Error:
       description: See Error.
@@ -154,6 +159,25 @@ paths:
                   devices: { type: array, items: { $ref: "#/components/schemas/Device" } }
         "401": { $ref: "#/components/responses/Error" }
   /devices/{id}:
+    patch:
+      summary: Rename one of the profile's devices (board 12). The profile's live links are told to read /devices again.
+      security: [{ access: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 100 }
+      responses:
+        "204": { description: Renamed. }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
     delete:
       summary: Sign one of the profile's devices out everywhere.
       security: [{ access: [] }]
@@ -285,6 +309,25 @@ paths:
                   builtNow: { type: boolean }
         "404": { $ref: "#/components/responses/Error" }
         "503": { description: The build took too long and there is no earlier set. }
+  /ws:
+    get:
+      summary: The device's live link, a WebSocket (presence, handoff, remote control, sync nudges).
+      description: |
+        Upgrade with the access token in Authorization. JSON text frames with a `type`.
+        Device to server: `presence {presence}`, `relay {to, msgId, body}`, `ping {t}`.
+        Server to device: `welcome {deviceId, serverMs, devices: [{deviceId, online, presence}]}`,
+        `presence {deviceId, online, presence, serverMs}`, `relay {from, msgId, body, serverMs}`,
+        `undeliverable {to, msgId}`, `pong {t, serverMs}`, `nudge` (another device pushed:
+        pull now), `devices` (read /devices again), `error {reason}`.
+        Only devices of the same profile ever see each other. Relay bodies (handoff offers,
+        accepts, declines, pull requests, remote commands) are core-0016's; the server routes
+        them and logs no bodies. Limits: 256 KB per message, 40 messages a second (more closes
+        the link), a ping every 15 s and a link silent for 45 s is dropped; a newer link of the
+        same device replaces the older. Signing a device out closes its link at once.
+      security: [{ access: [] }]
+      responses:
+        "101": { description: Switching protocols. }
+        "401": { $ref: "#/components/responses/Error" }
   /admin/status:
     get:
       summary: Counts only, and only from loopback or private addresses.

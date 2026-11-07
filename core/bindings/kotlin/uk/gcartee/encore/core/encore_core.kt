@@ -890,6 +890,34 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_unlike(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_control_only(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_dismiss_continue(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_hand_off_to(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_handoff_failed(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_handoff_ready(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_output_devices(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_playback_paused(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_playback_resumed(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_pull_from(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_remote_command(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_remote_queue(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_rename_device(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_set_volume_level(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_stop_remote_control(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_biometrics_changed(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_end_guest(
@@ -1171,6 +1199,34 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_unlike(`ptr`: Long,`songIds`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_control_only(`ptr`: Long,`deviceId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_dismiss_continue(`ptr`: Long,`deviceId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_hand_off_to(`ptr`: Long,`deviceId`: RustBuffer.ByValue,
+    ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_handoff_failed(`ptr`: Long,`transferId`: RustBuffer.ByValue,`reason`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_handoff_ready(`ptr`: Long,`transferId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_output_devices(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_playback_paused(`ptr`: Long,`positionMs`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_playback_resumed(`ptr`: Long,`positionMs`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_pull_from(`ptr`: Long,`deviceId`: RustBuffer.ByValue,
+    ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_remote_command(`ptr`: Long,`deviceId`: RustBuffer.ByValue,`command`: RustBuffer.ByValue,
+    ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_remote_queue(`ptr`: Long,`deviceId`: RustBuffer.ByValue,
+    ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_rename_device(`ptr`: Long,`deviceId`: RustBuffer.ByValue,`name`: RustBuffer.ByValue,
+    ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_set_volume_level(`ptr`: Long,`level`: Double,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_stop_remote_control(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     external fun uniffi_encore_core_fn_method_encorecore_biometrics_changed(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_encore_core_fn_method_encorecore_end_guest(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -1651,6 +1707,48 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_unlike() and 0xFFFF) != 42881) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_control_only() and 0xFFFF) != 5220) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_dismiss_continue() and 0xFFFF) != 33952) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_hand_off_to() and 0xFFFF) != 56082) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_handoff_failed() and 0xFFFF) != 4018) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_handoff_ready() and 0xFFFF) != 6316) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_output_devices() and 0xFFFF) != 57166) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_playback_paused() and 0xFFFF) != 52402) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_playback_resumed() and 0xFFFF) != 38805) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_pull_from() and 0xFFFF) != 48685) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_remote_command() and 0xFFFF) != 40801) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_remote_queue() and 0xFFFF) != 46902) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_rename_device() and 0xFFFF) != 35971) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_set_volume_level() and 0xFFFF) != 33818) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_stop_remote_control() and 0xFFFF) != 15407) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_biometrics_changed() and 0xFFFF) != 25368) {
@@ -3084,6 +3182,82 @@ public interface EncoreCoreInterface {
      * Unlike songs; every copy of each song (on any album) stops being liked.
      */
     fun `unlike`(`songIds`: List<kotlin.Long>): EditResult
+    
+    /**
+     * "Control only" (board 12, Hold menu) or the "Playing on…" capsule: send
+     * `RemoteState` whenever that device changes.
+     */
+    fun `controlOnly`(`deviceId`: kotlin.String): OutputDevice?
+    
+    /**
+     * The banner was swiped away: not again this session for that device.
+     */
+    fun `dismissContinue`(`deviceId`: kotlin.String)
+    
+    /**
+     * Move playback to another of your devices (board 12, item 5). Returns once it
+     * has started there (then fade out and pause: `HandoffConfirmed` says so too),
+     * or fails with why, and this device keeps playing. Async; up to 5 s.
+     */
+    suspend fun `handOffTo`(`deviceId`: kotlin.String)
+    
+    /**
+     * The platform couldn't load the song of `HandoffIncoming`: the sender keeps
+     * playing and shows `reason`.
+     */
+    fun `handoffFailed`(`transferId`: kotlin.String, `reason`: kotlin.String)
+    
+    /**
+     * The platform has loaded the song of `HandoffIncoming`: start it at the
+     * returned position now (the sender stops when this device confirms).
+     */
+    fun `handoffReady`(`transferId`: kotlin.String): kotlin.Long
+    
+    /**
+     * Board 12's output picker: this device and the profile's others, with what
+     * they play, and whether handoff is available (and why not). Synchronous.
+     */
+    fun `outputDevices`(): OutputDevices
+    
+    /**
+     * The player paused (any reason). Presence shows it; nothing is logged.
+     */
+    fun `playbackPaused`(`positionMs`: kotlin.Long)
+    
+    /**
+     * The player resumed.
+     */
+    fun `playbackResumed`(`positionMs`: kotlin.Long)
+    
+    /**
+     * "Continue" on the banner, or This device in the picker while another plays:
+     * pull playback here. Returns once `HandoffIncoming` has been sent (load it,
+     * then `handoff_ready`). Async; up to 6 s.
+     */
+    suspend fun `pullFrom`(`deviceId`: kotlin.String)
+    
+    /**
+     * Control a playing device without moving the music. Async; up to 3 s.
+     */
+    suspend fun `remoteCommand`(`deviceId`: kotlin.String, `command`: RemoteCommand)
+    
+    /**
+     * The playing device's queue, for the queue sheet while controlling it. Empty
+     * under Private listening there. Async; up to 3 s.
+     */
+    suspend fun `remoteQueue`(`deviceId`: kotlin.String): RemoteQueue
+    
+    /**
+     * Board 12, Hold menu: Rename. Any device of the profile. Async.
+     */
+    suspend fun `renameDevice`(`deviceId`: kotlin.String, `name`: kotlin.String)
+    
+    /**
+     * The player's volume, 0 to 1 (for presence, remote control and handoff).
+     */
+    fun `setVolumeLevel`(`level`: kotlin.Double)
+    
+    fun `stopRemoteControl`()
     
     /**
      * The device's biometrics changed: every PIN is needed once before biometric
@@ -5154,6 +5328,298 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
 
     
     /**
+     * "Control only" (board 12, Hold menu) or the "Playing on…" capsule: send
+     * `RemoteState` whenever that device changes.
+     */
+    @Throws(EncoreException::class)override fun `controlOnly`(`deviceId`: kotlin.String): OutputDevice? {
+            return FfiConverterOptionalTypeOutputDevice.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_control_only(
+        it,
+        
+        FfiConverterString.lower(`deviceId`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * The banner was swiped away: not again this session for that device.
+     */
+    @Throws(EncoreException::class)override fun `dismissContinue`(`deviceId`: kotlin.String)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_dismiss_continue(
+        it,
+        
+        FfiConverterString.lower(`deviceId`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Move playback to another of your devices (board 12, item 5). Returns once it
+     * has started there (then fade out and pause: `HandoffConfirmed` says so too),
+     * or fails with why, and this device keeps playing. Async; up to 5 s.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `handOffTo`(`deviceId`: kotlin.String) {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_hand_off_to(
+                uniffiHandle,
+                
+        FfiConverterString.lower(`deviceId`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_void(future) },
+        // lift function
+        { },
+        
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * The platform couldn't load the song of `HandoffIncoming`: the sender keeps
+     * playing and shows `reason`.
+     */
+    @Throws(EncoreException::class)override fun `handoffFailed`(`transferId`: kotlin.String, `reason`: kotlin.String)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_handoff_failed(
+        it,
+        
+        FfiConverterString.lower(`transferId`),
+        FfiConverterString.lower(`reason`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * The platform has loaded the song of `HandoffIncoming`: start it at the
+     * returned position now (the sender stops when this device confirms).
+     */
+    @Throws(EncoreException::class)override fun `handoffReady`(`transferId`: kotlin.String): kotlin.Long {
+            return FfiConverterLong.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_handoff_ready(
+        it,
+        
+        FfiConverterString.lower(`transferId`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Board 12's output picker: this device and the profile's others, with what
+     * they play, and whether handoff is available (and why not). Synchronous.
+     */
+    @Throws(EncoreException::class)override fun `outputDevices`(): OutputDevices {
+            return FfiConverterTypeOutputDevices.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_output_devices(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * The player paused (any reason). Presence shows it; nothing is logged.
+     */
+    @Throws(EncoreException::class)override fun `playbackPaused`(`positionMs`: kotlin.Long)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_playback_paused(
+        it,
+        
+        FfiConverterLong.lower(`positionMs`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * The player resumed.
+     */
+    @Throws(EncoreException::class)override fun `playbackResumed`(`positionMs`: kotlin.Long)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_playback_resumed(
+        it,
+        
+        FfiConverterLong.lower(`positionMs`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * "Continue" on the banner, or This device in the picker while another plays:
+     * pull playback here. Returns once `HandoffIncoming` has been sent (load it,
+     * then `handoff_ready`). Async; up to 6 s.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `pullFrom`(`deviceId`: kotlin.String) {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_pull_from(
+                uniffiHandle,
+                
+        FfiConverterString.lower(`deviceId`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_void(future) },
+        // lift function
+        { },
+        
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * Control a playing device without moving the music. Async; up to 3 s.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `remoteCommand`(`deviceId`: kotlin.String, `command`: RemoteCommand) {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_remote_command(
+                uniffiHandle,
+                
+        FfiConverterString.lower(`deviceId`),
+        FfiConverterTypeRemoteCommand.lower(`command`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_void(future) },
+        // lift function
+        { },
+        
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * The playing device's queue, for the queue sheet while controlling it. Empty
+     * under Private listening there. Async; up to 3 s.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `remoteQueue`(`deviceId`: kotlin.String) : RemoteQueue {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_remote_queue(
+                uniffiHandle,
+                
+        FfiConverterString.lower(`deviceId`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeRemoteQueue.lift(it) },
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * Board 12, Hold menu: Rename. Any device of the profile. Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `renameDevice`(`deviceId`: kotlin.String, `name`: kotlin.String) {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_rename_device(
+                uniffiHandle,
+                
+        FfiConverterString.lower(`deviceId`),
+        FfiConverterString.lower(`name`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_void(future) },
+        // lift function
+        { },
+        
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * The player's volume, 0 to 1 (for presence, remote control and handoff).
+     */
+    @Throws(EncoreException::class)override fun `setVolumeLevel`(`level`: kotlin.Double)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_set_volume_level(
+        it,
+        
+        FfiConverterDouble.lower(`level`),_status)
+}
+    }
+    
+    
+
+    
+    @Throws(EncoreException::class)override fun `stopRemoteControl`()
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_stop_remote_control(
+        it,
+        _status)
+}
+    }
+    
+    
+
+    
+    /**
      * The device's biometrics changed: every PIN is needed once before biometric
      * unlock works again (board 14, States).
      */
@@ -6308,6 +6774,14 @@ data class CoreEvent (
     var `remoteChange`: RemoteChange?
     , 
     var `credential`: SourceToken?
+    , 
+    var `outputDevices`: OutputDevices?
+    , 
+    var `device`: OutputDevice?
+    , 
+    var `handoff`: HandoffInfo?
+    , 
+    var `remoteCommand`: RemoteCommand?
     
 ){
     
@@ -6334,6 +6808,10 @@ public object FfiConverterTypeCoreEvent: FfiConverterRustBuffer<CoreEvent> {
             FfiConverterOptionalTypeSyncStatus.read(buf),
             FfiConverterOptionalTypeRemoteChange.read(buf),
             FfiConverterOptionalTypeSourceToken.read(buf),
+            FfiConverterOptionalTypeOutputDevices.read(buf),
+            FfiConverterOptionalTypeOutputDevice.read(buf),
+            FfiConverterOptionalTypeHandoffInfo.read(buf),
+            FfiConverterOptionalTypeRemoteCommand.read(buf),
         )
     }
 
@@ -6347,7 +6825,11 @@ public object FfiConverterTypeCoreEvent: FfiConverterRustBuffer<CoreEvent> {
             FfiConverterLong.allocationSize(value.`syncTotal`) +
             FfiConverterOptionalTypeSyncStatus.allocationSize(value.`syncStatus`) +
             FfiConverterOptionalTypeRemoteChange.allocationSize(value.`remoteChange`) +
-            FfiConverterOptionalTypeSourceToken.allocationSize(value.`credential`)
+            FfiConverterOptionalTypeSourceToken.allocationSize(value.`credential`) +
+            FfiConverterOptionalTypeOutputDevices.allocationSize(value.`outputDevices`) +
+            FfiConverterOptionalTypeOutputDevice.allocationSize(value.`device`) +
+            FfiConverterOptionalTypeHandoffInfo.allocationSize(value.`handoff`) +
+            FfiConverterOptionalTypeRemoteCommand.allocationSize(value.`remoteCommand`)
     )
 
     override fun write(value: CoreEvent, buf: ByteBuffer) {
@@ -6361,6 +6843,10 @@ public object FfiConverterTypeCoreEvent: FfiConverterRustBuffer<CoreEvent> {
             FfiConverterOptionalTypeSyncStatus.write(value.`syncStatus`, buf)
             FfiConverterOptionalTypeRemoteChange.write(value.`remoteChange`, buf)
             FfiConverterOptionalTypeSourceToken.write(value.`credential`, buf)
+            FfiConverterOptionalTypeOutputDevices.write(value.`outputDevices`, buf)
+            FfiConverterOptionalTypeOutputDevice.write(value.`device`, buf)
+            FfiConverterOptionalTypeHandoffInfo.write(value.`handoff`, buf)
+            FfiConverterOptionalTypeRemoteCommand.write(value.`remoteCommand`, buf)
     }
 }
 
@@ -6706,6 +7192,104 @@ public object FfiConverterTypeGuestSession: FfiConverterRustBuffer<GuestSession>
     override fun write(value: GuestSession, buf: ByteBuffer) {
             FfiConverterLong.write(value.`startedUtcMs`, buf)
             FfiConverterLong.write(value.`endsIfIdleUtcMs`, buf)
+    }
+}
+
+
+
+/**
+ * A handoff in progress or just finished.
+ */
+data class HandoffInfo (
+    var `transferId`: kotlin.String
+    , 
+    /**
+     * The other device.
+     */
+    var `deviceId`: kotlin.String
+    , 
+    var `deviceName`: kotlin.String
+    , 
+    /**
+     * HandoffIncoming: the song to load (the queue is in place already).
+     */
+    var `entry`: QueueEntry?
+    , 
+    /**
+     * HandoffIncoming: the position if it started now; `handoff_ready` gives the
+     * exact one.
+     */
+    var `positionMs`: kotlin.Long
+    , 
+    /**
+     * HandoffIncoming: start playing (false: load it paused).
+     */
+    var `playing`: kotlin.Boolean
+    , 
+    /**
+     * 0 to 1: the sender's volume.
+     */
+    var `volume`: kotlin.Double
+    , 
+    /**
+     * Songs of the queue this device's library doesn't have (left out).
+     */
+    var `unknownSongs`: kotlin.UInt
+    , 
+    /**
+     * HandoffFailed: why, in words for a toast.
+     */
+    var `reason`: kotlin.String?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeHandoffInfo: FfiConverterRustBuffer<HandoffInfo> {
+    override fun read(buf: ByteBuffer): HandoffInfo {
+        return HandoffInfo(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalTypeQueueEntry.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterDouble.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: HandoffInfo) = (
+            FfiConverterString.allocationSize(value.`transferId`) +
+            FfiConverterString.allocationSize(value.`deviceId`) +
+            FfiConverterString.allocationSize(value.`deviceName`) +
+            FfiConverterOptionalTypeQueueEntry.allocationSize(value.`entry`) +
+            FfiConverterLong.allocationSize(value.`positionMs`) +
+            FfiConverterBoolean.allocationSize(value.`playing`) +
+            FfiConverterDouble.allocationSize(value.`volume`) +
+            FfiConverterUInt.allocationSize(value.`unknownSongs`) +
+            FfiConverterOptionalString.allocationSize(value.`reason`)
+    )
+
+    override fun write(value: HandoffInfo, buf: ByteBuffer) {
+            FfiConverterString.write(value.`transferId`, buf)
+            FfiConverterString.write(value.`deviceId`, buf)
+            FfiConverterString.write(value.`deviceName`, buf)
+            FfiConverterOptionalTypeQueueEntry.write(value.`entry`, buf)
+            FfiConverterLong.write(value.`positionMs`, buf)
+            FfiConverterBoolean.write(value.`playing`, buf)
+            FfiConverterDouble.write(value.`volume`, buf)
+            FfiConverterUInt.write(value.`unknownSongs`, buf)
+            FfiConverterOptionalString.write(value.`reason`, buf)
     }
 }
 
@@ -7418,6 +8002,151 @@ public object FfiConverterTypeNotInterestedItem: FfiConverterRustBuffer<NotInter
 
 
 /**
+ * One row of the output picker's "Your devices" (board 12, item 5).
+ */
+data class OutputDevice (
+    /**
+     * The companion server's ID for it: pass it to `hand_off_to` and the rest.
+     */
+    var `deviceId`: kotlin.String
+    , 
+    var `name`: kotlin.String
+    , 
+    /**
+     * ios, ipados, macos, android, windows, linux.
+     */
+    var `platform`: kotlin.String
+    , 
+    var `thisDevice`: kotlin.Boolean
+    , 
+    var `state`: DeviceState
+    , 
+    /**
+     * None when idle, offline, or under Private listening there.
+     */
+    var `song`: RemoteSong?
+    , 
+    /**
+     * Where it is in the song now (estimated between updates).
+     */
+    var `positionMs`: kotlin.Long
+    , 
+    /**
+     * 0 to 1.
+     */
+    var `volume`: kotlin.Double
+    , 
+    /**
+     * Private listening is on there: show "Private listening", never the song.
+     */
+    var `privateListening`: kotlin.Boolean
+    , 
+    var `lastSeenUtcMs`: kotlin.Long
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeOutputDevice: FfiConverterRustBuffer<OutputDevice> {
+    override fun read(buf: ByteBuffer): OutputDevice {
+        return OutputDevice(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterTypeDeviceState.read(buf),
+            FfiConverterOptionalTypeRemoteSong.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterDouble.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterLong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: OutputDevice) = (
+            FfiConverterString.allocationSize(value.`deviceId`) +
+            FfiConverterString.allocationSize(value.`name`) +
+            FfiConverterString.allocationSize(value.`platform`) +
+            FfiConverterBoolean.allocationSize(value.`thisDevice`) +
+            FfiConverterTypeDeviceState.allocationSize(value.`state`) +
+            FfiConverterOptionalTypeRemoteSong.allocationSize(value.`song`) +
+            FfiConverterLong.allocationSize(value.`positionMs`) +
+            FfiConverterDouble.allocationSize(value.`volume`) +
+            FfiConverterBoolean.allocationSize(value.`privateListening`) +
+            FfiConverterLong.allocationSize(value.`lastSeenUtcMs`)
+    )
+
+    override fun write(value: OutputDevice, buf: ByteBuffer) {
+            FfiConverterString.write(value.`deviceId`, buf)
+            FfiConverterString.write(value.`name`, buf)
+            FfiConverterString.write(value.`platform`, buf)
+            FfiConverterBoolean.write(value.`thisDevice`, buf)
+            FfiConverterTypeDeviceState.write(value.`state`, buf)
+            FfiConverterOptionalTypeRemoteSong.write(value.`song`, buf)
+            FfiConverterLong.write(value.`positionMs`, buf)
+            FfiConverterDouble.write(value.`volume`, buf)
+            FfiConverterBoolean.write(value.`privateListening`, buf)
+            FfiConverterLong.write(value.`lastSeenUtcMs`, buf)
+    }
+}
+
+
+
+data class OutputDevices (
+    var `state`: OutputState
+    , 
+    var `reason`: kotlin.String?
+    , 
+    /**
+     * This device first, then the others; offline ones last.
+     */
+    var `devices`: List<OutputDevice>
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeOutputDevices: FfiConverterRustBuffer<OutputDevices> {
+    override fun read(buf: ByteBuffer): OutputDevices {
+        return OutputDevices(
+            FfiConverterTypeOutputState.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterSequenceTypeOutputDevice.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: OutputDevices) = (
+            FfiConverterTypeOutputState.allocationSize(value.`state`) +
+            FfiConverterOptionalString.allocationSize(value.`reason`) +
+            FfiConverterSequenceTypeOutputDevice.allocationSize(value.`devices`)
+    )
+
+    override fun write(value: OutputDevices, buf: ByteBuffer) {
+            FfiConverterTypeOutputState.write(value.`state`, buf)
+            FfiConverterOptionalString.write(value.`reason`, buf)
+            FfiConverterSequenceTypeOutputDevice.write(value.`devices`, buf)
+    }
+}
+
+
+
+/**
  * One colour sampled from the cover and its share of it (0 to 1).
  */
 data class PaletteSwatch (
@@ -7971,6 +8700,227 @@ public object FfiConverterTypeRemoteChange: FfiConverterRustBuffer<RemoteChange>
             FfiConverterSequenceLong.write(value.`playlistIds`, buf)
             FfiConverterBoolean.write(value.`history`, buf)
             FfiConverterBoolean.write(value.`librarySyncSuggested`, buf)
+    }
+}
+
+
+
+/**
+ * Remote control (board 12, "Remote control"): what a controller asks the playing
+ * device to do. Song IDs are the controller's; the playing device finds them in
+ * its own library. `uid`s are the playing device's (from `remote_queue`).
+ *
+ * One record for every command (so Dart reads it too): `kind`, plus the field
+ * that kind uses: `position_ms` (SeekTo), `level` (SetVolume, 0 to 1), `song_ids`
+ * (PlayNext, AddToUpNext), `uid` (Remove, Move, JumpTo), `to_index` (Move).
+ */
+data class RemoteCommand (
+    var `kind`: RemoteCommandKind
+    , 
+    var `positionMs`: kotlin.Long?
+    , 
+    var `level`: kotlin.Double?
+    , 
+    var `songIds`: List<kotlin.Long>
+    , 
+    var `uid`: kotlin.Long?
+    , 
+    var `toIndex`: kotlin.UInt?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRemoteCommand: FfiConverterRustBuffer<RemoteCommand> {
+    override fun read(buf: ByteBuffer): RemoteCommand {
+        return RemoteCommand(
+            FfiConverterTypeRemoteCommandKind.read(buf),
+            FfiConverterOptionalLong.read(buf),
+            FfiConverterOptionalDouble.read(buf),
+            FfiConverterSequenceLong.read(buf),
+            FfiConverterOptionalLong.read(buf),
+            FfiConverterOptionalUInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RemoteCommand) = (
+            FfiConverterTypeRemoteCommandKind.allocationSize(value.`kind`) +
+            FfiConverterOptionalLong.allocationSize(value.`positionMs`) +
+            FfiConverterOptionalDouble.allocationSize(value.`level`) +
+            FfiConverterSequenceLong.allocationSize(value.`songIds`) +
+            FfiConverterOptionalLong.allocationSize(value.`uid`) +
+            FfiConverterOptionalUInt.allocationSize(value.`toIndex`)
+    )
+
+    override fun write(value: RemoteCommand, buf: ByteBuffer) {
+            FfiConverterTypeRemoteCommandKind.write(value.`kind`, buf)
+            FfiConverterOptionalLong.write(value.`positionMs`, buf)
+            FfiConverterOptionalDouble.write(value.`level`, buf)
+            FfiConverterSequenceLong.write(value.`songIds`, buf)
+            FfiConverterOptionalLong.write(value.`uid`, buf)
+            FfiConverterOptionalUInt.write(value.`toIndex`, buf)
+    }
+}
+
+
+
+/**
+ * The playing device's queue (Now Playing's queue sheet while controlling).
+ */
+data class RemoteQueue (
+    var `current`: RemoteQueueItem?
+    , 
+    var `upNext`: List<RemoteQueueItem>
+    , 
+    var `autoplay`: List<RemoteQueueItem>
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRemoteQueue: FfiConverterRustBuffer<RemoteQueue> {
+    override fun read(buf: ByteBuffer): RemoteQueue {
+        return RemoteQueue(
+            FfiConverterOptionalTypeRemoteQueueItem.read(buf),
+            FfiConverterSequenceTypeRemoteQueueItem.read(buf),
+            FfiConverterSequenceTypeRemoteQueueItem.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RemoteQueue) = (
+            FfiConverterOptionalTypeRemoteQueueItem.allocationSize(value.`current`) +
+            FfiConverterSequenceTypeRemoteQueueItem.allocationSize(value.`upNext`) +
+            FfiConverterSequenceTypeRemoteQueueItem.allocationSize(value.`autoplay`)
+    )
+
+    override fun write(value: RemoteQueue, buf: ByteBuffer) {
+            FfiConverterOptionalTypeRemoteQueueItem.write(value.`current`, buf)
+            FfiConverterSequenceTypeRemoteQueueItem.write(value.`upNext`, buf)
+            FfiConverterSequenceTypeRemoteQueueItem.write(value.`autoplay`, buf)
+    }
+}
+
+
+
+/**
+ * One song of the playing device's queue, as the controller sees it.
+ */
+data class RemoteQueueItem (
+    /**
+     * The playing device's uid: pass it back in Remove, Move and JumpTo.
+     */
+    var `uid`: kotlin.Long
+    , 
+    var `song`: RemoteSong
+    , 
+    var `chosenBy`: ChosenBy
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRemoteQueueItem: FfiConverterRustBuffer<RemoteQueueItem> {
+    override fun read(buf: ByteBuffer): RemoteQueueItem {
+        return RemoteQueueItem(
+            FfiConverterLong.read(buf),
+            FfiConverterTypeRemoteSong.read(buf),
+            FfiConverterTypeChosenBy.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RemoteQueueItem) = (
+            FfiConverterLong.allocationSize(value.`uid`) +
+            FfiConverterTypeRemoteSong.allocationSize(value.`song`) +
+            FfiConverterTypeChosenBy.allocationSize(value.`chosenBy`)
+    )
+
+    override fun write(value: RemoteQueueItem, buf: ByteBuffer) {
+            FfiConverterLong.write(value.`uid`, buf)
+            FfiConverterTypeRemoteSong.write(value.`song`, buf)
+            FfiConverterTypeChosenBy.write(value.`chosenBy`, buf)
+    }
+}
+
+
+
+/**
+ * A song another device plays, as it describes it.
+ */
+data class RemoteSong (
+    var `title`: kotlin.String
+    , 
+    var `artist`: kotlin.String
+    , 
+    var `album`: kotlin.String?
+    , 
+    var `durationMs`: kotlin.Long
+    , 
+    /**
+     * The same song in this device's library, when it has it (for artwork).
+     */
+    var `songId`: kotlin.Long?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRemoteSong: FfiConverterRustBuffer<RemoteSong> {
+    override fun read(buf: ByteBuffer): RemoteSong {
+        return RemoteSong(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterOptionalLong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RemoteSong) = (
+            FfiConverterString.allocationSize(value.`title`) +
+            FfiConverterString.allocationSize(value.`artist`) +
+            FfiConverterOptionalString.allocationSize(value.`album`) +
+            FfiConverterLong.allocationSize(value.`durationMs`) +
+            FfiConverterOptionalLong.allocationSize(value.`songId`)
+    )
+
+    override fun write(value: RemoteSong, buf: ByteBuffer) {
+            FfiConverterString.write(value.`title`, buf)
+            FfiConverterString.write(value.`artist`, buf)
+            FfiConverterOptionalString.write(value.`album`, buf)
+            FfiConverterLong.write(value.`durationMs`, buf)
+            FfiConverterOptionalLong.write(value.`songId`, buf)
     }
 }
 
@@ -9131,6 +10081,52 @@ public object FfiConverterTypeChosenBy: FfiConverterRustBuffer<ChosenBy> {
 
 
 
+/**
+ * What another of your devices is doing (board 12).
+ */
+
+enum class DeviceState {
+    
+    PLAYING,
+    PAUSED,
+    /**
+     * Signed in and reachable, nothing playing.
+     */
+    IDLE,
+    /**
+     * Not connected now: dimmed; tapping it shakes with the reason. Gone after
+     * 30 days.
+     */
+    OFFLINE;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeDeviceState: FfiConverterRustBuffer<DeviceState> {
+    override fun read(buf: ByteBuffer) = try {
+        DeviceState.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: DeviceState) = 4UL
+
+    override fun write(value: DeviceState, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
 
 enum class DropRefusal {
     
@@ -9783,7 +10779,42 @@ enum class EventKind {
      * companion key (`source_id` 0), replacing the old one; an empty token means
      * delete it. Store it before anything else: the old one no longer works.
      */
-    CREDENTIAL_CHANGED;
+    CREDENTIAL_CHANGED,
+    /**
+     * `output_devices` is set: the output picker's devices changed (board 12).
+     */
+    DEVICES_CHANGED,
+    /**
+     * `device` is set: offer "Continue from <name>" (board 12, item 1). Shown at
+     * most once per session per device, never while this device plays.
+     */
+    CONTINUE_AVAILABLE,
+    /**
+     * `handoff` is set: playback is coming here. Load `handoff.entry` (with
+     * `stream_for`), then call `handoff_ready` and start at the position it returns,
+     * or `handoff_failed` with why.
+     */
+    HANDOFF_INCOMING,
+    /**
+     * `handoff` is set: the other device has started. Fade out and pause now.
+     */
+    HANDOFF_CONFIRMED,
+    /**
+     * `handoff` is set with `reason`: it didn't happen. A sender keeps playing and
+     * shows why (a toast, the error haptic).
+     */
+    HANDOFF_FAILED,
+    /**
+     * `remote_command` is set: another of your devices controls this one. Do it
+     * as if the button here was pressed (Play, Pause, Next, Previous, seek,
+     * volume). Queue edits are done already (`QueueChanged` follows).
+     */
+    REMOTE_COMMAND,
+    /**
+     * `device` is set: the device this one controls changed (now playing,
+     * position, volume): update the "Playing on…" capsule.
+     */
+    REMOTE_STATE;
 
     
 
@@ -10238,6 +11269,62 @@ public object FfiConverterTypeNotInterestedReason: FfiConverterRustBuffer<NotInt
 
 
 
+/**
+ * Whether handoff can be offered at all, and why not (board 12, "States").
+ */
+
+enum class OutputState {
+    
+    /**
+     * Your devices are listed.
+     */
+    READY,
+    /**
+     * "Sign in on another device to hand off music."
+     */
+    NO_OTHER_DEVICES,
+    /**
+     * The companion can't be reached: the devices section is disabled with
+     * `reason` and a retry.
+     */
+    UNREACHABLE,
+    /**
+     * No companion server: hide the devices section.
+     */
+    NO_COMPANION,
+    /**
+     * Guest or no profile: no handoff.
+     */
+    NOT_AVAILABLE;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeOutputState: FfiConverterRustBuffer<OutputState> {
+    override fun read(buf: ByteBuffer) = try {
+        OutputState.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: OutputState) = 4UL
+
+    override fun write(value: OutputState, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
 
 enum class PaletteScheme {
     
@@ -10426,6 +11513,49 @@ public object FfiConverterTypeReasonKind: FfiConverterRustBuffer<ReasonKind> {
     override fun allocationSize(value: ReasonKind) = 4UL
 
     override fun write(value: ReasonKind, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+
+enum class RemoteCommandKind {
+    
+    PLAY,
+    PAUSE,
+    NEXT,
+    PREVIOUS,
+    SEEK_TO,
+    SET_VOLUME,
+    PLAY_NEXT,
+    ADD_TO_UP_NEXT,
+    REMOVE,
+    MOVE,
+    JUMP_TO;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRemoteCommandKind: FfiConverterRustBuffer<RemoteCommandKind> {
+    override fun read(buf: ByteBuffer) = try {
+        RemoteCommandKind.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: RemoteCommandKind) = 4UL
+
+    override fun write(value: RemoteCommandKind, buf: ByteBuffer) {
         buf.putInt(value.ordinal + 1)
     }
 }
@@ -11127,6 +12257,102 @@ public object FfiConverterOptionalTypeGuestSession: FfiConverterRustBuffer<Guest
 /**
  * @suppress
  */
+public object FfiConverterOptionalTypeHandoffInfo: FfiConverterRustBuffer<HandoffInfo?> {
+    override fun read(buf: ByteBuffer): HandoffInfo? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeHandoffInfo.read(buf)
+    }
+
+    override fun allocationSize(value: HandoffInfo?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeHandoffInfo.allocationSize(value)
+        }
+    }
+
+    override fun write(value: HandoffInfo?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeHandoffInfo.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeOutputDevice: FfiConverterRustBuffer<OutputDevice?> {
+    override fun read(buf: ByteBuffer): OutputDevice? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeOutputDevice.read(buf)
+    }
+
+    override fun allocationSize(value: OutputDevice?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeOutputDevice.allocationSize(value)
+        }
+    }
+
+    override fun write(value: OutputDevice?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeOutputDevice.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeOutputDevices: FfiConverterRustBuffer<OutputDevices?> {
+    override fun read(buf: ByteBuffer): OutputDevices? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeOutputDevices.read(buf)
+    }
+
+    override fun allocationSize(value: OutputDevices?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeOutputDevices.allocationSize(value)
+        }
+    }
+
+    override fun write(value: OutputDevices?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeOutputDevices.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalTypePickReason: FfiConverterRustBuffer<PickReason?> {
     override fun read(buf: ByteBuffer): PickReason? {
         if (buf.get().toInt() == 0) {
@@ -11277,6 +12503,102 @@ public object FfiConverterOptionalTypeRemoteChange: FfiConverterRustBuffer<Remot
         } else {
             buf.put(1)
             FfiConverterTypeRemoteChange.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeRemoteCommand: FfiConverterRustBuffer<RemoteCommand?> {
+    override fun read(buf: ByteBuffer): RemoteCommand? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeRemoteCommand.read(buf)
+    }
+
+    override fun allocationSize(value: RemoteCommand?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeRemoteCommand.allocationSize(value)
+        }
+    }
+
+    override fun write(value: RemoteCommand?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeRemoteCommand.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeRemoteQueueItem: FfiConverterRustBuffer<RemoteQueueItem?> {
+    override fun read(buf: ByteBuffer): RemoteQueueItem? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeRemoteQueueItem.read(buf)
+    }
+
+    override fun allocationSize(value: RemoteQueueItem?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeRemoteQueueItem.allocationSize(value)
+        }
+    }
+
+    override fun write(value: RemoteQueueItem?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeRemoteQueueItem.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeRemoteSong: FfiConverterRustBuffer<RemoteSong?> {
+    override fun read(buf: ByteBuffer): RemoteSong? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeRemoteSong.read(buf)
+    }
+
+    override fun allocationSize(value: RemoteSong?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeRemoteSong.allocationSize(value)
+        }
+    }
+
+    override fun write(value: RemoteSong?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeRemoteSong.write(value, buf)
         }
     }
 }
@@ -12015,6 +13337,34 @@ public object FfiConverterSequenceTypeNotInterestedItem: FfiConverterRustBuffer<
 /**
  * @suppress
  */
+public object FfiConverterSequenceTypeOutputDevice: FfiConverterRustBuffer<List<OutputDevice>> {
+    override fun read(buf: ByteBuffer): List<OutputDevice> {
+        val len = buf.getInt()
+        return List<OutputDevice>(len) {
+            FfiConverterTypeOutputDevice.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<OutputDevice>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeOutputDevice.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<OutputDevice>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeOutputDevice.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterSequenceTypePaletteSwatch: FfiConverterRustBuffer<List<PaletteSwatch>> {
     override fun read(buf: ByteBuffer): List<PaletteSwatch> {
         val len = buf.getInt()
@@ -12173,6 +13523,34 @@ public object FfiConverterSequenceTypeQueueEntry: FfiConverterRustBuffer<List<Qu
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeQueueEntry.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeRemoteQueueItem: FfiConverterRustBuffer<List<RemoteQueueItem>> {
+    override fun read(buf: ByteBuffer): List<RemoteQueueItem> {
+        val len = buf.getInt()
+        return List<RemoteQueueItem>(len) {
+            FfiConverterTypeRemoteQueueItem.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<RemoteQueueItem>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeRemoteQueueItem.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<RemoteQueueItem>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeRemoteQueueItem.write(it, buf)
         }
     }
 }

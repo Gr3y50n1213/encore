@@ -164,6 +164,9 @@ void main() {
           artist: auto.autoplay[0].song.artist,
           reason: NotInterestedReason.notMyTaste);
       core.removeNotInterested(item: skip);
+      // Phase 7: without a companion the output picker hides handoff.
+      expect(core.outputDevices().state, OutputState.noCompanion);
+      await expectLater(core.handOffTo(deviceId: 'nobody'), throwsA(anything));
       final artAlbum = core
           .albums(sort: AlbumSort.title, offset: 0, limit: 100)
           .firstWhere((a) => a.hasArtwork);

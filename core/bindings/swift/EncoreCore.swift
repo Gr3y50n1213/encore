@@ -1300,6 +1300,82 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     func unlike(songIds: [Int64]) throws  -> EditResult
     
     /**
+     * "Control only" (board 12, Hold menu) or the "Playing on…" capsule: send
+     * `RemoteState` whenever that device changes.
+     */
+    func controlOnly(deviceId: String) throws  -> OutputDevice?
+    
+    /**
+     * The banner was swiped away: not again this session for that device.
+     */
+    func dismissContinue(deviceId: String) throws 
+    
+    /**
+     * Move playback to another of your devices (board 12, item 5). Returns once it
+     * has started there (then fade out and pause: `HandoffConfirmed` says so too),
+     * or fails with why, and this device keeps playing. Async; up to 5 s.
+     */
+    func handOffTo(deviceId: String) async throws 
+    
+    /**
+     * The platform couldn't load the song of `HandoffIncoming`: the sender keeps
+     * playing and shows `reason`.
+     */
+    func handoffFailed(transferId: String, reason: String) throws 
+    
+    /**
+     * The platform has loaded the song of `HandoffIncoming`: start it at the
+     * returned position now (the sender stops when this device confirms).
+     */
+    func handoffReady(transferId: String) throws  -> Int64
+    
+    /**
+     * Board 12's output picker: this device and the profile's others, with what
+     * they play, and whether handoff is available (and why not). Synchronous.
+     */
+    func outputDevices() throws  -> OutputDevices
+    
+    /**
+     * The player paused (any reason). Presence shows it; nothing is logged.
+     */
+    func playbackPaused(positionMs: Int64) throws 
+    
+    /**
+     * The player resumed.
+     */
+    func playbackResumed(positionMs: Int64) throws 
+    
+    /**
+     * "Continue" on the banner, or This device in the picker while another plays:
+     * pull playback here. Returns once `HandoffIncoming` has been sent (load it,
+     * then `handoff_ready`). Async; up to 6 s.
+     */
+    func pullFrom(deviceId: String) async throws 
+    
+    /**
+     * Control a playing device without moving the music. Async; up to 3 s.
+     */
+    func remoteCommand(deviceId: String, command: RemoteCommand) async throws 
+    
+    /**
+     * The playing device's queue, for the queue sheet while controlling it. Empty
+     * under Private listening there. Async; up to 3 s.
+     */
+    func remoteQueue(deviceId: String) async throws  -> RemoteQueue
+    
+    /**
+     * Board 12, Hold menu: Rename. Any device of the profile. Async.
+     */
+    func renameDevice(deviceId: String, name: String) async throws 
+    
+    /**
+     * The player's volume, 0 to 1 (for presence, remote control and handoff).
+     */
+    func setVolumeLevel(level: Double) throws 
+    
+    func stopRemoteControl() throws 
+    
+    /**
      * The device's biometrics changed: every PIN is needed once before biometric
      * unlock works again (board 14, States).
      */
@@ -2853,6 +2929,217 @@ open func unlike(songIds: [Int64])throws  -> EditResult  {
 }
     
     /**
+     * "Control only" (board 12, Hold menu) or the "Playing on…" capsule: send
+     * `RemoteState` whenever that device changes.
+     */
+open func controlOnly(deviceId: String)throws  -> OutputDevice?  {
+    return try  FfiConverterOptionTypeOutputDevice.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_control_only(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(deviceId),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * The banner was swiped away: not again this session for that device.
+     */
+open func dismissContinue(deviceId: String)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_dismiss_continue(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(deviceId),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * Move playback to another of your devices (board 12, item 5). Returns once it
+     * has started there (then fade out and pause: `HandoffConfirmed` says so too),
+     * or fails with why, and this device keeps playing. Async; up to 5 s.
+     */
+open func handOffTo(deviceId: String)async throws   {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_hand_off_to(
+                        self.uniffiCloneHandle(),FfiConverterString.lower(deviceId)
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_void,
+            completeFunc: ffi_encore_core_rust_future_complete_void,
+            freeFunc: ffi_encore_core_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
+}
+    
+    /**
+     * The platform couldn't load the song of `HandoffIncoming`: the sender keeps
+     * playing and shows `reason`.
+     */
+open func handoffFailed(transferId: String, reason: String)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_handoff_failed(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(transferId),
+        FfiConverterString.lower(reason),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * The platform has loaded the song of `HandoffIncoming`: start it at the
+     * returned position now (the sender stops when this device confirms).
+     */
+open func handoffReady(transferId: String)throws  -> Int64  {
+    return try  FfiConverterInt64.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_handoff_ready(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(transferId),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Board 12's output picker: this device and the profile's others, with what
+     * they play, and whether handoff is available (and why not). Synchronous.
+     */
+open func outputDevices()throws  -> OutputDevices  {
+    return try  FfiConverterTypeOutputDevices_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_output_devices(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * The player paused (any reason). Presence shows it; nothing is logged.
+     */
+open func playbackPaused(positionMs: Int64)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_playback_paused(
+            self.uniffiCloneHandle(),
+        FfiConverterInt64.lower(positionMs),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * The player resumed.
+     */
+open func playbackResumed(positionMs: Int64)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_playback_resumed(
+            self.uniffiCloneHandle(),
+        FfiConverterInt64.lower(positionMs),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * "Continue" on the banner, or This device in the picker while another plays:
+     * pull playback here. Returns once `HandoffIncoming` has been sent (load it,
+     * then `handoff_ready`). Async; up to 6 s.
+     */
+open func pullFrom(deviceId: String)async throws   {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_pull_from(
+                        self.uniffiCloneHandle(),FfiConverterString.lower(deviceId)
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_void,
+            completeFunc: ffi_encore_core_rust_future_complete_void,
+            freeFunc: ffi_encore_core_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
+}
+    
+    /**
+     * Control a playing device without moving the music. Async; up to 3 s.
+     */
+open func remoteCommand(deviceId: String, command: RemoteCommand)async throws   {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_remote_command(
+                        self.uniffiCloneHandle(),FfiConverterString.lower(deviceId),FfiConverterTypeRemoteCommand_lower(command)
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_void,
+            completeFunc: ffi_encore_core_rust_future_complete_void,
+            freeFunc: ffi_encore_core_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
+}
+    
+    /**
+     * The playing device's queue, for the queue sheet while controlling it. Empty
+     * under Private listening there. Async; up to 3 s.
+     */
+open func remoteQueue(deviceId: String)async throws  -> RemoteQueue  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_remote_queue(
+                        self.uniffiCloneHandle(),FfiConverterString.lower(deviceId)
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_rust_buffer,
+            completeFunc: ffi_encore_core_rust_future_complete_rust_buffer,
+            freeFunc: ffi_encore_core_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterTypeRemoteQueue_lift,
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
+}
+    
+    /**
+     * Board 12, Hold menu: Rename. Any device of the profile. Async.
+     */
+open func renameDevice(deviceId: String, name: String)async throws   {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_rename_device(
+                        self.uniffiCloneHandle(),FfiConverterString.lower(deviceId),FfiConverterString.lower(name)
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_void,
+            completeFunc: ffi_encore_core_rust_future_complete_void,
+            freeFunc: ffi_encore_core_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
+}
+    
+    /**
+     * The player's volume, 0 to 1 (for presence, remote control and handoff).
+     */
+open func setVolumeLevel(level: Double)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_set_volume_level(
+            self.uniffiCloneHandle(),
+        FfiConverterDouble.lower(level),uniffiCallStatus
+    )
+}
+}
+    
+open func stopRemoteControl()throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_stop_remote_control(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+}
+}
+    
+    /**
      * The device's biometrics changed: every PIN is needed once before biometric
      * unlock works again (board 14, States).
      */
@@ -3967,10 +4254,14 @@ public struct CoreEvent: Equatable, Hashable {
     public var syncStatus: SyncStatus?
     public var remoteChange: RemoteChange?
     public var credential: SourceToken?
+    public var outputDevices: OutputDevices?
+    public var device: OutputDevice?
+    public var handoff: HandoffInfo?
+    public var remoteCommand: RemoteCommand?
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(kind: EventKind, queue: QueueState?, nowPlaying: QueueEntry?, preload: QueueEntry?, syncSourceId: Int64?, syncDone: Int64, syncTotal: Int64, syncStatus: SyncStatus?, remoteChange: RemoteChange?, credential: SourceToken?) {
+    public init(kind: EventKind, queue: QueueState?, nowPlaying: QueueEntry?, preload: QueueEntry?, syncSourceId: Int64?, syncDone: Int64, syncTotal: Int64, syncStatus: SyncStatus?, remoteChange: RemoteChange?, credential: SourceToken?, outputDevices: OutputDevices?, device: OutputDevice?, handoff: HandoffInfo?, remoteCommand: RemoteCommand?) {
         self.kind = kind
         self.queue = queue
         self.nowPlaying = nowPlaying
@@ -3981,6 +4272,10 @@ public struct CoreEvent: Equatable, Hashable {
         self.syncStatus = syncStatus
         self.remoteChange = remoteChange
         self.credential = credential
+        self.outputDevices = outputDevices
+        self.device = device
+        self.handoff = handoff
+        self.remoteCommand = remoteCommand
     }
 
     
@@ -4008,7 +4303,11 @@ public struct FfiConverterTypeCoreEvent: FfiConverterRustBuffer {
                 syncTotal: FfiConverterInt64.read(from: &buf), 
                 syncStatus: FfiConverterOptionTypeSyncStatus.read(from: &buf), 
                 remoteChange: FfiConverterOptionTypeRemoteChange.read(from: &buf), 
-                credential: FfiConverterOptionTypeSourceToken.read(from: &buf)
+                credential: FfiConverterOptionTypeSourceToken.read(from: &buf), 
+                outputDevices: FfiConverterOptionTypeOutputDevices.read(from: &buf), 
+                device: FfiConverterOptionTypeOutputDevice.read(from: &buf), 
+                handoff: FfiConverterOptionTypeHandoffInfo.read(from: &buf), 
+                remoteCommand: FfiConverterOptionTypeRemoteCommand.read(from: &buf)
         )
     }
 
@@ -4023,6 +4322,10 @@ public struct FfiConverterTypeCoreEvent: FfiConverterRustBuffer {
         FfiConverterOptionTypeSyncStatus.write(value.syncStatus, into: &buf)
         FfiConverterOptionTypeRemoteChange.write(value.remoteChange, into: &buf)
         FfiConverterOptionTypeSourceToken.write(value.credential, into: &buf)
+        FfiConverterOptionTypeOutputDevices.write(value.outputDevices, into: &buf)
+        FfiConverterOptionTypeOutputDevice.write(value.device, into: &buf)
+        FfiConverterOptionTypeHandoffInfo.write(value.handoff, into: &buf)
+        FfiConverterOptionTypeRemoteCommand.write(value.remoteCommand, into: &buf)
     }
 }
 
@@ -4496,6 +4799,135 @@ public func FfiConverterTypeGuestSession_lift(_ buf: RustBuffer) throws -> Guest
 #endif
 public func FfiConverterTypeGuestSession_lower(_ value: GuestSession) -> RustBuffer {
     return FfiConverterTypeGuestSession.lower(value)
+}
+
+
+/**
+ * A handoff in progress or just finished.
+ */
+public struct HandoffInfo: Equatable, Hashable {
+    public var transferId: String
+    /**
+     * The other device.
+     */
+    public var deviceId: String
+    public var deviceName: String
+    /**
+     * HandoffIncoming: the song to load (the queue is in place already).
+     */
+    public var entry: QueueEntry?
+    /**
+     * HandoffIncoming: the position if it started now; `handoff_ready` gives the
+     * exact one.
+     */
+    public var positionMs: Int64
+    /**
+     * HandoffIncoming: start playing (false: load it paused).
+     */
+    public var playing: Bool
+    /**
+     * 0 to 1: the sender's volume.
+     */
+    public var volume: Double
+    /**
+     * Songs of the queue this device's library doesn't have (left out).
+     */
+    public var unknownSongs: UInt32
+    /**
+     * HandoffFailed: why, in words for a toast.
+     */
+    public var reason: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(transferId: String, 
+        /**
+         * The other device.
+         */deviceId: String, deviceName: String, 
+        /**
+         * HandoffIncoming: the song to load (the queue is in place already).
+         */entry: QueueEntry?, 
+        /**
+         * HandoffIncoming: the position if it started now; `handoff_ready` gives the
+         * exact one.
+         */positionMs: Int64, 
+        /**
+         * HandoffIncoming: start playing (false: load it paused).
+         */playing: Bool, 
+        /**
+         * 0 to 1: the sender's volume.
+         */volume: Double, 
+        /**
+         * Songs of the queue this device's library doesn't have (left out).
+         */unknownSongs: UInt32, 
+        /**
+         * HandoffFailed: why, in words for a toast.
+         */reason: String?) {
+        self.transferId = transferId
+        self.deviceId = deviceId
+        self.deviceName = deviceName
+        self.entry = entry
+        self.positionMs = positionMs
+        self.playing = playing
+        self.volume = volume
+        self.unknownSongs = unknownSongs
+        self.reason = reason
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension HandoffInfo: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeHandoffInfo: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> HandoffInfo {
+        return
+            try HandoffInfo(
+                transferId: FfiConverterString.read(from: &buf), 
+                deviceId: FfiConverterString.read(from: &buf), 
+                deviceName: FfiConverterString.read(from: &buf), 
+                entry: FfiConverterOptionTypeQueueEntry.read(from: &buf), 
+                positionMs: FfiConverterInt64.read(from: &buf), 
+                playing: FfiConverterBool.read(from: &buf), 
+                volume: FfiConverterDouble.read(from: &buf), 
+                unknownSongs: FfiConverterUInt32.read(from: &buf), 
+                reason: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: HandoffInfo, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.transferId, into: &buf)
+        FfiConverterString.write(value.deviceId, into: &buf)
+        FfiConverterString.write(value.deviceName, into: &buf)
+        FfiConverterOptionTypeQueueEntry.write(value.entry, into: &buf)
+        FfiConverterInt64.write(value.positionMs, into: &buf)
+        FfiConverterBool.write(value.playing, into: &buf)
+        FfiConverterDouble.write(value.volume, into: &buf)
+        FfiConverterUInt32.write(value.unknownSongs, into: &buf)
+        FfiConverterOptionString.write(value.reason, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeHandoffInfo_lift(_ buf: RustBuffer) throws -> HandoffInfo {
+    return try FfiConverterTypeHandoffInfo.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeHandoffInfo_lower(_ value: HandoffInfo) -> RustBuffer {
+    return FfiConverterTypeHandoffInfo.lower(value)
 }
 
 
@@ -5426,6 +5858,195 @@ public func FfiConverterTypeNotInterestedItem_lower(_ value: NotInterestedItem) 
 
 
 /**
+ * One row of the output picker's "Your devices" (board 12, item 5).
+ */
+public struct OutputDevice: Equatable, Hashable {
+    /**
+     * The companion server's ID for it: pass it to `hand_off_to` and the rest.
+     */
+    public var deviceId: String
+    public var name: String
+    /**
+     * ios, ipados, macos, android, windows, linux.
+     */
+    public var platform: String
+    public var thisDevice: Bool
+    public var state: DeviceState
+    /**
+     * None when idle, offline, or under Private listening there.
+     */
+    public var song: RemoteSong?
+    /**
+     * Where it is in the song now (estimated between updates).
+     */
+    public var positionMs: Int64
+    /**
+     * 0 to 1.
+     */
+    public var volume: Double
+    /**
+     * Private listening is on there: show "Private listening", never the song.
+     */
+    public var privateListening: Bool
+    public var lastSeenUtcMs: Int64
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * The companion server's ID for it: pass it to `hand_off_to` and the rest.
+         */deviceId: String, name: String, 
+        /**
+         * ios, ipados, macos, android, windows, linux.
+         */platform: String, thisDevice: Bool, state: DeviceState, 
+        /**
+         * None when idle, offline, or under Private listening there.
+         */song: RemoteSong?, 
+        /**
+         * Where it is in the song now (estimated between updates).
+         */positionMs: Int64, 
+        /**
+         * 0 to 1.
+         */volume: Double, 
+        /**
+         * Private listening is on there: show "Private listening", never the song.
+         */privateListening: Bool, lastSeenUtcMs: Int64) {
+        self.deviceId = deviceId
+        self.name = name
+        self.platform = platform
+        self.thisDevice = thisDevice
+        self.state = state
+        self.song = song
+        self.positionMs = positionMs
+        self.volume = volume
+        self.privateListening = privateListening
+        self.lastSeenUtcMs = lastSeenUtcMs
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension OutputDevice: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeOutputDevice: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> OutputDevice {
+        return
+            try OutputDevice(
+                deviceId: FfiConverterString.read(from: &buf), 
+                name: FfiConverterString.read(from: &buf), 
+                platform: FfiConverterString.read(from: &buf), 
+                thisDevice: FfiConverterBool.read(from: &buf), 
+                state: FfiConverterTypeDeviceState.read(from: &buf), 
+                song: FfiConverterOptionTypeRemoteSong.read(from: &buf), 
+                positionMs: FfiConverterInt64.read(from: &buf), 
+                volume: FfiConverterDouble.read(from: &buf), 
+                privateListening: FfiConverterBool.read(from: &buf), 
+                lastSeenUtcMs: FfiConverterInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: OutputDevice, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.deviceId, into: &buf)
+        FfiConverterString.write(value.name, into: &buf)
+        FfiConverterString.write(value.platform, into: &buf)
+        FfiConverterBool.write(value.thisDevice, into: &buf)
+        FfiConverterTypeDeviceState.write(value.state, into: &buf)
+        FfiConverterOptionTypeRemoteSong.write(value.song, into: &buf)
+        FfiConverterInt64.write(value.positionMs, into: &buf)
+        FfiConverterDouble.write(value.volume, into: &buf)
+        FfiConverterBool.write(value.privateListening, into: &buf)
+        FfiConverterInt64.write(value.lastSeenUtcMs, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeOutputDevice_lift(_ buf: RustBuffer) throws -> OutputDevice {
+    return try FfiConverterTypeOutputDevice.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeOutputDevice_lower(_ value: OutputDevice) -> RustBuffer {
+    return FfiConverterTypeOutputDevice.lower(value)
+}
+
+
+public struct OutputDevices: Equatable, Hashable {
+    public var state: OutputState
+    public var reason: String?
+    /**
+     * This device first, then the others; offline ones last.
+     */
+    public var devices: [OutputDevice]
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(state: OutputState, reason: String?, 
+        /**
+         * This device first, then the others; offline ones last.
+         */devices: [OutputDevice]) {
+        self.state = state
+        self.reason = reason
+        self.devices = devices
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension OutputDevices: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeOutputDevices: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> OutputDevices {
+        return
+            try OutputDevices(
+                state: FfiConverterTypeOutputState.read(from: &buf), 
+                reason: FfiConverterOptionString.read(from: &buf), 
+                devices: FfiConverterSequenceTypeOutputDevice.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: OutputDevices, into buf: inout [UInt8]) {
+        FfiConverterTypeOutputState.write(value.state, into: &buf)
+        FfiConverterOptionString.write(value.reason, into: &buf)
+        FfiConverterSequenceTypeOutputDevice.write(value.devices, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeOutputDevices_lift(_ buf: RustBuffer) throws -> OutputDevices {
+    return try FfiConverterTypeOutputDevices.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeOutputDevices_lower(_ value: OutputDevices) -> RustBuffer {
+    return FfiConverterTypeOutputDevices.lower(value)
+}
+
+
+/**
  * One colour sampled from the cover and its share of it (0 to 1).
  */
 public struct PaletteSwatch: Equatable, Hashable {
@@ -6166,6 +6787,288 @@ public func FfiConverterTypeRemoteChange_lift(_ buf: RustBuffer) throws -> Remot
 #endif
 public func FfiConverterTypeRemoteChange_lower(_ value: RemoteChange) -> RustBuffer {
     return FfiConverterTypeRemoteChange.lower(value)
+}
+
+
+/**
+ * Remote control (board 12, "Remote control"): what a controller asks the playing
+ * device to do. Song IDs are the controller's; the playing device finds them in
+ * its own library. `uid`s are the playing device's (from `remote_queue`).
+ *
+ * One record for every command (so Dart reads it too): `kind`, plus the field
+ * that kind uses: `position_ms` (SeekTo), `level` (SetVolume, 0 to 1), `song_ids`
+ * (PlayNext, AddToUpNext), `uid` (Remove, Move, JumpTo), `to_index` (Move).
+ */
+public struct RemoteCommand: Equatable, Hashable {
+    public var kind: RemoteCommandKind
+    public var positionMs: Int64?
+    public var level: Double?
+    public var songIds: [Int64]
+    public var uid: Int64?
+    public var toIndex: UInt32?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(kind: RemoteCommandKind, positionMs: Int64?, level: Double?, songIds: [Int64], uid: Int64?, toIndex: UInt32?) {
+        self.kind = kind
+        self.positionMs = positionMs
+        self.level = level
+        self.songIds = songIds
+        self.uid = uid
+        self.toIndex = toIndex
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension RemoteCommand: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeRemoteCommand: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> RemoteCommand {
+        return
+            try RemoteCommand(
+                kind: FfiConverterTypeRemoteCommandKind.read(from: &buf), 
+                positionMs: FfiConverterOptionInt64.read(from: &buf), 
+                level: FfiConverterOptionDouble.read(from: &buf), 
+                songIds: FfiConverterSequenceInt64.read(from: &buf), 
+                uid: FfiConverterOptionInt64.read(from: &buf), 
+                toIndex: FfiConverterOptionUInt32.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: RemoteCommand, into buf: inout [UInt8]) {
+        FfiConverterTypeRemoteCommandKind.write(value.kind, into: &buf)
+        FfiConverterOptionInt64.write(value.positionMs, into: &buf)
+        FfiConverterOptionDouble.write(value.level, into: &buf)
+        FfiConverterSequenceInt64.write(value.songIds, into: &buf)
+        FfiConverterOptionInt64.write(value.uid, into: &buf)
+        FfiConverterOptionUInt32.write(value.toIndex, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRemoteCommand_lift(_ buf: RustBuffer) throws -> RemoteCommand {
+    return try FfiConverterTypeRemoteCommand.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRemoteCommand_lower(_ value: RemoteCommand) -> RustBuffer {
+    return FfiConverterTypeRemoteCommand.lower(value)
+}
+
+
+/**
+ * The playing device's queue (Now Playing's queue sheet while controlling).
+ */
+public struct RemoteQueue: Equatable, Hashable {
+    public var current: RemoteQueueItem?
+    public var upNext: [RemoteQueueItem]
+    public var autoplay: [RemoteQueueItem]
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(current: RemoteQueueItem?, upNext: [RemoteQueueItem], autoplay: [RemoteQueueItem]) {
+        self.current = current
+        self.upNext = upNext
+        self.autoplay = autoplay
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension RemoteQueue: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeRemoteQueue: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> RemoteQueue {
+        return
+            try RemoteQueue(
+                current: FfiConverterOptionTypeRemoteQueueItem.read(from: &buf), 
+                upNext: FfiConverterSequenceTypeRemoteQueueItem.read(from: &buf), 
+                autoplay: FfiConverterSequenceTypeRemoteQueueItem.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: RemoteQueue, into buf: inout [UInt8]) {
+        FfiConverterOptionTypeRemoteQueueItem.write(value.current, into: &buf)
+        FfiConverterSequenceTypeRemoteQueueItem.write(value.upNext, into: &buf)
+        FfiConverterSequenceTypeRemoteQueueItem.write(value.autoplay, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRemoteQueue_lift(_ buf: RustBuffer) throws -> RemoteQueue {
+    return try FfiConverterTypeRemoteQueue.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRemoteQueue_lower(_ value: RemoteQueue) -> RustBuffer {
+    return FfiConverterTypeRemoteQueue.lower(value)
+}
+
+
+/**
+ * One song of the playing device's queue, as the controller sees it.
+ */
+public struct RemoteQueueItem: Equatable, Hashable {
+    /**
+     * The playing device's uid: pass it back in Remove, Move and JumpTo.
+     */
+    public var uid: Int64
+    public var song: RemoteSong
+    public var chosenBy: ChosenBy
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * The playing device's uid: pass it back in Remove, Move and JumpTo.
+         */uid: Int64, song: RemoteSong, chosenBy: ChosenBy) {
+        self.uid = uid
+        self.song = song
+        self.chosenBy = chosenBy
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension RemoteQueueItem: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeRemoteQueueItem: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> RemoteQueueItem {
+        return
+            try RemoteQueueItem(
+                uid: FfiConverterInt64.read(from: &buf), 
+                song: FfiConverterTypeRemoteSong.read(from: &buf), 
+                chosenBy: FfiConverterTypeChosenBy.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: RemoteQueueItem, into buf: inout [UInt8]) {
+        FfiConverterInt64.write(value.uid, into: &buf)
+        FfiConverterTypeRemoteSong.write(value.song, into: &buf)
+        FfiConverterTypeChosenBy.write(value.chosenBy, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRemoteQueueItem_lift(_ buf: RustBuffer) throws -> RemoteQueueItem {
+    return try FfiConverterTypeRemoteQueueItem.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRemoteQueueItem_lower(_ value: RemoteQueueItem) -> RustBuffer {
+    return FfiConverterTypeRemoteQueueItem.lower(value)
+}
+
+
+/**
+ * A song another device plays, as it describes it.
+ */
+public struct RemoteSong: Equatable, Hashable {
+    public var title: String
+    public var artist: String
+    public var album: String?
+    public var durationMs: Int64
+    /**
+     * The same song in this device's library, when it has it (for artwork).
+     */
+    public var songId: Int64?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(title: String, artist: String, album: String?, durationMs: Int64, 
+        /**
+         * The same song in this device's library, when it has it (for artwork).
+         */songId: Int64?) {
+        self.title = title
+        self.artist = artist
+        self.album = album
+        self.durationMs = durationMs
+        self.songId = songId
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension RemoteSong: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeRemoteSong: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> RemoteSong {
+        return
+            try RemoteSong(
+                title: FfiConverterString.read(from: &buf), 
+                artist: FfiConverterString.read(from: &buf), 
+                album: FfiConverterOptionString.read(from: &buf), 
+                durationMs: FfiConverterInt64.read(from: &buf), 
+                songId: FfiConverterOptionInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: RemoteSong, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.title, into: &buf)
+        FfiConverterString.write(value.artist, into: &buf)
+        FfiConverterOptionString.write(value.album, into: &buf)
+        FfiConverterInt64.write(value.durationMs, into: &buf)
+        FfiConverterOptionInt64.write(value.songId, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRemoteSong_lift(_ buf: RustBuffer) throws -> RemoteSong {
+    return try FfiConverterTypeRemoteSong.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRemoteSong_lower(_ value: RemoteSong) -> RustBuffer {
+    return FfiConverterTypeRemoteSong.lower(value)
 }
 
 
@@ -7740,6 +8643,96 @@ public func FfiConverterTypeChosenBy_lower(_ value: ChosenBy) -> RustBuffer {
 
 
 
+/**
+ * What another of your devices is doing (board 12).
+ */
+
+public enum DeviceState: Equatable, Hashable {
+    
+    case playing
+    case paused
+    /**
+     * Signed in and reachable, nothing playing.
+     */
+    case idle
+    /**
+     * Not connected now: dimmed; tapping it shakes with the reason. Gone after
+     * 30 days.
+     */
+    case offline
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension DeviceState: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeDeviceState: FfiConverterRustBuffer {
+    typealias SwiftType = DeviceState
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> DeviceState {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .playing
+        
+        case 2: return .paused
+        
+        case 3: return .idle
+        
+        case 4: return .offline
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: DeviceState, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .playing:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .paused:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .idle:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .offline:
+            writeInt(&buf, Int32(4))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDeviceState_lift(_ buf: RustBuffer) throws -> DeviceState {
+    return try FfiConverterTypeDeviceState.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDeviceState_lower(_ value: DeviceState) -> RustBuffer {
+    return FfiConverterTypeDeviceState.lower(value)
+}
+
+
+
 
 public enum DropRefusal: Equatable, Hashable {
     
@@ -8493,6 +9486,41 @@ public enum EventKind: Equatable, Hashable {
      * delete it. Store it before anything else: the old one no longer works.
      */
     case credentialChanged
+    /**
+     * `output_devices` is set: the output picker's devices changed (board 12).
+     */
+    case devicesChanged
+    /**
+     * `device` is set: offer "Continue from <name>" (board 12, item 1). Shown at
+     * most once per session per device, never while this device plays.
+     */
+    case continueAvailable
+    /**
+     * `handoff` is set: playback is coming here. Load `handoff.entry` (with
+     * `stream_for`), then call `handoff_ready` and start at the position it returns,
+     * or `handoff_failed` with why.
+     */
+    case handoffIncoming
+    /**
+     * `handoff` is set: the other device has started. Fade out and pause now.
+     */
+    case handoffConfirmed
+    /**
+     * `handoff` is set with `reason`: it didn't happen. A sender keeps playing and
+     * shows why (a toast, the error haptic).
+     */
+    case handoffFailed
+    /**
+     * `remote_command` is set: another of your devices controls this one. Do it
+     * as if the button here was pressed (Play, Pause, Next, Previous, seek,
+     * volume). Queue edits are done already (`QueueChanged` follows).
+     */
+    case remoteCommand
+    /**
+     * `device` is set: the device this one controls changed (now playing,
+     * position, volume): update the "Playing on…" capsule.
+     */
+    case remoteState
 
 
 
@@ -8528,6 +9556,20 @@ public struct FfiConverterTypeEventKind: FfiConverterRustBuffer {
         
         case 7: return .credentialChanged
         
+        case 8: return .devicesChanged
+        
+        case 9: return .continueAvailable
+        
+        case 10: return .handoffIncoming
+        
+        case 11: return .handoffConfirmed
+        
+        case 12: return .handoffFailed
+        
+        case 13: return .remoteCommand
+        
+        case 14: return .remoteState
+        
         default: throw UniffiInternalError.unexpectedEnumCase
         }
     }
@@ -8562,6 +9604,34 @@ public struct FfiConverterTypeEventKind: FfiConverterRustBuffer {
         
         case .credentialChanged:
             writeInt(&buf, Int32(7))
+        
+        
+        case .devicesChanged:
+            writeInt(&buf, Int32(8))
+        
+        
+        case .continueAvailable:
+            writeInt(&buf, Int32(9))
+        
+        
+        case .handoffIncoming:
+            writeInt(&buf, Int32(10))
+        
+        
+        case .handoffConfirmed:
+            writeInt(&buf, Int32(11))
+        
+        
+        case .handoffFailed:
+            writeInt(&buf, Int32(12))
+        
+        
+        case .remoteCommand:
+            writeInt(&buf, Int32(13))
+        
+        
+        case .remoteState:
+            writeInt(&buf, Int32(14))
         
         }
     }
@@ -9449,6 +10519,112 @@ public func FfiConverterTypeNotInterestedReason_lower(_ value: NotInterestedReas
 
 
 
+/**
+ * Whether handoff can be offered at all, and why not (board 12, "States").
+ */
+
+public enum OutputState: Equatable, Hashable {
+    
+    /**
+     * Your devices are listed.
+     */
+    case ready
+    /**
+     * "Sign in on another device to hand off music."
+     */
+    case noOtherDevices
+    /**
+     * The companion can't be reached: the devices section is disabled with
+     * `reason` and a retry.
+     */
+    case unreachable
+    /**
+     * No companion server: hide the devices section.
+     */
+    case noCompanion
+    /**
+     * Guest or no profile: no handoff.
+     */
+    case notAvailable
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension OutputState: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeOutputState: FfiConverterRustBuffer {
+    typealias SwiftType = OutputState
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> OutputState {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .ready
+        
+        case 2: return .noOtherDevices
+        
+        case 3: return .unreachable
+        
+        case 4: return .noCompanion
+        
+        case 5: return .notAvailable
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: OutputState, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .ready:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .noOtherDevices:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .unreachable:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .noCompanion:
+            writeInt(&buf, Int32(4))
+        
+        
+        case .notAvailable:
+            writeInt(&buf, Int32(5))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeOutputState_lift(_ buf: RustBuffer) throws -> OutputState {
+    return try FfiConverterTypeOutputState.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeOutputState_lower(_ value: OutputState) -> RustBuffer {
+    return FfiConverterTypeOutputState.lower(value)
+}
+
+
+
 
 public enum PaletteScheme: Equatable, Hashable {
     
@@ -9829,6 +11005,135 @@ public func FfiConverterTypeReasonKind_lift(_ buf: RustBuffer) throws -> ReasonK
 #endif
 public func FfiConverterTypeReasonKind_lower(_ value: ReasonKind) -> RustBuffer {
     return FfiConverterTypeReasonKind.lower(value)
+}
+
+
+
+
+public enum RemoteCommandKind: Equatable, Hashable {
+    
+    case play
+    case pause
+    case next
+    case previous
+    case seekTo
+    case setVolume
+    case playNext
+    case addToUpNext
+    case remove
+    case move
+    case jumpTo
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension RemoteCommandKind: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeRemoteCommandKind: FfiConverterRustBuffer {
+    typealias SwiftType = RemoteCommandKind
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> RemoteCommandKind {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .play
+        
+        case 2: return .pause
+        
+        case 3: return .next
+        
+        case 4: return .previous
+        
+        case 5: return .seekTo
+        
+        case 6: return .setVolume
+        
+        case 7: return .playNext
+        
+        case 8: return .addToUpNext
+        
+        case 9: return .remove
+        
+        case 10: return .move
+        
+        case 11: return .jumpTo
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: RemoteCommandKind, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .play:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .pause:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .next:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .previous:
+            writeInt(&buf, Int32(4))
+        
+        
+        case .seekTo:
+            writeInt(&buf, Int32(5))
+        
+        
+        case .setVolume:
+            writeInt(&buf, Int32(6))
+        
+        
+        case .playNext:
+            writeInt(&buf, Int32(7))
+        
+        
+        case .addToUpNext:
+            writeInt(&buf, Int32(8))
+        
+        
+        case .remove:
+            writeInt(&buf, Int32(9))
+        
+        
+        case .move:
+            writeInt(&buf, Int32(10))
+        
+        
+        case .jumpTo:
+            writeInt(&buf, Int32(11))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRemoteCommandKind_lift(_ buf: RustBuffer) throws -> RemoteCommandKind {
+    return try FfiConverterTypeRemoteCommandKind.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRemoteCommandKind_lower(_ value: RemoteCommandKind) -> RustBuffer {
+    return FfiConverterTypeRemoteCommandKind.lower(value)
 }
 
 
@@ -10928,6 +12233,78 @@ fileprivate struct FfiConverterOptionTypeGuestSession: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterOptionTypeHandoffInfo: FfiConverterRustBuffer {
+    typealias SwiftType = HandoffInfo?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeHandoffInfo.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeHandoffInfo.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeOutputDevice: FfiConverterRustBuffer {
+    typealias SwiftType = OutputDevice?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeOutputDevice.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeOutputDevice.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeOutputDevices: FfiConverterRustBuffer {
+    typealias SwiftType = OutputDevices?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeOutputDevices.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeOutputDevices.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterOptionTypePickReason: FfiConverterRustBuffer {
     typealias SwiftType = PickReason?
 
@@ -11040,6 +12417,78 @@ fileprivate struct FfiConverterOptionTypeRemoteChange: FfiConverterRustBuffer {
         switch try readInt(&buf) as Int8 {
         case 0: return nil
         case 1: return try FfiConverterTypeRemoteChange.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeRemoteCommand: FfiConverterRustBuffer {
+    typealias SwiftType = RemoteCommand?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeRemoteCommand.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeRemoteCommand.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeRemoteQueueItem: FfiConverterRustBuffer {
+    typealias SwiftType = RemoteQueueItem?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeRemoteQueueItem.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeRemoteQueueItem.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeRemoteSong: FfiConverterRustBuffer {
+    typealias SwiftType = RemoteSong?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeRemoteSong.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeRemoteSong.read(from: &buf)
         default: throw UniffiInternalError.unexpectedOptionalTag
         }
     }
@@ -11666,6 +13115,31 @@ fileprivate struct FfiConverterSequenceTypeNotInterestedItem: FfiConverterRustBu
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterSequenceTypeOutputDevice: FfiConverterRustBuffer {
+    typealias SwiftType = [OutputDevice]
+
+    public static func write(_ value: [OutputDevice], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeOutputDevice.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [OutputDevice] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [OutputDevice]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeOutputDevice.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterSequenceTypePaletteSwatch: FfiConverterRustBuffer {
     typealias SwiftType = [PaletteSwatch]
 
@@ -11808,6 +13282,31 @@ fileprivate struct FfiConverterSequenceTypeQueueEntry: FfiConverterRustBuffer {
         seq.reserveCapacity(Int(len))
         for _ in 0 ..< len {
             seq.append(try FfiConverterTypeQueueEntry.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeRemoteQueueItem: FfiConverterRustBuffer {
+    typealias SwiftType = [RemoteQueueItem]
+
+    public static func write(_ value: [RemoteQueueItem], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeRemoteQueueItem.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [RemoteQueueItem] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [RemoteQueueItem]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeRemoteQueueItem.read(from: &buf))
         }
         return seq
     }
@@ -12338,6 +13837,48 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_unlike() != 42881) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_control_only() != 5220) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_dismiss_continue() != 33952) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_hand_off_to() != 56082) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_handoff_failed() != 4018) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_handoff_ready() != 6316) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_output_devices() != 57166) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_playback_paused() != 52402) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_playback_resumed() != 38805) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_pull_from() != 48685) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_remote_command() != 40801) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_remote_queue() != 46902) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_rename_device() != 35971) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_set_volume_level() != 33818) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_stop_remote_control() != 15407) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_biometrics_changed() != 25368) {

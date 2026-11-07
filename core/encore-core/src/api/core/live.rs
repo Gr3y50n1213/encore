@@ -680,18 +680,20 @@ impl Inner {
         let uid = cmd["uid"].as_i64().unwrap_or(-1);
         let result: Result<(), String> = match cmd["kind"].as_str().unwrap_or("") {
             kind @ ("play" | "pause" | "next" | "previous" | "seekTo" | "setVolume") => {
-                let c = match kind {
-                    "play" => RemoteCommand::Play,
-                    "pause" => RemoteCommand::Pause,
-                    "next" => RemoteCommand::Next,
-                    "previous" => RemoteCommand::Previous,
-                    "seekTo" => RemoteCommand::SeekTo {
-                        position_ms: cmd["positionMs"].as_i64().unwrap_or(0),
-                    },
-                    _ => RemoteCommand::SetVolume {
-                        level: cmd["level"].as_f64().unwrap_or(1.0).clamp(0.0, 1.0),
-                    },
-                };
+                let mut c = RemoteCommand::of(match kind {
+                    "play" => RemoteCommandKind::Play,
+                    "pause" => RemoteCommandKind::Pause,
+                    "next" => RemoteCommandKind::Next,
+                    "previous" => RemoteCommandKind::Previous,
+                    "seekTo" => RemoteCommandKind::SeekTo,
+                    _ => RemoteCommandKind::SetVolume,
+                });
+                if kind == "seekTo" {
+                    c.position_ms = Some(cmd["positionMs"].as_i64().unwrap_or(0));
+                }
+                if kind == "setVolume" {
+                    c.level = Some(cmd["level"].as_f64().unwrap_or(1.0).clamp(0.0, 1.0));
+                }
                 let mut e = CoreEvent::of(EventKind::RemoteCommand);
                 e.remote_command = Some(c);
                 self.emit(e);
@@ -1113,26 +1115,25 @@ fn command_wire(p: &Profile, cmd: &RemoteCommand) -> Result<Value, EncoreError> 
             .filter_map(|id| store.track(*id).ok().map(|t| t.song_key))
             .collect())
     };
-    Ok(match cmd {
-        RemoteCommand::Play => json!({ "kind": "play" }),
-        RemoteCommand::Pause => json!({ "kind": "pause" }),
-        RemoteCommand::Next => json!({ "kind": "next" }),
-        RemoteCommand::Previous => json!({ "kind": "previous" }),
-        RemoteCommand::SeekTo { position_ms } => {
-            json!({ "kind": "seekTo", "positionMs": position_ms })
-        }
-        RemoteCommand::SetVolume { level } => json!({ "kind": "setVolume", "level": level }),
-        RemoteCommand::PlayNext { song_ids } => {
-            json!({ "kind": "playNext", "keys": keys(song_ids)? })
-        }
-        RemoteCommand::AddToUpNext { song_ids } => {
-            json!({ "kind": "addToUpNext", "keys": keys(song_ids)? })
-        }
-        RemoteCommand::Remove { uid } => json!({ "kind": "remove", "uid": uid }),
-        RemoteCommand::Move { uid, to_index } => {
-            json!({ "kind": "move", "uid": uid, "toIndex": to_index })
-        }
-        RemoteCommand::JumpTo { uid } => json!({ "kind": "jumpTo", "uid": uid }),
+    use RemoteCommandKind as K;
+    let need = |what: &str| EncoreError::NotAllowed {
+        reason: format!("This command needs {what}"),
+    };
+    Ok(match cmd.kind {
+        K::Play => json!({ "kind": "play" }),
+        K::Pause => json!({ "kind": "pause" }),
+        K::Next => json!({ "kind": "next" }),
+        K::Previous => json!({ "kind": "previous" }),
+        K::SeekTo => json!({ "kind": "seekTo",
+            "positionMs": cmd.position_ms.ok_or_else(|| need("position_ms"))? }),
+        K::SetVolume => json!({ "kind": "setVolume",
+            "level": cmd.level.ok_or_else(|| need("level"))?.clamp(0.0, 1.0) }),
+        K::PlayNext => json!({ "kind": "playNext", "keys": keys(&cmd.song_ids)? }),
+        K::AddToUpNext => json!({ "kind": "addToUpNext", "keys": keys(&cmd.song_ids)? }),
+        K::Remove => json!({ "kind": "remove", "uid": cmd.uid.ok_or_else(|| need("uid"))? }),
+        K::Move => json!({ "kind": "move", "uid": cmd.uid.ok_or_else(|| need("uid"))?,
+            "toIndex": cmd.to_index.ok_or_else(|| need("to_index"))? }),
+        K::JumpTo => json!({ "kind": "jumpTo", "uid": cmd.uid.ok_or_else(|| need("uid"))? }),
     })
 }
 

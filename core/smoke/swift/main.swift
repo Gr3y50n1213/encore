@@ -114,6 +114,13 @@ if let replay = ProcessInfo.processInfo.environment["ENCORE_REPLAY_URL"] {
     precondition(home.madeForYou.playsNeeded == 50 && !home.recentlyAdded.isEmpty, "home")
     let skip = try core.notInterestedArtist(artist: auto.autoplay[0].song.artist, reason: .notMyTaste)
     try core.removeNotInterested(item: skip)
+    // Phase 7: without a companion the output picker hides handoff, and it's refused.
+    let outputs = try core.outputDevices()
+    precondition(outputs.state == .noCompanion, "output devices")
+    do {
+        try await core.handOffTo(deviceId: "nobody")
+        preconditionFailure("handoff needs a companion")
+    } catch {}
     guard let artAlbum = try core.albums(sort: .title, offset: 0, limit: 100).first(where: { $0.hasArtwork }),
           let palette = try await core.albumPalette(albumId: artAlbum.id)
     else { preconditionFailure("no palette") }
@@ -140,7 +147,7 @@ if let replay = ProcessInfo.processInfo.environment["ENCORE_REPLAY_URL"] {
         "playlist=\(list.name):\(entriesBefore.count)",
     ].joined(separator: "\n")
     parityLine = "; parity " + parity(summary)
-    flow = "library flow OK (signed in, synced \(synced[0].songs) songs, played an album, searched, lyrics, lyrics search, export, profiles, sync status, smart picks, palette \(palette.base), playlist edit and undo)"
+    flow = "library flow OK (signed in, synced \(synced[0].songs) songs, played an album, searched, lyrics, lyrics search, export, profiles, sync status, smart picks, handoff, palette \(palette.base), playlist edit and undo)"
 }
 
 print("Swift -> Rust: \(greeting) (core \(coreVersion())); EncoreCore async and errors OK; \(flow)\(parityLine)")

@@ -531,7 +531,7 @@ fn the_mixes_come_from_the_companion_server_and_the_device_builds_them_without_i
 /// phone, a failed handoff leaves the phone playing, and a rename shows everywhere.
 #[test]
 fn playback_moves_between_devices_and_is_counted_once() {
-    use encore_core::api::{AlbumSort, DeviceState, OutputState, RemoteCommand};
+    use encore_core::api::{AlbumSort, DeviceState, OutputState, RemoteCommand, RemoteCommandKind};
     let server_dir = temp_dir("server-handoff");
     let (addr, _server) = start_server(&server_dir);
     let url = format!("http://127.0.0.1:{}", addr.port());
@@ -706,11 +706,15 @@ fn playback_moves_between_devices_and_is_counted_once() {
 
     // Remote control from the Mac: pause goes to the phone's player; a queue edit
     // is done by the phone's core.
-    block(mac.remote_command(phone_id.clone(), RemoteCommand::Pause)).unwrap();
+    block(mac.remote_command(
+        phone_id.clone(),
+        RemoteCommand::of(RemoteCommandKind::Pause),
+    ))
+    .unwrap();
     assert!(
         phone_events
             .wait_nth(Duration::from_secs(2), 1, |e| e.remote_command
-                == Some(RemoteCommand::Pause))
+                == Some(RemoteCommand::of(RemoteCommandKind::Pause)))
             .is_some()
     );
     let remote = block(mac.remote_queue(phone_id.clone())).unwrap();
@@ -718,8 +722,9 @@ fn playback_moves_between_devices_and_is_counted_once() {
     let extra = mac.songs(SongSort::Title, 0, 1).unwrap()[0].clone();
     block(mac.remote_command(
         phone_id.clone(),
-        RemoteCommand::PlayNext {
+        RemoteCommand {
             song_ids: vec![extra.id],
+            ..RemoteCommand::of(RemoteCommandKind::PlayNext)
         },
     ))
     .unwrap();

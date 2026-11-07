@@ -32,6 +32,10 @@ pub use encore_core::api::{
     SyncStatus, TopResult, TranscodeCodec,
 };
 use encore_core::api::{CoreListener, EncoreCore};
+pub use encore_core::api::{
+    DeviceState, HandoffInfo, OutputDevice, OutputDevices, OutputState, RemoteCommand,
+    RemoteCommandKind, RemoteQueue, RemoteQueueItem, RemoteSong,
+};
 
 use crate::frb_generated::StreamSink;
 
@@ -438,6 +442,111 @@ pub struct _CoreEvent {
     pub sync_status: Option<SyncStatus>,
     pub remote_change: Option<RemoteChange>,
     pub credential: Option<SourceToken>,
+    pub output_devices: Option<OutputDevices>,
+    pub device: Option<OutputDevice>,
+    pub handoff: Option<HandoffInfo>,
+    pub remote_command: Option<RemoteCommand>,
+}
+
+// Phase 7: handoff and remote control.
+
+#[frb(mirror(DeviceState))]
+pub enum _DeviceState {
+    Playing,
+    Paused,
+    Idle,
+    Offline,
+}
+
+#[frb(mirror(RemoteSong))]
+pub struct _RemoteSong {
+    pub title: String,
+    pub artist: String,
+    pub album: Option<String>,
+    pub duration_ms: i64,
+    pub song_id: Option<i64>,
+}
+
+#[frb(mirror(OutputDevice))]
+pub struct _OutputDevice {
+    pub device_id: String,
+    pub name: String,
+    pub platform: String,
+    pub this_device: bool,
+    pub state: DeviceState,
+    pub song: Option<RemoteSong>,
+    pub position_ms: i64,
+    pub volume: f64,
+    pub private_listening: bool,
+    pub last_seen_utc_ms: i64,
+}
+
+#[frb(mirror(OutputState))]
+pub enum _OutputState {
+    Ready,
+    NoOtherDevices,
+    Unreachable,
+    NoCompanion,
+    NotAvailable,
+}
+
+#[frb(mirror(OutputDevices))]
+pub struct _OutputDevices {
+    pub state: OutputState,
+    pub reason: Option<String>,
+    pub devices: Vec<OutputDevice>,
+}
+
+#[frb(mirror(HandoffInfo))]
+pub struct _HandoffInfo {
+    pub transfer_id: String,
+    pub device_id: String,
+    pub device_name: String,
+    pub entry: Option<QueueEntry>,
+    pub position_ms: i64,
+    pub playing: bool,
+    pub volume: f64,
+    pub unknown_songs: u32,
+    pub reason: Option<String>,
+}
+
+#[frb(mirror(RemoteCommandKind))]
+pub enum _RemoteCommandKind {
+    Play,
+    Pause,
+    Next,
+    Previous,
+    SeekTo,
+    SetVolume,
+    PlayNext,
+    AddToUpNext,
+    Remove,
+    Move,
+    JumpTo,
+}
+
+#[frb(mirror(RemoteCommand))]
+pub struct _RemoteCommand {
+    pub kind: RemoteCommandKind,
+    pub position_ms: Option<i64>,
+    pub level: Option<f64>,
+    pub song_ids: Vec<i64>,
+    pub uid: Option<i64>,
+    pub to_index: Option<u32>,
+}
+
+#[frb(mirror(RemoteQueueItem))]
+pub struct _RemoteQueueItem {
+    pub uid: i64,
+    pub song: RemoteSong,
+    pub chosen_by: ChosenBy,
+}
+
+#[frb(mirror(RemoteQueue))]
+pub struct _RemoteQueue {
+    pub current: Option<RemoteQueueItem>,
+    pub up_next: Vec<RemoteQueueItem>,
+    pub autoplay: Vec<RemoteQueueItem>,
 }
 
 #[frb(mirror(SyncState))]
@@ -590,6 +699,13 @@ pub enum _EventKind {
     SyncStatusChanged,
     RemoteChange,
     CredentialChanged,
+    DevicesChanged,
+    ContinueAvailable,
+    HandoffIncoming,
+    HandoffConfirmed,
+    HandoffFailed,
+    RemoteCommand,
+    RemoteState,
 }
 
 #[frb(mirror(ErrorKind))]
@@ -1292,6 +1408,63 @@ impl Encore {
     #[frb(sync)]
     pub fn set_autoplay(&self, enabled: bool) -> Result<QueueState, ApiError> {
         Ok(self.core.set_autoplay(enabled)?)
+    }
+
+    // Phase 7: handoff and remote control (board 12)
+    #[frb(sync)]
+    pub fn output_devices(&self) -> Result<OutputDevices, ApiError> {
+        Ok(self.core.output_devices()?)
+    }
+    pub async fn rename_device(&self, device_id: String, name: String) -> Result<(), ApiError> {
+        Ok(self.core.rename_device(device_id, name).await?)
+    }
+    pub async fn hand_off_to(&self, device_id: String) -> Result<(), ApiError> {
+        Ok(self.core.hand_off_to(device_id).await?)
+    }
+    #[frb(sync)]
+    pub fn handoff_ready(&self, transfer_id: String) -> Result<i64, ApiError> {
+        Ok(self.core.handoff_ready(transfer_id)?)
+    }
+    #[frb(sync)]
+    pub fn handoff_failed(&self, transfer_id: String, reason: String) -> Result<(), ApiError> {
+        Ok(self.core.handoff_failed(transfer_id, reason)?)
+    }
+    pub async fn pull_from(&self, device_id: String) -> Result<(), ApiError> {
+        Ok(self.core.pull_from(device_id).await?)
+    }
+    #[frb(sync)]
+    pub fn dismiss_continue(&self, device_id: String) -> Result<(), ApiError> {
+        Ok(self.core.dismiss_continue(device_id)?)
+    }
+    pub async fn remote_command(
+        &self,
+        device_id: String,
+        command: RemoteCommand,
+    ) -> Result<(), ApiError> {
+        Ok(self.core.remote_command(device_id, command).await?)
+    }
+    pub async fn remote_queue(&self, device_id: String) -> Result<RemoteQueue, ApiError> {
+        Ok(self.core.remote_queue(device_id).await?)
+    }
+    #[frb(sync)]
+    pub fn control_only(&self, device_id: String) -> Result<Option<OutputDevice>, ApiError> {
+        Ok(self.core.control_only(device_id)?)
+    }
+    #[frb(sync)]
+    pub fn stop_remote_control(&self) -> Result<(), ApiError> {
+        Ok(self.core.stop_remote_control()?)
+    }
+    #[frb(sync)]
+    pub fn playback_paused(&self, position_ms: i64) -> Result<(), ApiError> {
+        Ok(self.core.playback_paused(position_ms)?)
+    }
+    #[frb(sync)]
+    pub fn playback_resumed(&self, position_ms: i64) -> Result<(), ApiError> {
+        Ok(self.core.playback_resumed(position_ms)?)
+    }
+    #[frb(sync)]
+    pub fn set_volume_level(&self, level: f64) -> Result<(), ApiError> {
+        Ok(self.core.set_volume_level(level)?)
     }
 
     // playback reports

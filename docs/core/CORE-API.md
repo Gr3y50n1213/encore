@@ -1,6 +1,6 @@
 # Encore core API (the contract)
 
-**Version 4** (Phase 5, 7 November 2026). Core crate version `0.1.0`.
+**Version 5** (Phase 7, 7 November 2026). Core crate version `0.1.0`.
 
 This file is the only thing the platform tracks may rely on. Every public call, event and type of the core is listed here before a platform uses it. A change that breaks a platform gets a line under "Changes" and a request in `docs/requests/` that says what to change.
 
@@ -10,11 +10,12 @@ This file is the only thing the platform tracks may rely on. Every public call, 
 | --- | --- | --- |
 | 0 | 1 | First version: `hello`, `core_version`, `app_name`; token constants |
 | 1 | 2 | `EncoreCore`: connect and sign in to Jellyfin (password or Quick Connect), profiles, library sync, browse, search, the queue, playback reporting with the play log, streams, artwork, raw lyrics, events. Nothing from API 0 changed. Kotlin now also needs kotlinx-coroutines (async calls are suspend functions). |
-| 2 | 3 | Added, nothing removed. Lyrics (`lyrics`, the word-timing-ready model); album and playlist palettes; the skip signal (`skip_next` / `skip_previous` with an origin, `next_target` / `previous_target`, `playback_interrupted`, `playback_seeked`); playlist writes and likes (`drop_preview`, `add_to`, `like`, `unlike`, `are_liked`, `liked_songs`, `remove_from_playlist`, `move_in_playlist`, `rename_playlist`, `undo`, `pending_edits`, `send_edits`); `backup_profile` / `restore_profile`; the error kind `NotAllowed`. `next()` and `previous()` stay, as the button. A platform that switches over every `ErrorKind` adds `NotAllowed`. |
-| 4 | 5 | Added, nothing removed. Smart picks: autoplay fills itself (`refresh_autoplay`, `set_autoplay`), `start_radio`, `smart_shuffle`, `why_this_song`, `more_like_this` / `fewer_like_this`, Not interested (`not_interested_song`, `not_interested_artist`, `remove_not_interested`, `not_interested_list`, `clear_not_interested`), `set_adventurousness` / `adventurousness`, `reset_suggestions`, `clear_listening_history`, `home`, `regenerate_mixes`, `mix`, `pin_mix`, `hide_mix`, `not_in_this_mix`, `save_mix_as_playlist`, `suggestion_stats`; their types. Private listening ends after 2 hours of silence. Queue entries the app chose (Autoplay, Smart shuffle) have `chosen_by` App. A platform that builds `QueueState` itself is unaffected. |
-| 3 | 4 | Added, nothing removed. The companion server (`connect_companion`, `disconnect_companion`, `sync_status`, `sync_now`, `companion_devices`, `revoke_device`, `delete_profile_everywhere`); profiles on one device (`switch_profile`, `unlock_profile`, `set_profile_pin`, `remove_profile_pin`, `biometrics_changed`, `rename_profile`, `reorder_profiles`, `remove_profile_from_device`, `last_active_profile`); Guest (`start_guest`, `end_guest`, `guest_session`). `ProfileSummary` gains `initials`, `avatar_url`, `locked`, `active`, `needs_sign_in`; `CoreEvent` gains `sync_status`, `remote_change`, `credential` and three kinds. `open_profile` refuses a locked profile until `unlock_profile`; a `SourceToken` with `source_id` 0 is the companion's. New `profiles` tokens. A platform that switches over every `EventKind` adds the three new kinds; one that builds `ProfileSummary` or `CoreEvent` itself adds the fields. |
-| 2.1 | 3 | Added, nothing removed. Lyrics search: `SearchResults.lyrics` (`[LyricMatch]`) and `fetch_lyrics_ahead(max_songs)`; `search.limits.lyrics` in tokens. Export: `export_profile(profile_id, dest_path)` returns `ExportSummary`. A platform that builds `SearchResults` itself (tests, previews) adds the `lyrics` field. |
 | 1, revised | 2 | Same day, after CI ran the bindings. Each error case carries its sentence as `reason`, no longer `message`, because the Kotlin exceptions clashed with `Throwable.message`. New calls: `clear_listener` (Swift, Kotlin) and `stopEvents` (Dart), which end the events. A platform that copied the first version renames `message` to `reason` in its error handling; nothing else changes. |
+| 2 | 3 | Added, nothing removed. Lyrics (`lyrics`, the word-timing-ready model); album and playlist palettes; the skip signal (`skip_next` / `skip_previous` with an origin, `next_target` / `previous_target`, `playback_interrupted`, `playback_seeked`); playlist writes and likes (`drop_preview`, `add_to`, `like`, `unlike`, `are_liked`, `liked_songs`, `remove_from_playlist`, `move_in_playlist`, `rename_playlist`, `undo`, `pending_edits`, `send_edits`); `backup_profile` / `restore_profile`; the error kind `NotAllowed`. `next()` and `previous()` stay, as the button. A platform that switches over every `ErrorKind` adds `NotAllowed`. |
+| 2.1 | 3 | Added, nothing removed. Lyrics search: `SearchResults.lyrics` (`[LyricMatch]`) and `fetch_lyrics_ahead(max_songs)`; `search.limits.lyrics` in tokens. Export: `export_profile(profile_id, dest_path)` returns `ExportSummary`. A platform that builds `SearchResults` itself (tests, previews) adds the `lyrics` field. |
+| 3 | 4 | Added, nothing removed. The companion server (`connect_companion`, `disconnect_companion`, `sync_status`, `sync_now`, `companion_devices`, `revoke_device`, `delete_profile_everywhere`); profiles on one device (`switch_profile`, `unlock_profile`, `set_profile_pin`, `remove_profile_pin`, `biometrics_changed`, `rename_profile`, `reorder_profiles`, `remove_profile_from_device`, `last_active_profile`); Guest (`start_guest`, `end_guest`, `guest_session`). `ProfileSummary` gains `initials`, `avatar_url`, `locked`, `active`, `needs_sign_in`; `CoreEvent` gains `sync_status`, `remote_change`, `credential` and three kinds. `open_profile` refuses a locked profile until `unlock_profile`; a `SourceToken` with `source_id` 0 is the companion's. New `profiles` tokens. A platform that switches over every `EventKind` adds the three new kinds; one that builds `ProfileSummary` or `CoreEvent` itself adds the fields. |
+| 4 | 5 | Added, nothing removed. Smart picks: autoplay fills itself (`refresh_autoplay`, `set_autoplay`), `start_radio`, `smart_shuffle`, `why_this_song`, `more_like_this` / `fewer_like_this`, Not interested (`not_interested_song`, `not_interested_artist`, `remove_not_interested`, `not_interested_list`, `clear_not_interested`), `set_adventurousness` / `adventurousness`, `reset_suggestions`, `clear_listening_history`, `home`, `regenerate_mixes`, `mix`, `pin_mix`, `hide_mix`, `not_in_this_mix`, `save_mix_as_playlist`, `suggestion_stats`; their types. Private listening ends after 2 hours of silence. Queue entries the app chose (Autoplay, Smart shuffle) have `chosen_by` App. A platform that builds `QueueState` itself is unaffected. |
+| 5 | 7 | Added, nothing removed. Handoff and remote control (board 12): `output_devices`, `rename_device`, `hand_off_to`, `handoff_ready`, `handoff_failed`, `pull_from`, `dismiss_continue`, `remote_command`, `remote_queue`, `control_only`, `stop_remote_control`; the player reports `playback_paused`, `playback_resumed`, `set_volume_level`; types `OutputDevices`, `OutputDevice`, `OutputState`, `DeviceState`, `RemoteSong`, `HandoffInfo`, `RemoteCommand` (+ `RemoteCommandKind`), `RemoteQueue`, `RemoteQueueItem`. `CoreEvent` gains `output_devices`, `device`, `handoff`, `remote_command` and seven kinds (`DevicesChanged`, `ContinueAvailable`, `HandoffIncoming`, `HandoffConfirmed`, `HandoffFailed`, `RemoteCommand`, `RemoteState`). A platform that switches over every `EventKind` adds the seven; one that builds `CoreEvent` itself adds the fields. |
 
 ## How every platform gets the core
 
@@ -37,6 +38,21 @@ Rules for every platform:
 - Apple: the static library needs the system libraries rustc lists with `--print native-static-libs`. CI's `apple` job prints them for every target (today `-lSystem -lc -lm` plus the Security and CoreFoundation frameworks the certificate check uses).
 - Android: link with NDK r28 or later, which aligns to 16 KB by default, or pass `-Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384`. The `android` job in `core.yml` shows a working setup. Certificate checks use the operating system's verifier. On Android, call `EncoreTls.initialize(applicationContext)` once at start, before the first https connection; it's in `core/bindings/kotlin-android/uk/gcartee/encore/core/EncoreTls.kt`. The app build also needs the verifier's Kotlin component (request `core-0001-android-tls-init`). Until the call runs, https fails with a message saying so; nothing crashes, and plain http on the local network still works.
 - Regenerate everything with `make bindings tokens` in `core/`. The Dart bindings need flutter_rust_bridge_codegen 2.13.0 and a Dart SDK; without them, run the `core` workflow by hand with "regenerate" ticked and take the files from its artifact.
+
+### Starting Android, Windows and Linux (Phase 6)
+
+Phase 6 builds Phases 2 to 5 on Android (Media3) and on Windows and Linux (Flutter with the Rust audio engine). Everything those phases need is in the calls below; nothing in the core is Apple-only. A checklist per platform:
+
+| | Android | Windows and Linux |
+| --- | --- | --- |
+| The core | `libencore_core.so` per ABI in `jniLibs/` (CI's `android` job builds all four, 16 KB aligned) plus the Kotlin bindings; JNA's `@aar` build and kotlinx-coroutines | `encore_dart.dll` / `libencore_dart.so` from `encore-dart`, and the `encore_core` Dart package |
+| At start | `EncoreTls.initialize(applicationContext)` before the first https connection (request core-0001) | nothing |
+| Data folder (`CoreConfig.data_dir`) | the app's files directory | the app's support folder (Windows `%APPDATA%`, Linux `$XDG_DATA_HOME`) |
+| Tokens (`SignedIn.token`, `CredentialChanged`) | Android Keystore (an encrypted store keyed by it) | Windows Credential Manager; Linux Secret Service (libsecret) |
+| The player | Media3 ExoPlayer: `stream_for` with `headers`, `set_playback_capabilities` once | `core/encore-audio` (the Windows and Linux track's): plays `StreamInfo.url` with its `headers`, and reports exactly as AVPlayer and ExoPlayer do: `playback_started`, `playback_progress`, `playback_ended`, `playback_seeked`, `playback_interrupted`, and from Phase 7 `playback_paused` / `playback_resumed` / `set_volume_level`. It needs nothing else from the core. |
+| Media controls | MediaSession from `NowPlaying` and `QueueChanged`; buttons call `skip_next(Headset)` and the rest | SMTC (Windows) and MPRIS (Linux) the same way, origin `Keyboard` or `Headset` |
+
+**On the owner's Android phones** (Phase 6, `tools/android-smoke`; not yet run): the Kotlin smoke test, library flow included, runs on ART through `app_process` with the real `libencore_core.so` and JNA's Android build, on every ABI each phone lists, and checks the https guard before `EncoreTls.initialize`. Its bundle comes from CI, which GitHub stopped running on 7 November 2026 (the account's Actions minutes ran out); results will be in docs/core/REVIEW-PHASE6.md. **The same answers everywhere**: every smoke test prints a `parity` value (a hash of the library flow's results). Once CI runs again it fails unless Swift, Kotlin and Dart agree, and the phone run is compared with the same value.
 
 ## Threading, errors and privacy
 
@@ -262,6 +278,28 @@ One engine chooses every song the app chooses, so a skip teaches every surface. 
 
 **What doesn't count** (unchanged from Phase 3): interruptions, errors, seeks, accidents under 2 s, too soon, ended by the system. Private listening, Guest and Learn-from-my-listening-off store nothing.
 
+### Handoff and remote control (plan section 11; board 12)
+
+Any device signed in to the same profile takes over playback at the exact second with the same queue, through the companion server's live link (docs/adr/core-0015, core-0016). Without a companion, handoff is unavailable: `output_devices().state` is `NoCompanion`, so hide the devices section.
+
+| Call | Returns | Notes |
+| --- | --- | --- |
+| `output_devices()` | `OutputDevices` | The picker (board 12, item 5): `state` (`Ready`, `NoOtherDevices` "Sign in on another device to hand off music.", `Unreachable` with `reason` and a retry, `NoCompanion`, `NotAvailable` in Guest), `devices`: this device first, then the others; `Offline` ones dimmed, gone after 30 days. Each has `name`, `platform`, `state`, `song` (None when idle, offline or Private there), `position_ms`, `volume`, `private_listening`. `DevicesChanged` follows every change. |
+| `hand_off_to(device_id)` async | – | Tap a device: the snapshot (queue, position, shuffle, repeat, Autoplay, radio, volume) goes there. Returns once it started there: fade out and pause (`HandoffConfirmed` says so too; the success haptic). Fails with the reason after at most 5 s, and this device keeps playing (`HandoffFailed`: a toast and the error haptic). |
+| `handoff_ready(transfer_id)` | `i64` | The receiving side, after `HandoffIncoming`: the queue is in place and `handoff.entry` is the song. Load it (`stream_for`), call this, and start at the position it returns (the sender's position plus the time since); then `playback_started` as usual. The play carries the sender's listening time, so it counts once. |
+| `handoff_failed(transfer_id, reason)` | – | The song couldn't be loaded here: the sender keeps playing and shows `reason`. |
+| `pull_from(device_id)` async | – | Continue on the banner, or This device while another plays (board 12, items 1 and 3): the playing device sends its playback here; `HandoffIncoming` follows. |
+| `dismiss_continue(device_id)` | – | The banner was swiped away or faded (8 s): not again this session for that device. |
+| `remote_command(device_id, command)` async | – | Control without moving the music. `RemoteCommand` has a `kind` and the field it needs: Play, Pause, Next, Previous, SeekTo (`position_ms`), SetVolume (`level` 0 to 1), PlayNext / AddToUpNext (`song_ids`, this device's), Remove / Move (`uid`, `to_index`) / JumpTo (`uid`, the playing device's, from `remote_queue`). |
+| `remote_queue(device_id)` async | `RemoteQueue` | The playing device's queue for the queue sheet (empty under Private listening there). |
+| `control_only(device_id)` / `stop_remote_control()` | `OutputDevice?` / – | "Control only" (Hold menu) and the "Playing on Living Room Mac" capsule: `RemoteState` keeps it current. |
+| `rename_device(device_id, name)` async | – | Hold menu, Rename (1 to 100 characters). Sign out this device is `revoke_device`. |
+| `playback_paused(position_ms)` / `playback_resumed(position_ms)` / `set_volume_level(level)` | – | The player reports these too, so presence, remote control and handoff know the state. Nothing is logged. |
+
+**On the receiving device**, `RemoteCommand` events ask the player to do Play, Pause, Next, Previous, seek or volume, as if its own button was pressed (call the same core calls it always does). Queue edits from a controller are done by the core; `QueueChanged` follows.
+
+**Privacy.** Devices of another profile never appear. Under Private listening, presence says a device plays but not what, and its queue isn't shared. Guest has no handoff.
+
 ## Events
 
 `set_listener(listener)` in Swift and Kotlin (implement `CoreListener.on_event`), `events()` in Dart (a `Stream<CoreEvent>`). One listener at a time: setting a new one replaces the old. `clear_listener()` (Swift, Kotlin) and `stopEvents()` (Dart) stop events. In Dart, `stopEvents()` is what ends the stream: cancelling a subscription alone does not, because the core still holds the stream. One `CoreEvent` record; only the fields its `kind` names are set.
@@ -275,6 +313,13 @@ One engine chooses every song the app chooses, so a skip teaches every surface. 
 | `SyncStatusChanged` | `sync_status` | The companion sync's state or pending count changed |
 | `RemoteChange` | `remote_change`: `liked_song_ids`, `unliked_song_ids`, `playlist_ids`, `history`, `library_sync_suggested` | Another device's changes arrived |
 | `CredentialChanged` | `credential` (`source_id` 0, `token`; empty means delete) | The companion token rotated: store it before anything else, the old one no longer works |
+| `DevicesChanged` | `output_devices` | The picker's devices or their states changed |
+| `ContinueAvailable` | `device` | Show "Continue from <name>" (board 12, item 1): once per session per device, never while this device plays; never transfer by itself |
+| `HandoffIncoming` | `handoff`: `transfer_id`, `device_name`, `entry`, `position_ms`, `playing`, `volume`, `unknown_songs` | Playback is coming here: load `entry`, then `handoff_ready` |
+| `HandoffConfirmed` | `handoff` | The other device started: fade out and pause |
+| `HandoffFailed` | `handoff` with `reason` | It didn't happen; a sender keeps playing |
+| `RemoteCommand` | `remote_command` | Another device controls this one: do it |
+| `RemoteState` | `device` | The device you control changed |
 
 ## Types
 
@@ -481,4 +526,13 @@ Everything below is in API version 4. It is tested in Rust on the owner's record
 - **Why this song, More/Fewer like this, Not interested** with Undo and its Settings list (board 38).
 - **Settings, Mixes and suggestions:** How adventurous, Learn from my listening (`set_listening_mode`), Reset suggestions, Clear listening history, How suggestions are doing.
 
-Not available yet: handoff and the WebSocket (Phase 7), downloads and offline artwork (Phase 8), recaps (Phase 11), finding the companion on the network by itself (mDNS; the address is typed).
+## What the platform tracks can build now (Phase 7)
+
+Everything below is in API version 5. It is tested in Rust with two real cores, a real companion server and real WebSockets (the tap to the other device's confirmation in 15 to 19 ms on loopback). The Swift and Kotlin bindings are regenerated and the smoke tests call it in all three languages, but those CI runs and the Dart glue wait for CI to run again.
+
+- **The output sheet** (board 12): This device, the system outputs (the platform's own), Your devices with their states, the Hold menu (Control only, Rename, Sign out this device), offline devices dimmed, and the three empty states.
+- **Push and pull**: tap a device, the Continue banner, This device to pull back, with the success and error haptics and the toast.
+- **Remote control**: the "Playing on…" capsule, transport, scrub, volume and queue edits on the playing device.
+- **The player's part**: `HandoffIncoming` then `handoff_ready`; `RemoteCommand`; `playback_paused`, `playback_resumed`, `set_volume_level`.
+
+Not available yet: shared household devices across profiles (later, the owner's choice), downloads and offline artwork (Phase 8), recaps (Phase 11), finding the companion on the network by itself (mDNS; the address is typed).

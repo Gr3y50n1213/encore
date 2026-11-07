@@ -16,6 +16,7 @@ import uk.gcartee.encore.core.SongSort
 import uk.gcartee.encore.core.SyncState
 import uk.gcartee.encore.core.ChosenBy
 import uk.gcartee.encore.core.NotInterestedReason
+import uk.gcartee.encore.core.OutputState
 import uk.gcartee.encore.core.CoreEvent
 import uk.gcartee.encore.core.CoreListener
 import uk.gcartee.encore.core.EncoreCore
@@ -142,6 +143,13 @@ fun main() {
     check(home.madeForYou.playsNeeded == 50u && home.recentlyAdded.isNotEmpty()) { "home" }
     val skip = core.notInterestedArtist(auto.autoplay[0].song.artist, NotInterestedReason.NOT_MY_TASTE)
     core.removeNotInterested(skip)
+    // Phase 7: without a companion the output picker hides handoff, and it's refused.
+    check(core.outputDevices().state == OutputState.NO_COMPANION) { "output devices" }
+    try {
+        core.handOffTo("nobody")
+        error("handoff needs a companion")
+    } catch (e: EncoreException) {
+    }
             val artAlbum = core.albums(AlbumSort.TITLE, 0u, 100u).first { it.hasArtwork }
             val palette = checkNotNull(core.albumPalette(artAlbum.id)) { "no palette" }
             check(palette.base == "3D0000" && palette.stops.size == 4) { palette.base }
@@ -162,7 +170,7 @@ fun main() {
                 "palette=${palette.base}," + palette.stops.joinToString(","),
                 "playlist=${list.name}:${entriesBefore.size}",
             ))
-            flow = "library flow OK (signed in, synced ${synced[0].songs} songs, played an album, searched, lyrics, lyrics search, export, profiles, sync status, smart picks, palette ${palette.base}, playlist edit and undo)"
+            flow = "library flow OK (signed in, synced ${synced[0].songs} songs, played an album, searched, lyrics, lyrics search, export, profiles, sync status, smart picks, handoff, palette ${palette.base}, playlist edit and undo)"
         }
     }
 
