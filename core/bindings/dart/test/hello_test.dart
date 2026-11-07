@@ -116,8 +116,9 @@ void main() {
       expect(palette!.base, '3D0000');
       expect(palette.stops.length, 4);
       final list = core.playlists(offset: 0, limit: 1).first;
+      final entriesBefore = core.playlist(playlistId: list.id).entries;
       final inList = {
-        for (final e in core.playlist(playlistId: list.id).entries)
+        for (final e in entriesBefore)
           if (e.song != null) e.song!.id
       };
       final fresh = all.firstWhere((s) => !inList.contains(s.id));
@@ -127,7 +128,8 @@ void main() {
           allowDuplicates: false);
       expect(edit.added, 1);
       core.undo(editId: edit.editId!);
-      expect(core.playlist(playlistId: list.id).entries.length, inList.length);
+      expect(core.playlist(playlistId: list.id).entries.length,
+          entriesBefore.length);
     },
         skip: replay == null ? 'set ENCORE_REPLAY_URL (tools/ci/replay.sh)' : false,
         timeout: const Timeout(Duration(seconds: 60)));

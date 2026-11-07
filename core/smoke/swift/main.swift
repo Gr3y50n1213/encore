@@ -89,7 +89,8 @@ if let replay = ProcessInfo.processInfo.environment["ENCORE_REPLAY_URL"] {
     else { preconditionFailure("no palette") }
     precondition(palette.base == "3D0000" && palette.stops.count == 4, palette.base)
     let list = try core.playlists(offset: 0, limit: 1)[0]
-    let inList = Set(try core.playlist(playlistId: list.id).entries.compactMap { $0.song?.id })
+    let entriesBefore = try core.playlist(playlistId: list.id).entries
+    let inList = Set(entriesBefore.compactMap { $0.song?.id })
     guard let fresh = all.first(where: { !inList.contains($0.id) }) else { preconditionFailure("no song") }
     let edit = try core.addTo(
         target: DropTarget(kind: .playlist, id: list.id), songIds: [fresh.id], position: nil,
@@ -97,7 +98,7 @@ if let replay = ProcessInfo.processInfo.environment["ENCORE_REPLAY_URL"] {
     precondition(edit.added == 1 && edit.editId != nil)
     try core.undo(editId: edit.editId!)
     let afterUndo = try core.playlist(playlistId: list.id).entries.count
-    precondition(afterUndo == inList.count)
+    precondition(afterUndo == entriesBefore.count, "\(afterUndo) vs \(entriesBefore.count)")
     flow = "library flow OK (signed in, synced \(synced[0].songs) songs, played an album, searched, lyrics, palette \(palette.base), playlist edit and undo)"
 }
 

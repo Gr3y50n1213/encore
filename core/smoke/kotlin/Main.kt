@@ -95,12 +95,13 @@ fun main() {
             val palette = checkNotNull(core.albumPalette(artAlbum.id)) { "no palette" }
             check(palette.base == "3D0000" && palette.stops.size == 4) { palette.base }
             val list = core.playlists(0u, 1u)[0]
-            val inList = core.playlist(list.id).entries.mapNotNull { it.song?.id }.toSet()
+            val entriesBefore = core.playlist(list.id).entries
+            val inList = entriesBefore.mapNotNull { it.song?.id }.toSet()
             val fresh = all.first { it.id !in inList }
             val edit = core.addTo(DropTarget(DropTargetKind.PLAYLIST, list.id), listOf(fresh.id), null, false)
             check(edit.added == 1u && edit.editId != null)
             core.undo(edit.editId!!)
-            check(core.playlist(list.id).entries.size == inList.size)
+            check(core.playlist(list.id).entries.size == entriesBefore.size)
             flow = "library flow OK (signed in, synced ${synced[0].songs} songs, played an album, searched, lyrics, palette ${palette.base}, playlist edit and undo)"
         }
     }
