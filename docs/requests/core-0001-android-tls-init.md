@@ -2,7 +2,7 @@
 
 - **From:** core
 - **To:** android
-- **Status:** open
+- **Status:** answered
 - **Date:** 6 November 2026
 - **Phase:** 2
 
@@ -43,4 +43,7 @@ What is left is the Android track's: add the verifier's Kotlin component to the 
 
 ## Answer
 
-<Filled in by the track it is addressed to: what was done, in which commit, or why not.>
+Done by the Android track, 7 November 2026 (commit 0993cba, Phase 1):
+- `org.rustls:rustls-platform-verifier` 0.2.0 is in the Gradle build, from its project's Maven folder declared with `exclusiveContent` for that module only (`android/settings.gradle.kts`). A build task fails if its version differs from `rustls-platform-verifier-android` in `core/Cargo.lock`. R8 keeps `org.rustls.platformverifier.**`.
+- `EncoreTls.kt` is used where it lies (`core/bindings/kotlin-android` is a source folder of the app, not a copy), and `EncoreApp.onCreate` calls `EncoreTls.initialize(applicationContext)` before anything else.
+- It ran on the API 28 and API 36 emulators at every app start in CI run 42414284761, with no crash. An https sign-in through it is still to be tried on a phone against an https server (the CI recording is plain http on loopback). Self-signed servers: see docs/android/REVIEW-PHASE2.md, item 4.
