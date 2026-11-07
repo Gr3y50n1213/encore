@@ -7,7 +7,7 @@ The owner's answers:
 - shared household devices later;
 - build it in full.
 
-**Evidence is local.** CI can't run (GitHub billing, 7 November 2026), so every result below is from tests on this PC. The Docker image, macOS, Windows and the bindings' CI runs wait for it.
+**Evidence:** local runs, then CI run 42393953953 with every job green. Its Linux job runs the two-core handoff end-to-end test, and Swift, Kotlin and Dart call `output_devices` and `hand_off_to` on Linux, Windows and macOS. The Docker image's end-to-end test still covers sync only; `/ws` through the image is a follow-up.
 
 ## The "done when" line
 
@@ -28,7 +28,7 @@ The owner's answers:
 | Remote control | **Passes** | Pause reaches the phone's player as `RemoteCommand`; `remote_queue` reads its queue; Play next is done by the phone's core (e2e). |
 | The banner rules (board 12, item 1) | **Passes** | `the_banner_follows_board_12`, and `ContinueAvailable` in the e2e test. |
 | The output picker's states | **Passes** | `output_devices`: Ready in the e2e test, NoCompanion in the smoke tests, Unreachable while the link is down, NotAvailable in Guest. |
-| Bindings | **Swift and Kotlin regenerated; CI pending** | The smoke tests call `output_devices` and `hand_off_to` in Swift, Kotlin and Dart. The Dart glue is regenerated only in CI. |
+| Bindings | **Passes** | The Dart glue was regenerated in CI (run 42389936835). The smoke tests call `output_devices` and `hand_off_to` in Swift, Kotlin and Dart on every CI platform (run 42393953953), and on the owner's Android phones. |
 | Licences | **Passes** | Every new crate is on a reviewed licence (`check_licences.py`: the server has 203 dependencies, all reviewed). |
 
 ## Found and fixed during this phase
@@ -42,4 +42,4 @@ The owner's answers:
 - Sound in under 1 s on real devices, and handoff over real Wi-Fi (the platform tracks').
 - Shared household devices across profiles (later, by the owner's choice).
 - `NSUserActivity` and the system Handoff icon (the Apple track's).
-- The Docker image's `/ws` and every CI job, until GitHub runs CI again.
+- `/ws` through the Docker image (the in-process server is tested; the image's end-to-end test covers sync).

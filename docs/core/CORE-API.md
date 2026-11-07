@@ -52,7 +52,7 @@ Phase 6 builds Phases 2 to 5 on Android (Media3) and on Windows and Linux (Flutt
 | The player | Media3 ExoPlayer: `stream_for` with `headers`, `set_playback_capabilities` once | `core/encore-audio` (the Windows and Linux track's): plays `StreamInfo.url` with its `headers`, and reports exactly as AVPlayer and ExoPlayer do: `playback_started`, `playback_progress`, `playback_ended`, `playback_seeked`, `playback_interrupted`, and from Phase 7 `playback_paused` / `playback_resumed` / `set_volume_level`. It needs nothing else from the core. |
 | Media controls | MediaSession from `NowPlaying` and `QueueChanged`; buttons call `skip_next(Headset)` and the rest | SMTC (Windows) and MPRIS (Linux) the same way, origin `Keyboard` or `Headset` |
 
-**On the owner's Android phones** (Phase 6, `tools/android-smoke`; not yet run): the Kotlin smoke test, library flow included, runs on ART through `app_process` with the real `libencore_core.so` and JNA's Android build, on every ABI each phone lists, and checks the https guard before `EncoreTls.initialize`. Its bundle comes from CI, which GitHub stopped running on 7 November 2026 (the account's Actions minutes ran out); results will be in docs/core/REVIEW-PHASE6.md. **The same answers everywhere**: every smoke test prints a `parity` value (a hash of the library flow's results). Once CI runs again it fails unless Swift, Kotlin and Dart agree, and the phone run is compared with the same value.
+**On the owner's Android phones** (Phase 6, `tools/android-smoke`): the Kotlin smoke test, library flow included, ran on ART through `app_process` with the real `libencore_core.so` and JNA's Android build. It passed on Android 16, 14 and 13, arm64-v8a and armeabi-v7a, including the https guard before `EncoreTls.initialize`. Results: docs/core/REVIEW-PHASE6.md. **The same answers everywhere**: every smoke test prints a `parity` value (a hash of the library flow's results). Swift, Kotlin and Dart on Linux, Windows, macOS, the iOS Simulator and the phones all print `c5f1d3b2`, and CI fails on any difference.
 
 ## Threading, errors and privacy
 
@@ -528,7 +528,7 @@ Everything below is in API version 4. It is tested in Rust on the owner's record
 
 ## What the platform tracks can build now (Phase 7)
 
-Everything below is in API version 5. It is tested in Rust with two real cores, a real companion server and real WebSockets (the tap to the other device's confirmation in 15 to 19 ms on loopback). The Swift and Kotlin bindings are regenerated and the smoke tests call it in all three languages, but those CI runs and the Dart glue wait for CI to run again.
+Everything below is in API version 5. It is tested in Rust with two real cores, a real companion server and real WebSockets (the tap to the other device's confirmation in 15 to 19 ms on loopback). Swift, Kotlin and Dart call it in CI on every platform.
 
 - **The output sheet** (board 12): This device, the system outputs (the platform's own), Your devices with their states, the Hold menu (Control only, Rename, Sign out this device), offline devices dimmed, and the three empty states.
 - **Push and pull**: tap a device, the Continue banner, This device to pull back, with the success and error haptics and the toast.

@@ -113,7 +113,6 @@ The owner has not answered these. They are the plan's defaults (plan section 15)
 | Every smart-picks number | Starting values (weights, half-life, 0.6 replay threshold, cluster rules, title vocabulary); the CI listeners are generated, not real | Replay on the owner's history (Phase 5 review) and on devices' logs once apps exist |
 | Smart picks on a phone | Budgets were measured on CI and this PC (20 ms next-song pick, 0.14 s mix build on 20,000 songs), not a phone | Phase 6 devices |
 | Handoff on real devices | The core's part takes 15 to 19 ms on loopback; the sound starting, real Wi-Fi and the platforms' players aren't measured | The platform tracks' devices (Phase 7) |
-| Android at runtime | The phone run is written but waits for CI's bundle (GitHub stopped running Actions on 7 November 2026: the account's minutes ran out) | `tools/android-smoke/run.ps1` once CI runs |
 | Companion on real devices and networks | The like-within-a-second was measured with two cores and the server on one machine (106 to 135 ms, the Docker images included); never over Wi-Fi or with phones | Phase 6 devices on the owner's network |
 | arm64 server speed | The arm64 image ran end to end under QEMU in CI (118.5 ms like), which proves it works, not its speed | A Raspberry Pi 5 or an arm64 NAS |
 | Avatar size | For a 256 px request the owner's Jellyfin returned a 2.7 MB original (not PNG); the address now also asks `maxWidth`/`maxHeight` | A device loading avatars |

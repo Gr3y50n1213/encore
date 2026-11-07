@@ -111,6 +111,12 @@ foreach ($serial in $attached) {
                 "-Djna.boot.library.path=$dir/$abi $dir MainKt; echo exit=`$?"
                 $t0 = Get-Date
                 $output = Invoke-Adb $serial @("shell", $cmd)
+                # A device's first reverse rule can take a moment to start
+                # forwarding: one retry when the PC's servers looked refused.
+                if ($output -match 'refused the connection') {
+                    Start-Sleep -Milliseconds 500
+                    $output = Invoke-Adb $serial @("shell", $cmd)
+                }
                 $secs = [math]::Round(((Get-Date) - $t0).TotalSeconds, 1)
                 Set-Content -Path (Join-Path $work "$tag.log") -Value $output -Encoding utf8
                 $ok = ($output -match 'library flow OK') -and ($output -match 'https guard OK') -and ($output -match "parity $expected") -and ($output -match 'exit=0')
