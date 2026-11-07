@@ -53,6 +53,7 @@ import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -272,7 +273,7 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next, autoCorrectEnabled = false),
                     keyboardActions = KeyboardActions(onNext = { focus.moveFocus(FocusDirection.Down) }),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().testTag("address"),
                 )
                 Box(Modifier.padding(top = Grid.base.dp, start = 4.dp).semantics { liveRegion = LiveRegionMode.Polite }) {
                     when (val c = check) {
@@ -360,7 +361,7 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
                     FilledTonalButton(
                         onClick = ::startQuickConnect,
                         enabled = found != null && !signingIn,
-                        modifier = Modifier.fillMaxWidth().height(BUTTON_DP.dp),
+                        modifier = Modifier.fillMaxWidth().height(BUTTON_DP.dp).testTag("quick-connect"),
                     ) { Text("Use Quick Connect", style = type.sectionHeader) }
                 } else {
                     val left = ((q.expiresAtMs - now) / 1000).coerceAtLeast(0)

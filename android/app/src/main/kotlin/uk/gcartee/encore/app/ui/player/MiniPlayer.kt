@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
@@ -63,6 +64,7 @@ fun MiniPlayer(state: PlayerState, onExpand: () -> Unit, onToggle: () -> Unit, o
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
         shape = RoundedCornerShape(Radius.androidCard.dp),
         modifier = modifier
+            .testTag("mini-player")
             .fillMaxWidth()
             .padding(horizontal = Grid.base.dp)
             .semantics(mergeDescendants = false) {

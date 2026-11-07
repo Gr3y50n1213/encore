@@ -35,17 +35,36 @@ page="$(adb shell getconf PAGE_SIZE | tr -d '\r' || echo unknown)"
 echo "device: API $sdk, $abi, page size $page" | tee "$out/device.txt"
 adb logcat -c || true
 
-echo "== 1. Instrumented tests (debug)"
-adb install -r -t "$debug"
-adb install -r -t "$tests"
-adb shell am instrument -w -r uk.gcartee.encore.debug.test/androidx.test.runner.AndroidJUnitRunner \
-  | tee "$out/instrument.txt"
-grep -q '^OK (' "$out/instrument.txt" || { echo "instrumented tests failed" >&2; exit 1; }
-
 shot() { # name
   sleep 2
   adb exec-out screencap -p > "$out/$1.png"
 }
+
+echo "== 1. Instrumented tests (debug)"
+adb install -r -t "$debug"
+adb install -r -t "$tests"
+runner=uk.gcartee.encore.debug.test/androidx.test.runner.AndroidJUnitRunner
+signin=uk.gcartee.encore.app.SignInAndBrowseTest
+# First on a fresh install (no profile yet), everything but the sign-in test.
+adb shell am instrument -w -r -e notClass "$signin" "$runner" | tee "$out/instrument.txt"
+grep -q '^OK (' "$out/instrument.txt" || { echo "instrumented tests failed" >&2; exit 1; }
+
+echo "== 1b. Sign in to the Jellyfin replay, browse, play"
+# The owner's anonymized recording, served on this host and reached from the device
+# through adb reverse (tools/ci/replay_jellyfin.py).
+rm -f "$out/replay-url.txt"
+python3 -I -B tools/ci/replay_jellyfin.py tools/fixtures/jellyfin/recorded.json "$out/replay-url.txt" &
+replay_pid=$!
+for _ in $(seq 1 100); do [ -s "$out/replay-url.txt" ] && break; sleep 0.1; done
+replay="$(cat "$out/replay-url.txt")"
+port="${replay##*:}"
+adb reverse "tcp:$port" "tcp:$port"
+adb shell am instrument -w -r -e class "$signin" -e replayUrl "$replay" "$runner" | tee "$out/instrument-signin.txt"
+adb reverse --remove "tcp:$port" || true
+kill "$replay_pid" || true
+grep -q '^OK (1 test)' "$out/instrument-signin.txt" || { echo "the sign-in test failed" >&2; exit 1; }
+# The release build below must start fresh again, on Welcome.
+adb uninstall uk.gcartee.encore.debug > /dev/null || true
 
 echo "== 2. Release build"
 adb install -r "$release"

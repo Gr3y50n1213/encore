@@ -1,0 +1,75 @@
+package uk.gcartee.encore.app
+
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import org.junit.Assume.assumeTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import uk.gcartee.encore.app.core.CoreHost
+import uk.gcartee.encore.core.AlbumSort
+
+/**
+ * Phase 2's "done when", as far as an emulator can show it: sign in to a Jellyfin server
+ * through the real Connect screen (Quick Connect), let the library sync, browse it, and
+ * start an album. The server is the owner's anonymized Jellyfin recording, replayed on
+ * the CI host (tools/ci/replay_jellyfin.py) and reached through `adb reverse`; the run
+ * passes its address as the `replayUrl` argument. The recording holds no audio, so the
+ * sound itself is checked on a phone.
+ */
+@OptIn(ExperimentalTestApi::class)
+@RunWith(AndroidJUnit4::class)
+class SignInAndBrowseTest {
+    @get:Rule
+    val rule = createAndroidComposeRule<MainActivity>()
+
+    private val replayUrl: String? = InstrumentationRegistry.getArguments().getString("replayUrl")
+
+    @Test
+    fun signInBrowseAndPlayAnAlbum() {
+        assumeTrue("needs the Jellyfin replay (replayUrl)", replayUrl != null)
+
+        // Welcome: Get started ignores taps for its first 300 ms (board 22, item 3).
+        rule.waitUntilAtLeastOneExists(hasText("Get started"), TIMEOUT)
+        Thread.sleep(400)
+        rule.onNodeWithText("Get started").performClick()
+
+        // Connect: the address is checked 600 ms after typing stops (board 21, item 3).
+        rule.waitUntilAtLeastOneExists(hasTestTag("address"), TIMEOUT)
+        rule.onNodeWithTag("address").performTextInput(replayUrl!!)
+        rule.waitUntilAtLeastOneExists(hasText("Found Jellyfin", substring = true), TIMEOUT)
+        rule.onNodeWithTag("quick-connect").performClick()
+
+        // Quick Connect approves (the recording's approval), the profile opens, sync runs.
+        rule.waitUntilAtLeastOneExists(hasText("Recently added"), SYNC_TIMEOUT)
+        val host = CoreHost.get(rule.activity)
+        val album = host.core.albums(AlbumSort.TITLE, 0u, 100u).first { it.songCount >= 2u }
+
+        // Library: the album is listed from the on-device mirror.
+        rule.onNodeWithText("Library").performClick()
+        rule.waitUntilAtLeastOneExists(hasText(album.title), TIMEOUT)
+        rule.onAllNodesWithText(album.title).onFirst().performClick()
+
+        // Album: Play replaces the queue with it; the mini player shows its first song.
+        rule.waitUntilAtLeastOneExists(hasText("Play"), TIMEOUT)
+        rule.onNodeWithText("Play").performClick()
+        val first = host.core.album(album.id).songs.first()
+        rule.waitUntil(TIMEOUT) { host.core.queue().current?.song?.id == first.id }
+        rule.waitUntilAtLeastOneExists(hasTestTag("mini-player"), TIMEOUT)
+    }
+
+    private companion object {
+        const val TIMEOUT = 10_000L
+        const val SYNC_TIMEOUT = 60_000L
+    }
+}

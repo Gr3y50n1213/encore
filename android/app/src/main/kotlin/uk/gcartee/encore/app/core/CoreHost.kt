@@ -50,12 +50,6 @@ class CoreHost private constructor(val context: Context) {
     val profileOpen: StateFlow<Boolean> = _profileOpen.asStateFlow()
 
     init {
-        // ExoPlayer plays these as they are; the rest is transcoded to AAC. ALAC is left
-        // out: Android has no platform decoder for it.
-        core.setPlaybackCapabilities(
-            listOf("flac", "mp3", "m4a", "aac", "ogg", "opus", "wav"),
-            TranscodeCodec.AAC,
-        )
         core.setListener(object : CoreListener {
             override fun onEvent(event: CoreEvent) {
                 // A rotated companion token must be stored before anything else: the
@@ -75,13 +69,24 @@ class CoreHost private constructor(val context: Context) {
             tokens.read(key.key)?.let { SourceToken(key.sourceId, it) }
         }
         return runCatching { core.openProfile(id, sourceTokens) }
-            .onSuccess { _profileOpen.value = true }
+            .onSuccess { profileOpened() }
             .isSuccess
     }
 
     /** After sign-in: the token goes to the Keystore; the core already opened the profile. */
     fun signedIn(signed: SignedIn) {
         tokens.save(signed.credentialKey, signed.token)
+        profileOpened()
+    }
+
+    private fun profileOpened() {
+        // ExoPlayer plays these as they are; the rest is transcoded to AAC. ALAC is left
+        // out: Android has no platform decoder for it. The core keeps this per profile
+        // (it refuses with NoProfile before one is open), so it is set on every opening.
+        core.setPlaybackCapabilities(
+            listOf("flac", "mp3", "m4a", "aac", "ogg", "opus", "wav"),
+            TranscodeCodec.AAC,
+        )
         _profileOpen.value = true
     }
 
