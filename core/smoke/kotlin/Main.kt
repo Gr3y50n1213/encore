@@ -8,6 +8,10 @@
 import kotlinx.coroutines.runBlocking
 import uk.gcartee.encore.core.AlbumSort
 import uk.gcartee.encore.core.CoreConfig
+import uk.gcartee.encore.core.DropTarget
+import uk.gcartee.encore.core.DropTargetKind
+import uk.gcartee.encore.core.LyricsSync
+import uk.gcartee.encore.core.SongSort
 import uk.gcartee.encore.core.CoreEvent
 import uk.gcartee.encore.core.CoreListener
 import uk.gcartee.encore.core.EncoreCore
@@ -80,7 +84,24 @@ fun main() {
             val next = core.playbackEnded(EndReason.FINISHED, current.song.durationMs)
             check(next?.song?.id == songs[1].id)
             check(core.search(songs[0].title).songs.any { it.title == songs[0].title })
-            flow = "library flow OK (signed in, synced ${synced[0].songs} songs, played an album, searched)"
+
+            // Phase 3: lyrics, an album's colours (the same bytes on every platform),
+            // a playlist edit and its undo.
+            val all = core.songs(SongSort.TITLE, 0u, 500u)
+            val lyrics = all.filter { it.hasLyrics }.firstNotNullOfOrNull { core.lyrics(it.id) }
+            checkNotNull(lyrics) { "no lyrics" }
+            check(lyrics.sync == LyricsSync.LINE && lyrics.lines.isNotEmpty())
+            val artAlbum = core.albums(AlbumSort.TITLE, 0u, 100u).first { it.hasArtwork }
+            val palette = checkNotNull(core.albumPalette(artAlbum.id)) { "no palette" }
+            check(palette.base == "3D0000" && palette.stops.size == 4) { palette.base }
+            val list = core.playlists(0u, 1u)[0]
+            val inList = core.playlist(list.id).entries.mapNotNull { it.song?.id }.toSet()
+            val fresh = all.first { it.id !in inList }
+            val edit = core.addTo(DropTarget(DropTargetKind.PLAYLIST, list.id), listOf(fresh.id), null, false)
+            check(edit.added == 1u && edit.editId != null)
+            core.undo(edit.editId!!)
+            check(core.playlist(list.id).entries.size == inList.size)
+            flow = "library flow OK (signed in, synced ${synced[0].songs} songs, played an album, searched, lyrics, palette ${palette.base}, playlist edit and undo)"
         }
     }
 

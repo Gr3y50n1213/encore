@@ -109,7 +109,51 @@ fn library_flow_over_http_against_the_replay_server() {
     // A second sync is a delta, cursored by the replayed Date header.
     let again = block(core.sync_library()).unwrap();
     assert_eq!(again[0].removed, 0);
-    assert_eq!(core.songs(SongSort::Title, 0, 1000).unwrap().len(), 150);
+    let all = core.songs(SongSort::Title, 0, 1000).unwrap();
+    assert_eq!(all.len(), 150);
+
+    // Phase 3 over real HTTP, as the smoke tests do it.
+    let lyrics = all
+        .iter()
+        .filter(|s| s.has_lyrics)
+        .find_map(|s| block(core.lyrics(s.id)).unwrap())
+        .expect("recorded lyrics");
+    assert_eq!(lyrics.sync, LyricsSync::Line);
+    let art = core
+        .albums(AlbumSort::Title, 0, 100)
+        .unwrap()
+        .into_iter()
+        .find(|a| a.has_artwork)
+        .unwrap();
+    let palette = block(core.album_palette(art.id)).unwrap().unwrap();
+    assert_eq!(
+        palette.base, "3D0000",
+        "board 04's cover, as the recording serves it"
+    );
+    let list = core.playlists(0, 1).unwrap()[0].id;
+    let before = core.playlist(list).unwrap().entries.len();
+    let in_list: Vec<i64> = core
+        .playlist(list)
+        .unwrap()
+        .entries
+        .iter()
+        .filter_map(|e| e.song.as_ref().map(|s| s.id))
+        .collect();
+    let fresh = all.iter().find(|s| !in_list.contains(&s.id)).unwrap().id;
+    let edit = core
+        .add_to(
+            DropTarget {
+                kind: DropTargetKind::Playlist,
+                id: Some(list),
+            },
+            vec![fresh],
+            None,
+            false,
+        )
+        .unwrap();
+    assert_eq!(edit.added, 1);
+    core.undo(edit.edit_id.unwrap()).unwrap();
+    assert_eq!(core.playlist(list).unwrap().entries.len(), before);
 }
 
 /// Dart can release the last reference on another runtime's worker; dropping a

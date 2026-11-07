@@ -97,6 +97,37 @@ void main() {
       expect(next?.song.id, songs[1].id);
       final found = core.search(query: songs[0].title);
       expect(found.songs.map((s) => s.title), contains(songs[0].title));
+
+      // Phase 3: lyrics, an album's colours (the same bytes on every platform:
+      // the replay serves board 04's cover), a playlist edit and its undo.
+      final all = core.songs(sort: SongSort.title, offset: 0, limit: 500);
+      SongLyrics? lyrics;
+      for (final s in all.where((s) => s.hasLyrics)) {
+        lyrics = await core.lyrics(songId: s.id);
+        if (lyrics != null) break;
+      }
+      expect(lyrics, isNotNull);
+      expect(lyrics!.sync, LyricsSync.line);
+      expect(lyrics.lines, isNotEmpty);
+      final artAlbum = core
+          .albums(sort: AlbumSort.title, offset: 0, limit: 100)
+          .firstWhere((a) => a.hasArtwork);
+      final palette = await core.albumPalette(albumId: artAlbum.id);
+      expect(palette!.base, '3D0000');
+      expect(palette.stops.length, 4);
+      final list = core.playlists(offset: 0, limit: 1).first;
+      final inList = {
+        for (final e in core.playlist(playlistId: list.id).entries)
+          if (e.song != null) e.song!.id
+      };
+      final fresh = all.firstWhere((s) => !inList.contains(s.id));
+      final edit = core.addTo(
+          target: DropTarget(kind: DropTargetKind.playlist, id: list.id),
+          songIds: Int64List.fromList([fresh.id]),
+          allowDuplicates: false);
+      expect(edit.added, 1);
+      core.undo(editId: edit.editId!);
+      expect(core.playlist(playlistId: list.id).entries.length, inList.length);
     },
         skip: replay == null ? 'set ENCORE_REPLAY_URL (tools/ci/replay.sh)' : false,
         timeout: const Timeout(Duration(seconds: 60)));

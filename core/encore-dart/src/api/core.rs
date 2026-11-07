@@ -21,6 +21,12 @@ pub use encore_core::api::{
     RepeatMode, ResultKind, SearchResults, ServerCheck, ServerRow, SignedIn, Song, SongSort,
     SourceToken, StartedFrom, StreamInfo, StreamQuality, SyncResult, TopResult, TranscodeCodec,
 };
+pub use encore_core::api::{
+    ArtworkPalette, DropPreview, DropRefusal, DropTarget, DropTargetKind, EditResult,
+    InterruptionKind, LyricBackground, LyricGap, LyricLine, LyricSide, LyricWord, LyricsFormat,
+    LyricsOrigin, LyricsSync, PaletteScheme, PaletteSwatch, SentEdits, Singer, SingerKind,
+    SkipOrigin, SkipTarget, SongLyrics,
+};
 use encore_core::api::{CoreListener, EncoreCore};
 
 use crate::frb_generated::StreamSink;
@@ -375,6 +381,201 @@ pub enum _ErrorKind {
     NoProfile,
     Storage,
     Internal,
+    NotAllowed,
+}
+
+// Phase 3: skips, lyrics, palettes, playlist writes.
+
+#[frb(mirror(SkipOrigin))]
+pub enum _SkipOrigin {
+    Button,
+    Swipe,
+    Headset,
+    Car,
+    LockScreen,
+    Keyboard,
+}
+
+#[frb(mirror(InterruptionKind))]
+pub enum _InterruptionKind {
+    HeadphonesUnplugged,
+    OutputChanged,
+    Call,
+    Assistant,
+}
+
+#[frb(mirror(SkipTarget))]
+pub struct _SkipTarget {
+    pub song: Option<QueueEntry>,
+    pub end_of_queue: bool,
+}
+
+#[frb(mirror(LyricsSync))]
+pub enum _LyricsSync {
+    Word,
+    Line,
+    Unsynced,
+}
+
+#[frb(mirror(LyricsOrigin))]
+pub enum _LyricsOrigin {
+    MediaServer,
+    EmbeddedTag,
+    Sidecar,
+    Provider,
+    Generated,
+}
+
+#[frb(mirror(LyricsFormat))]
+pub enum _LyricsFormat {
+    Jellyfin,
+    Lrc,
+    EnhancedLrc,
+    Ttml,
+    Plain,
+}
+
+#[frb(mirror(LyricSide))]
+pub enum _LyricSide {
+    Main,
+    Opposite,
+}
+
+#[frb(mirror(SingerKind))]
+pub enum _SingerKind {
+    Person,
+    Group,
+    Other,
+}
+
+#[frb(mirror(Singer))]
+pub struct _Singer {
+    pub id: String,
+    pub name: Option<String>,
+    pub kind: SingerKind,
+}
+
+#[frb(mirror(LyricWord))]
+pub struct _LyricWord {
+    pub text: String,
+    pub start_ms: i64,
+    pub end_ms: i64,
+    pub space_after: bool,
+}
+
+#[frb(mirror(LyricBackground))]
+pub struct _LyricBackground {
+    pub text: String,
+    pub start_ms: Option<i64>,
+    pub end_ms: Option<i64>,
+    pub words: Vec<LyricWord>,
+}
+
+#[frb(mirror(LyricLine))]
+pub struct _LyricLine {
+    pub text: String,
+    pub start_ms: Option<i64>,
+    pub end_ms: Option<i64>,
+    pub words: Vec<LyricWord>,
+    pub singer: Option<u32>,
+    pub side: LyricSide,
+    pub background: Vec<LyricBackground>,
+    pub confidence: f64,
+    pub translation: Option<String>,
+    pub pronunciation: Option<String>,
+}
+
+#[frb(mirror(LyricGap))]
+pub struct _LyricGap {
+    pub after_line: Option<u32>,
+    pub start_ms: i64,
+    pub end_ms: i64,
+}
+
+#[frb(mirror(SongLyrics))]
+pub struct _SongLyrics {
+    pub song_id: i64,
+    pub sync: LyricsSync,
+    pub origin: LyricsOrigin,
+    pub format: LyricsFormat,
+    pub lines: Vec<LyricLine>,
+    pub singers: Vec<Singer>,
+    pub gaps: Vec<LyricGap>,
+    pub instrumental: bool,
+    pub language: Option<String>,
+    pub fetched_utc_ms: i64,
+}
+
+#[frb(mirror(PaletteScheme))]
+pub enum _PaletteScheme {
+    Dark,
+    Light,
+}
+
+#[frb(mirror(PaletteSwatch))]
+pub struct _PaletteSwatch {
+    pub colour: String,
+    pub share: f64,
+}
+
+#[frb(mirror(ArtworkPalette))]
+pub struct _ArtworkPalette {
+    pub scheme: PaletteScheme,
+    pub base: String,
+    pub stops: Vec<String>,
+    pub text: String,
+    pub lowest_contrast: f64,
+    pub sampled: Vec<PaletteSwatch>,
+}
+
+#[frb(mirror(DropTargetKind))]
+pub enum _DropTargetKind {
+    Playlist,
+    NewPlaylist,
+    LikedSongs,
+    UpNext,
+    PlayNext,
+    Album,
+}
+
+#[frb(mirror(DropTarget))]
+pub struct _DropTarget {
+    pub kind: DropTargetKind,
+    pub id: Option<i64>,
+}
+
+#[frb(mirror(DropRefusal))]
+pub enum _DropRefusal {
+    GuestCannotSave,
+    AlbumsTakeNoSongs,
+    PlaylistReadOnly,
+    NothingToAdd,
+}
+
+#[frb(mirror(DropPreview))]
+pub struct _DropPreview {
+    pub count: u32,
+    pub already_there: u32,
+    pub needs_confirm: bool,
+    pub suggested_name: Option<String>,
+    pub refusal: Option<DropRefusal>,
+    pub refusal_reason: Option<String>,
+}
+
+#[frb(mirror(EditResult))]
+pub struct _EditResult {
+    pub edit_id: Option<String>,
+    pub added: u32,
+    pub already_there: u32,
+    pub playlist_id: Option<i64>,
+    pub undo_until_utc_ms: Option<i64>,
+}
+
+#[frb(mirror(SentEdits))]
+pub struct _SentEdits {
+    pub sent: u32,
+    pub refused: u32,
+    pub waiting: u32,
 }
 
 // ---------------------------------------------------------------- errors
@@ -730,6 +931,130 @@ impl Encore {
     }
     pub async fn lyrics_raw(&self, song_id: i64) -> Result<Option<String>, ApiError> {
         Ok(self.core.lyrics_raw(song_id).await?)
+    }
+
+    // Phase 3: backups
+    pub fn backup_profile(&self, profile_id: String, dest_path: String) -> Result<(), ApiError> {
+        Ok(self.core.backup_profile(profile_id, dest_path)?)
+    }
+    pub fn restore_profile(&self, profile_id: String, from_path: String) -> Result<(), ApiError> {
+        Ok(self.core.restore_profile(profile_id, from_path)?)
+    }
+
+    // Phase 3: lyrics and palettes
+    pub async fn lyrics(&self, song_id: i64) -> Result<Option<SongLyrics>, ApiError> {
+        Ok(self.core.lyrics(song_id).await?)
+    }
+    pub async fn album_palette(&self, album_id: i64) -> Result<Option<ArtworkPalette>, ApiError> {
+        Ok(self.core.album_palette(album_id).await?)
+    }
+    pub async fn playlist_palette(
+        &self,
+        playlist_id: i64,
+    ) -> Result<Option<ArtworkPalette>, ApiError> {
+        Ok(self.core.playlist_palette(playlist_id).await?)
+    }
+
+    // Phase 3: skips
+    #[frb(sync)]
+    pub fn skip_next(&self, origin: SkipOrigin) -> Result<QueueState, ApiError> {
+        Ok(self.core.skip_next(origin)?)
+    }
+    #[frb(sync)]
+    pub fn skip_previous(
+        &self,
+        origin: SkipOrigin,
+        position_ms: i64,
+    ) -> Result<PreviousResult, ApiError> {
+        Ok(self.core.skip_previous(origin, position_ms)?)
+    }
+    #[frb(sync)]
+    pub fn next_target(&self) -> Result<SkipTarget, ApiError> {
+        Ok(self.core.next_target()?)
+    }
+    #[frb(sync)]
+    pub fn previous_target(&self) -> Result<SkipTarget, ApiError> {
+        Ok(self.core.previous_target()?)
+    }
+    #[frb(sync)]
+    pub fn playback_interrupted(&self, kind: InterruptionKind) -> Result<(), ApiError> {
+        Ok(self.core.playback_interrupted(kind)?)
+    }
+    #[frb(sync)]
+    pub fn playback_seeked(&self, from_ms: i64, to_ms: i64) -> Result<(), ApiError> {
+        Ok(self.core.playback_seeked(from_ms, to_ms)?)
+    }
+
+    // Phase 3: playlists and likes
+    #[frb(sync)]
+    pub fn drop_preview(
+        &self,
+        target: DropTarget,
+        song_ids: Vec<i64>,
+    ) -> Result<DropPreview, ApiError> {
+        Ok(self.core.drop_preview(target, song_ids)?)
+    }
+    #[frb(sync)]
+    pub fn add_to(
+        &self,
+        target: DropTarget,
+        song_ids: Vec<i64>,
+        position: Option<u32>,
+        allow_duplicates: bool,
+    ) -> Result<EditResult, ApiError> {
+        Ok(self
+            .core
+            .add_to(target, song_ids, position, allow_duplicates)?)
+    }
+    #[frb(sync)]
+    pub fn like(&self, song_ids: Vec<i64>) -> Result<EditResult, ApiError> {
+        Ok(self.core.like(song_ids)?)
+    }
+    #[frb(sync)]
+    pub fn unlike(&self, song_ids: Vec<i64>) -> Result<EditResult, ApiError> {
+        Ok(self.core.unlike(song_ids)?)
+    }
+    #[frb(sync)]
+    pub fn are_liked(&self, song_ids: Vec<i64>) -> Result<Vec<bool>, ApiError> {
+        Ok(self.core.are_liked(song_ids)?)
+    }
+    #[frb(sync)]
+    pub fn liked_songs(&self, offset: u32, limit: u32) -> Result<Vec<Song>, ApiError> {
+        Ok(self.core.liked_songs(offset, limit)?)
+    }
+    #[frb(sync)]
+    pub fn remove_from_playlist(
+        &self,
+        playlist_id: i64,
+        positions: Vec<u32>,
+    ) -> Result<EditResult, ApiError> {
+        Ok(self.core.remove_from_playlist(playlist_id, positions)?)
+    }
+    #[frb(sync)]
+    pub fn move_in_playlist(
+        &self,
+        playlist_id: i64,
+        from_position: u32,
+        to_position: u32,
+    ) -> Result<EditResult, ApiError> {
+        Ok(self
+            .core
+            .move_in_playlist(playlist_id, from_position, to_position)?)
+    }
+    #[frb(sync)]
+    pub fn rename_playlist(&self, playlist_id: i64, name: String) -> Result<EditResult, ApiError> {
+        Ok(self.core.rename_playlist(playlist_id, name)?)
+    }
+    #[frb(sync)]
+    pub fn undo(&self, edit_id: String) -> Result<(), ApiError> {
+        Ok(self.core.undo(edit_id)?)
+    }
+    #[frb(sync)]
+    pub fn pending_edits(&self) -> Result<u32, ApiError> {
+        Ok(self.core.pending_edits()?)
+    }
+    pub async fn send_edits(&self) -> Result<SentEdits, ApiError> {
+        Ok(self.core.send_edits().await?)
     }
 }
 

@@ -73,7 +73,31 @@ if let replay = ProcessInfo.processInfo.environment["ENCORE_REPLAY_URL"] {
     precondition(next?.song.id == songs[1].id)
     let found = try core.search(query: songs[0].title)
     precondition(found.songs.contains { $0.title == songs[0].title })
-    flow = "library flow OK (signed in, synced \(synced[0].songs) songs, played an album, searched)"
+
+    // Phase 3: lyrics, an album's colours (the same bytes on every platform: the
+    // replay serves board 04's Golden Hour Static cover), a playlist edit and undo.
+    let all = try core.songs(sort: .title, offset: 0, limit: 500)
+    var lyrics: SongLyrics? = nil
+    for song in all where song.hasLyrics {
+        lyrics = try await core.lyrics(songId: song.id)
+        if lyrics != nil { break }
+    }
+    guard let lyrics else { preconditionFailure("no lyrics") }
+    precondition(lyrics.sync == .line && !lyrics.lines.isEmpty)
+    guard let artAlbum = try core.albums(sort: .title, offset: 0, limit: 100).first(where: { $0.hasArtwork }),
+          let palette = try await core.albumPalette(albumId: artAlbum.id)
+    else { preconditionFailure("no palette") }
+    precondition(palette.base == "3D0000" && palette.stops.count == 4, palette.base)
+    let list = try core.playlists(offset: 0, limit: 1)[0]
+    let inList = Set(try core.playlist(playlistId: list.id).entries.compactMap { $0.song?.id })
+    guard let fresh = all.first(where: { !inList.contains($0.id) }) else { preconditionFailure("no song") }
+    let edit = try core.addTo(
+        target: DropTarget(kind: .playlist, id: list.id), songIds: [fresh.id], position: nil,
+        allowDuplicates: false)
+    precondition(edit.added == 1 && edit.editId != nil)
+    try core.undo(editId: edit.editId!)
+    precondition(try core.playlist(playlistId: list.id).entries.count == inList.count)
+    flow = "library flow OK (signed in, synced \(synced[0].songs) songs, played an album, searched, lyrics, palette \(palette.base), playlist edit and undo)"
 }
 
 print("Swift -> Rust: \(greeting) (core \(coreVersion())); EncoreCore async and errors OK; \(flow)")
