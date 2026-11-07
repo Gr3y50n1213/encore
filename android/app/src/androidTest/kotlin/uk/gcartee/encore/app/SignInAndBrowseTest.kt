@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.printToString
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -54,7 +55,7 @@ class SignInAndBrowseTest {
         rule.onNodeWithTag("address").performTextInput(replayUrl!!)
         rule.mainClock.advanceTimeBy(CHECK_AFTER_MS)
         rule.waitUntilAtLeastOneExists(hasText("Found Jellyfin", substring = true), TIMEOUT)
-        rule.onNodeWithTag("quick-connect").performClick()
+        rule.onNodeWithTag("quick-connect").performScrollTo().performClick()
 
         // Quick Connect approves (the recording's approval) and the profile opens. Each
         // step is waited for on its own, so a failure says which one stalled and why.
@@ -66,9 +67,10 @@ class SignInAndBrowseTest {
         }
         val sync = host.sync.state.value
         assertNull("the library sync failed: ${sync.problem}", sync.problem)
-        val albums = host.core.albums(AlbumSort.TITLE, 0u, 100u)
+        // Library opens on Albums, Recently added, as a grid: its first tile is on screen.
+        val albums = host.core.albums(AlbumSort.RECENTLY_ADDED, 0u, 10u)
         assertTrue("the synced library has no albums", albums.isNotEmpty())
-        val album = albums.first { it.songCount >= 2u }
+        val album = albums.first()
         rule.waitUntilAtLeastOneExists(hasText("Recently added"), TIMEOUT)
 
         // Library: the album is listed from the on-device mirror.
@@ -78,7 +80,7 @@ class SignInAndBrowseTest {
 
         // Album: Play replaces the queue with it; the mini player shows its first song.
         rule.waitUntilAtLeastOneExists(hasText("Play"), TIMEOUT)
-        rule.onNodeWithText("Play").performClick()
+        rule.onNodeWithText("Play").performScrollTo().performClick()
         val first = host.core.album(album.id).songs.first()
         rule.waitUntil(TIMEOUT) { host.core.queue().current?.song?.id == first.id }
         rule.waitUntilAtLeastOneExists(hasTestTag("mini-player"), TIMEOUT)
