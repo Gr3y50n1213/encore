@@ -14,8 +14,10 @@ Two differences, both so the apps' real settings work against a recording made w
 test settings:
   - `limit` is ignored: the core asks for pages of library.syncPageSize (500) and
     advances by the number of items each page returns, so pages of 50 replay fine.
-  - A run of identical requests (Quick Connect polls) answers with its last reply at
-    once, so sign-in takes one poll instead of the 36 the recording needed.
+  - A run of identical Quick Connect polls answers with its last reply at once, so
+    sign-in takes one poll instead of the 36 the recording needed. (Only those:
+    other repeated requests, a playlist read before and after a write, say, keep
+    their own replies.)
 """
 
 import email.utils
@@ -41,7 +43,8 @@ def load(path):
 
     collapsed = []
     for x in exchanges:
-        if collapsed and key(collapsed[-1]) == key(x):
+        polling = x["path"].endswith("/QuickConnect/Connect")
+        if polling and collapsed and key(collapsed[-1]) == key(x):
             collapsed[-1] = x
         else:
             collapsed.append(x)

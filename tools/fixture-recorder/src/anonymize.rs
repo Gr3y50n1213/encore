@@ -43,8 +43,18 @@ const SAFE_KEYS: &[&str] = &[
     "ChannelType",
 ];
 
-/// Query parameters kept as they are; every other value is replaced.
+/// Query parameters kept as they are; every other value is replaced. These are
+/// Jellyfin's own vocabulary and numbers (a filter name, an image format, a size,
+/// a position), never names or IDs from the library.
 pub const SAFE_PARAMS: &[&str] = &[
+    "filters",
+    "format",
+    "maxWidth",
+    "maxHeight",
+    "fillWidth",
+    "fillHeight",
+    "quality",
+    "position",
     "includeItemTypes",
     "recursive",
     "fields",

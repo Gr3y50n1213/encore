@@ -21,6 +21,7 @@
 //!   instead of the whole library.
 
 mod anonymize;
+mod phase3;
 
 use std::collections::{BTreeMap, HashSet};
 use std::hash::{BuildHasher, RandomState};
@@ -155,11 +156,16 @@ fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
+/// Board 04's Golden Hour Static cover: the project's own art.
+const STAND_IN_COVER: &[u8] = include_bytes!("../../fixtures/artwork/golden-hour-static.png");
+
 struct Args {
     server: String,
     limit: u64,
     page_size: u32,
     out: PathBuf,
+    /// Real covers, for a local check only; never committed (git-ignored).
+    covers_dir: PathBuf,
 }
 
 fn args() -> std::result::Result<Args, String> {
@@ -168,6 +174,10 @@ fn args() -> std::result::Result<Args, String> {
         limit: 150,
         page_size: 50,
         out: PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/../fixtures/jellyfin")),
+        covers_dir: PathBuf::from(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../target/private-covers"
+        )),
     };
     let mut it = std::env::args().skip(1);
     while let Some(flag) = it.next() {
@@ -179,6 +189,7 @@ fn args() -> std::result::Result<Args, String> {
                 a.page_size = value()?.parse().map_err(|_| "--page-size needs a number")?
             }
             "--out" => a.out = PathBuf::from(value()?),
+            "--covers-dir" => a.covers_dir = PathBuf::from(value()?),
             "-h" | "--help" => {
                 return Err(include_str!("main.rs")
                     .lines()
@@ -245,6 +256,12 @@ fn to_fixture(a: &mut Anonymizer, x: &Exchange) -> Value {
             match serde_json::from_slice::<Value>(&r.body) {
                 Ok(v) => out["body"] = a.json(&v),
                 Err(_) if r.body.is_empty() => {}
+                // A real cover is copyrighted: the board's own original art stands
+                // in for it, so replays still decode a PNG.
+                Err(_) if r.body.starts_with(b"\x89PNG") => {
+                    out["bodyHex"] = json!(hex(STAND_IN_COVER));
+                    out["contentType"] = json!("image/png");
+                }
                 Err(_) => out["bodyText"] = json!("(non-JSON reply removed)"),
             }
         }
@@ -358,19 +375,17 @@ async fn run() -> std::result::Result<(), String> {
         jellyfin::sync_library(&client, first.cursor.as_ref(), &known, a.page_size, &|_| {})
             .await
             .map_err(|e| e.to_string())?;
-    let with_lyrics = first
-        .tracks
-        .iter()
-        .find(|t| t.has_lyrics)
-        .map(|t| t.source_item_id.clone());
     let without = first
         .tracks
         .iter()
         .find(|t| !t.has_lyrics)
         .map(|t| t.source_item_id.clone());
-    for id in [&with_lyrics, &without].into_iter().flatten() {
+    if let Some(id) = &without {
         client.lyrics(id).await.map_err(|e| e.to_string())?;
     }
+    // Phase 3. Nothing here stops the run: every step reports what happened, and
+    // the writes are always undone.
+    let p3 = phase3::run(&client, &first, &a.covers_dir).await;
     client.sign_out().await.map_err(|e| e.to_string())?;
     println!("Signed out; the recorder's token is gone from the server.");
 
@@ -387,15 +402,18 @@ async fn run() -> std::result::Result<(), String> {
     // are Jellyfin's schema names, so a plain-text scan of the file would flag a
     // replaced word like "Default" that is also part of a key.
     let published = serde_json::to_string_pretty(&exchanges).map_err(|e| e.to_string())?;
-    for secret in [
-        &session.token,
-        &code.secret,
-        &session.user_id,
-        &info.server_id,
-        &session.user_name,
+    for (what, secret) in [
+        ("the access token", &session.token),
+        ("the Quick Connect secret", &code.secret),
+        ("the user ID", &session.user_id),
+        ("the server ID", &info.server_id),
+        ("the user name", &session.user_name),
     ] {
         if secret.len() >= 3 && published.contains(secret.as_str()) {
-            return Err("an identifying value survived anonymization; nothing was written".into());
+            // Name the kind of value, never the value.
+            return Err(format!(
+                "{what} survived anonymization; nothing was written"
+            ));
         }
     }
     std::fs::create_dir_all(&a.out).map_err(|e| e.to_string())?;
@@ -415,7 +433,12 @@ async fn run() -> std::result::Result<(), String> {
            paths, BlurHash previews, media stream details and tokens are removed. The key was random\n\
            and was not kept. A leak check refused to write if any original value was still present.\n\n\
          Recorded items: {artists} artists, {albums} albums, {tracks} songs, {playlists} playlists;\n\
-         the delta sync found {changed} changed songs and {removed} removals.\n",
+         the delta sync found {changed} changed songs and {removed} removals.\n\n\
+         ## Phase 3: lyrics, covers and writes\n\n\
+         Real covers were replaced in the fixture with board 04's own Golden Hour Static art. The\n\
+         writes were made on a playlist named \"{test}\" and on one favourite, and were undone in the\n\
+         same session.\n\n\
+         {p3}\n",
         version = info.version,
         limit = a.limit,
         artists = first.artists.len(),
@@ -424,6 +447,14 @@ async fn run() -> std::result::Result<(), String> {
         playlists = first.playlists.len(),
         changed = second.tracks.len(),
         removed = second.removed_item_ids.len(),
+        test = phase3::TEST_PLAYLIST,
+        p3 = p3
+            .lines
+            .iter()
+            .map(|l| format!("- {l}"))
+            .chain(p3.warnings.iter().map(|w| format!("- Warning: {w}")))
+            .collect::<Vec<_>>()
+            .join("\n"),
     );
     std::fs::write(a.out.join("RECORDING.md"), notes).map_err(|e| e.to_string())?;
     println!(
