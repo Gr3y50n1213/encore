@@ -90,8 +90,8 @@ fun main() {
                 core.checkAddress(tlsUrl)
                 error("an https server must be refused before EncoreTls.initialize")
             } catch (e: EncoreException) {
-                check(e.reason.contains("EncoreTls.initialize")) { "unexpected: $e ${e.reason}" }
-                tls = "; https guard OK"
+                check(e.toString().contains("EncoreTls.initialize")) { "unexpected: $e" }
+                tls = "; https guard OK (${e.javaClass.simpleName})"
             }
         }
     }
