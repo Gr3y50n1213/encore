@@ -1,11 +1,14 @@
 package uk.gcartee.encore.app
 
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -72,18 +75,34 @@ class SignInAndBrowseTest {
         val albums = host.core.albums(AlbumSort.RECENTLY_ADDED, 0u, 10u)
         assertTrue("the synced library has no albums", albums.isNotEmpty())
         val album = albums.first()
+        shot("01-home")
 
         // Library: the album is listed from the on-device mirror.
         rule.onNodeWithText("Library").performClick()
         rule.waitUntilAtLeastOneExists(hasText(album.title), TIMEOUT)
+        shot("02-library")
         rule.onAllNodesWithText(album.title).onFirst().performClick()
 
         // Album: Play replaces the queue with it; the mini player shows its first song.
         rule.waitUntilAtLeastOneExists(hasText("Play"), TIMEOUT)
+        shot("03-album")
         rule.onNodeWithText("Play").performScrollTo().performClick()
         val first = host.core.album(album.id).songs.first()
         rule.waitUntil(TIMEOUT) { host.core.queue().current?.song?.id == first.id }
         rule.waitUntilAtLeastOneExists(hasTestTag("mini-player"), TIMEOUT)
+
+        // Now Playing, its lyrics and its queue (boards 09, 10, 11).
+        val current = host.core.queue().current!!.song
+        rule.onNodeWithContentDescription("${current.title}, ${current.artist}").performClick()
+        rule.waitUntilAtLeastOneExists(hasContentDescription("Close Now Playing"), TIMEOUT)
+        shot("04-now-playing")
+        rule.onNodeWithText("Lyrics").performClick()
+        shot("05-lyrics")
+        rule.onNodeWithText("Queue").performClick()
+        rule.waitUntilAtLeastOneExists(hasText("Up Next"), TIMEOUT)
+        shot("06-queue")
+        rule.onNodeWithContentDescription("Close Now Playing").performClick()
+        rule.waitUntilDoesNotExist(hasContentDescription("Close Now Playing"), TIMEOUT)
 
         // A playlist page lists its songs (the owner found it broken on 7 November 2026).
         val playlist = host.core.playlists(0u, 50u).firstOrNull { it.songCount > 0u }
@@ -97,7 +116,36 @@ class SignInAndBrowseTest {
             rule.onAllNodesWithText(playlist.name).onFirst().performClick()
             rule.waitUntilAtLeastOneExists(hasText(firstSong.title), TIMEOUT)
             rule.waitUntilAtLeastOneExists(hasText("Shuffle"), TIMEOUT)
+            shot("07-playlist")
         }
+
+        // Search, Mixes, Settings (boards 07, 23, 17).
+        rule.onNodeWithText("Search").performClick()
+        rule.onNode(hasSetTextAction()).performTextInput(album.title.split(" ").first())
+        rule.waitUntilAtLeastOneExists(hasText(album.title), TIMEOUT)
+        shot("08-search")
+        rule.onNodeWithText("Mixes").performClick()
+        shot("09-mixes")
+        rule.onNodeWithText("Library").performClick()
+        rule.onNodeWithContentDescription("Settings").performClick()
+        rule.waitUntilAtLeastOneExists(hasText("Appearance"), TIMEOUT)
+        shot("10-settings")
+        rule.onNodeWithText("Appearance").performClick()
+        rule.waitUntilAtLeastOneExists(hasText("Accent colour"), TIMEOUT)
+        shot("11-appearance")
+    }
+
+    /**
+     * A screenshot for the review, taken by the shell (it can write /data/local/tmp);
+     * android/ci/device-check.sh pulls them. The clock is moved past the transitions first.
+     */
+    private fun shot(name: String) {
+        rule.mainClock.advanceTimeBy(SETTLE_MS)
+        rule.waitForIdle()
+        Thread.sleep(400)
+        val pfd = InstrumentationRegistry.getInstrumentation().uiAutomation
+            .executeShellCommand("screencap -p /data/local/tmp/encore-shot-$name.png")
+        android.os.ParcelFileDescriptor.AutoCloseInputStream(pfd).use { it.readBytes() }
     }
 
     /** Waits for [done], pumping the UI; fails naming the step if it never comes. */
@@ -114,6 +162,7 @@ class SignInAndBrowseTest {
     private companion object {
         const val SIGN_IN_TIMEOUT = 30_000L
         const val GUARD_MS = 400L
+        const val SETTLE_MS = 900L
         const val CHECK_AFTER_MS = 700L
         const val TIMEOUT = 10_000L
         const val SYNC_TIMEOUT = 60_000L

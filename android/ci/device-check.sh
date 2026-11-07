@@ -62,6 +62,12 @@ adb reverse "tcp:$port" "tcp:$port"
 adb shell am instrument -w -r -e class "$signin" -e replayUrl "$replay" "$runner" | tee "$out/instrument-signin.txt"
 adb reverse --remove "tcp:$port" || true
 kill "$replay_pid" || true
+# The screens the test photographed, for the review.
+mkdir -p "$out/screens"
+for f in $(adb shell 'ls /data/local/tmp/encore-shot-*.png 2>/dev/null' | tr -d '\r'); do
+  adb pull "$f" "$out/screens/api$sdk-$(basename "$f" | sed 's/^encore-shot-//')" > /dev/null || true
+done
+adb shell 'rm -f /data/local/tmp/encore-shot-*.png' || true
 grep -q '^OK (1 test)' "$out/instrument-signin.txt" || { echo "the sign-in test failed" >&2; exit 1; }
 # The release build below must start fresh again, on Welcome.
 adb uninstall uk.gcartee.encore.debug > /dev/null || true

@@ -124,7 +124,7 @@ jobs:
           retention-days: 7
 
   emulator:
-    name: "Emulator, API ${{ matrix.api }}: the core's words on screen"
+    name: "Emulator, API ${{ matrix.api }}, ${{ matrix.profile }}: sign in, browse, play, screenshots"
     needs: check
     runs-on: ubuntu-24.04
     timeout-minutes: 40
@@ -136,8 +136,14 @@ jobs:
           # with 16 KB memory pages, so the core's libraries are proven to load there.
           - api: 28
             target: default
+            profile: pixel_7
           - api: 36
             target: google_apis_ps16k
+            profile: pixel_7
+          # Board 29: a tablet, for the rail, the panes and the player bar.
+          - api: 36
+            target: google_apis
+            profile: pixel_tablet
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -157,6 +163,7 @@ jobs:
           api-level: ${{ matrix.api }}
           target: ${{ matrix.target }}
           arch: x86_64
+          profile: ${{ matrix.profile }}
           # The API 36 image's default RAM ran out at boot: Android's low-memory killer
           # closed the launcher, the keyboard and the test process (run 42413014425).
           ram-size: 4096M
@@ -168,7 +175,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: encore-android-emulator-api${{ matrix.api }}
+          name: encore-android-emulator-api${{ matrix.api }}-${{ matrix.profile }}
           path: device-check
           retention-days: 7
           if-no-files-found: warn
