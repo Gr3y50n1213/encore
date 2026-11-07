@@ -262,7 +262,12 @@ fn real_covers_keep_text_readable() {
             .unwrap()
             .expect("a cover has a palette");
         let min = if p.scheme == Scheme::Light { 7.0 } else { 4.5 };
-        assert!(p.lowest_contrast >= min, "{}: {}", f.display(), p.lowest_contrast);
+        assert!(
+            p.lowest_contrast >= min,
+            "{}: {}",
+            f.display(),
+            p.lowest_contrast
+        );
         assert_eq!(p.stops.len(), 4);
         match p.scheme {
             Scheme::Dark => dark += 1,
