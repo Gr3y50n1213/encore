@@ -233,6 +233,10 @@ fn with_counts(catalog: &Catalog, params: &Params) -> String {
     let now = played.last().map_or(0, |x| x.0) + 86_400_000;
     let model = Model::build(&History::default(), &train, params, now, 0);
     let (mut hits, mut picks) = (0usize, 0usize);
+    // The fair half: among picks the model sees as never played (the held-out
+    // songs and the ones truly never played), how many are held out. Counts
+    // can't help here; only the seed's artist, genre and era can.
+    let (mut cold_hits, mut cold_picks) = (0usize, 0usize);
     for (x, &h) in held.iter().take(100).enumerate() {
         let seed = &catalog.get(h).key;
         let ctx = Context {
@@ -243,22 +247,42 @@ fn with_counts(catalog: &Catalog, params: &Params) -> String {
         };
         for p in autoplay(&model, &train, &ctx, 10, params) {
             picks += 1;
-            if held_keys.contains(&p.song_key) && &p.song_key != seed {
+            let is_held = held_keys.contains(&p.song_key) && &p.song_key != seed;
+            if is_held {
                 hits += 1;
+            }
+            if train
+                .find(&p.song_key)
+                .is_some_and(|i| train.get(i).server_play_count == 0)
+            {
+                cold_picks += 1;
+                if is_held {
+                    cold_hits += 1;
+                }
             }
         }
     }
     let base = (held.len().saturating_sub(1)) as f64 / catalog.len() as f64;
     let hit = hits as f64 / picks.max(1) as f64;
+    let cold_pool = (0..train.len())
+        .filter(|&i| train.get(i).server_play_count == 0)
+        .count();
+    let cold_base = held.len().saturating_sub(1) as f64 / cold_pool.saturating_sub(1).max(1) as f64;
+    let cold_hit = cold_hits as f64 / cold_picks.max(1) as f64;
     format!(
         "Your history (play counts only): {} songs played elsewhere; held out the {} most recent.\n\
          Autoplay's picks that were among them: {:.1}%; shuffle would pick them {:.1}% of the time ({:.1}x).\n\
+         (Biased against the engine: hiding their counts makes them look unplayed, and it prefers songs it sees played.)\n\
+         Fair half: of autoplay's {cold_picks} picks among songs it sees as unplayed ({cold_pool}), {:.1}% were held out; shuffle among them {:.1}% ({:.1}x).\n\
          This is a hit rate, not a skip rate: Jellyfin keeps counts, not skips.\n",
         played.len(),
         held.len(),
         hit * 100.0,
         base * 100.0,
-        hit / base.max(1e-9)
+        hit / base.max(1e-9),
+        cold_hit * 100.0,
+        cold_base * 100.0,
+        cold_hit / cold_base.max(1e-9)
     )
 }
 

@@ -20,7 +20,7 @@ The owner's answers:
 | Item | Result | Evidence |
 | --- | --- | --- |
 | Autoplay's early-skip rate clearly lower than shuffle on **generated** histories | **Passes** | `tools/recs-replay --check` in CI (docs/core/REPLAY-RESULTS.md). Autoplay against shuffle, early skips, on the same random draws: **light 20.8% vs 60.6%** (0.34), **heavy 9.0% vs 49.7%** (0.18), **many skips 37.1% vs 81.5%** (0.46). The check fails above 0.60. |
-| … **on your own history** | **OWNER_HISTORY** | The recording (`fixture-recorder --phase5`, read-only) needs the owner's one Quick Connect approval. It is built and dry-run end to end; the local replay (`recs-replay --private`) is tested on a generated listener in the same shape (35.4% vs 66.7% early skips, ranking 0.74). |
+| … **on your own history** | **Open: the skip rate can't be measured from what Jellyfin keeps** | Recorded 7 November 2026 (`fixture-recorder --phase5`, one read-only approval): 184 songs, 138 played, 686 plays. Playback Reporting is not installed, and Jellyfin keeps counts, not skips, so only the weaker hit-rate check could run (`recs-replay --private`; core-0014). Held out the 27 most recently played songs: **(a)** 5.2% of autoplay's picks were among them against 14.1% for shuffle. That check is biased against the engine: hiding their counts makes them look unplayed, and the engine prefers the songs it sees played. **(b)** The fair half, among songs the engine sees as unplayed: all 14 of autoplay's picks there were held-out songs, against 35.6% for shuffle (2.8×). That is evidence it follows what you play next, but it rests on 14 picks. The skip-rate line closes once an app logs plays with outcomes (Phase 6 onward) and `recs-replay` runs on that log. |
 | The smart-picks items in section 24 | See below | |
 
 ## Section 24: Smart picks
@@ -59,7 +59,7 @@ The owner's answers:
 
 | Item | Why it is open | Check against |
 | --- | --- | --- |
-| Your own history | The recording needs the owner's approval | Run `fixture-recorder --phase5`, then `recs-replay --private` |
+| Early skips on your own history | Jellyfin has no skip data and Playback Reporting isn't installed; the hit-rate check is small (14 fair picks) | The first app's play log, replayed (or install Playback Reporting and record again after a few weeks) |
 | Every weight, threshold and title rule | Starting values; generated listeners are not real ones | Replay on real histories as apps log them |
 | Phone budgets | CI and this PC only | Phase 6 devices |
 | Audio-based moods, tempo and energy flow, model-written titles | Need audio analysis | Phase 10 |

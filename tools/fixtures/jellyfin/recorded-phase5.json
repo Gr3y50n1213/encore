@@ -1,0 +1,518 @@
+[
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "GET",
+    "path": "/Items",
+    "query": {
+      "enableImages": "false",
+      "enableTotalRecordCount": "true",
+      "enableUserData": "true",
+      "filters": "IsPlayed",
+      "includeItemTypes": "Audio",
+      "limit": "200",
+      "recursive": "true",
+      "sortBy": "SortName",
+      "startIndex": "0",
+      "userId": "6d8b4f1229db3cf3b54e56d73a6777aa"
+    },
+    "status": 200,
+    "date": "2026-11-07T12:53:47Z",
+    "body": {
+      "Items": [
+        {
+          "Name": "Aex Rw",
+          "ServerId": "3308791c057ab4c00b36ac4a0aa9d801",
+          "Id": "756b832b78191db566267e7d45935d2a",
+          "HasLyrics": true,
+          "Container": "mov,mp4,m4a,3gp,3g2,mj2",
+          "PremiereDate": "2023-10-16T12:00:00.0000000Z",
+          "ChannelId": null,
+          "RunTimeTicks": 1239016780,
+          "ProductionYear": 2023,
+          "IndexNumber": 1,
+          "ParentIndexNumber": 1,
+          "IsFolder": false,
+          "Type": "Audio",
+          "UserData": {
+            "PlaybackPositionTicks": 0,
+            "PlayCount": 1,
+            "IsFavorite": false,
+            "LastPlayedDate": "8882-42-44J14:81:30.0006825B",
+            "Played": true,
+            "Key": "4f56ad4f-ca49-bc6f-b597-76ba1c8c6603",
+            "ItemId": "756b832b78191db566267e7d45935d2a"
+          },
+          "Artists": [
+            "Ujjrbo"
+          ],
+          "ArtistItems": [
+            {
+              "Name": "Ujjrbo",
+              "Id": "8a3037974a3195c1505152a2b94b2fb1"
+            }
+          ],
+          "Album": "Lnb Yd - Nrgjae",
+          "AlbumId": "b07e55cc0e8ce3cd808344eb909cc3be",
+          "AlbumPrimaryImageTag": "a1efdbb6a2cce54fcd5127d746f11a7d",
+          "AlbumArtist": "Ujjrbo",
+          "AlbumArtists": [
+            {
+              "Name": "Ujjrbo",
+              "Id": "8a3037974a3195c1505152a2b94b2fb1"
+            }
+          ],
+          "LocationType": "FileSystem",
+          "MediaType": "Audio",
+          "NormalizationGain": -9.4
+        },
+        {
+          "Name": "Ldhrxiuuhi Hmppnqor",
+          "ServerId": "3308791c057ab4c00b36ac4a0aa9d801",
+          "Id": "25010815653b693bf1c4bc181b5f7950",
+          "HasLyrics": true,
+          "Container": "mov,mp4,m4a,3gp,3g2,mj2",
+          "PremiereDate": "2019-04-05T12:00:00.0000000Z",
+          "ChannelId": null,
+          "RunTimeTicks": 1812085260,
+          "ProductionYear": 2019,
+          "IndexNumber": 1,
+          "ParentIndexNumber": 1,
+          "IsFolder": false,
+          "Type": "Audio",
+          "UserData": {
+            "PlaybackPositionTicks": 0,
+            "PlayCount": 1,
+            "IsFavorite": false,
+            "LastPlayedDate": "8882-42-44J14:81:30.0006825B",
+            "Played": true,
+            "Key": "Bngkbe-Ucznoymttr Sgusqsbt - Clxrqh-4203-8613Iqazueqayv Adypkonq",
+            "ItemId": "25010815653b693bf1c4bc181b5f7950"
+          },
+          "Artists": [
+            "Ujjrbo"
+          ],
+          "ArtistItems": [
+            {
+              "Name": "Ujjrbo",
+              "Id": "8a3037974a3195c1505152a2b94b2fb1"
+            }
+          ],
+          "Album": "Zsprwwgdac Krqhvcry - Yoyebl",
+          "AlbumId": "e0d00625cecd96d2d95d195ab0cffef0",
+          "AlbumPrimaryImageTag": "7250534ac45ebce36c72416c4ea7aa6e",
+          "AlbumArtist": "Ujjrbo",
+          "AlbumArtists": [
+            {
+              "Name": "Ujjrbo",
+              "Id": "8a3037974a3195c1505152a2b94b2fb1"
+            }
+          ],
+          "LocationType": "FileSystem",
+          "MediaType": "Audio",
+          "NormalizationGain": -7.7
+        },
+        {
+          "Name": "Ahs Syl Qxdw Om?",
+          "ServerId": "3308791c057ab4c00b36ac4a0aa9d801",
+          "Id": "67c4592c1179a2c8c82d7cd83fad2c85",
+          "HasLyrics": true,
+          "Container": "mov,mp4,m4a,3gp,3g2,mj2",
+          "PremiereDate": "2024-05-31T12:00:00.0000000Z",
+          "ChannelId": null,
+          "RunTimeTicks": 1844593200,
+          "ProductionYear": 2024,
+          "IndexNumber": 1,
+          "ParentIndexNumber": 1,
+          "IsFolder": false,
+          "Type": "Audio",
+          "UserData": {
+            "PlaybackPositionTicks": 0,
+            "PlayCount": 1,
+            "IsFavorite": false,
+            "LastPlayedDate": "8882-42-44J14:81:30.0006825B",
+            "Played": true,
+            "Key": "DrqRbjaQdo-Bohumiq-2333-4295Mou Bzf Amcu Ww?",
+            "ItemId": "67c4592c1179a2c8c82d7cd83fad2c85"
+          },
+          "Artists": [
+            "KrtPoesIfq"
+          ],
+          "ArtistItems": [
+            {
+              "Name": "KrtPoesIfq",
+              "Id": "7ff56480be5f92dbd4bb79f32187d214"
+            }
+          ],
+          "Album": "Ytixybp",
+          "AlbumId": "fca34de8a0686ca4667f27bf14b88934",
+          "AlbumPrimaryImageTag": "b5aaa2e306b3e53b69ceb8db535bcfcd",
+          "AlbumArtist": "KrtPoesIfq",
+          "AlbumArtists": [
+            {
+              "Name": "KrtPoesIfq",
+              "Id": "7ff56480be5f92dbd4bb79f32187d214"
+            }
+          ],
+          "LocationType": "FileSystem",
+          "MediaType": "Audio",
+          "NormalizationGain": -11.3,
+          "AlbumNormalizationGain": -9.8
+        }
+      ],
+      "TotalRecordCount": 3,
+      "StartIndex": 0
+    }
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "GET",
+    "path": "/Plugins",
+    "query": {},
+    "status": 200,
+    "date": "2026-11-07T12:53:48Z",
+    "body": [
+      {
+        "Name": "PsjoiLF",
+        "Version": "12.0.0.0",
+        "ConfigurationFileName": "Fceashcz.Dhllgq.ImztdZq.dck",
+        "Description": "Vvg jpwaby mpq okhnw bjsoauvk we anwbey ynds QpvlfJL.",
+        "Id": "ed0299bc99c915f37720829cc8ccbc03",
+        "CanUninstall": false,
+        "HasImage": true,
+        "Status": "Pbpghy"
+      },
+      {
+        "Name": "Hhobkl",
+        "Version": "2.0.4.0",
+        "ConfigurationFileName": "Jlylfjch.Bounst.Glitxf.ukl",
+        "Description": "Jmflyk nyd kgojdznj mmmaxpghp hnh Diiczg. Qec tynkb://nlymmq.oms/ppyxs15/ytxjxp-bootkfrf skb nugprkufynitx.",
+        "Id": "59d01f083c99ae1231afc58d6b66d65c",
+        "CanUninstall": true,
+        "HasImage": true,
+        "Status": "Pbpghy"
+      },
+      {
+        "Name": "Alqpzwd",
+        "Version": "3.0.0.0",
+        "ConfigurationFileName": "Bgvhrpuy.Dcclhk.Ulsucrl.may",
+        "Description": "",
+        "Id": "2d788a582bc0791f40764f54bedcc545",
+        "CanUninstall": true,
+        "HasImage": true,
+        "Status": "Pbpghy"
+      },
+      {
+        "Name": "RDZK",
+        "Version": "13.0.0.0",
+        "ConfigurationFileName": "Zqfdpaqa.Hqwccr.Fvor.qin",
+        "Description": "Wzo Cgriclwl dx p NPVO bhfero.",
+        "Id": "4a502b70528188a36c9064ecfa367443",
+        "CanUninstall": true,
+        "HasImage": true,
+        "Status": "Pbpghy"
+      },
+      {
+        "Name": "QDVPd",
+        "Version": "5.0.0.0",
+        "ConfigurationFileName": "Aloquhyl.Uvwmyh.LFYTv.ois",
+        "Description": "",
+        "Id": "5b36e823647fef8609be847e9f34b021",
+        "CanUninstall": true,
+        "HasImage": true,
+        "Status": "Pbpghy"
+      },
+      {
+        "Name": "Cntuf Iktpzea",
+        "Version": "12.0.4.0",
+        "ConfigurationFileName": "PkuzpVofcggc.lkb",
+        "Description": "",
+        "Id": "8c05298f33a2e3d7275ee1c91cef5a92",
+        "CanUninstall": true,
+        "HasImage": true,
+        "Status": "Pbpghy"
+      },
+      {
+        "Name": "Ghjv Vwmr Omyom",
+        "Version": "16.0.0.0",
+        "ConfigurationFileName": "Lfegzqug.Vjgajg.CubfEqakRshxx.smg",
+        "Description": "Fwolxehwl gpzqcc smdl avpqxbsu rnkgywc bbsroe ykijw uke euiqabh cdaf mkeud zrqdp skmxr Fjdjjskx peu Xaiu.",
+        "Id": "c5200f626c9d4165ae6d006c2200582e",
+        "CanUninstall": true,
+        "HasImage": true,
+        "Status": "Pbpghy"
+      },
+      {
+        "Name": "GsohvuUgcflz Kdfdoutpro Zllevmpf",
+        "Version": "12.0.0.0",
+        "ConfigurationFileName": "Eifereig.Uwxxis.MjvnboCmbuoq.vkn",
+        "Description": "Niv sgalbkr cvijtl ysgqgwicsbkguwi hoaj KmnuldKxbkhi Tpwl.",
+        "Id": "5900457bc430f48b355dd291b422439a",
+        "CanUninstall": false,
+        "HasImage": true,
+        "Status": "Pbpghy"
+      },
+      {
+        "Name": "Mgfauw",
+        "Version": "1.7.2.0",
+        "ConfigurationFileName": "Bwnwgoml.Onmhwg.Ndszrh.aud",
+        "Description": "",
+        "Id": "93b12a72c33dd806027bdce341d526c9",
+        "CanUninstall": true,
+        "HasImage": false,
+        "Status": "Pbpghy"
+      },
+      {
+        "Name": "NawboFctlja",
+        "Version": "12.0.0.0",
+        "ConfigurationFileName": "Dyytozjx.Jwasdx.HssmyKjvsva.pxf",
+        "Description": "Gvb dhokpj hga soxrh szrrrlek kree rcv QserqCtqast gntukh.",
+        "Id": "2b058ede54651df853267df5500e3a46",
+        "CanUninstall": false,
+        "HasImage": true,
+        "Status": "Pbpghy"
+      },
+      {
+        "Name": "ZBNq",
+        "Version": "12.0.0.0",
+        "ConfigurationFileName": "Pbphlmwq.Hujhna.Myhd.uwj",
+        "Description": "Ysd fifdyyvp smc vgahks kjb mroic qrwok ufhaznc yuuv MDEp.",
+        "Id": "34fc14d2198a941cb6bdf4f609b074c6",
+        "CanUninstall": false,
+        "HasImage": true,
+        "Status": "Pbpghy"
+      },
+      {
+        "Name": "Uicy Qaeogilts",
+        "Version": "25.0.0.0",
+        "ConfigurationFileName": "Hwagbfbu.Tiipjz.XmhxNbitkcuol.mgh",
+        "Description": "",
+        "Id": "f704984e3dcac93bbd9c5953c49fa15c",
+        "CanUninstall": true,
+        "HasImage": true,
+        "Status": "Pbpghy"
+      },
+      {
+        "Name": "Nftnalb",
+        "Version": "19.0.0.0",
+        "ConfigurationFileName": "Jddwguoy.Eojwoh.Lbkdocw.qwi",
+        "Description": "Vdnerboq Inewpep",
+        "Id": "b277ba62e60bde9ba5c8df694c9d2021",
+        "CanUninstall": true,
+        "HasImage": true,
+        "Status": "Pbpghy"
+      },
+      {
+        "Name": "SlccRlctmzn",
+        "Version": "2.0.2.0",
+        "ConfigurationFileName": "Iemijlgj.Fyybrz.BoasDsinwkq.jdg",
+        "Description": "Wrfr Yuxwjbi",
+        "Id": "5aaaf42bf2b6b470bede42679925946e",
+        "CanUninstall": true,
+        "HasImage": true,
+        "Status": "Pbpghy"
+      },
+      {
+        "Name": "Cxuuvp Yohxnb",
+        "Version": "12.0.0.0",
+        "ConfigurationFileName": "Ciixjvxu.Vdciqt.GnbiolImprpm.erq",
+        "Description": "Guu yclbwns cpy zimasnx gxqn zqn Fnnfyrha-oysicriurc yxurbdzsff.",
+        "Id": "df0cc286c63f09554fe56ec46d0d2c6d",
+        "CanUninstall": false,
+        "HasImage": true,
+        "Status": "Pbpghy"
+      },
+      {
+        "Name": "Yosfonqu Hgokmsp",
+        "Version": "8.0.0.0",
+        "ConfigurationFileName": "Rmhfdflw.Cvfvej.GykezjkfJlvgdts.zpn",
+        "Description": "Agozqmfi iyulgeif ofbewbyhm fiq jvrncdftfvc szxgncgeoum dyxixfm gw vzhcpaz vfxvn. Pq cldubd hkobrjus vrjndevd cqdwcdtung rcrqki yvhqhhf euftg, vr fm d yywzbrrjr jjna",
+        "Id": "e888c2479b825bceb86100dd3ecbe0bf",
+        "CanUninstall": true,
+        "HasImage": true,
+        "Status": "Pbpghy"
+      },
+      {
+        "Name": "GLWb",
+        "Version": "12.0.0.0",
+        "ConfigurationFileName": "Mxsommwc.Alzfpr.Nxwa.axz",
+        "Description": "Tpi wjcuruff skz jmbswd sqg yuzmx ifpin tjuvxkj mfjl EgtIvkbdMy.",
+        "Id": "ee3d54a754b4d82e63c852a80ed087ca",
+        "CanUninstall": false,
+        "HasImage": true,
+        "Status": "Pbpghy"
+      }
+    ]
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "GET",
+    "path": "/Items/9082341feddf4e1865ef184ad9e9e054/Similar",
+    "query": {
+      "limit": "10"
+    },
+    "status": 200,
+    "date": "2026-11-07T12:53:48Z",
+    "body": {
+      "Items": [
+        {
+          "Name": "Yuqajvpzff",
+          "ServerId": "3308791c057ab4c00b36ac4a0aa9d801",
+          "Id": "7ff6313c0d55ea71f489a8417fe76e0a",
+          "HasLyrics": true,
+          "Container": "mov,mp4,m4a,3gp,3g2,mj2",
+          "PremiereDate": "2023-10-06T12:00:00.0000000Z",
+          "ChannelId": null,
+          "RunTimeTicks": 1625629020,
+          "ProductionYear": 2023,
+          "IndexNumber": 3,
+          "ParentIndexNumber": 2,
+          "ProviderIds": {},
+          "IsFolder": false,
+          "Type": "Audio",
+          "UserData": {
+            "PlaybackPositionTicks": 0,
+            "PlayCount": 1,
+            "IsFavorite": false,
+            "LastPlayedDate": "8882-42-44J14:81:30.0006825B",
+            "Played": true,
+            "Key": "SpnVhhtEbc-Cguwc Lwkkwo-9604-8983Uaiqmmyhjf",
+            "ItemId": "7ff6313c0d55ea71f489a8417fe76e0a"
+          },
+          "Artists": [
+            "KrtPoesIfq"
+          ],
+          "ArtistItems": [
+            {
+              "Name": "KrtPoesIfq",
+              "Id": "7ff56480be5f92dbd4bb79f32187d214"
+            }
+          ],
+          "Album": "Bguae Klezbk",
+          "AlbumId": "116fdbaf59014c5c7ff2b79475bb9425",
+          "AlbumPrimaryImageTag": "8878db738430bbd56d099b1e96c89a1e",
+          "AlbumArtist": "KrtPoesIfq",
+          "AlbumArtists": [
+            {
+              "Name": "KrtPoesIfq",
+              "Id": "7ff56480be5f92dbd4bb79f32187d214"
+            }
+          ],
+          "ImageTags": {
+            "Primary": "b1cd36be890bfd1e4a04c071fb9a7a4e"
+          },
+          "BackdropImageTags": [],
+          "LocationType": "FileSystem",
+          "MediaType": "Audio",
+          "NormalizationGain": -10.7,
+          "AlbumNormalizationGain": -10.2
+        },
+        {
+          "Name": "Htonyt",
+          "ServerId": "3308791c057ab4c00b36ac4a0aa9d801",
+          "Id": "d064dda147b58f0d23f5934f7fd36447",
+          "HasLyrics": true,
+          "Container": "mov,mp4,m4a,3gp,3g2,mj2",
+          "PremiereDate": "2024-11-15T12:00:00.0000000Z",
+          "ChannelId": null,
+          "RunTimeTicks": 1995290700,
+          "ProductionYear": 2024,
+          "IndexNumber": 14,
+          "ParentIndexNumber": 1,
+          "ProviderIds": {},
+          "IsFolder": false,
+          "Type": "Audio",
+          "UserData": {
+            "PlaybackPositionTicks": 0,
+            "PlayCount": 1,
+            "IsFavorite": false,
+            "LastPlayedDate": "8882-42-44J14:81:30.0006825B",
+            "Played": true,
+            "Key": "CddZcfsKzu-Lecosgn-7316-0335Xmhrxy",
+            "ItemId": "d064dda147b58f0d23f5934f7fd36447"
+          },
+          "Artists": [
+            "KrtPoesIfq"
+          ],
+          "ArtistItems": [
+            {
+              "Name": "KrtPoesIfq",
+              "Id": "7ff56480be5f92dbd4bb79f32187d214"
+            }
+          ],
+          "Album": "Ytixybp",
+          "AlbumId": "fca34de8a0686ca4667f27bf14b88934",
+          "AlbumPrimaryImageTag": "b5aaa2e306b3e53b69ceb8db535bcfcd",
+          "AlbumArtist": "KrtPoesIfq",
+          "AlbumArtists": [
+            {
+              "Name": "KrtPoesIfq",
+              "Id": "7ff56480be5f92dbd4bb79f32187d214"
+            }
+          ],
+          "ImageTags": {
+            "Primary": "45ad17e76610113b686111ceea73bf8b"
+          },
+          "BackdropImageTags": [],
+          "LocationType": "FileSystem",
+          "MediaType": "Audio",
+          "NormalizationGain": -4.6000004,
+          "AlbumNormalizationGain": -9.8
+        },
+        {
+          "Name": "Tkdbonnu",
+          "ServerId": "3308791c057ab4c00b36ac4a0aa9d801",
+          "Id": "7d0b3277d1b687c72674f0f1bcb186e5",
+          "HasLyrics": true,
+          "Container": "mov,mp4,m4a,3gp,3g2,mj2",
+          "PremiereDate": "2023-08-04T12:00:00.0000000Z",
+          "ChannelId": null,
+          "RunTimeTicks": 1935847620,
+          "ProductionYear": 2023,
+          "IndexNumber": 5,
+          "ParentIndexNumber": 1,
+          "ProviderIds": {},
+          "IsFolder": false,
+          "Type": "Audio",
+          "UserData": {
+            "PlaybackPositionTicks": 0,
+            "PlayCount": 1,
+            "IsFavorite": false,
+            "LastPlayedDate": "8882-42-44J14:81:30.0006825B",
+            "Played": true,
+            "Key": "ZetTvclLln-Uebbl Tbvurm-7618-4840Hepppsbz",
+            "ItemId": "7d0b3277d1b687c72674f0f1bcb186e5"
+          },
+          "Artists": [
+            "KrtPoesIfq"
+          ],
+          "ArtistItems": [
+            {
+              "Name": "KrtPoesIfq",
+              "Id": "7ff56480be5f92dbd4bb79f32187d214"
+            }
+          ],
+          "Album": "Bguae Klezbk",
+          "AlbumId": "116fdbaf59014c5c7ff2b79475bb9425",
+          "AlbumPrimaryImageTag": "8878db738430bbd56d099b1e96c89a1e",
+          "AlbumArtist": "KrtPoesIfq",
+          "AlbumArtists": [
+            {
+              "Name": "KrtPoesIfq",
+              "Id": "7ff56480be5f92dbd4bb79f32187d214"
+            }
+          ],
+          "ImageTags": {
+            "Primary": "17aa9e8652d2a1663832656064883103"
+          },
+          "BackdropImageTags": [],
+          "LocationType": "FileSystem",
+          "MediaType": "Audio",
+          "NormalizationGain": -11.5,
+          "AlbumNormalizationGain": -10.2
+        }
+      ],
+      "TotalRecordCount": 3,
+      "StartIndex": 0
+    }
+  }
+]

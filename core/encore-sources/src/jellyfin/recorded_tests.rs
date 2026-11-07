@@ -226,3 +226,39 @@ fn the_recording_carries_no_paths_previews_tokens_or_real_addresses() {
         }
     }
 }
+
+/// Phase 5's recording (recorded-phase5.json): Jellyfin's own play counts, the
+/// plugin list and similar items, read the way library sync and the recorder do.
+/// The anonymizer scrambles dates, so a last-played date that doesn't parse must
+/// give None, never an error.
+#[tokio::test]
+async fn phase5_user_data_plugins_and_similar_items_read_from_the_recording() {
+    const PHASE5: &str = include_str!("../../../../tools/fixtures/jellyfin/recorded-phase5.json");
+    let v: serde_json::Value = serde_json::from_str(PHASE5).unwrap();
+    let user = v[0]["query"]["userId"].as_str().unwrap().to_owned();
+    let similar_path = v[2]["path"].as_str().unwrap().to_owned();
+    let t = Arc::new(FixtureTransport::from_json(PHASE5).unwrap());
+    let c = JellyfinClient::new(
+        t,
+        url::Url::parse("http://jellyfin.local:8096/").unwrap(),
+        device(),
+        Duration::from_secs(5),
+    )
+    .signed_in("anonymized-token".into(), user);
+    let counts = c.play_counts(200).await.unwrap();
+    assert_eq!(counts.len(), 3);
+    assert!(counts.iter().all(|(id, n, _)| id.len() == 32 && *n >= 1));
+    assert!(
+        counts.iter().all(|(_, _, last)| last.is_none()),
+        "scrambled dates read as unknown"
+    );
+    let plugins = c.plugin_names().await.unwrap();
+    assert_eq!(plugins.len(), v[1]["body"].as_array().unwrap().len());
+    assert!(!plugins.iter().any(|n| n == "Playback Reporting"));
+    let item = similar_path
+        .trim_start_matches("/Items/")
+        .trim_end_matches("/Similar");
+    let similar = c.similar(item, 10).await.unwrap();
+    assert_eq!(similar.len(), 3);
+    assert!(!similar.contains(&item.to_owned()));
+}
