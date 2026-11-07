@@ -604,6 +604,7 @@ jobs:
     # show on the Mac within a second. arm64 runs under QEMU here: a check that the
     # image works, not of its speed.
     name: "Server image: amd64 and arm64, end to end"
+    if: ${{ !inputs.regenerate }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:

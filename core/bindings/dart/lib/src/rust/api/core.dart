@@ -52,6 +52,9 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
  Future<void>  backupProfile({required String profileId , required String destPath });
 
 
+ void  biometricsChanged();
+
+
  Future<ServerCheck>  checkAddress({required String address });
 
 
@@ -64,6 +67,12 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
  void  closeProfile();
 
 
+ Future<List<CompanionDevice>>  companionDevices();
+
+
+ Future<SyncStatus>  connectCompanion({required String url });
+
+
 /// Start the core. `config.data_dir` must be a folder the app can write.
 static Encore  create({required CoreConfig config })=>RustLib.instance.api.crateApiCoreEncoreCreate(config: config);
 
@@ -71,7 +80,16 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  String?  currentProfile();
 
 
+ Future<void>  deleteProfileEverywhere({required String profileId , required String typedName });
+
+
+ Future<void>  disconnectCompanion();
+
+
  DropPreview  dropPreview({required DropTarget target , required Int64List songIds });
+
+
+ QueueState  endGuest();
 
 
 /// Events: queue changed, now playing, preload, sync progress. One stream at a
@@ -91,7 +109,13 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  List<GenreSummary>  genres();
 
 
+ GuestSession?  guestSession();
+
+
  QueueState  jumpTo({required PlatformInt64 uid });
+
+
+ String?  lastActiveProfile();
 
 
  EditResult  like({required Int64List songIds });
@@ -187,6 +211,12 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  QueueState  removeFromQueue({required PlatformInt64 uid });
 
 
+ Future<void>  removeProfileFromDevice({required String profileId });
+
+
+ void  removeProfilePin({required String profileId });
+
+
  void  removeRecentSearch({required String query });
 
 
@@ -196,10 +226,19 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  EditResult  renamePlaylist({required PlatformInt64 playlistId , required String name });
 
 
+ void  renameProfile({required String profileId , String? name });
+
+
+ void  reorderProfiles({required List<String> profileIds });
+
+
  QueueState  replayFromHistory({required PlatformInt64 uid });
 
 
  Future<void>  restoreProfile({required String profileId , required String fromPath });
+
+
+ Future<void>  revokeDevice({required String deviceId });
 
 
  SearchResults  search({required String query });
@@ -215,6 +254,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
 
 
  void  setPlaybackCapabilities({required List<String> directPlayContainers , required TranscodeCodec transcodeCodec });
+
+
+ void  setProfilePin({required String profileId , required String pin });
 
 
  QueueState  setRepeat({required RepeatMode mode });
@@ -244,6 +286,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  List<Song>  songs({required SongSort sort , required int offset , required int limit });
 
 
+ QueueState  startGuest();
+
+
 /// Close the events stream (it reports done). Cancelling a subscription alone
 /// does not end it, because the core still holds the stream's sink.
  void  stopEvents();
@@ -255,7 +300,16 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  StreamQuality  streamQuality({required Network network });
 
 
+ Future<QueueState>  switchProfile({required String profileId , required List<SourceToken> tokens , required bool keepPlaying });
+
+
  Future<List<SyncResult>>  syncLibrary();
+
+
+ Future<SyncStatus>  syncNow();
+
+
+ SyncStatus  syncStatus();
 
 
  void  trustCertificate({required String address , required String sha256 });
@@ -268,6 +322,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
 
 
  EditResult  unlike({required Int64List songIds });
+
+
+ void  unlockProfile({required String profileId , String? pin });
 
 
 
@@ -484,6 +541,35 @@ app,
                     
                 }
 
+class CompanionDevice  {
+                final String deviceId;
+final String name;
+final String platform;
+final PlatformInt64 addedUtcMs;
+final PlatformInt64 lastSeenUtcMs;
+final bool signedOut;
+final bool thisDevice;
+
+                const CompanionDevice({required this.deviceId ,required this.name ,required this.platform ,required this.addedUtcMs ,required this.lastSeenUtcMs ,required this.signedOut ,required this.thisDevice ,});
+
+
+
+
+
+        @override
+        int get hashCode => deviceId.hashCode^name.hashCode^platform.hashCode^addedUtcMs.hashCode^lastSeenUtcMs.hashCode^signedOut.hashCode^thisDevice.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is CompanionDevice &&
+                runtimeType == other.runtimeType
+                && deviceId == other.deviceId&& name == other.name&& platform == other.platform&& addedUtcMs == other.addedUtcMs&& lastSeenUtcMs == other.lastSeenUtcMs&& signedOut == other.signedOut&& thisDevice == other.thisDevice;
+
+            }
+
 class CoreConfig  {
                 final String dataDir;
 final String deviceId;
@@ -518,15 +604,18 @@ final QueueEntry? preload;
 final PlatformInt64? syncSourceId;
 final PlatformInt64 syncDone;
 final PlatformInt64 syncTotal;
+final SyncStatus? syncStatus;
+final RemoteChange? remoteChange;
+final SourceToken? credential;
 
-                const CoreEvent({required this.kind ,this.queue ,this.nowPlaying ,this.preload ,this.syncSourceId ,required this.syncDone ,required this.syncTotal ,});
+                const CoreEvent({required this.kind ,this.queue ,this.nowPlaying ,this.preload ,this.syncSourceId ,required this.syncDone ,required this.syncTotal ,this.syncStatus ,this.remoteChange ,this.credential ,});
 
 
 
 
 
         @override
-        int get hashCode => kind.hashCode^queue.hashCode^nowPlaying.hashCode^preload.hashCode^syncSourceId.hashCode^syncDone.hashCode^syncTotal.hashCode;
+        int get hashCode => kind.hashCode^queue.hashCode^nowPlaying.hashCode^preload.hashCode^syncSourceId.hashCode^syncDone.hashCode^syncTotal.hashCode^syncStatus.hashCode^remoteChange.hashCode^credential.hashCode;
 
 
 
@@ -535,7 +624,7 @@ final PlatformInt64 syncTotal;
             identical(this, other) ||
             other is CoreEvent &&
                 runtimeType == other.runtimeType
-                && kind == other.kind&& queue == other.queue&& nowPlaying == other.nowPlaying&& preload == other.preload&& syncSourceId == other.syncSourceId&& syncDone == other.syncDone&& syncTotal == other.syncTotal;
+                && kind == other.kind&& queue == other.queue&& nowPlaying == other.nowPlaying&& preload == other.preload&& syncSourceId == other.syncSourceId&& syncDone == other.syncDone&& syncTotal == other.syncTotal&& syncStatus == other.syncStatus&& remoteChange == other.remoteChange&& credential == other.credential;
 
             }
 
@@ -699,6 +788,9 @@ enum EventKind {
 nowPlaying,
 preload,
 syncProgress,
+syncStatusChanged,
+remoteChange,
+credentialChanged,
                     ;
                     
                 }
@@ -751,6 +843,30 @@ final int songCount;
             other is GenreSummary &&
                 runtimeType == other.runtimeType
                 && name == other.name&& songCount == other.songCount;
+
+            }
+
+class GuestSession  {
+                final PlatformInt64 startedUtcMs;
+final PlatformInt64 endsIfIdleUtcMs;
+
+                const GuestSession({required this.startedUtcMs ,required this.endsIfIdleUtcMs ,});
+
+
+
+
+
+        @override
+        int get hashCode => startedUtcMs.hashCode^endsIfIdleUtcMs.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is GuestSession &&
+                runtimeType == other.runtimeType
+                && startedUtcMs == other.startedUtcMs&& endsIfIdleUtcMs == other.endsIfIdleUtcMs;
 
             }
 
@@ -1089,15 +1205,20 @@ class ProfileSummary  {
                 final String profileId;
 final String displayName;
 final List<CredentialKey> credentials;
+final String initials;
+final String? avatarUrl;
+final bool locked;
+final bool active;
+final bool needsSignIn;
 
-                const ProfileSummary({required this.profileId ,required this.displayName ,required this.credentials ,});
+                const ProfileSummary({required this.profileId ,required this.displayName ,required this.credentials ,required this.initials ,this.avatarUrl ,required this.locked ,required this.active ,required this.needsSignIn ,});
 
 
 
 
 
         @override
-        int get hashCode => profileId.hashCode^displayName.hashCode^credentials.hashCode;
+        int get hashCode => profileId.hashCode^displayName.hashCode^credentials.hashCode^initials.hashCode^avatarUrl.hashCode^locked.hashCode^active.hashCode^needsSignIn.hashCode;
 
 
 
@@ -1106,7 +1227,7 @@ final List<CredentialKey> credentials;
             identical(this, other) ||
             other is ProfileSummary &&
                 runtimeType == other.runtimeType
-                && profileId == other.profileId&& displayName == other.displayName&& credentials == other.credentials;
+                && profileId == other.profileId&& displayName == other.displayName&& credentials == other.credentials&& initials == other.initials&& avatarUrl == other.avatarUrl&& locked == other.locked&& active == other.active&& needsSignIn == other.needsSignIn;
 
             }
 
@@ -1186,6 +1307,33 @@ final int expiresInSeconds;
             other is QuickConnectStart &&
                 runtimeType == other.runtimeType
                 && code == other.code&& expiresInSeconds == other.expiresInSeconds;
+
+            }
+
+class RemoteChange  {
+                final Int64List likedSongIds;
+final Int64List unlikedSongIds;
+final Int64List playlistIds;
+final bool history;
+final bool librarySyncSuggested;
+
+                const RemoteChange({required this.likedSongIds ,required this.unlikedSongIds ,required this.playlistIds ,required this.history ,required this.librarySyncSuggested ,});
+
+
+
+
+
+        @override
+        int get hashCode => likedSongIds.hashCode^unlikedSongIds.hashCode^playlistIds.hashCode^history.hashCode^librarySyncSuggested.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is RemoteChange &&
+                runtimeType == other.runtimeType
+                && likedSongIds == other.likedSongIds&& unlikedSongIds == other.unlikedSongIds&& playlistIds == other.playlistIds&& history == other.history&& librarySyncSuggested == other.librarySyncSuggested;
 
             }
 
@@ -1591,6 +1739,43 @@ final int removed;
             other is SyncResult &&
                 runtimeType == other.runtimeType
                 && sourceId == other.sourceId&& artists == other.artists&& albums == other.albums&& songs == other.songs&& playlists == other.playlists&& removed == other.removed;
+
+            }
+
+enum SyncState {
+                    notConnected,
+idle,
+syncing,
+offline,
+signedOut,
+                    ;
+                    
+                }
+
+class SyncStatus  {
+                final SyncState state;
+final int pending;
+final PlatformInt64? lastSyncedUtcMs;
+final String? serverUrl;
+final String? reason;
+
+                const SyncStatus({required this.state ,required this.pending ,this.lastSyncedUtcMs ,this.serverUrl ,this.reason ,});
+
+
+
+
+
+        @override
+        int get hashCode => state.hashCode^pending.hashCode^lastSyncedUtcMs.hashCode^serverUrl.hashCode^reason.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is SyncStatus &&
+                runtimeType == other.runtimeType
+                && state == other.state&& pending == other.pending&& lastSyncedUtcMs == other.lastSyncedUtcMs&& serverUrl == other.serverUrl&& reason == other.reason;
 
             }
 
