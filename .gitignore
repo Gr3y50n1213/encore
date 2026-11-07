@@ -6,8 +6,16 @@ build/
 DerivedData/
 *.xcuserstate
 node_modules/
-# Secrets and local config
+# Secrets and local config (never commit keys, tokens, databases or listening history)
 .env
+.env.*
+*.pem
+*.key
+*.crt
+*.sqlite
+*.sqlite-*
+*.db
+private-history/
 *.keystore
 *.jks
 *.p12
@@ -16,3 +24,8 @@ local.properties
 # OS
 .DS_Store
 Thumbs.db
+# Editor and assistant settings kept on each computer
+.vscode/
+.idea/
+.claude/
+CLAUDE.local.md

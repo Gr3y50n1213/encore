@@ -204,6 +204,12 @@ jobs:
       - name: Colour schemes in tokens.json match tools/palette
         run: python3 -I -B tools/palette/palette.py check design/tokens.json
 
+      # The repository is public: no email, key, token, personal path, database or
+      # listening history in any tracked file (docs/PUBLIC-REPO-CHECKLIST.md).
+      - name: Nothing private in the repository
+        run: |
+          python3 -I -B tools/ci/check_public.py --self-test
+          python3 -I -B tools/ci/check_public.py
       # Section 24: fails on a dependency licence nobody has reviewed (tools/ci/licences.json).
       - name: Every dependency licence is reviewed (core, server, tools)
         run: |

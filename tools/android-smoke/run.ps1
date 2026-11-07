@@ -19,11 +19,16 @@ param(
     [string]$Adb = "",
     [string[]]$Devices = @(),
     [string]$Out = "",
-    [string]$WorkRoot = "D:\Encore-tools\tmp",
+    [string]$WorkRoot = [IO.Path]::GetTempPath(),
     [switch]$Force
 )
 
 $ErrorActionPreference = "Stop"
+# adb from -Adb, else the Android SDK (ANDROID_HOME), else PATH.
+if (-not $Adb) {
+    $sdkAdb = if ($env:ANDROID_HOME) { Join-Path $env:ANDROID_HOME "platform-tools\adb.exe" } else { "" }
+    $Adb = if ($sdkAdb -and (Test-Path $sdkAdb)) { $sdkAdb } else { (Get-Command adb -ErrorAction Stop).Source }
+}
 $repo = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $fixture = Join-Path $repo "tools\fixtures\jellyfin\recorded.json"
 $expected = (Get-Content (Join-Path $Bundle "expected-parity.txt") -Raw).Trim()
