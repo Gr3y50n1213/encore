@@ -83,9 +83,11 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.ENCORE_TEST_KEYSTORE_PASSWORD }}
         run: |
           if [ -n "$KEYSTORE_B64" ]; then
-            # Secrets set from Windows can end in a CR LF: strip line endings first.
-            printf '%s' "$KEYSTORE_B64" | tr -d '\r\n ' | base64 -d > "$RUNNER_TEMP/encore-test.jks"
-            password="$(printf '%s' "$KEYSTORE_PASSWORD" | tr -d '\r\n')"
+            # Secrets piped in from Windows PowerShell can carry a byte-order mark, UTF-16
+            # zero bytes or a CR LF. Keep only the base64 alphabet (and the password's
+            # letters and digits, all it is made of).
+            printf '%s' "$KEYSTORE_B64" | tr -cd 'A-Za-z0-9+/=' | base64 -d > "$RUNNER_TEMP/encore-test.jks"
+            password="$(printf '%s' "$KEYSTORE_PASSWORD" | tr -cd 'A-Za-z0-9')"
             echo "::add-mask::$password"
             # Fail here, not in the middle of the build, if the key or password is wrong.
             keytool -list -keystore "$RUNNER_TEMP/encore-test.jks" -storepass "$password" -alias encore-test > /dev/null

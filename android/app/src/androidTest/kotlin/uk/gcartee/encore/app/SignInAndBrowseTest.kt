@@ -89,8 +89,8 @@ class SignInAndBrowseTest {
         val playlist = host.core.playlists(0u, 50u).firstOrNull { it.songCount > 0u }
         if (playlist != null) {
             val firstSong = host.core.playlist(playlist.id).entries.firstNotNullOf { it.song }
+            // Back from the album to Library's root.
             Espresso.pressBack()
-            rule.onNodeWithText("Library").performClick()
             rule.waitUntilAtLeastOneExists(hasText("Playlists"), TIMEOUT)
             rule.onAllNodesWithText("Playlists").onFirst().performClick()
             rule.waitUntilAtLeastOneExists(hasText(playlist.name), TIMEOUT)
