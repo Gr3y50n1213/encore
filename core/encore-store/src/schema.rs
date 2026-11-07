@@ -315,8 +315,34 @@ const V4: &str = r#"
 ALTER TABLE playlist_items ADD COLUMN edit_id TEXT;
 "#;
 
+/// Migration 5: lyrics search (board 07: "lyrics included when the server has
+/// them"). One row per lyric line, so a match can show and jump to its line. The
+/// rowid is `track_id * 4096 + line`, so a song's lines are one rowid range; they
+/// go when its kept lyrics go.
+///
+/// Words, not trigrams (the name index's choice): lyrics are searched by words and
+/// the start of the word being typed, and on 400,000 lines a trigram phrase reads
+/// every trigram's huge list (174 ms for a long phrase; the budget is 50).
+///
+/// Lyrics kept before this migration were never indexed, so they are let go and
+/// fetched again (and indexed) when next shown or fetched ahead. No app with
+/// migration 3 has shipped, so in practice this drops nothing.
+const V5: &str = r#"
+DELETE FROM lyrics_cache;
+CREATE VIRTUAL TABLE lyrics_index USING fts5 (
+    text,
+    start_ms UNINDEXED,
+    tokenize = 'unicode61 remove_diacritics 2',
+    prefix = '2 3'
+);
+CREATE TRIGGER lyrics_index_gone AFTER DELETE ON lyrics_cache
+BEGIN
+    DELETE FROM lyrics_index WHERE rowid BETWEEN OLD.track_id * 4096 AND OLD.track_id * 4096 + 4095;
+END;
+"#;
+
 /// Every migration, oldest first. Append only.
-pub(crate) const MIGRATIONS: &[&str] = &[V1, V2, V3, V4];
+pub(crate) const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5];
 
 /// Bring the database up to the newest schema. Returns the version it ended at.
 #[cfg(test)]

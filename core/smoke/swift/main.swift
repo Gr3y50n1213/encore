@@ -84,6 +84,14 @@ if let replay = ProcessInfo.processInfo.environment["ENCORE_REPLAY_URL"] {
     }
     guard let lyrics else { preconditionFailure("no lyrics") }
     precondition(lyrics.syncLevel == .line && !lyrics.lines.isEmpty)
+    // Search finds the song by a line of its lyrics (or by its title).
+    let words = lyrics.lines.first { $0.text.split(separator: " ").count >= 2 }!.text.split(separator: " ")
+    let byLyrics = try core.search(query: "\(words[0]) \(words[1])")
+    precondition(byLyrics.lyrics.contains { $0.song.id == lyrics.songId } || byLyrics.songs.contains { $0.id == lyrics.songId }, "lyrics search")
+    // Export: one open JSON file.
+    let exportFile = dir.appendingPathComponent("export.json").path
+    let exported = try core.exportProfile(profileId: signedIn.profileId, destPath: exportFile)
+    precondition(exported.bytes > 0 && FileManager.default.fileExists(atPath: exportFile), "export")
     guard let artAlbum = try core.albums(sort: .title, offset: 0, limit: 100).first(where: { $0.hasArtwork }),
           let palette = try await core.albumPalette(albumId: artAlbum.id)
     else { preconditionFailure("no palette") }
@@ -99,7 +107,7 @@ if let replay = ProcessInfo.processInfo.environment["ENCORE_REPLAY_URL"] {
     try core.undo(editId: edit.editId!)
     let afterUndo = try core.playlist(playlistId: list.id).entries.count
     precondition(afterUndo == entriesBefore.count, "\(afterUndo) vs \(entriesBefore.count)")
-    flow = "library flow OK (signed in, synced \(synced[0].songs) songs, played an album, searched, lyrics, palette \(palette.base), playlist edit and undo)"
+    flow = "library flow OK (signed in, synced \(synced[0].songs) songs, played an album, searched, lyrics, lyrics search, export, palette \(palette.base), playlist edit and undo)"
 }
 
 print("Swift -> Rust: \(greeting) (core \(coreVersion())); EncoreCore async and errors OK; \(flow)")

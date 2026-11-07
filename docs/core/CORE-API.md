@@ -1,6 +1,6 @@
 # Encore core API (the contract)
 
-**Version 2** (Phase 3, 7 November 2026). Core crate version `0.1.0`.
+**Version 2.1** (Phase 3 tidy-up, 7 November 2026). Core crate version `0.1.0`.
 
 This file is the only thing the platform tracks may rely on. Every public call, event and type of the core is listed here before a platform uses it. A change that breaks a platform gets a line under "Changes" and a request in `docs/requests/` that says what to change.
 
@@ -11,6 +11,7 @@ This file is the only thing the platform tracks may rely on. Every public call, 
 | 0 | 1 | First version: `hello`, `core_version`, `app_name`; token constants |
 | 1 | 2 | `EncoreCore`: connect and sign in to Jellyfin (password or Quick Connect), profiles, library sync, browse, search, the queue, playback reporting with the play log, streams, artwork, raw lyrics, events. Nothing from API 0 changed. Kotlin now also needs kotlinx-coroutines (async calls are suspend functions). |
 | 2 | 3 | Added, nothing removed. Lyrics (`lyrics`, the word-timing-ready model); album and playlist palettes; the skip signal (`skip_next` / `skip_previous` with an origin, `next_target` / `previous_target`, `playback_interrupted`, `playback_seeked`); playlist writes and likes (`drop_preview`, `add_to`, `like`, `unlike`, `are_liked`, `liked_songs`, `remove_from_playlist`, `move_in_playlist`, `rename_playlist`, `undo`, `pending_edits`, `send_edits`); `backup_profile` / `restore_profile`; the error kind `NotAllowed`. `next()` and `previous()` stay, as the button. A platform that switches over every `ErrorKind` adds `NotAllowed`. |
+| 2.1 | 3 | Added, nothing removed. Lyrics search: `SearchResults.lyrics` (`[LyricMatch]`) and `fetch_lyrics_ahead(max_songs)`; `search.limits.lyrics` in tokens. Export: `export_profile(profile_id, dest_path)` returns `ExportSummary`. A platform that builds `SearchResults` itself (tests, previews) adds the `lyrics` field. |
 | 1, revised | 2 | Same day, after CI ran the bindings. Each error case carries its sentence as `reason`, no longer `message`, because the Kotlin exceptions clashed with `Throwable.message`. New calls: `clear_listener` (Swift, Kotlin) and `stopEvents` (Dart), which end the events. A platform that copied the first version renames `message` to `reason` in its error handling; nothing else changes. |
 
 ## How every platform gets the core
@@ -79,6 +80,7 @@ Inputs and outputs use the types under "Types". "async" marks calls that wait on
 | `close_profile()` | – | Ends the current play as "ended by the system". |
 | `current_profile()` | `profile_id?` | |
 | `backup_profile(profile_id, dest_path)` | – | A consistent copy of the profile's database, safe while playing: library, history, settings; never tokens. Blocking: call off the main thread. |
+| `export_profile(profile_id, dest_path)` | `ExportSummary` | Board 19, item 5: one JSON file with the play log, likes, playlists (songs in order), settings and recent searches, in the open format of [EXPORT-FORMAT.md](EXPORT-FORMAT.md); never tokens. Reads through its own connection, so playback carries on. `ExportSummary`: `plays`, `likes`, `playlists`, `playlist_songs`, `bytes` for the finished row. `NotAllowed` in Guest mode ("Nothing is saved in Guest mode"). Blocking: call off the main thread and show the progress row until it returns, then hand the file to the share sheet. |
 | `restore_profile(profile_id, from_path)` | – | Checks the file first (intact, an Encore profile, not from a newer app); if it fails nothing changes. The replaced database is kept as `library.sqlite.before-restore`. Closes the profile if it was open; open it again with its tokens. The core also keeps a copy before every schema upgrade (`library.sqlite.before-v<N>`, the newest two). |
 
 Phase 4 adds the profile switcher, Guest and sync to the companion server.
@@ -112,7 +114,8 @@ Phase 4 adds the profile switcher, Guest and sync to the companion server.
 
 | Call | Returns | Notes |
 | --- | --- | --- |
-| `search(query)` | `SearchResults` | As the user types. Matches any part of a name, ignores accents and case, and tolerates typos. Sections: `top` (exactly one of its fields is set, as `kind` says), then songs, albums, artists and playlists (limits in `search.limits`). Lyrics are not searched: they are kept only for songs whose lyrics were opened. |
+| `search(query)` | `SearchResults` | As the user types. Matches any part of a name, ignores accents and case, and tolerates typos. Sections: `top` (exactly one of its fields is set, as `kind` says), then songs, albums, artists and playlists (limits in `search.limits`). From three characters, `lyrics` adds songs found by a line of their lyrics (not already in `songs`): each `LyricMatch` has the `song`, the `line` that matched, its `line_index` and `start_ms`. Show them in Songs after the title matches with the line under the title; a tap opens the lyrics view at that line. Lyrics match by whole words in order, the last one possibly unfinished ("paper lant" finds "paper lanterns"), ignoring accents and case; no typo tolerance and no mid-word matches. Only kept lyrics are searched: see `fetch_lyrics_ahead`. |
+| `fetch_lyrics_ahead(max_songs)` | `u32` | Async. Fetches and keeps lyrics for up to `max_songs` songs that have them and aren't kept yet, so search finds songs never opened. Call after a library sync (on Wi-Fi, in the background) with a batch such as 25, again while it returns more than 0. Returns how many songs it tried; a song that fails is skipped for the session. Throws `Unreachable` only if the first song couldn't be fetched. |
 | `add_recent_search(query)` | – | The return key. Saved per profile, newest first, at most `search.recentSearchesMax`. |
 | `recent_searches()` / `remove_recent_search(query)` / `clear_recent_searches()` | | |
 
@@ -236,7 +239,9 @@ All are plain records and enums. IDs and times are 64-bit signed integers (milli
 | `ArtistSummary` / `ArtistDetail` | `id`, `name`, `album_count` / `artist`, `albums` |
 | `PlaylistSummary` / `PlaylistDetail` / `PlaylistEntry` | `id`, `name`, `song_count`, `duration_ms` / `playlist`, `entries` / `position`, `song?` |
 | `GenreSummary` | `name`, `song_count` |
-| `TopResult` / `SearchResults` | `kind`, `song?`, `album?`, `artist?`, `playlist?` / `top?`, `songs`, `albums`, `artists`, `playlists` |
+| `TopResult` / `SearchResults` | `kind`, `song?`, `album?`, `artist?`, `playlist?` / `top?`, `songs`, `albums`, `artists`, `playlists`, `lyrics` |
+| `LyricMatch` | `song`, `line`, `line_index`, `start_ms?` |
+| `ExportSummary` | `plays`, `likes`, `playlists`, `playlist_songs`, `bytes` |
 | `QueueEntry` | `uid`, `song`, `chosen_by` (User, App) |
 | `QueueState` | `history`, `current?`, `up_next`, `autoplay`, `shuffle`, `repeat`, `autoplay_enabled`, `can_undo` |
 | `StreamInfo` | `song_id`, `url`, `url_with_api_key`, `headers: [HttpHeader { name, value }]`, `may_transcode` |
@@ -387,6 +392,7 @@ Everything below is in API version 2, tested in Rust on the owner's real Jellyfi
   - `move_in_playlist` to reorder, `rename_playlist` for the name field, `undo` for the toast and Ctrl/Command+Z.
 - **Likes.** The heart (`are_liked`, `like`, `unlike`) and Liked Songs (`liked_songs`); likes are Jellyfin favourites, so other Jellyfin apps agree.
 - **Offline edits.** All of the above work offline; `pending_edits` can drive a "Waiting to sync" note, and `send_edits` sends at once when the network returns.
-- **Backup and restore.** `backup_profile` / `restore_profile` for a settings page (export in an open format, board 19, is still to come).
+- **Backup and restore.** `backup_profile` / `restore_profile` for a settings page and `export_profile` for Export (board 19).
+- **Lyrics in search.** `SearchResults.lyrics` and `fetch_lyrics_ahead` after a sync (board 07: "lyrics included when the server has them").
 
-Not available yet: lyrics search, sync between devices and the profile switcher (Phase 4), smart picks and Autoplay (Phase 5), downloads and offline artwork (Phase 8), recaps (Phase 11).
+Not available yet: sync between devices and the profile switcher (Phase 4), smart picks and Autoplay (Phase 5), downloads and offline artwork (Phase 8), recaps (Phase 11).

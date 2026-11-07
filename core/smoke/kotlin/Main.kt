@@ -91,6 +91,14 @@ fun main() {
             val lyrics = all.filter { it.hasLyrics }.firstNotNullOfOrNull { core.lyrics(it.id) }
             checkNotNull(lyrics) { "no lyrics" }
             check(lyrics.syncLevel == LyricsSync.LINE && lyrics.lines.isNotEmpty())
+    // Search finds the song by a line of its lyrics (or by its title).
+    val words = lyrics.lines.first { it.text.split(" ").size >= 2 }.text.split(" ")
+    val byLyrics = core.search("${words[0]} ${words[1]}")
+    check(byLyrics.lyrics.any { it.song.id == lyrics.songId } || byLyrics.songs.any { it.id == lyrics.songId }) { "lyrics search" }
+    // Export: one open JSON file.
+    val exportFile = java.io.File(dir, "export.json")
+    val exported = core.exportProfile(signedIn.profileId, exportFile.path)
+    check(exported.bytes > 0uL && exportFile.length() == exported.bytes.toLong()) { "export" }
             val artAlbum = core.albums(AlbumSort.TITLE, 0u, 100u).first { it.hasArtwork }
             val palette = checkNotNull(core.albumPalette(artAlbum.id)) { "no palette" }
             check(palette.base == "3D0000" && palette.stops.size == 4) { palette.base }
@@ -102,7 +110,7 @@ fun main() {
             check(edit.added == 1u && edit.editId != null)
             core.undo(edit.editId!!)
             check(core.playlist(list.id).entries.size == entriesBefore.size)
-            flow = "library flow OK (signed in, synced ${synced[0].songs} songs, played an album, searched, lyrics, palette ${palette.base}, playlist edit and undo)"
+            flow = "library flow OK (signed in, synced ${synced[0].songs} songs, played an album, searched, lyrics, lyrics search, export, palette ${palette.base}, playlist edit and undo)"
         }
     }
 

@@ -1598,6 +1598,7 @@ public enum EncoreTokens {
             public static let albums: Int = 10
             public static let artists: Int = 10
             public static let playlists: Int = 10
+            public static let lyrics: Int = 5
         }
         public static let recentSearchesMax: Int = 20
         public static let typoMaxEdits: Int = 2

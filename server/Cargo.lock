@@ -267,6 +267,7 @@ version = "0.1.0"
 dependencies = [
  "encore-sources",
  "rusqlite",
+ "serde_json",
  "thiserror",
  "unicode-normalization",
 ]

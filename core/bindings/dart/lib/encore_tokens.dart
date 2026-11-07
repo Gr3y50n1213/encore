@@ -2125,6 +2125,7 @@ final class EncoreTokensSearchLimits {
   final int albums = 10;
   final int artists = 10;
   final int playlists = 10;
+  final int lyrics = 5;
 }
 
 /// Source: plan section 4, board 10 (Lyrics)

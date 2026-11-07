@@ -165,6 +165,7 @@ mod tests {
             albums: 10,
             artists: 10,
             playlists: 10,
+            lyrics: 5,
         };
         let found = s.search(&part, &limits, 2).unwrap();
         assert!(found.songs.iter().any(|t| &t.title == title) || found.top.is_some());

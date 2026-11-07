@@ -261,6 +261,31 @@ pub struct SearchResults {
     pub albums: Vec<AlbumSummary>,
     pub artists: Vec<ArtistSummary>,
     pub playlists: Vec<PlaylistSummary>,
+    /// Songs found by a line of their lyrics, not already in `songs`: show them in
+    /// the Songs section after the title matches, with the line under the title.
+    pub lyrics: Vec<LyricMatch>,
+}
+
+/// What went into an export, for the "Export finished" row and the share sheet.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct ExportSummary {
+    pub plays: u64,
+    pub likes: u64,
+    pub playlists: u64,
+    pub playlist_songs: u64,
+    pub bytes: u64,
+}
+
+/// A song found by its lyrics. `line_index` and `start_ms` open the lyrics view
+/// at that line.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct LyricMatch {
+    pub song: Song,
+    pub line: String,
+    pub line_index: u32,
+    pub start_ms: Option<i64>,
 }
 
 // ---------------------------------------------------------------- playback

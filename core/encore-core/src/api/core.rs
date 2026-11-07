@@ -123,6 +123,9 @@ struct Profile {
     playback: Mutex<Playback>,
     /// The clock for library edits' events (plan section 5).
     edits_clock: Mutex<HlcClock>,
+    /// Songs whose lyrics failed to fetch ahead this session, so the next batch
+    /// moves on instead of asking for them again.
+    lyrics_ahead_failed: Mutex<std::collections::HashSet<i64>>,
 }
 
 struct Inner {
@@ -342,6 +345,7 @@ impl Inner {
         let profile = Profile {
             id: id.to_owned(),
             edits_clock: Mutex::new(HlcClock::resume(last_edit)),
+            lyrics_ahead_failed: Mutex::new(Default::default()),
             store: Mutex::new(store),
             sources: Mutex::new(sources),
             playback: Mutex::new(Playback {
@@ -956,6 +960,51 @@ impl EncoreCore {
         Ok(Store::open(&path)?.backup_to(dest)?)
     }
 
+    /// Export everything the profile holds as one open JSON file (board 19, item
+    /// 5): its play log, likes, playlists, settings and recent searches. The format
+    /// is in docs/core/EXPORT-FORMAT.md; tokens are never in it. It reads through its
+    /// own connection, so playback and browsing carry on while it runs. Refused in
+    /// Guest mode ("Nothing is saved in Guest mode"). Blocking: call off the main
+    /// thread, with the board's progress row showing until it returns.
+    pub fn export_profile(
+        &self,
+        profile_id: String,
+        dest_path: String,
+    ) -> Result<ExportSummary, EncoreError> {
+        let path = self.inner.store_path(checked_profile_id(&profile_id)?);
+        if let Ok(p) = self.inner.profile()
+            && p.id == profile_id
+            && lock(&p.playback)?.log.mode() == crate::playlog::ListeningMode::Guest
+        {
+            return Err(EncoreError::NotAllowed {
+                reason: "Nothing is saved in Guest mode".into(),
+            });
+        }
+        if !path.exists() {
+            return Err(EncoreError::NotFound {
+                reason: "That profile isn't on this device".into(),
+            });
+        }
+        let store = Store::open(&path)?;
+        let name = store.sources()?.first().map(|s| s.user_name.clone());
+        let counts = store.export_to(
+            Path::new(&dest_path),
+            &encore_store::ExportHeader {
+                profile_id: &profile_id,
+                profile_name: name.as_deref(),
+                app_version: env!("CARGO_PKG_VERSION"),
+                exported_utc_ms: now_ms(),
+            },
+        )?;
+        Ok(ExportSummary {
+            plays: counts.plays,
+            likes: counts.likes,
+            playlists: counts.playlists,
+            playlist_songs: counts.playlist_songs,
+            bytes: counts.bytes,
+        })
+    }
+
     /// Replace a profile's database with a backup made by `backup_profile`. The
     /// backup is checked first (intact, an Encore profile, not from a newer app); if
     /// it fails, nothing changes. The replaced database is kept beside it as
@@ -1246,6 +1295,7 @@ impl EncoreCore {
             albums: t.search_albums,
             artists: t.search_artists,
             playlists: t.search_playlists,
+            lyrics: t.search_lyrics,
         };
         let r = lock(&p.store)?.search(&query, &limits, t.typo_max_edits)?;
         let top = r.top.map(|top| match top {
@@ -1284,6 +1334,16 @@ impl EncoreCore {
             albums: r.albums.into_iter().map(Into::into).collect(),
             artists: r.artists.into_iter().map(Into::into).collect(),
             playlists: r.playlists.into_iter().map(Into::into).collect(),
+            lyrics: r
+                .lyrics
+                .into_iter()
+                .map(|h| LyricMatch {
+                    song: h.track.into(),
+                    line: h.text,
+                    line_index: h.line_index,
+                    start_ms: h.start_ms,
+                })
+                .collect(),
         })
     }
 
@@ -2077,18 +2137,63 @@ impl EncoreCore {
                 ),
                 None => ("none".to_owned(), None),
             };
-            lock(&p.store)?.save_lyrics(
-                song_id,
-                &CachedLyrics {
-                    origin: "mediaServer".into(),
-                    format,
-                    model_json,
-                    fetched_utc_ms: now,
-                },
-            )?;
+            {
+                let store = lock(&p.store)?;
+                store.save_lyrics(
+                    song_id,
+                    &CachedLyrics {
+                        origin: "mediaServer".into(),
+                        format,
+                        model_json,
+                        fetched_utc_ms: now,
+                    },
+                )?;
+                // Searchable from now on (board 07).
+                let lines: Vec<(String, Option<i64>)> = parsed
+                    .iter()
+                    .flat_map(|l| l.lines.iter())
+                    .map(|line| (line.text.clone(), line.start_ms))
+                    .collect();
+                store.index_lyrics(song_id, &lines)?;
+            }
             Ok(parsed.map(|l| SongLyrics::from_model(song_id, l, now)))
         })
         .await
+    }
+
+    /// Fetch lyrics for songs that have them and aren't kept yet, trying up to
+    /// `max_songs`, so search finds songs by their lyrics before they were ever
+    /// opened. Call it after a sync, on Wi-Fi; call again while it returns more
+    /// than 0. Returns how many songs it tried. A song that fails is skipped for
+    /// the rest of the session; it stops early when the server can't be reached.
+    /// Async.
+    pub async fn fetch_lyrics_ahead(&self, max_songs: u32) -> Result<u32, EncoreError> {
+        let p = self.inner.profile()?;
+        let ids: Vec<i64> = {
+            let failed = lock(&p.lyrics_ahead_failed)?;
+            let wanted = max_songs.saturating_add(failed.len() as u32);
+            lock(&p.store)?
+                .songs_without_kept_lyrics(wanted)?
+                .into_iter()
+                .filter(|id| !failed.contains(id))
+                .take(max_songs as usize)
+                .collect()
+        };
+        let mut tried = 0;
+        for id in ids {
+            tried += 1;
+            match self.lyrics(id).await {
+                Ok(_) => {}
+                Err(e @ (EncoreError::Unreachable { .. } | EncoreError::SessionExpired { .. })) => {
+                    return if tried == 1 { Err(e) } else { Ok(tried - 1) };
+                }
+                // One song's trouble doesn't stop the rest.
+                Err(_) => {
+                    lock(&p.lyrics_ahead_failed)?.insert(id);
+                }
+            }
+        }
+        Ok(tried)
     }
 
     /// The colours for an album's gradient (board 04); None when it has no cover

@@ -37,7 +37,21 @@ pub struct SearchLimits {
     pub albums: u32,
     pub artists: u32,
     pub playlists: u32,
+    /// Songs found by a line of their lyrics.
+    pub lyrics: u32,
 }
+
+/// A song found by its lyrics, with the line that matched.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LyricHit {
+    pub track: TrackRow,
+    pub line_index: u32,
+    pub text: String,
+    pub start_ms: Option<i64>,
+}
+
+/// Lines per song in the lyrics index (the rowid is `track_id * LINES + line`).
+const LINES: i64 = 4096;
 
 /// The single best match, shown above the sections.
 #[derive(Debug, Clone, PartialEq)]
@@ -55,6 +69,8 @@ pub struct SearchResults {
     pub albums: Vec<AlbumRow>,
     pub artists: Vec<ArtistRow>,
     pub playlists: Vec<PlaylistRow>,
+    /// Songs found by their lyrics (not already in `songs`), one line each.
+    pub lyrics: Vec<LyricHit>,
 }
 
 /// Match quality; lower is better.
@@ -147,7 +163,100 @@ impl Store {
             let max = if qlen <= 5 { 1 } else { max_edits as usize };
             self.typo_hits(&q, max, &mut hits)?;
         }
-        self.collect(hits, limits)
+        let mut out = self.collect(hits, limits)?;
+        if qlen >= 3 && limits.lyrics > 0 {
+            let shown: Vec<i64> = out.songs.iter().map(|t| t.id).collect();
+            out.lyrics = self.lyric_hits(&q, limits.lyrics, &shown)?;
+        }
+        Ok(out)
+    }
+
+    /// Songs whose kept lyrics have a line with `q`'s words in order, the last one
+    /// possibly unfinished ("paper lant" finds "paper lanterns"), first matching
+    /// line each, best match first; `skip` are songs already listed by name.
+    ///
+    /// Speed: FTS5's `ORDER BY rank` scores every matching line before returning
+    /// one (185 ms for a common word over 400,000 lines). Instead, matches are read
+    /// in index order and reading stops once `limit * 4` songs are found; those few
+    /// are ranked by `score` (the whole line, then its start, a word's start,
+    /// anywhere), then the shorter line.
+    fn lyric_hits(&self, q: &str, limit: u32, skip: &[i64]) -> Result<Vec<LyricHit>> {
+        const SCANNED_ROWS: usize = 2_000;
+        // Words as the index splits them (letters and digits); none: nothing to find.
+        let words: Vec<&str> = q
+            .split(|c: char| !c.is_alphanumeric())
+            .filter(|w| !w.is_empty())
+            .collect();
+        if words.is_empty() {
+            return Ok(Vec::new());
+        }
+        let phrase = format!("\"{}\" *", words.join(" "));
+        let wanted = limit as usize * 4;
+        let mut found: Vec<(u32, i64, String, Option<i64>)> = Vec::new();
+        {
+            let mut st = self.conn.prepare_cached(
+                "SELECT rowid, text, start_ms FROM lyrics_index WHERE lyrics_index MATCH ?1",
+            )?;
+            let mut rows = st.query([phrase])?;
+            let mut scanned = 0;
+            while let Some(r) = rows.next()? {
+                scanned += 1;
+                let rowid: i64 = r.get(0)?;
+                let track_id = rowid / LINES;
+                if !skip.contains(&track_id) && found.iter().all(|f| f.1 / LINES != track_id) {
+                    let text: String = r.get(1)?;
+                    let s = score(&fold_for_search(&text), q).unwrap_or(3);
+                    found.push((s, rowid, text, r.get(2)?));
+                }
+                if found.len() >= wanted || scanned >= SCANNED_ROWS {
+                    break;
+                }
+            }
+        }
+        found.sort_by(|a, b| {
+            a.0.cmp(&b.0)
+                .then(a.2.len().cmp(&b.2.len()))
+                .then(a.1.cmp(&b.1))
+        });
+        let mut out = Vec::new();
+        for (_, rowid, text, start_ms) in found {
+            if out.len() >= limit as usize {
+                break;
+            }
+            if let Some(track) = self.track_row(rowid / LINES)? {
+                out.push(LyricHit {
+                    track,
+                    line_index: (rowid % LINES) as u32,
+                    text,
+                    start_ms,
+                });
+            }
+        }
+        Ok(out)
+    }
+
+    /// Index a song's lyric lines for search (replacing what was indexed). Lines
+    /// past the 4,096th are not indexed. Removed with the kept lyrics, by trigger.
+    pub fn index_lyrics(&self, track_id: i64, lines: &[(String, Option<i64>)]) -> Result<()> {
+        self.in_transaction(|s| {
+            s.conn.execute(
+                "DELETE FROM lyrics_index WHERE rowid BETWEEN ?1 AND ?2",
+                [track_id * LINES, track_id * LINES + LINES - 1],
+            )?;
+            let mut ins = s.conn.prepare_cached(
+                "INSERT INTO lyrics_index (rowid, text, start_ms) VALUES (?1, ?2, ?3)",
+            )?;
+            for (i, (text, start_ms)) in lines.iter().enumerate().take(LINES as usize) {
+                if !text.trim().is_empty() {
+                    ins.execute(rusqlite::params![
+                        track_id * LINES + i as i64,
+                        text,
+                        start_ms
+                    ])?;
+                }
+            }
+            Ok(())
+        })
     }
 
     fn substring_hits(&self, q: &str, hits: &mut Hits) -> Result<()> {
@@ -379,6 +488,7 @@ mod tests {
         albums: 10,
         artists: 10,
         playlists: 10,
+        lyrics: 5,
     };
 
     fn store() -> crate::Store {
@@ -418,6 +528,83 @@ mod tests {
     fn ignores_accents_and_case() {
         let r = store().search("BEYONCE", &LIMITS, 2).unwrap();
         assert_eq!(titles(&r), vec!["Beyoncé Interlude"]);
+    }
+
+    fn keep_lyrics(store: &crate::Store, track_id: i64, lines: &[(&str, Option<i64>)]) {
+        store
+            .save_lyrics(
+                track_id,
+                &crate::CachedLyrics {
+                    origin: "mediaServer".into(),
+                    format: "jellyfin".into(),
+                    model_json: Some("{}".into()),
+                    fetched_utc_ms: 1,
+                },
+            )
+            .unwrap();
+        let lines: Vec<(String, Option<i64>)> =
+            lines.iter().map(|(t, s)| (t.to_string(), *s)).collect();
+        store.index_lyrics(track_id, &lines).unwrap();
+    }
+
+    fn id_of(store: &crate::Store, title: &str) -> i64 {
+        store
+            .conn
+            .query_row("SELECT id FROM tracks WHERE title = ?1", [title], |r| {
+                r.get(0)
+            })
+            .unwrap()
+    }
+
+    #[test]
+    fn songs_are_found_by_a_line_of_their_kept_lyrics() {
+        let s = store();
+        let paper = id_of(&s, "Paper Lanterns");
+        let beyonce = id_of(&s, "Beyoncé Interlude");
+        keep_lyrics(
+            &s,
+            beyonce,
+            &[
+                ("", Some(0)),
+                ("We carried paper lanterns home", Some(12_500)),
+                ("Under a café sign", Some(15_000)),
+            ],
+        );
+        keep_lyrics(&s, paper, &[("Lanterns over the water", Some(3_000))]);
+
+        // The line, its index and time, accents folded; one hit per song.
+        let r = s.search("cafe sign", &LIMITS, 2).unwrap();
+        assert_eq!(r.lyrics.len(), 1);
+        assert_eq!(r.lyrics[0].track.id, beyonce);
+        assert_eq!(r.lyrics[0].text, "Under a café sign");
+        assert_eq!(
+            (r.lyrics[0].line_index, r.lyrics[0].start_ms),
+            (2, Some(15_000))
+        );
+
+        // A song already found by its title isn't listed again by its lyrics.
+        let r = s.search("lantern", &LIMITS, 2).unwrap();
+        assert_eq!(titles(&r), vec!["Paper Lanterns"]);
+        let by_lyrics: Vec<i64> = r.lyrics.iter().map(|h| h.track.id).collect();
+        assert_eq!(by_lyrics, vec![beyonce]);
+
+        // Short queries and a zero limit skip lyrics; re-indexing replaces lines.
+        assert!(s.search("ca", &LIMITS, 2).unwrap().lyrics.is_empty());
+        let none = SearchLimits {
+            lyrics: 0,
+            ..LIMITS
+        };
+        assert!(s.search("cafe", &none, 2).unwrap().lyrics.is_empty());
+        keep_lyrics(&s, beyonce, &[("Something else entirely", None)]);
+        assert!(s.search("cafe", &LIMITS, 2).unwrap().lyrics.is_empty());
+        let r = s.search("entirely", &LIMITS, 2).unwrap();
+        assert_eq!((r.lyrics[0].line_index, r.lyrics[0].start_ms), (0, None));
+
+        // Lyrics that are no longer kept aren't searchable.
+        s.conn
+            .execute("DELETE FROM lyrics_cache WHERE track_id = ?1", [beyonce])
+            .unwrap();
+        assert!(s.search("entirely", &LIMITS, 2).unwrap().lyrics.is_empty());
     }
 
     #[test]

@@ -70,8 +70,8 @@ Rules: an item passes only with evidence from a test, a benchmark, the recording
 | A first lyrics parse of a very long word-timed song on a loaded machine | 1.8 ms in CI, 9 ms on the owner's busy PC; off the main thread and once per song | Phones in Phase 6; optimise if a real song gets near it |
 | `Metadata.Offset` in Jellyfin lyrics | Nothing reports it | A server that does |
 | Palette and signal numbers | Starting values | The look on devices; replays in Phase 5 |
-| Lyrics search | Not built (it was not in Phase 3's row); lyrics are kept only once opened | A later phase, with offline lyrics |
-| Export in an open format (board 19) | Backup and restore are built; export is not | The privacy page's phase |
+| Lyrics search | **Done after the review** (API 2.1): `SearchResults.lyrics` and `fetch_lyrics_ahead`, tested on the recording and inside the 50 ms budget with 400,000 lyric lines (see the addendum) | CI's budget step |
+| Export in an open format (board 19) | **Done after the review** (API 2.1): `export_profile`, format in EXPORT-FORMAT.md | |
 
 ## What the platform tracks can build now
 
@@ -84,3 +84,26 @@ See CORE-API.md version 2, "What the platform tracks can build now (Phase 3)":
 - likes;
 - offline edits;
 - backup and restore.
+
+## Addendum: the tidy-up after the review (7 November 2026)
+
+The owner asked for the two open items that were the core's to build.
+
+- **Lyrics search.** Migration 5 adds a word index of kept lyric lines. `search` returns `lyrics` (songs found by a line, with the line and its time), and `fetch_lyrics_ahead` keeps lyrics before a song is opened. Tests:
+  - `songs_are_found_by_a_line_of_their_kept_lyrics` (store);
+  - `songs_are_found_by_their_lyrics_after_fetching_ahead` (every recorded song, through the API);
+  - the migration test (the index goes with the kept lyrics);
+  - Swift, Kotlin and Dart search by a lyric line over HTTP in CI.
+
+  **The budget test caught two slow designs before they shipped.** The search budget now includes 10,000 songs with 40 lyric lines each:
+  - the first version, a trigram index ranked by FTS5's `rank`, took 185 ms;
+  - unranked trigrams still took 174 ms on long phrases;
+  - the word index measured on the owner's PC with lyrics on and off came out the same within noise.
+
+  The PC was at 100% CPU on its 2 cores at the time, so CI's number is the one that counts: CI_SEARCH.
+- **Export.** `export_profile` writes one JSON file (docs/core/EXPORT-FORMAT.md) with the play log, likes, playlists, settings and recent searches. It never holds a token, and it is refused in Guest mode. Tests:
+  - `everything_the_profile_holds_is_in_one_json_file`;
+  - `an_export_that_cannot_be_written_leaves_nothing_behind`;
+  - `an_export_holds_the_history_likes_and_playlists_in_open_json` (the recording);
+  - all three languages export in CI.
+- **The Android certificate request** (core-0001) is the Android track's to build in `android/`, which this track doesn't edit. Its core side was done in Phase 2.

@@ -23,9 +23,9 @@ pub use encore_core::api::{
 };
 pub use encore_core::api::{
     ArtworkPalette, DropPreview, DropRefusal, DropTarget, DropTargetKind, EditResult,
-    InterruptionKind, LyricBackground, LyricGap, LyricLine, LyricSide, LyricWord, LyricsFormat,
-    LyricsOrigin, LyricsSync, PaletteScheme, PaletteSwatch, SentEdits, Singer, SingerKind,
-    SkipOrigin, SkipTarget, SongLyrics,
+    ExportSummary, InterruptionKind, LyricBackground, LyricGap, LyricLine, LyricMatch, LyricSide,
+    LyricWord, LyricsFormat, LyricsOrigin, LyricsSync, PaletteScheme, PaletteSwatch, SentEdits,
+    Singer, SingerKind, SkipOrigin, SkipTarget, SongLyrics,
 };
 use encore_core::api::{CoreListener, EncoreCore};
 
@@ -199,6 +199,24 @@ pub struct _SearchResults {
     pub albums: Vec<AlbumSummary>,
     pub artists: Vec<ArtistSummary>,
     pub playlists: Vec<PlaylistSummary>,
+    pub lyrics: Vec<LyricMatch>,
+}
+
+#[frb(mirror(ExportSummary))]
+pub struct _ExportSummary {
+    pub plays: u64,
+    pub likes: u64,
+    pub playlists: u64,
+    pub playlist_songs: u64,
+    pub bytes: u64,
+}
+
+#[frb(mirror(LyricMatch))]
+pub struct _LyricMatch {
+    pub song: Song,
+    pub line: String,
+    pub line_index: u32,
+    pub start_ms: Option<i64>,
 }
 
 #[frb(mirror(QueueEntry))]
@@ -937,6 +955,13 @@ impl Encore {
     pub fn backup_profile(&self, profile_id: String, dest_path: String) -> Result<(), ApiError> {
         Ok(self.core.backup_profile(profile_id, dest_path)?)
     }
+    pub fn export_profile(
+        &self,
+        profile_id: String,
+        dest_path: String,
+    ) -> Result<ExportSummary, ApiError> {
+        Ok(self.core.export_profile(profile_id, dest_path)?)
+    }
     pub fn restore_profile(&self, profile_id: String, from_path: String) -> Result<(), ApiError> {
         Ok(self.core.restore_profile(profile_id, from_path)?)
     }
@@ -944,6 +969,9 @@ impl Encore {
     // Phase 3: lyrics and palettes
     pub async fn lyrics(&self, song_id: i64) -> Result<Option<SongLyrics>, ApiError> {
         Ok(self.core.lyrics(song_id).await?)
+    }
+    pub async fn fetch_lyrics_ahead(&self, max_songs: u32) -> Result<u32, ApiError> {
+        Ok(self.core.fetch_lyrics_ahead(max_songs).await?)
     }
     pub async fn album_palette(&self, album_id: i64) -> Result<Option<ArtworkPalette>, ApiError> {
         Ok(self.core.album_palette(album_id).await?)

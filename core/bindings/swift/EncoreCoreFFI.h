@@ -369,6 +369,16 @@ RustBuffer uniffi_encore_core_fn_method_encorecore_current_profile(uint64_t ptr,
 RustBuffer uniffi_encore_core_fn_method_encorecore_drop_preview(uint64_t ptr, RustBuffer target, RustBuffer song_ids, RustCallStatus *_Nonnull out_status
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_EXPORT_PROFILE
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_EXPORT_PROFILE
+RustBuffer uniffi_encore_core_fn_method_encorecore_export_profile(uint64_t ptr, RustBuffer profile_id, RustBuffer dest_path, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_FETCH_LYRICS_AHEAD
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_FETCH_LYRICS_AHEAD
+uint64_t uniffi_encore_core_fn_method_encorecore_fetch_lyrics_ahead(uint64_t ptr, uint32_t max_songs
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_GENRE_SONGS
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_GENRE_SONGS
 RustBuffer uniffi_encore_core_fn_method_encorecore_genre_songs(uint64_t ptr, RustBuffer genre, uint32_t offset, uint32_t limit, RustCallStatus *_Nonnull out_status
@@ -1100,6 +1110,18 @@ uint16_t uniffi_encore_core_checksum_method_encorecore_current_profile(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_DROP_PREVIEW
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_DROP_PREVIEW
 uint16_t uniffi_encore_core_checksum_method_encorecore_drop_preview(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_EXPORT_PROFILE
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_EXPORT_PROFILE
+uint16_t uniffi_encore_core_checksum_method_encorecore_export_profile(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_FETCH_LYRICS_AHEAD
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_FETCH_LYRICS_AHEAD
+uint16_t uniffi_encore_core_checksum_method_encorecore_fetch_lyrics_ahead(void
     
 );
 #endif

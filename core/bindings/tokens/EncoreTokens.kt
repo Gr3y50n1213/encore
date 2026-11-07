@@ -1626,6 +1626,7 @@ object EncoreTokens {
             const val albums: Int = 10
             const val artists: Int = 10
             const val playlists: Int = 10
+            const val lyrics: Int = 5
         }
         const val recentSearchesMax: Int = 20
         const val typoMaxEdits: Int = 2

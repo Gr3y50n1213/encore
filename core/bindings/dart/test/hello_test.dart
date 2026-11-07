@@ -120,6 +120,22 @@ void main() {
       expect(lyrics, isNotNull);
       expect(lyrics!.syncLevel, LyricsSync.line);
       expect(lyrics.lines, isNotEmpty);
+      // Search finds the song by a line of its lyrics (or by its title).
+      final words = lyrics.lines
+          .firstWhere((l) => l.text.split(' ').length >= 2)
+          .text
+          .split(' ');
+      final byLyrics = core.search(query: '${words[0]} ${words[1]}');
+      expect(
+          byLyrics.lyrics.any((h) => h.song.id == lyrics!.songId) ||
+              byLyrics.songs.any((s) => s.id == lyrics!.songId),
+          isTrue);
+      // Export: one open JSON file.
+      final exportFile = File('${dir.path}/export.json');
+      final exported = core.exportProfile(
+          profileId: signedIn.profileId, destPath: exportFile.path);
+      expect(exported.bytes, greaterThan(BigInt.zero));
+      expect(exportFile.lengthSync(), exported.bytes.toInt());
       final artAlbum = core
           .albums(sort: AlbumSort.title, offset: 0, limit: 100)
           .firstWhere((a) => a.hasArtwork);

@@ -748,6 +748,10 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_drop_preview(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_export_profile(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_fetch_lyrics_ahead(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_genre_songs(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_genres(
@@ -939,6 +943,10 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_drop_preview(`ptr`: Long,`target`: RustBuffer.ByValue,`songIds`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_export_profile(`ptr`: Long,`profileId`: RustBuffer.ByValue,`destPath`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_fetch_lyrics_ahead(`ptr`: Long,`maxSongs`: Int,
+    ): Long
     external fun uniffi_encore_core_fn_method_encorecore_genre_songs(`ptr`: Long,`genre`: RustBuffer.ByValue,`offset`: Int,`limit`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_genres(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -1258,6 +1266,12 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_drop_preview() and 0xFFFF) != 698) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_export_profile() and 0xFFFF) != 18528) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_fetch_lyrics_ahead() and 0xFFFF) != 11521) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_genre_songs() and 0xFFFF) != 51346) {
@@ -1747,6 +1761,29 @@ public object FfiConverterInt: FfiConverter<Int, Int> {
 
     override fun write(value: Int, buf: ByteBuffer) {
         buf.putInt(value)
+    }
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterULong: FfiConverter<ULong, Long> {
+    override fun lift(value: Long): ULong {
+        return value.toULong()
+    }
+
+    override fun read(buf: ByteBuffer): ULong {
+        return lift(buf.getLong())
+    }
+
+    override fun lower(value: ULong): Long {
+        return value.toLong()
+    }
+
+    override fun allocationSize(value: ULong) = 8UL
+
+    override fun write(value: ULong, buf: ByteBuffer) {
+        buf.putLong(value.toLong())
     }
 }
 
@@ -2382,6 +2419,26 @@ public interface EncoreCoreInterface {
      * would get, or why it's refused. Synchronous.
      */
     fun `dropPreview`(`target`: DropTarget, `songIds`: List<kotlin.Long>): DropPreview
+    
+    /**
+     * Export everything the profile holds as one open JSON file (board 19, item
+     * 5): its play log, likes, playlists, settings and recent searches. The format
+     * is in docs/core/EXPORT-FORMAT.md; tokens are never in it. It reads through its
+     * own connection, so playback and browsing carry on while it runs. Refused in
+     * Guest mode ("Nothing is saved in Guest mode"). Blocking: call off the main
+     * thread, with the board's progress row showing until it returns.
+     */
+    fun `exportProfile`(`profileId`: kotlin.String, `destPath`: kotlin.String): ExportSummary
+    
+    /**
+     * Fetch lyrics for songs that have them and aren't kept yet, trying up to
+     * `max_songs`, so search finds songs by their lyrics before they were ever
+     * opened. Call it after a sync, on Wi-Fi; call again while it returns more
+     * than 0. Returns how many songs it tried. A song that fails is skipped for
+     * the rest of the session; it stops early when the server can't be reached.
+     * Async.
+     */
+    suspend fun `fetchLyricsAhead`(`maxSongs`: kotlin.UInt): kotlin.UInt
     
     fun `genreSongs`(`genre`: kotlin.String, `offset`: kotlin.UInt, `limit`: kotlin.UInt): List<Song>
     
@@ -3137,6 +3194,60 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
     )
     }
     
+
+    
+    /**
+     * Export everything the profile holds as one open JSON file (board 19, item
+     * 5): its play log, likes, playlists, settings and recent searches. The format
+     * is in docs/core/EXPORT-FORMAT.md; tokens are never in it. It reads through its
+     * own connection, so playback and browsing carry on while it runs. Refused in
+     * Guest mode ("Nothing is saved in Guest mode"). Blocking: call off the main
+     * thread, with the board's progress row showing until it returns.
+     */
+    @Throws(EncoreException::class)override fun `exportProfile`(`profileId`: kotlin.String, `destPath`: kotlin.String): ExportSummary {
+            return FfiConverterTypeExportSummary.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_export_profile(
+        it,
+        
+        FfiConverterString.lower(`profileId`),
+        FfiConverterString.lower(`destPath`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Fetch lyrics for songs that have them and aren't kept yet, trying up to
+     * `max_songs`, so search finds songs by their lyrics before they were ever
+     * opened. Call it after a sync, on Wi-Fi; call again while it returns more
+     * than 0. Returns how many songs it tried. A song that fails is skipped for
+     * the rest of the session; it stops early when the server can't be reached.
+     * Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `fetchLyricsAhead`(`maxSongs`: kotlin.UInt) : kotlin.UInt {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_fetch_lyrics_ahead(
+                uniffiHandle,
+                
+        FfiConverterUInt.lower(`maxSongs`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_u32(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_u32(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_u32(future) },
+        // lift function
+        { FfiConverterUInt.lift(it) },
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
 
     
     @Throws(EncoreException::class)override fun `genreSongs`(`genre`: kotlin.String, `offset`: kotlin.UInt, `limit`: kotlin.UInt): List<Song> {
@@ -4957,6 +5068,62 @@ public object FfiConverterTypeEditResult: FfiConverterRustBuffer<EditResult> {
 
 
 
+/**
+ * What went into an export, for the "Export finished" row and the share sheet.
+ */
+data class ExportSummary (
+    var `plays`: kotlin.ULong
+    , 
+    var `likes`: kotlin.ULong
+    , 
+    var `playlists`: kotlin.ULong
+    , 
+    var `playlistSongs`: kotlin.ULong
+    , 
+    var `bytes`: kotlin.ULong
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeExportSummary: FfiConverterRustBuffer<ExportSummary> {
+    override fun read(buf: ByteBuffer): ExportSummary {
+        return ExportSummary(
+            FfiConverterULong.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterULong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: ExportSummary) = (
+            FfiConverterULong.allocationSize(value.`plays`) +
+            FfiConverterULong.allocationSize(value.`likes`) +
+            FfiConverterULong.allocationSize(value.`playlists`) +
+            FfiConverterULong.allocationSize(value.`playlistSongs`) +
+            FfiConverterULong.allocationSize(value.`bytes`)
+    )
+
+    override fun write(value: ExportSummary, buf: ByteBuffer) {
+            FfiConverterULong.write(value.`plays`, buf)
+            FfiConverterULong.write(value.`likes`, buf)
+            FfiConverterULong.write(value.`playlists`, buf)
+            FfiConverterULong.write(value.`playlistSongs`, buf)
+            FfiConverterULong.write(value.`bytes`, buf)
+    }
+}
+
+
+
 data class GenreSummary (
     var `name`: kotlin.String
     , 
@@ -5220,6 +5387,58 @@ public object FfiConverterTypeLyricLine: FfiConverterRustBuffer<LyricLine> {
             FfiConverterDouble.write(value.`confidence`, buf)
             FfiConverterOptionalString.write(value.`translation`, buf)
             FfiConverterOptionalString.write(value.`pronunciation`, buf)
+    }
+}
+
+
+
+/**
+ * A song found by its lyrics. `line_index` and `start_ms` open the lyrics view
+ * at that line.
+ */
+data class LyricMatch (
+    var `song`: Song
+    , 
+    var `line`: kotlin.String
+    , 
+    var `lineIndex`: kotlin.UInt
+    , 
+    var `startMs`: kotlin.Long?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeLyricMatch: FfiConverterRustBuffer<LyricMatch> {
+    override fun read(buf: ByteBuffer): LyricMatch {
+        return LyricMatch(
+            FfiConverterTypeSong.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterOptionalLong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: LyricMatch) = (
+            FfiConverterTypeSong.allocationSize(value.`song`) +
+            FfiConverterString.allocationSize(value.`line`) +
+            FfiConverterUInt.allocationSize(value.`lineIndex`) +
+            FfiConverterOptionalLong.allocationSize(value.`startMs`)
+    )
+
+    override fun write(value: LyricMatch, buf: ByteBuffer) {
+            FfiConverterTypeSong.write(value.`song`, buf)
+            FfiConverterString.write(value.`line`, buf)
+            FfiConverterUInt.write(value.`lineIndex`, buf)
+            FfiConverterOptionalLong.write(value.`startMs`, buf)
     }
 }
 
@@ -5663,6 +5882,12 @@ data class SearchResults (
     var `artists`: List<ArtistSummary>
     , 
     var `playlists`: List<PlaylistSummary>
+    , 
+    /**
+     * Songs found by a line of their lyrics, not already in `songs`: show them in
+     * the Songs section after the title matches, with the line under the title.
+     */
+    var `lyrics`: List<LyricMatch>
     
 ){
     
@@ -5684,6 +5909,7 @@ public object FfiConverterTypeSearchResults: FfiConverterRustBuffer<SearchResult
             FfiConverterSequenceTypeAlbumSummary.read(buf),
             FfiConverterSequenceTypeArtistSummary.read(buf),
             FfiConverterSequenceTypePlaylistSummary.read(buf),
+            FfiConverterSequenceTypeLyricMatch.read(buf),
         )
     }
 
@@ -5692,7 +5918,8 @@ public object FfiConverterTypeSearchResults: FfiConverterRustBuffer<SearchResult
             FfiConverterSequenceTypeSong.allocationSize(value.`songs`) +
             FfiConverterSequenceTypeAlbumSummary.allocationSize(value.`albums`) +
             FfiConverterSequenceTypeArtistSummary.allocationSize(value.`artists`) +
-            FfiConverterSequenceTypePlaylistSummary.allocationSize(value.`playlists`)
+            FfiConverterSequenceTypePlaylistSummary.allocationSize(value.`playlists`) +
+            FfiConverterSequenceTypeLyricMatch.allocationSize(value.`lyrics`)
     )
 
     override fun write(value: SearchResults, buf: ByteBuffer) {
@@ -5701,6 +5928,7 @@ public object FfiConverterTypeSearchResults: FfiConverterRustBuffer<SearchResult
             FfiConverterSequenceTypeAlbumSummary.write(value.`albums`, buf)
             FfiConverterSequenceTypeArtistSummary.write(value.`artists`, buf)
             FfiConverterSequenceTypePlaylistSummary.write(value.`playlists`, buf)
+            FfiConverterSequenceTypeLyricMatch.write(value.`lyrics`, buf)
     }
 }
 
@@ -8685,6 +8913,34 @@ public object FfiConverterSequenceTypeLyricLine: FfiConverterRustBuffer<List<Lyr
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeLyricLine.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeLyricMatch: FfiConverterRustBuffer<List<LyricMatch>> {
+    override fun read(buf: ByteBuffer): List<LyricMatch> {
+        val len = buf.getInt()
+        return List<LyricMatch>(len) {
+            FfiConverterTypeLyricMatch.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<LyricMatch>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeLyricMatch.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<LyricMatch>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeLyricMatch.write(it, buf)
         }
     }
 }

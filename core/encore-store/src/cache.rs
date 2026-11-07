@@ -59,6 +59,18 @@ impl Store {
         Ok(())
     }
 
+    /// Songs the server says have lyrics that aren't kept here yet.
+    pub fn songs_without_kept_lyrics(&self, limit: u32) -> Result<Vec<i64>> {
+        let mut st = self.conn.prepare_cached(
+            "SELECT t.id FROM tracks t
+             WHERE t.has_lyrics = 1
+               AND NOT EXISTS (SELECT 1 FROM lyrics_cache c WHERE c.track_id = t.id)
+             ORDER BY t.id LIMIT ?1",
+        )?;
+        let ids = st.query_map([limit], |r| r.get(0))?;
+        Ok(ids.collect::<rusqlite::Result<_>>()?)
+    }
+
     /// `kind` is "album" or "playlist".
     pub fn cached_palette(&self, kind: &str, item_id: i64) -> Result<Option<CachedPalette>> {
         Ok(self

@@ -1,5 +1,6 @@
 //! Search must answer in under `search.budgetMs` (50 ms, board 07) on a large
-//! library. This builds 50,000 songs and times typical queries.
+//! library. This builds 50,000 songs, 10,000 of them with 40 lines of kept lyrics,
+//! and times typical queries (each also searches the lyrics).
 //!
 //! Ignored in ordinary runs (it takes a few seconds); CI runs it in release mode:
 //!   cargo test -p encore-store --release --test search_budget -- --ignored --nocapture
@@ -261,7 +262,53 @@ fn browse_pages_stay_under_budget_on_50000_songs() {
 #[test]
 #[ignore = "slow: run in release mode in CI"]
 fn search_stays_under_budget_on_50000_songs() {
+    use encore_store::{Page, TrackSort};
     let (store, delta) = store_with_library();
+    // A big lyrics library: 10,000 songs, 40 lines of 6 words each (400,000 lines).
+    let mut w = Words(0xD1B5_4A32_D192_ED03);
+    let ids: Vec<i64> = store
+        .tracks(
+            TrackSort::RecentlyAdded,
+            Page {
+                offset: 0,
+                limit: 10_000,
+            },
+        )
+        .unwrap()
+        .iter()
+        .map(|t| t.id)
+        .collect();
+    assert_eq!(ids.len(), 10_000);
+    let started = Instant::now();
+    let mut a_line = String::new();
+    // One transaction, as a sync's lyrics-ahead batch would be on a real device.
+    store
+        .in_transaction(|store| {
+            for id in &ids {
+                let lines: Vec<(String, Option<i64>)> = (0..40)
+                    .map(|i| {
+                        let line = (0..6).map(|_| w.word()).collect::<Vec<_>>().join(" ");
+                        (line, Some(i * 4_000))
+                    })
+                    .collect();
+                if a_line.is_empty() {
+                    a_line = lines[20].0.clone();
+                }
+                store.index_lyrics(*id, &lines).unwrap();
+            }
+            Ok(())
+        })
+        .unwrap();
+    println!(
+        "indexed 400,000 lyric lines in {:.1} s",
+        started.elapsed().as_secs_f64()
+    );
+    let phrase = a_line
+        .split(' ')
+        .skip(2)
+        .take(2)
+        .collect::<Vec<_>>()
+        .join(" ");
     let probe = delta.tracks[SONGS / 2].title.clone();
     let word = probe.split(' ').next().unwrap().to_owned();
     let mut typo = word.to_lowercase();
@@ -275,6 +322,7 @@ fn search_stays_under_budget_on_50000_songs() {
         ("one letter", "k".to_owned()),
         ("two letters", "ma".to_owned()),
         ("artist", artist.to_lowercase()),
+        ("lyric phrase", phrase.to_lowercase()),
         ("no match", "zzzzqqqq".to_owned()),
     ];
     let limits = SearchLimits {
@@ -282,24 +330,33 @@ fn search_stays_under_budget_on_50000_songs() {
         albums: 10,
         artists: 10,
         playlists: 10,
+        lyrics: 5,
     };
-    let mut worst = Duration::ZERO;
-    for (label, q) in &queries {
+    let names_only = SearchLimits {
+        lyrics: 0,
+        ..limits
+    };
+    let median_of = |q: &str, limits: &SearchLimits| -> (Duration, Duration) {
         let mut times: Vec<Duration> = (0..7)
             .map(|_| {
                 let t = Instant::now();
-                let r = store.search(q, &limits, 2).unwrap();
-                std::hint::black_box(r);
+                std::hint::black_box(store.search(q, limits, 2).unwrap());
                 t.elapsed()
             })
             .collect();
         times.sort();
-        let median = times[times.len() / 2];
+        (times[times.len() / 2], times[6])
+    };
+    let mut worst = Duration::ZERO;
+    for (label, q) in &queries {
+        let (median, max) = median_of(q, &limits);
+        let (names, _) = median_of(q, &names_only);
         worst = worst.max(median);
         println!(
-            "search {label:<15} {q:?}: median {:.2} ms (max {:.2} ms)",
+            "search {label:<15} {q:?}: median {:.2} ms (max {:.2} ms; names only {:.2} ms)",
             median.as_secs_f64() * 1e3,
-            times[6].as_secs_f64() * 1e3
+            max.as_secs_f64() * 1e3,
+            names.as_secs_f64() * 1e3
         );
     }
     println!(

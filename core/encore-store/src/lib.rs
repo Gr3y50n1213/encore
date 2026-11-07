@@ -14,6 +14,7 @@ mod backup;
 mod browse;
 mod cache;
 mod edits;
+mod export;
 mod mirror;
 mod playlog;
 mod schema;
@@ -23,9 +24,10 @@ pub use backup::{BackupInfo, migration_copies};
 pub use browse::*;
 pub use cache::{CachedLyrics, CachedPalette};
 pub use edits::{EventRecord, OutboxRow, PlaylistItemRow, PlaylistRecord, UndoRow};
+pub use export::{EXPORT_FORMAT, EXPORT_VERSION, ExportCounts, ExportHeader};
 pub use mirror::{ApplyStats, LOCAL_ITEM_PREFIX};
 pub use playlog::*;
-pub use search::{SearchLimits, SearchResults, TopResult, fold_for_search};
+pub use search::{LyricHit, SearchLimits, SearchResults, TopResult, fold_for_search};
 
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {
@@ -378,16 +380,22 @@ mod tests {
             .execute_batch(
                 "INSERT INTO lyrics_cache VALUES (1, 'mediaServer', 'jellyfin', '{}', 5);
                  INSERT INTO artwork_palettes VALUES ('album', 1, 'tag', '{}', 5);
+                 INSERT INTO lyrics_index (rowid, text, start_ms) VALUES (4096, 'a lantern line', 0);
                  UPDATE tracks SET has_lyrics = 0 WHERE id = 1;",
             )
             .unwrap();
-        let cached: i64 = s
+        let (cached, indexed): (i64, i64) = s
             .conn
-            .query_row("SELECT count(*) FROM lyrics_cache", [], |r| r.get(0))
+            .query_row(
+                "SELECT (SELECT count(*) FROM lyrics_cache), (SELECT count(*) FROM lyrics_index)",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
             .unwrap();
         assert_eq!(
-            cached, 0,
-            "lyrics are fetched again when the song's lyrics change"
+            (cached, indexed),
+            (0, 0),
+            "lyrics are fetched and indexed again when the song's lyrics change"
         );
         s.conn
             .execute("DELETE FROM albums WHERE id = 1", [])

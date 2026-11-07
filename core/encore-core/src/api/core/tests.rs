@@ -384,6 +384,57 @@ fn streams_use_the_quality_setting_and_never_log_the_token() {
     assert!(art.url.contains("fillWidth=300"));
 }
 
+/// Board 19, item 5: one open file with the play log, likes, playlists and
+/// settings; never a token; nothing in Guest mode.
+#[test]
+fn an_export_holds_the_history_likes_and_playlists_in_open_json() {
+    let dir = temp_dir("export");
+    let (core, _) = core_on_recording(&dir);
+    let s = signed_in(&core);
+    block(core.sync_library()).unwrap();
+    let ids: Vec<i64> = core
+        .songs(SongSort::Title, 0, 3)
+        .unwrap()
+        .iter()
+        .map(|x| x.id)
+        .collect();
+    let state = core.play(ids.clone(), 0, StartedFrom::Songs, None).unwrap();
+    core.playback_started(state.current.unwrap().uid, 60)
+        .unwrap();
+    core.playback_ended(EndReason::Finished, 200_000).unwrap();
+    let likes_before = core.liked_songs(0, 1000).unwrap().len() as u64;
+    core.like(vec![ids[2]]).unwrap();
+
+    let file = dir.0.join("encore-export.json");
+    let summary = core
+        .export_profile(s.profile_id.clone(), file.to_string_lossy().into_owned())
+        .unwrap();
+    let text = std::fs::read_to_string(&file).unwrap();
+    assert!(
+        !text.contains("anonymized-token"),
+        "an export never holds the token"
+    );
+    let v: serde_json::Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(v["format"], "encore-export");
+    assert_eq!(v["profile"]["id"], s.profile_id.as_str());
+    assert_eq!(summary.bytes, text.len() as u64);
+    assert_eq!(summary.plays, 1);
+    assert_eq!(v["plays"][0]["end_reason"], "finished");
+    assert_eq!(summary.likes, likes_before + 1);
+    assert_eq!(
+        summary.playlists,
+        core.playlists(0, 1000).unwrap().len() as u64
+    );
+    assert_eq!(v["servers"][0]["kind"], "jellyfin");
+
+    // Guest mode saves nothing, so there is nothing to export.
+    core.set_listening_mode(ListeningMode::Guest).unwrap();
+    assert!(matches!(
+        core.export_profile(s.profile_id, file.to_string_lossy().into_owned()),
+        Err(EncoreError::NotAllowed { .. })
+    ));
+}
+
 #[test]
 fn a_backup_taken_while_playing_restores_on_another_device() {
     let dir = temp_dir("backup");
@@ -503,6 +554,68 @@ fn lyrics_are_read_cached_and_shown_offline() {
         block(core.lyrics(999_999)),
         Err(EncoreError::NotFound { .. })
     ));
+}
+
+/// Board 07: "lyrics included when the server has them". Fetching ahead keeps
+/// every recorded song's lyrics, then search finds a song by a line of them, with
+/// the line and its time to open the lyrics view at.
+#[test]
+fn songs_are_found_by_their_lyrics_after_fetching_ahead() {
+    let dir = temp_dir("lyrics-search");
+    let (core, _) = core_on_recording(&dir);
+    let _s = signed_in(&core);
+    block(core.sync_library()).unwrap();
+    let with_lyrics = core
+        .songs(SongSort::Title, 0, 1000)
+        .unwrap()
+        .iter()
+        .filter(|x| x.has_lyrics)
+        .count() as u32;
+
+    // Batches of 10 until nothing is left to try; a failed song isn't tried again.
+    let mut tried = 0;
+    loop {
+        let n = block(core.fetch_lyrics_ahead(10)).unwrap();
+        assert!(n <= 10);
+        if n == 0 {
+            break;
+        }
+        tried += n;
+    }
+    assert_eq!(tried, with_lyrics, "every song with lyrics tried once");
+
+    // A word-start of a lyric line from a song whose title doesn't contain it.
+    let mut probe = None;
+    for song in core.songs(SongSort::Title, 0, 1000).unwrap() {
+        let Ok(Some(l)) = block(core.lyrics(song.id)) else {
+            continue;
+        };
+        let title = song.title.to_lowercase();
+        for (i, line) in l.lines.iter().enumerate() {
+            let words: Vec<&str> = line.text.split_whitespace().collect();
+            if words.len() >= 3 && !title.contains(&words[1].to_lowercase()) {
+                let q = format!("{} {}", words[0], words[1]);
+                probe = Some((song.id, q, i as u32, line.start_ms));
+                break;
+            }
+        }
+        if probe.is_some() {
+            break;
+        }
+    }
+    let (song_id, q, line_index, start_ms) = probe.expect("a lyric line to search for");
+    let r = core.search(q.clone()).unwrap();
+    let hit = r
+        .lyrics
+        .iter()
+        .find(|h| h.song.id == song_id)
+        .unwrap_or_else(|| panic!("{q:?} finds its song by its lyrics"));
+    assert!(hit.line.to_lowercase().contains(&q.to_lowercase()));
+    assert!(hit.line_index <= line_index, "the first line that matches");
+    if hit.line_index == line_index {
+        assert_eq!(hit.start_ms, start_ms);
+    }
+    assert!(r.lyrics.len() as u32 <= tokens().search_lyrics);
 }
 
 /// The recording, plus every album cover answered with the board's Golden Hour

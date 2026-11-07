@@ -519,6 +519,22 @@ fileprivate struct FfiConverterInt32: FfiConverterPrimitive {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterUInt64: FfiConverterPrimitive {
+    typealias FfiType = UInt64
+    typealias SwiftType = UInt64
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> UInt64 {
+        return try lift(readInt(&buf))
+    }
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterInt64: FfiConverterPrimitive {
     typealias FfiType = Int64
     typealias SwiftType = Int64
@@ -918,6 +934,26 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
      * would get, or why it's refused. Synchronous.
      */
     func dropPreview(target: DropTarget, songIds: [Int64]) throws  -> DropPreview
+    
+    /**
+     * Export everything the profile holds as one open JSON file (board 19, item
+     * 5): its play log, likes, playlists, settings and recent searches. The format
+     * is in docs/core/EXPORT-FORMAT.md; tokens are never in it. It reads through its
+     * own connection, so playback and browsing carry on while it runs. Refused in
+     * Guest mode ("Nothing is saved in Guest mode"). Blocking: call off the main
+     * thread, with the board's progress row showing until it returns.
+     */
+    func exportProfile(profileId: String, destPath: String) throws  -> ExportSummary
+    
+    /**
+     * Fetch lyrics for songs that have them and aren't kept yet, trying up to
+     * `max_songs`, so search finds songs by their lyrics before they were ever
+     * opened. Call it after a sync, on Wi-Fi; call again while it returns more
+     * than 0. Returns how many songs it tried. A song that fails is skipped for
+     * the rest of the session; it stops early when the server can't be reached.
+     * Async.
+     */
+    func fetchLyricsAhead(maxSongs: UInt32) async throws  -> UInt32
     
     func genreSongs(genre: String, offset: UInt32, limit: UInt32) throws  -> [Song]
     
@@ -1527,6 +1563,49 @@ open func dropPreview(target: DropTarget, songIds: [Int64])throws  -> DropPrevie
         FfiConverterSequenceInt64.lower(songIds),uniffiCallStatus
     )
 })
+}
+    
+    /**
+     * Export everything the profile holds as one open JSON file (board 19, item
+     * 5): its play log, likes, playlists, settings and recent searches. The format
+     * is in docs/core/EXPORT-FORMAT.md; tokens are never in it. It reads through its
+     * own connection, so playback and browsing carry on while it runs. Refused in
+     * Guest mode ("Nothing is saved in Guest mode"). Blocking: call off the main
+     * thread, with the board's progress row showing until it returns.
+     */
+open func exportProfile(profileId: String, destPath: String)throws  -> ExportSummary  {
+    return try  FfiConverterTypeExportSummary_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_export_profile(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(profileId),
+        FfiConverterString.lower(destPath),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Fetch lyrics for songs that have them and aren't kept yet, trying up to
+     * `max_songs`, so search finds songs by their lyrics before they were ever
+     * opened. Call it after a sync, on Wi-Fi; call again while it returns more
+     * than 0. Returns how many songs it tried. A song that fails is skipped for
+     * the rest of the session; it stops early when the server can't be reached.
+     * Async.
+     */
+open func fetchLyricsAhead(maxSongs: UInt32)async throws  -> UInt32  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_fetch_lyrics_ahead(
+                        self.uniffiCloneHandle(),FfiConverterUInt32.lower(maxSongs)
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_u32,
+            completeFunc: ffi_encore_core_rust_future_complete_u32,
+            freeFunc: ffi_encore_core_rust_future_free_u32,
+            liftFunc: FfiConverterUInt32.lift,
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
 }
     
 open func genreSongs(genre: String, offset: UInt32, limit: UInt32)throws  -> [Song]  {
@@ -3247,6 +3326,75 @@ public func FfiConverterTypeEditResult_lower(_ value: EditResult) -> RustBuffer 
 }
 
 
+/**
+ * What went into an export, for the "Export finished" row and the share sheet.
+ */
+public struct ExportSummary: Equatable, Hashable {
+    public var plays: UInt64
+    public var likes: UInt64
+    public var playlists: UInt64
+    public var playlistSongs: UInt64
+    public var bytes: UInt64
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(plays: UInt64, likes: UInt64, playlists: UInt64, playlistSongs: UInt64, bytes: UInt64) {
+        self.plays = plays
+        self.likes = likes
+        self.playlists = playlists
+        self.playlistSongs = playlistSongs
+        self.bytes = bytes
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension ExportSummary: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeExportSummary: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ExportSummary {
+        return
+            try ExportSummary(
+                plays: FfiConverterUInt64.read(from: &buf), 
+                likes: FfiConverterUInt64.read(from: &buf), 
+                playlists: FfiConverterUInt64.read(from: &buf), 
+                playlistSongs: FfiConverterUInt64.read(from: &buf), 
+                bytes: FfiConverterUInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: ExportSummary, into buf: inout [UInt8]) {
+        FfiConverterUInt64.write(value.plays, into: &buf)
+        FfiConverterUInt64.write(value.likes, into: &buf)
+        FfiConverterUInt64.write(value.playlists, into: &buf)
+        FfiConverterUInt64.write(value.playlistSongs, into: &buf)
+        FfiConverterUInt64.write(value.bytes, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeExportSummary_lift(_ buf: RustBuffer) throws -> ExportSummary {
+    return try FfiConverterTypeExportSummary.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeExportSummary_lower(_ value: ExportSummary) -> RustBuffer {
+    return FfiConverterTypeExportSummary.lower(value)
+}
+
+
 public struct GenreSummary: Equatable, Hashable {
     public var name: String
     public var songCount: UInt32
@@ -3597,6 +3745,72 @@ public func FfiConverterTypeLyricLine_lift(_ buf: RustBuffer) throws -> LyricLin
 #endif
 public func FfiConverterTypeLyricLine_lower(_ value: LyricLine) -> RustBuffer {
     return FfiConverterTypeLyricLine.lower(value)
+}
+
+
+/**
+ * A song found by its lyrics. `line_index` and `start_ms` open the lyrics view
+ * at that line.
+ */
+public struct LyricMatch: Equatable, Hashable {
+    public var song: Song
+    public var line: String
+    public var lineIndex: UInt32
+    public var startMs: Int64?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(song: Song, line: String, lineIndex: UInt32, startMs: Int64?) {
+        self.song = song
+        self.line = line
+        self.lineIndex = lineIndex
+        self.startMs = startMs
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension LyricMatch: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeLyricMatch: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> LyricMatch {
+        return
+            try LyricMatch(
+                song: FfiConverterTypeSong.read(from: &buf), 
+                line: FfiConverterString.read(from: &buf), 
+                lineIndex: FfiConverterUInt32.read(from: &buf), 
+                startMs: FfiConverterOptionInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: LyricMatch, into buf: inout [UInt8]) {
+        FfiConverterTypeSong.write(value.song, into: &buf)
+        FfiConverterString.write(value.line, into: &buf)
+        FfiConverterUInt32.write(value.lineIndex, into: &buf)
+        FfiConverterOptionInt64.write(value.startMs, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLyricMatch_lift(_ buf: RustBuffer) throws -> LyricMatch {
+    return try FfiConverterTypeLyricMatch.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLyricMatch_lower(_ value: LyricMatch) -> RustBuffer {
+    return FfiConverterTypeLyricMatch.lower(value)
 }
 
 
@@ -4181,15 +4395,25 @@ public struct SearchResults: Equatable, Hashable {
     public var albums: [AlbumSummary]
     public var artists: [ArtistSummary]
     public var playlists: [PlaylistSummary]
+    /**
+     * Songs found by a line of their lyrics, not already in `songs`: show them in
+     * the Songs section after the title matches, with the line under the title.
+     */
+    public var lyrics: [LyricMatch]
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(top: TopResult?, songs: [Song], albums: [AlbumSummary], artists: [ArtistSummary], playlists: [PlaylistSummary]) {
+    public init(top: TopResult?, songs: [Song], albums: [AlbumSummary], artists: [ArtistSummary], playlists: [PlaylistSummary], 
+        /**
+         * Songs found by a line of their lyrics, not already in `songs`: show them in
+         * the Songs section after the title matches, with the line under the title.
+         */lyrics: [LyricMatch]) {
         self.top = top
         self.songs = songs
         self.albums = albums
         self.artists = artists
         self.playlists = playlists
+        self.lyrics = lyrics
     }
 
     
@@ -4212,7 +4436,8 @@ public struct FfiConverterTypeSearchResults: FfiConverterRustBuffer {
                 songs: FfiConverterSequenceTypeSong.read(from: &buf), 
                 albums: FfiConverterSequenceTypeAlbumSummary.read(from: &buf), 
                 artists: FfiConverterSequenceTypeArtistSummary.read(from: &buf), 
-                playlists: FfiConverterSequenceTypePlaylistSummary.read(from: &buf)
+                playlists: FfiConverterSequenceTypePlaylistSummary.read(from: &buf), 
+                lyrics: FfiConverterSequenceTypeLyricMatch.read(from: &buf)
         )
     }
 
@@ -4222,6 +4447,7 @@ public struct FfiConverterTypeSearchResults: FfiConverterRustBuffer {
         FfiConverterSequenceTypeAlbumSummary.write(value.albums, into: &buf)
         FfiConverterSequenceTypeArtistSummary.write(value.artists, into: &buf)
         FfiConverterSequenceTypePlaylistSummary.write(value.playlists, into: &buf)
+        FfiConverterSequenceTypeLyricMatch.write(value.lyrics, into: &buf)
     }
 }
 
@@ -8239,6 +8465,31 @@ fileprivate struct FfiConverterSequenceTypeLyricLine: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterSequenceTypeLyricMatch: FfiConverterRustBuffer {
+    typealias SwiftType = [LyricMatch]
+
+    public static func write(_ value: [LyricMatch], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeLyricMatch.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [LyricMatch] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [LyricMatch]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeLyricMatch.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterSequenceTypeLyricWord: FfiConverterRustBuffer {
     typealias SwiftType = [LyricWord]
 
@@ -8673,6 +8924,12 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_drop_preview() != 698) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_export_profile() != 18528) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_fetch_lyrics_ahead() != 11521) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_genre_songs() != 51346) {
