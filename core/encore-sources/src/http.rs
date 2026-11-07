@@ -183,6 +183,11 @@ impl HttpTransport {
         // the ApiKey parameter).
         let mut source: Option<&dyn std::error::Error> = Some(&e);
         while let Some(err) = source {
+            // A TLS failure says why (an expired certificate, or Android's
+            // EncoreTls.initialize not called yet), instead of "error sending request".
+            if let Some(reason) = tls_reason(err) {
+                return SourceError::Unreachable(Unreachable::Tls(reason));
+            }
             if let Some(io) = err.downcast_ref::<std::io::Error>() {
                 match io.kind() {
                     std::io::ErrorKind::ConnectionRefused => {
@@ -205,6 +210,18 @@ impl HttpTransport {
         }
         SourceError::Unreachable(Unreachable::Other(e.without_url().to_string()))
     }
+}
+
+/// The TLS library's own words, when `err` is (or wraps, as I/O errors do) one of
+/// its errors. An I/O error's `source()` skips the error it wraps, so look inside.
+fn tls_reason(err: &(dyn std::error::Error + 'static)) -> Option<String> {
+    if let Some(t) = err.downcast_ref::<rustls::Error>() {
+        return Some(t.to_string());
+    }
+    err.downcast_ref::<std::io::Error>()
+        .and_then(|io| io.get_ref())
+        .and_then(|inner| inner.downcast_ref::<rustls::Error>())
+        .map(|t| t.to_string())
 }
 
 impl Transport for HttpTransport {
@@ -254,5 +271,22 @@ mod tests {
             sha256_hex(b"abc"),
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
         );
+    }
+}
+
+#[cfg(test)]
+mod tls_reason_tests {
+    use super::tls_reason;
+
+    #[test]
+    fn a_tls_failure_keeps_its_reason_even_inside_an_io_error() {
+        let guard = rustls::Error::General(
+            "Android certificate checks are not set up: call EncoreTls.initialize(context) when the app starts".into(),
+        );
+        let wrapped = std::io::Error::new(std::io::ErrorKind::InvalidData, guard);
+        let reason = tls_reason(&wrapped).expect("found inside the I/O error");
+        assert!(reason.contains("EncoreTls.initialize"), "{reason}");
+        let plain = std::io::Error::new(std::io::ErrorKind::ConnectionRefused, "refused");
+        assert_eq!(tls_reason(&plain), None);
     }
 }

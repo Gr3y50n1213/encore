@@ -44,7 +44,18 @@ class Listener : CoreListener {
     override fun onEvent(event: CoreEvent) {}
 }
 
+// A failure prints its reason and exits 1 (on Android an uncaught exception is a
+// silent SIGKILL, which tells the phone runner nothing).
 fun main() {
+    try {
+        smoke()
+    } catch (e: Throwable) {
+        println("FAILED: $e")
+        kotlin.system.exitProcess(1)
+    }
+}
+
+fun smoke() {
     val greeting = hello("CI")
     check(greeting == "Hello, CI, from the Encore core.") { "unexpected greeting: $greeting" }
     check(hello("") == "Hello from the Encore core.")

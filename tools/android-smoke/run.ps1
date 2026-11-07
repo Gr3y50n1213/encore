@@ -35,7 +35,15 @@ $expected = (Get-Content (Join-Path $Bundle "expected-parity.txt") -Raw).Trim()
 if ($expected -notmatch '^[0-9a-f]{8}$') { throw "expected-parity.txt holds '$expected'" }
 
 function Invoke-Adb([string]$serial, [string[]]$a) {
-    $o = & $Adb -s $serial @a 2>&1 | ForEach-Object { "$_" }
+    # adb writes progress to stderr; Windows PowerShell 5.1 would stop on it.
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $o = & $Adb -s $serial @a 2>&1 | ForEach-Object { "$_" }
+    }
+    finally {
+        $ErrorActionPreference = $prev
+    }
     return ($o -join "`n")
 }
 
@@ -77,9 +85,10 @@ foreach ($serial in $attached) {
     $abis = (Invoke-Adb $serial @("shell", "getprop", "ro.product.cpu.abilist")).Trim().Split(",") | Where-Object { $_ }
     $dir = "/data/local/tmp/encore-smoke-" + [guid]::NewGuid().ToString("N").Substring(0, 8)
     Write-Host "== $model ($serial), Android $release (API $sdk), ABIs $($abis -join ', ')"
-    Invoke-Adb $serial @("shell", "mkdir", "-p", "$dir/tmp") | Out-Null
-    foreach ($f in @("classes.dex")) { Invoke-Adb $serial @("push", (Join-Path $Bundle $f), "$dir/$f") | Out-Null }
     try {
+        # Everything this run puts on the phone is inside $dir, removed in finally.
+        Invoke-Adb $serial @("shell", "mkdir", "-p", "$dir/tmp") | Out-Null
+        Invoke-Adb $serial @("push", (Join-Path $Bundle "classes.dex"), "$dir/classes.dex") | Out-Null
         foreach ($abi in $abis) {
             $libs = Join-Path $Bundle $abi
             if (-not (Test-Path (Join-Path $libs "libencore_core.so"))) {
@@ -101,12 +110,12 @@ foreach ($serial in $attached) {
                 "$proc -Djava.io.tmpdir=$dir/tmp -Djava.library.path=$dir/$abi -Djna.library.path=$dir/$abi " +
                 "-Djna.boot.library.path=$dir/$abi $dir MainKt; echo exit=`$?"
                 $t0 = Get-Date
-                $out = Invoke-Adb $serial @("shell", $cmd)
+                $output = Invoke-Adb $serial @("shell", $cmd)
                 $secs = [math]::Round(((Get-Date) - $t0).TotalSeconds, 1)
-                Set-Content -Path (Join-Path $work "$tag.log") -Value $out -Encoding utf8
-                $ok = ($out -match 'library flow OK') -and ($out -match 'https guard OK') -and ($out -match "parity $expected") -and ($out -match 'exit=0')
-                $parity = if ($out -match 'parity ([0-9a-f]{8})') { $Matches[1] } else { "none" }
-                $verdict = if ($ok) { "passed (parity $parity)" } else { "FAILED (parity $parity): " + (($out -split "`n" | Select-Object -Last 6) -join " / ") }
+                Set-Content -Path (Join-Path $work "$tag.log") -Value $output -Encoding utf8
+                $ok = ($output -match 'library flow OK') -and ($output -match 'https guard OK') -and ($output -match "parity $expected") -and ($output -match 'exit=0')
+                $parity = if ($output -match 'parity ([0-9a-f]{8})') { $Matches[1] } else { "none" }
+                $verdict = if ($ok) { "passed (parity $parity)" } else { "FAILED (parity $parity): " + (($output -split "`n" | Select-Object -Last 6) -join " / ") }
                 $results += [pscustomobject]@{ Device = $model; Serial = $serial; Android = "$release (API $sdk)"; Abi = $abi; Result = $verdict; Seconds = $secs }
                 Write-Host "   $abi : $verdict in $secs s"
             }
