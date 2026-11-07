@@ -134,6 +134,9 @@ jobs:
           api-level: ${{ matrix.api }}
           target: ${{ matrix.target }}
           arch: x86_64
+          # The API 36 image's default RAM ran out at boot: Android's low-memory killer
+          # closed the launcher, the keyboard and the test process (run 42413014425).
+          ram-size: 4096M
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
           script: bash android/ci/device-check.sh apks
