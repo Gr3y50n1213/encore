@@ -34,9 +34,25 @@ android {
         }
     }
 
+    // One test key for every build that goes on the owner's phones, so a new build
+    // installs over the last one. Never the Play key (that is the owner's, made before
+    // the first upload). It lives outside the repository: ENCORE_TEST_KEYSTORE names
+    // the file (CI decodes it from a repository secret). Without it, Android's debug key.
+    val testKeystore = providers.environmentVariable("ENCORE_TEST_KEYSTORE").orNull
+        ?.let(::file)?.takeIf { it.isFile }
+    if (testKeystore != null) {
+        signingConfigs.create("test") {
+            storeFile = testKeystore
+            storePassword = providers.environmentVariable("ENCORE_TEST_KEYSTORE_PASSWORD").get()
+            keyAlias = "encore-test"
+            keyPassword = providers.environmentVariable("ENCORE_TEST_KEYSTORE_PASSWORD").get()
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
+            signingConfigs.findByName("test")?.let { signingConfig = it }
         }
         release {
             isMinifyEnabled = true
@@ -44,9 +60,10 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             // No release key exists yet (it is the owner's, made before the first Play
             // upload). For trying a release build on a phone or in CI, pass
-            // -Pencore.signReleaseWithDebugKey=true; never for a build that leaves the house.
+            // -Pencore.signReleaseWithDebugKey=true: it is signed with the test key above
+            // when there is one, else the debug key. Never for a build that leaves the house.
             if (providers.gradleProperty("encore.signReleaseWithDebugKey").orNull == "true") {
-                signingConfig = signingConfigs.getByName("debug")
+                signingConfig = signingConfigs.findByName("test") ?: signingConfigs.getByName("debug")
             }
         }
     }

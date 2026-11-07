@@ -75,6 +75,23 @@ jobs:
       # Checks the wrapper jar against Gradle's published checksums, and caches Gradle.
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
+      # The owner's test key (repository secrets), so each build installs over the last
+      # on the owner's phones. Absent (a fork's pull request), Android's debug key is used.
+      - name: The test signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.ENCORE_TEST_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ENCORE_TEST_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/encore-test.jks"
+            echo "ENCORE_TEST_KEYSTORE=$RUNNER_TEMP/encore-test.jks" >> "$GITHUB_ENV"
+            echo "::add-mask::$KEYSTORE_PASSWORD"
+            echo "ENCORE_TEST_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "signing with the test key"
+          else
+            echo "no test key: signing with the debug key"
+          fi
+
       - name: make check-android
         run: make check-android
 
