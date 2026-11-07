@@ -1,6 +1,6 @@
 # Encore core API (the contract)
 
-**Version 2.1** (Phase 3 tidy-up, 7 November 2026). Core crate version `0.1.0`.
+**Version 3** (Phase 4, 7 November 2026). Core crate version `0.1.0`.
 
 This file is the only thing the platform tracks may rely on. Every public call, event and type of the core is listed here before a platform uses it. A change that breaks a platform gets a line under "Changes" and a request in `docs/requests/` that says what to change.
 
@@ -11,6 +11,7 @@ This file is the only thing the platform tracks may rely on. Every public call, 
 | 0 | 1 | First version: `hello`, `core_version`, `app_name`; token constants |
 | 1 | 2 | `EncoreCore`: connect and sign in to Jellyfin (password or Quick Connect), profiles, library sync, browse, search, the queue, playback reporting with the play log, streams, artwork, raw lyrics, events. Nothing from API 0 changed. Kotlin now also needs kotlinx-coroutines (async calls are suspend functions). |
 | 2 | 3 | Added, nothing removed. Lyrics (`lyrics`, the word-timing-ready model); album and playlist palettes; the skip signal (`skip_next` / `skip_previous` with an origin, `next_target` / `previous_target`, `playback_interrupted`, `playback_seeked`); playlist writes and likes (`drop_preview`, `add_to`, `like`, `unlike`, `are_liked`, `liked_songs`, `remove_from_playlist`, `move_in_playlist`, `rename_playlist`, `undo`, `pending_edits`, `send_edits`); `backup_profile` / `restore_profile`; the error kind `NotAllowed`. `next()` and `previous()` stay, as the button. A platform that switches over every `ErrorKind` adds `NotAllowed`. |
+| 3 | 4 | Added, nothing removed. The companion server (`connect_companion`, `disconnect_companion`, `sync_status`, `sync_now`, `companion_devices`, `revoke_device`, `delete_profile_everywhere`); profiles on one device (`switch_profile`, `unlock_profile`, `set_profile_pin`, `remove_profile_pin`, `biometrics_changed`, `rename_profile`, `reorder_profiles`, `remove_profile_from_device`, `last_active_profile`); Guest (`start_guest`, `end_guest`, `guest_session`). `ProfileSummary` gains `initials`, `avatar_url`, `locked`, `active`, `needs_sign_in`; `CoreEvent` gains `sync_status`, `remote_change`, `credential` and three kinds. `open_profile` refuses a locked profile until `unlock_profile`; a `SourceToken` with `source_id` 0 is the companion's. New `profiles` tokens. A platform that switches over every `EventKind` adds the three new kinds; one that builds `ProfileSummary` or `CoreEvent` itself adds the fields. |
 | 2.1 | 3 | Added, nothing removed. Lyrics search: `SearchResults.lyrics` (`[LyricMatch]`) and `fetch_lyrics_ahead(max_songs)`; `search.limits.lyrics` in tokens. Export: `export_profile(profile_id, dest_path)` returns `ExportSummary`. A platform that builds `SearchResults` itself (tests, previews) adds the `lyrics` field. |
 | 1, revised | 2 | Same day, after CI ran the bindings. Each error case carries its sentence as `reason`, no longer `message`, because the Kotlin exceptions clashed with `Throwable.message`. New calls: `clear_listener` (Swift, Kotlin) and `stopEvents` (Dart), which end the events. A platform that copied the first version renames `message` to `reason` in its error handling; nothing else changes. |
 
@@ -75,15 +76,38 @@ Inputs and outputs use the types under "Types". "async" marks calls that wait on
 
 | Call | Returns | Notes |
 | --- | --- | --- |
-| `profiles()` | `[ProfileSummary]` | Each with its `credentials`: where each source's token is kept. |
-| `open_profile(profile_id, tokens)` | – | `tokens`: `[SourceToken]` read from the keychain. A source without a token is browsable offline and reports `signed_in = false`. |
+| `profiles()` | `[ProfileSummary]` | The switcher's list (board 14): the open profile first, then the user's order. Each has `credentials` (where each token is kept; `source_id` 0 is the companion server's), `display_name` (the name set here, or the media-server user name), `initials` (the avatar fallback), `avatar_url` (the media server's user image, served without a token; load it like artwork; null shows initials), `locked` (a PIN is set), `active`, and `needs_sign_in` (the media server ended the sign-in: show "Sign in again"; the data stays). |
+| `open_profile(profile_id, tokens)` | – | `tokens`: `[SourceToken]` read from the keychain, the companion's included (`source_id` 0: sync starts by itself). A source without a token is browsable offline and reports `signed_in = false`. The profile's last queue loads, paused. A locked profile is `NotAllowed` until `unlock_profile`. Open `last_active_profile()` at launch. |
+| `switch_profile(profile_id, tokens, keep_playing)` | `QueueState` | Async. Board 14, item 2: this profile's unsent changes go first (3 s at most), its queue is kept, and the other opens with its own queue, paused. `keep_playing` true ("Keep playing"): the current queue moves over instead; keep the audio going and call `playback_started` again, so the rest of the song counts for the new profile. Then cross-fade, reset to Home. |
+| `unlock_profile(profile_id, pin?)` | – | Before switching to or opening a locked profile; each unlock is used by the next opening. `pin` null: your biometric check (Face ID, Touch ID, Windows Hello) passed. Wrong PINs: `NotAllowed` with "Wrong PIN"; after 5, "Too many wrong tries. Try again in 30 s." (then longer); even the right PIN waits. After `biometrics_changed()`, the PIN is needed once. |
+| `set_profile_pin(profile_id, pin)` / `remove_profile_pin(profile_id)` | – | The open profile only (Manage profiles). 4 to 6 digits (`profiles` tokens). A screen lock, not encryption. |
+| `biometrics_changed()` | – | Call when the device's enrolled biometrics change: every PIN is needed once. |
+| `rename_profile(profile_id, name?)` / `reorder_profiles(profile_ids)` | – | Manage profiles. Null name: back to the media-server name; at most 40 characters. |
+| `remove_profile_from_device(profile_id)` | – | Board 14, item 3, after its confirm sheet: deletes this device's copy only (its companion data stays). Then delete its keychain entries. |
+| `last_active_profile()` | `profile_id?` | The profile to open at launch. |
+| `start_guest()` / `end_guest()` | `QueueState` | Board 14, item 5, on the open profile: nothing is recorded, recommended or synced; likes and playlists are refused (`NotAllowed`); the queue starts empty and the profile's own queue comes back at the end. Show "Guest, nothing is saved". |
+| `guest_session()` | `GuestSession?` | `started_utc_ms`, `ends_if_idle_utc_ms`. Guest ends by itself after `profiles.guestIdleHours` without playing (null then, and the queue is back), and when a profile opens. |
 | `close_profile()` | – | Ends the current play as "ended by the system". |
 | `current_profile()` | `profile_id?` | |
 | `backup_profile(profile_id, dest_path)` | – | A consistent copy of the profile's database, safe while playing: library, history, settings; never tokens. Blocking: call off the main thread. |
 | `export_profile(profile_id, dest_path)` | `ExportSummary` | Board 19, item 5: one JSON file with the play log, likes, playlists (songs in order), settings and recent searches, in the open format of [EXPORT-FORMAT.md](EXPORT-FORMAT.md); never tokens. Reads through its own connection, so playback carries on. `ExportSummary`: `plays`, `likes`, `playlists`, `playlist_songs`, `bytes` for the finished row. `NotAllowed` in Guest mode ("Nothing is saved in Guest mode"). Blocking: call off the main thread and show the progress row until it returns, then hand the file to the share sheet. |
 | `restore_profile(profile_id, from_path)` | – | Checks the file first (intact, an Encore profile, not from a newer app); if it fails nothing changes. The replaced database is kept as `library.sqlite.before-restore`. Closes the profile if it was open; open it again with its tokens. The core also keeps a copy before every schema upgrade (`library.sqlite.before-v<N>`, the newest two). |
 
-Phase 4 adds the profile switcher, Guest and sync to the companion server.
+### Companion server and sync (plan section 5; boards 18 and 19)
+
+The companion server is optional: without it everything works on this device and nothing syncs. Design: docs/adr/core-0009 and core-0010; the server's own API is docs/api/openapi.yaml.
+
+| Call | Returns | Notes |
+| --- | --- | --- |
+| `connect_companion(url)` | `SyncStatus` | Async. The address the user typed (`encore:8097`, `https://music.example.com`): https anywhere, plain http only on the home network (`InvalidAddress` otherwise). Needs the open profile signed in to its media server (`SessionExpired` otherwise); `NotAllowed` in Guest. Sends that token once so the companion can check it. A `CredentialChanged` event follows: store the token in the keychain under the profile's `source_id` 0 key. Sync then runs by itself. |
+| `disconnect_companion()` | – | Async. Stops syncing; this device is signed out there when reachable; everything stays here. `CredentialChanged` with an empty token: delete the keychain entry. |
+| `sync_status()` | `SyncStatus` | The sync row: `state` (NotConnected, Idle, Syncing, Offline, SignedOut), `pending` ("Waiting to sync"), `last_synced_utc_ms`, `server_url`, `reason` (for Offline and SignedOut). Changes arrive as `SyncStatusChanged`. SignedOut: the server no longer accepts this device (signed out elsewhere, or the profile deleted there): offer "Connect again"; nothing local was lost. |
+| `sync_now()` | `SyncStatus` | Async. Send and receive at once (pull to refresh). |
+| `companion_devices()` | `[CompanionDevice]` | Async. The Devices list: `device_id`, `name`, `platform`, `added_utc_ms`, `last_seen_utc_ms`, `signed_out`, `this_device`. |
+| `revoke_device(device_id)` | – | Async. Sign a device out everywhere (a lost phone). |
+| `delete_profile_everywhere(profile_id, typed_name)` | – | Async. Board 19's delete, for the open profile, after its confirm sheet: `typed_name` must be the profile's `display_name` (`NotAllowed` otherwise). Deletes it on the companion server (every device stops syncing), then this device's copy; the media-server account and music are never touched. If the companion can't be reached nothing is deleted (`Unreachable`): say so and offer to try again. Then delete every keychain entry of the profile. |
+
+**What syncs.** Plays (from start, and again once ended), lyric-line taps, likes and playlist edits. Likes merge by the latest change, Jellyfin included; playlists are re-read from the media server. Another device's like arrives in about a tenth of a second while both are online (`RemoteChange`): refresh hearts, Liked Songs, the playlists named, and the history. When `library_sync_suggested` is set, call `sync_library` when convenient.
 
 ### Servers and library sync
 
@@ -218,6 +242,9 @@ Albums refuse drops: their songs come from the server's tags and folders. Guest 
 | `NowPlaying` | `now_playing` (null when the queue ended) | The current song changed |
 | `Preload` | `preload` | 20 s before the end: load this song now |
 | `SyncProgress` | `sync_source_id`, `sync_done`, `sync_total` | During `sync_library` |
+| `SyncStatusChanged` | `sync_status` | The companion sync's state or pending count changed |
+| `RemoteChange` | `remote_change`: `liked_song_ids`, `unliked_song_ids`, `playlist_ids`, `history`, `library_sync_suggested` | Another device's changes arrived |
+| `CredentialChanged` | `credential` (`source_id` 0, `token`; empty means delete) | The companion token rotated: store it before anything else, the old one no longer works |
 
 ## Types
 
@@ -230,7 +257,11 @@ All are plain records and enums. IDs and times are 64-bit signed integers (milli
 | `QuickConnectStart` | `code`, `expires_in_seconds` |
 | `SignedIn` | `profile_id`, `source_id`, `credential_key`, `token`, `user_name` |
 | `SourceToken` | `source_id`, `token` |
-| `ProfileSummary` | `profile_id`, `display_name`, `credentials: [CredentialKey { source_id, key }]` |
+| `ProfileSummary` | `profile_id`, `display_name`, `credentials: [CredentialKey { source_id, key }]`, `initials`, `avatar_url?`, `locked`, `active`, `needs_sign_in` |
+| `GuestSession` | `started_utc_ms`, `ends_if_idle_utc_ms` |
+| `SyncStatus` / `SyncState` | `state`, `pending`, `last_synced_utc_ms?`, `server_url?`, `reason?` / NotConnected, Idle, Syncing, Offline, SignedOut |
+| `RemoteChange` | `liked_song_ids`, `unliked_song_ids`, `playlist_ids`, `history`, `library_sync_suggested` |
+| `CompanionDevice` | `device_id`, `name`, `platform`, `added_utc_ms`, `last_seen_utc_ms`, `signed_out`, `this_device` |
 | `ServerRow` | `source_id`, `kind`, `name`, `base_url`, `version?`, `user_name`, `song_count`, `last_sync_utc_ms?`, `signed_in` |
 | `SyncResult` | `source_id`, `artists`, `albums`, `songs`, `playlists`, `removed` |
 | `Song` | `id`, `source_id`, `title`, `artist`, `album_artist`, `album_id?`, `album_title?`, `disc_number?`, `track_number?`, `duration_ms`, `year?`, `container?`, `has_lyrics`, `track_gain_db?`, `album_gain_db?` (ReplayGain dB) |
@@ -246,7 +277,7 @@ All are plain records and enums. IDs and times are 64-bit signed integers (milli
 | `QueueState` | `history`, `current?`, `up_next`, `autoplay`, `shuffle`, `repeat`, `autoplay_enabled`, `can_undo` |
 | `StreamInfo` | `song_id`, `url`, `url_with_api_key`, `headers: [HttpHeader { name, value }]`, `may_transcode` |
 | `ArtworkRequest` | `url`, `headers` |
-| `CoreEvent` | `kind`, `queue?`, `now_playing?`, `preload?`, `sync_source_id?`, `sync_done`, `sync_total` |
+| `CoreEvent` | `kind`, `queue?`, `now_playing?`, `preload?`, `sync_source_id?`, `sync_done`, `sync_total`, `sync_status?`, `remote_change?`, `credential?` |
 | `SkipTarget` | `song?`, `end_of_queue` |
 | `SongLyrics` / `LyricLine` / `LyricWord` / `LyricBackground` / `LyricGap` / `Singer` | see "Lyrics" |
 | `ArtworkPalette` / `PaletteSwatch` | `scheme`, `base`, `stops`, `text`, `lowest_contrast`, `sampled` / `colour`, `share` |
@@ -395,4 +426,14 @@ Everything below is in API version 2, tested in Rust on the owner's real Jellyfi
 - **Backup and restore.** `backup_profile` / `restore_profile` for a settings page and `export_profile` for Export (board 19).
 - **Lyrics in search.** `SearchResults.lyrics` and `fetch_lyrics_ahead` after a sync (board 07: "lyrics included when the server has them").
 
-Not available yet: sync between devices and the profile switcher (Phase 4), smart picks and Autoplay (Phase 5), downloads and offline artwork (Phase 8), recaps (Phase 11).
+## What the platform tracks can build now (Phase 4)
+
+Everything below is in API version 3. It is tested in Rust, including two real cores against a real companion server and against its Docker image (amd64 and arm64), and called from Swift, Kotlin and Dart in CI.
+
+- **The profile switcher** (board 14): the sheet from `profiles()`, switching with `switch_profile` (Keep playing or Stop and switch), PIN and biometric locks, Manage profiles, Remove from this device, Add account (the existing sign-in), and the "Sign in again" row.
+- **Guest**: `start_guest`, the "Guest, nothing is saved" banner from `guest_session()`, and `end_guest`.
+- **The companion server** (boards 18 and 19): Connect a companion server, the sync status row, Devices with sign-out, and Delete profile and its data.
+- **Keychain handling**: the companion token (`source_id` 0) arrives and rotates through `CredentialChanged`.
+- **The server**: anyone can run it next to Jellyfin with server/compose.yaml.
+
+Not available yet: smart picks and Autoplay (Phase 5), handoff and the WebSocket (Phase 7), downloads and offline artwork (Phase 8), recaps (Phase 11), finding the companion on the network by itself (mDNS; the address is typed).

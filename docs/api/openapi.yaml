@@ -1,0 +1,240 @@
+openapi: 3.1.0
+info:
+  title: Encore companion server
+  version: 0.1.0
+  summary: Profiles, sign-in by media-server token, and the synced event log (Phase 4).
+  description: |
+    The optional companion server (plan section 5). It never stores music. Owned by
+    the core and server track; the core's client is `core/encore-core/src/companion.rs`.
+    Design: docs/adr/core-0009-companion-auth.md and core-0010-sync.md.
+
+    Errors are JSON `{"error": kind, "reason": sentence}`; the sentence is written
+    for a person and never contains a token. 401 means the device must refresh, or
+    sign in again if refreshing fails; 429 carries `Retry-After`.
+
+    Not here yet: `GET /ws` (Phase 7), recommendations (Phase 5), lyrics proxy,
+    recap (Phase 11), the admin page beyond status.
+servers:
+  - url: http://encore:8097
+    description: The default port. Plain http only on the home network.
+components:
+  securitySchemes:
+    access:
+      type: http
+      scheme: bearer
+      description: An access token (`eat_...`) from /auth/exchange or /auth/refresh. 1 hour.
+  schemas:
+    Error:
+      type: object
+      required: [error, reason]
+      properties:
+        error:
+          type: string
+          enum: [badRequest, unauthorized, forbidden, notFound, tooManyRequests, unavailable, internal]
+        reason: { type: string }
+    Tokens:
+      type: object
+      required: [device_id, access_token, access_expires_utc_ms, refresh_token]
+      properties:
+        device_id: { type: string, description: The server's ID for this device (a ULID). }
+        user_name: { type: [string, "null"], description: Set by /auth/exchange. }
+        access_token: { type: string }
+        access_expires_utc_ms: { type: integer, format: int64 }
+        refresh_token:
+          type: string
+          description: Keep it in the keychain. Each use returns a new one; reusing an old one revokes the device (except a retry within 2 minutes while its replacement is unused).
+    Event:
+      type: object
+      required: [id, kind, hlc, payload, created_utc_ms]
+      properties:
+        id: { type: string, maxLength: 64, description: The event's ULID (a play's ID for plays). }
+        device_id: { type: string, description: The writing device's app device ID. Set by the server; ignored on push. }
+        kind:
+          type: string
+          maxLength: 64
+          description: play, lyricJump, like, unlike, undo, playlistAdd, playlistCreate, playlistRemove, playlistMove, playlistRename; more may come, and readers skip kinds they don't know.
+        hlc: { type: string, maxLength: 64, description: Hybrid logical clock, sortable as text. }
+        version: { type: integer, minimum: 0, default: 0, description: A newer version replaces the event (a play that ended is 1). }
+        payload: { type: object, description: At most 64 KB as JSON. }
+        created_utc_ms: { type: integer, format: int64 }
+    Device:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        platform: { type: string }
+        created_utc_ms: { type: integer, format: int64 }
+        last_seen_utc_ms: { type: integer, format: int64 }
+        revoked: { type: boolean }
+  responses:
+    Error:
+      description: See Error.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+paths:
+  /health:
+    get:
+      summary: Is this an Encore companion server? Names no user, device or library.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { const: ok }
+                  server_version: { type: string }
+                  core_version: { type: string }
+  /auth/exchange:
+    post:
+      summary: Sign a device in with its media-server token.
+      description: |
+        The server finds the media server named by `server_id` among its trusted ones
+        (ENCORE_JELLYFIN_URLS), asks it `GET /Users/Me` with `media_token`, and issues
+        its own tokens. The media token is not stored. Rate-limited per address.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [server_id, media_token, device_id, device_name, platform]
+              properties:
+                server_id: { type: string, maxLength: 128 }
+                media_token: { type: string, maxLength: 1024 }
+                device_id: { type: string, maxLength: 128 }
+                device_name: { type: string, maxLength: 100 }
+                platform: { type: string, maxLength: 20 }
+      responses:
+        "200":
+          description: Signed in.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Tokens" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { description: Not a media server this companion trusts. }
+        "429": { $ref: "#/components/responses/Error" }
+        "503": { description: The media server can't be reached to check the token. }
+  /auth/refresh:
+    post:
+      summary: Swap the refresh token for a new pair.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token: { type: string }
+      responses:
+        "200":
+          description: A new pair; the old access token stops working.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Tokens" }
+        "401": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /devices:
+    get:
+      summary: The profile's devices.
+      security: [{ access: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  this_device: { type: string }
+                  devices: { type: array, items: { $ref: "#/components/schemas/Device" } }
+        "401": { $ref: "#/components/responses/Error" }
+  /devices/{id}:
+    delete:
+      summary: Sign one of the profile's devices out everywhere.
+      security: [{ access: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Revoked. }
+        "401": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /profile:
+    delete:
+      summary: Delete the profile and everything synced for it (board 19). Media-server data is never touched.
+      security: [{ access: [] }]
+      responses:
+        "204": { description: Deleted; every device of the profile is signed out. }
+        "401": { $ref: "#/components/responses/Error" }
+  /sync/push:
+    post:
+      summary: Store this device's events. Idempotent by event ID.
+      security: [{ access: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [events]
+              properties:
+                events:
+                  type: array
+                  maxItems: 500
+                  items: { $ref: "#/components/schemas/Event" }
+      responses:
+        "200":
+          description: The IDs the server holds now; mark them sent.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accepted: { type: array, items: { type: string } }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+  /sync/pull:
+    get:
+      summary: Other devices' events after the cursor, waiting for one if asked.
+      security: [{ access: [] }]
+      parameters:
+        - { name: cursor, in: query, schema: { type: integer, default: 0 } }
+        - name: wait
+          in: query
+          description: Seconds to wait when there is nothing yet (at most 25). Answered the moment another device of the profile pushes.
+          schema: { type: integer, default: 0, maximum: 25 }
+        - { name: limit, in: query, schema: { type: integer, default: 1000, maximum: 1000 } }
+      responses:
+        "200":
+          description: Events oldest first, the next cursor, and whether more wait.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events: { type: array, items: { $ref: "#/components/schemas/Event" } }
+                  cursor: { type: integer }
+                  more: { type: boolean }
+        "401": { $ref: "#/components/responses/Error" }
+  /admin/status:
+    get:
+      summary: Counts only, and only from loopback or private addresses.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { const: ok }
+                  server_version: { type: string }
+                  uptime_s: { type: integer }
+                  profiles: { type: integer }
+                  devices: { type: integer }
+                  events: { type: integer }
+        "403": { $ref: "#/components/responses/Error" }

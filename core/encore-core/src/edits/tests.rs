@@ -810,3 +810,46 @@ fn the_outbox_survives_closing_the_app() {
     drop(reopened);
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// Section 24, "two devices editing a playlist at the same time while offline":
+/// both edits land on the media server, and each device ends up showing the
+/// server's list (the phone after the sync event names the playlist).
+#[test]
+fn two_devices_edit_one_playlist_offline_and_both_edits_land() {
+    let mut phone = fixture();
+    let mut mac = fixture();
+    // One media server for both: the phone fixture's.
+    phone.server.set(Mode::Down);
+    let s5 = phone.songs(&["s5"]);
+    let phone_road = phone.road;
+    phone
+        .edit(T0, |ed| {
+            ed.add(Target::Playlist(phone_road), &s5, None, false)
+        })
+        .unwrap();
+    let s7 = mac.songs(&["s7"]);
+    let road = mac.road;
+    mac.edit(T0, |ed| ed.remove(road, &[0])).unwrap();
+    mac.edit(T0, |ed| ed.add(Target::Playlist(road), &s7, None, false))
+        .unwrap();
+    assert_eq!(phone.rows(phone.road), ["s0", "s1", "s5"]);
+    assert_eq!(mac.rows(road), ["s1", "s7"]);
+
+    // Back online: the phone sends first, then the Mac.
+    phone.server.set(Mode::Up);
+    block(flush(&phone.store, phone.source, &phone.server, T0)).unwrap();
+    block(flush(&mac.store, mac.source, &phone.server, T0)).unwrap();
+    assert_eq!(
+        phone.server.items("srv-road"),
+        ["s1", "s5", "s7"],
+        "both edits landed"
+    );
+    assert_eq!(
+        mac.rows(road),
+        ["s1", "s5", "s7"],
+        "the Mac re-read it after sending"
+    );
+    // The Mac's sync event names the playlist; the phone re-reads it.
+    block(refresh_playlist(&phone.store, &phone.server, phone.road)).unwrap();
+    assert_eq!(phone.rows(phone.road), ["s1", "s5", "s7"]);
+}
