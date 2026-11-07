@@ -90,7 +90,7 @@ fun main() {
             val all = core.songs(SongSort.TITLE, 0u, 500u)
             val lyrics = all.filter { it.hasLyrics }.firstNotNullOfOrNull { core.lyrics(it.id) }
             checkNotNull(lyrics) { "no lyrics" }
-            check(lyrics.sync == LyricsSync.LINE && lyrics.lines.isNotEmpty())
+            check(lyrics.syncLevel == LyricsSync.LINE && lyrics.lines.isNotEmpty())
             val artAlbum = core.albums(AlbumSort.TITLE, 0u, 100u).first { it.hasArtwork }
             val palette = checkNotNull(core.albumPalette(artAlbum.id)) { "no palette" }
             check(palette.base == "3D0000" && palette.stops.size == 4) { palette.base }

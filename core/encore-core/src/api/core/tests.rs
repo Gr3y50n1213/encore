@@ -118,7 +118,7 @@ fn library_flow_over_http_against_the_replay_server() {
         .filter(|s| s.has_lyrics)
         .find_map(|s| block(core.lyrics(s.id)).unwrap())
         .expect("recorded lyrics");
-    assert_eq!(lyrics.sync, LyricsSync::Line);
+    assert_eq!(lyrics.sync_level, LyricsSync::Line);
     let art = core
         .albums(AlbumSort::Title, 0, 100)
         .unwrap()
@@ -480,7 +480,7 @@ fn lyrics_are_read_cached_and_shown_offline() {
         }
     }
     let l = found.expect("the recorded song's lyrics");
-    assert_eq!(l.sync, LyricsSync::Line);
+    assert_eq!(l.sync_level, LyricsSync::Line);
     assert_eq!(l.format, LyricsFormat::Jellyfin);
     assert_eq!(l.origin, LyricsOrigin::MediaServer);
     assert!(l.lines.len() > 10);

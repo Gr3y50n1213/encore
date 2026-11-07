@@ -495,7 +495,7 @@ pub struct _LyricGap {
 #[frb(mirror(SongLyrics))]
 pub struct _SongLyrics {
     pub song_id: i64,
-    pub sync: LyricsSync,
+    pub sync_level: LyricsSync,
     pub origin: LyricsOrigin,
     pub format: LyricsFormat,
     pub lines: Vec<LyricLine>,

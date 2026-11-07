@@ -107,7 +107,7 @@ void main() {
         if (lyrics != null) break;
       }
       expect(lyrics, isNotNull);
-      expect(lyrics!.sync, LyricsSync.line);
+      expect(lyrics!.syncLevel, LyricsSync.line);
       expect(lyrics.lines, isNotEmpty);
       final artAlbum = core
           .albums(sort: AlbumSort.title, offset: 0, limit: 100)

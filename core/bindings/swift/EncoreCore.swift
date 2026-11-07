@@ -4781,7 +4781,10 @@ public func FfiConverterTypeSong_lower(_ value: Song) -> RustBuffer {
  */
 public struct SongLyrics: Equatable, Hashable {
     public var songId: Int64
-    public var sync: LyricsSync
+    /**
+     * How finely the lyrics are timed (`sync` is a reserved word in Dart).
+     */
+    public var syncLevel: LyricsSync
     public var origin: LyricsOrigin
     public var format: LyricsFormat
     public var lines: [LyricLine]
@@ -4796,12 +4799,15 @@ public struct SongLyrics: Equatable, Hashable {
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(songId: Int64, sync: LyricsSync, origin: LyricsOrigin, format: LyricsFormat, lines: [LyricLine], singers: [Singer], gaps: [LyricGap], 
+    public init(songId: Int64, 
+        /**
+         * How finely the lyrics are timed (`sync` is a reserved word in Dart).
+         */syncLevel: LyricsSync, origin: LyricsOrigin, format: LyricsFormat, lines: [LyricLine], singers: [Singer], gaps: [LyricGap], 
         /**
          * The song is instrumental: the dots and the title only.
          */instrumental: Bool, language: String?, fetchedUtcMs: Int64) {
         self.songId = songId
-        self.sync = sync
+        self.syncLevel = syncLevel
         self.origin = origin
         self.format = format
         self.lines = lines
@@ -4829,7 +4835,7 @@ public struct FfiConverterTypeSongLyrics: FfiConverterRustBuffer {
         return
             try SongLyrics(
                 songId: FfiConverterInt64.read(from: &buf), 
-                sync: FfiConverterTypeLyricsSync.read(from: &buf), 
+                syncLevel: FfiConverterTypeLyricsSync.read(from: &buf), 
                 origin: FfiConverterTypeLyricsOrigin.read(from: &buf), 
                 format: FfiConverterTypeLyricsFormat.read(from: &buf), 
                 lines: FfiConverterSequenceTypeLyricLine.read(from: &buf), 
@@ -4843,7 +4849,7 @@ public struct FfiConverterTypeSongLyrics: FfiConverterRustBuffer {
 
     public static func write(_ value: SongLyrics, into buf: inout [UInt8]) {
         FfiConverterInt64.write(value.songId, into: &buf)
-        FfiConverterTypeLyricsSync.write(value.sync, into: &buf)
+        FfiConverterTypeLyricsSync.write(value.syncLevel, into: &buf)
         FfiConverterTypeLyricsOrigin.write(value.origin, into: &buf)
         FfiConverterTypeLyricsFormat.write(value.format, into: &buf)
         FfiConverterSequenceTypeLyricLine.write(value.lines, into: &buf)

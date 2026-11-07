@@ -83,7 +83,7 @@ if let replay = ProcessInfo.processInfo.environment["ENCORE_REPLAY_URL"] {
         if lyrics != nil { break }
     }
     guard let lyrics else { preconditionFailure("no lyrics") }
-    precondition(lyrics.sync == .line && !lyrics.lines.isEmpty)
+    precondition(lyrics.syncLevel == .line && !lyrics.lines.isEmpty)
     guard let artAlbum = try core.albums(sort: .title, offset: 0, limit: 100).first(where: { $0.hasArtwork }),
           let palette = try await core.albumPalette(albumId: artAlbum.id)
     else { preconditionFailure("no palette") }

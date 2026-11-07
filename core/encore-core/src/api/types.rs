@@ -689,7 +689,8 @@ pub struct LyricGap {
 #[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
 pub struct SongLyrics {
     pub song_id: i64,
-    pub sync: LyricsSync,
+    /// How finely the lyrics are timed (`sync` is a reserved word in Dart).
+    pub sync_level: LyricsSync,
     pub origin: LyricsOrigin,
     pub format: LyricsFormat,
     pub lines: Vec<LyricLine>,
@@ -1029,7 +1030,7 @@ impl SongLyrics {
         use encore_lyrics as m;
         SongLyrics {
             song_id,
-            sync: match l.sync {
+            sync_level: match l.sync {
                 m::SyncLevel::Word => LyricsSync::Word,
                 m::SyncLevel::Line => LyricsSync::Line,
                 m::SyncLevel::Unsynced => LyricsSync::Unsynced,

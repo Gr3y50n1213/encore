@@ -6148,7 +6148,10 @@ public object FfiConverterTypeSong: FfiConverterRustBuffer<Song> {
 data class SongLyrics (
     var `songId`: kotlin.Long
     , 
-    var `sync`: LyricsSync
+    /**
+     * How finely the lyrics are timed (`sync` is a reserved word in Dart).
+     */
+    var `syncLevel`: LyricsSync
     , 
     var `origin`: LyricsOrigin
     , 
@@ -6199,7 +6202,7 @@ public object FfiConverterTypeSongLyrics: FfiConverterRustBuffer<SongLyrics> {
 
     override fun allocationSize(value: SongLyrics) = (
             FfiConverterLong.allocationSize(value.`songId`) +
-            FfiConverterTypeLyricsSync.allocationSize(value.`sync`) +
+            FfiConverterTypeLyricsSync.allocationSize(value.`syncLevel`) +
             FfiConverterTypeLyricsOrigin.allocationSize(value.`origin`) +
             FfiConverterTypeLyricsFormat.allocationSize(value.`format`) +
             FfiConverterSequenceTypeLyricLine.allocationSize(value.`lines`) +
@@ -6212,7 +6215,7 @@ public object FfiConverterTypeSongLyrics: FfiConverterRustBuffer<SongLyrics> {
 
     override fun write(value: SongLyrics, buf: ByteBuffer) {
             FfiConverterLong.write(value.`songId`, buf)
-            FfiConverterTypeLyricsSync.write(value.`sync`, buf)
+            FfiConverterTypeLyricsSync.write(value.`syncLevel`, buf)
             FfiConverterTypeLyricsOrigin.write(value.`origin`, buf)
             FfiConverterTypeLyricsFormat.write(value.`format`, buf)
             FfiConverterSequenceTypeLyricLine.write(value.`lines`, buf)

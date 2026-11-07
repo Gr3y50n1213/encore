@@ -174,7 +174,7 @@ Each play event stores the song key, the source and its item ID, the title, arti
 
 ### Lyrics (board 10)
 
-`SongLyrics`: `sync` (Word, Line, Unsynced), `origin` (MediaServer, EmbeddedTag, Sidecar, Provider, Generated), `format`, `lines`, `singers`, `gaps`, `instrumental`, `language?`.
+`SongLyrics`: `sync_level` (Word, Line, Unsynced), `origin` (MediaServer, EmbeddedTag, Sidecar, Provider, Generated), `format`, `lines`, `singers`, `gaps`, `instrumental`, `language?`.
 
 - **Lines** come in the order they are sung. Synced lines always have `start_ms` and `end_ms`: the core fills the ends (the next line, the last word, never past the song).
 - **Words.** A line with `words` fills word by word across each word's `start_ms` to `end_ms`; a line without words lights up whole. A line's text is its words' texts with a space after each word whose `space_after` is set, and syllables of one word have none. Render each word as its own run; never index into the string.
