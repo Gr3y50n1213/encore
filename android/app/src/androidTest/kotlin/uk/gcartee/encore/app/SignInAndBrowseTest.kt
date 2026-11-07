@@ -41,12 +41,14 @@ class SignInAndBrowseTest {
 
         // Welcome: Get started ignores taps for its first 300 ms (board 22, item 3).
         rule.waitUntilAtLeastOneExists(hasText("Get started"), TIMEOUT)
-        Thread.sleep(400)
+        // Compose tests run on a virtual clock: move it past the guard.
+        rule.mainClock.advanceTimeBy(GUARD_MS)
         rule.onNodeWithText("Get started").performClick()
 
         // Connect: the address is checked 600 ms after typing stops (board 21, item 3).
         rule.waitUntilAtLeastOneExists(hasTestTag("address"), TIMEOUT)
         rule.onNodeWithTag("address").performTextInput(replayUrl!!)
+        rule.mainClock.advanceTimeBy(CHECK_AFTER_MS)
         rule.waitUntilAtLeastOneExists(hasText("Found Jellyfin", substring = true), TIMEOUT)
         rule.onNodeWithTag("quick-connect").performClick()
 
@@ -69,6 +71,8 @@ class SignInAndBrowseTest {
     }
 
     private companion object {
+        const val GUARD_MS = 400L
+        const val CHECK_AFTER_MS = 700L
         const val TIMEOUT = 10_000L
         const val SYNC_TIMEOUT = 60_000L
     }
