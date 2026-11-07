@@ -54,6 +54,8 @@ pub struct NameGuidPair {
 #[serde(rename_all = "PascalCase", default)]
 pub struct BaseItem {
     pub id: Option<String>,
+    /// Only when asked for (`enableUserData`): play count, last played, favourite.
+    pub user_data: Option<UserItemData>,
     pub name: Option<String>,
     pub sort_name: Option<String>,
     #[serde(rename = "Type")]
@@ -95,4 +97,14 @@ pub struct ItemsResult {
 #[serde(rename_all = "PascalCase", default)]
 pub struct PlaylistCreated {
     pub id: Option<String>,
+}
+
+/// A user's own data on an item (`enableUserData=true`).
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "PascalCase", default)]
+pub struct UserItemData {
+    pub play_count: Option<u32>,
+    pub last_played_date: Option<String>,
+    pub played: Option<bool>,
+    pub is_favorite: Option<bool>,
 }

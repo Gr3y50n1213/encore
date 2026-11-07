@@ -175,6 +175,8 @@ pub async fn sync_library(
     // Favourites are user data, not part of the delta: the whole set each sync.
     // If they can't be read, likes stay as they are (None), the sync still counts.
     let favorite_item_ids = client.favorite_ids(page_size.max(1) * 4).await.ok();
+    // Play counts from other apps: the smart-picks prior. Optional in the same way.
+    let play_counts = client.play_counts(page_size.max(1) * 4).await.ok();
     // Without a server clock the next sync is a full one: slower, never wrong.
     let cursor = pager
         .started_at
@@ -187,6 +189,7 @@ pub async fn sync_library(
         playlists,
         removed_item_ids,
         favorite_item_ids,
+        play_counts,
         cursor,
     })
 }

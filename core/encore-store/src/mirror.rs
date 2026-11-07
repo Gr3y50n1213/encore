@@ -73,6 +73,21 @@ impl Store {
         if let Some(favorites) = &d.favorite_item_ids {
             set_favorites(&tx, source_id, favorites)?;
         }
+        if let Some(counts) = &d.play_counts {
+            // A whole set, like favourites: songs not in it have no plays elsewhere.
+            tx.execute(
+                "UPDATE tracks SET server_play_count = 0, server_last_played_utc_ms = NULL
+                 WHERE source_id = ?1",
+                [source_id],
+            )?;
+            let mut st = tx.prepare_cached(
+                "UPDATE tracks SET server_play_count = ?3, server_last_played_utc_ms = ?4
+                 WHERE source_id = ?1 AND source_item_id = ?2",
+            )?;
+            for (item, count, last) in counts {
+                st.execute(rusqlite::params![source_id, item, count, last])?;
+            }
+        }
         tx.commit()?;
         Ok(stats)
     }
@@ -448,6 +463,7 @@ pub(crate) mod tests {
             }],
             removed_item_ids: vec![],
             favorite_item_ids: None,
+            play_counts: None,
             cursor: None,
         }
     }
@@ -524,6 +540,7 @@ pub(crate) mod tests {
             tracks: vec![changed],
             removed_item_ids: vec!["t3".into(), "not-there".into()],
             favorite_item_ids: None,
+            play_counts: None,
             ..LibraryDelta::default()
         };
         let stats = store.apply_delta(src, &delta).unwrap();

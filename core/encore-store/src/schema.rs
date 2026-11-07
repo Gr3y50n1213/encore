@@ -368,8 +368,45 @@ CREATE TABLE saved_queue (
 );
 "#;
 
+/// Migration 7: smart picks (Phase 5; docs/adr/core-0012).
+///
+/// - The media server's own play counts and last-played times per song (from
+///   other apps): the engine's cold-start prior.
+/// - `not_interested`: one row per item (a song key or an artist), last write
+///   wins by (clock, device) when devices disagree; `removed` keeps a removal so
+///   an older add from another device can't bring it back.
+/// - `feedback`: More like this and Fewer like this, appended.
+/// - `recs_state`: the learning epoch, the mix set and its pins, hides and titles.
+const V7: &str = r#"
+ALTER TABLE tracks ADD COLUMN server_play_count INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE tracks ADD COLUMN server_last_played_utc_ms INTEGER;
+CREATE TABLE not_interested (
+    scope       TEXT    NOT NULL,
+    value       TEXT    NOT NULL,
+    label       TEXT    NOT NULL,
+    reason      TEXT    NOT NULL,
+    bucket      INTEGER NOT NULL,
+    at_utc_ms   INTEGER NOT NULL,
+    hlc         TEXT    NOT NULL,
+    device_id   TEXT    NOT NULL,
+    removed     INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (scope, value)
+);
+CREATE TABLE feedback (
+    id          TEXT    PRIMARY KEY,
+    song_key    TEXT    NOT NULL,
+    more        INTEGER NOT NULL,
+    bucket      INTEGER NOT NULL,
+    at_utc_ms   INTEGER NOT NULL
+);
+CREATE TABLE recs_state (
+    key         TEXT    PRIMARY KEY,
+    value       TEXT    NOT NULL
+);
+"#;
+
 /// Every migration, oldest first. Append only.
-pub(crate) const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6];
+pub(crate) const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7];
 
 /// Bring the database up to the newest schema. Returns the version it ended at.
 #[cfg(test)]

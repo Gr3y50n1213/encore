@@ -212,6 +212,10 @@ pub struct LibraryDelta {
     /// sync, not in the delta). None: unknown, leave them as they are.
     #[serde(default)]
     pub favorite_item_ids: Option<Vec<String>>,
+    /// How often this user played each song in any app (item ID, plays, last
+    /// played), when the source reported it. None: unknown, leave as is.
+    #[serde(default)]
+    pub play_counts: Option<Vec<(String, u32, Option<i64>)>>,
     /// Pass this back to the next sync.
     pub cursor: Option<Cursor>,
 }

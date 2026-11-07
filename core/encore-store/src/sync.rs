@@ -20,6 +20,10 @@ use crate::{PlayEventRecord, Result, Store};
 
 /// The settings key of the pull cursor.
 const CURSOR_KEY: &str = "companion.cursor";
+/// Smart picks' learning epoch (Reset suggestions), in `recs_state`.
+pub const EPOCH_KEY: &str = "epochUtcMs";
+/// Plays before this were cleared (Clear listening history), in `recs_state`.
+pub const CLEARED_KEY: &str = "clearedBeforeUtcMs";
 
 /// An event on its way to the server.
 #[derive(Debug, Clone, PartialEq)]
@@ -61,6 +65,10 @@ pub struct Applied {
     pub new_playlists: bool,
     /// The newest clock seen, for this device's clock to observe.
     pub newest_hlc: Option<String>,
+    /// Not interested, feedback or the learning epoch changed: rebuild smart picks.
+    pub recs: bool,
+    /// Another device cleared the listening history.
+    pub history_cleared: bool,
 }
 
 /// The songs an edit event likes or unlikes, if it is one.
@@ -282,6 +290,52 @@ impl Store {
                         }
                     }
                     "lyricJump" => s.apply_jump(e)?,
+                    "notInterested" => {
+                        let v = &e.payload;
+                        if let (Some(scope), Some(value)) =
+                            (v["scope"].as_str(), v["value"].as_str())
+                        {
+                            a.recs |= s.put_not_interested(&crate::NotInterestedRow {
+                                scope: scope.to_owned(),
+                                value: value.to_owned(),
+                                label: v["label"].as_str().unwrap_or(value).to_owned(),
+                                reason: v["reason"].as_str().unwrap_or("notMyTaste").to_owned(),
+                                bucket: v["bucket"].as_u64().unwrap_or(0) as u8,
+                                at_utc_ms: e.created_utc_ms,
+                                hlc: e.hlc.clone(),
+                                device_id: e.device_id.clone(),
+                                removed: v["removed"].as_bool().unwrap_or(false),
+                            })?;
+                        }
+                    }
+                    "feedback" => {
+                        let v = &e.payload;
+                        if let Some(key) = v["songKey"].as_str() {
+                            s.add_feedback(&crate::FeedbackRow {
+                                id: e.id.clone(),
+                                song_key: key.to_owned(),
+                                more: v["more"].as_bool().unwrap_or(true),
+                                bucket: v["bucket"].as_u64().unwrap_or(0) as u8,
+                                at_utc_ms: e.created_utc_ms,
+                            })?;
+                            a.recs = true;
+                        }
+                    }
+                    // A tombstone: the newest epoch wins, so no device can undo it.
+                    "resetSuggestions" => {
+                        if let Some(t) = e.payload["epochUtcMs"].as_i64() {
+                            a.recs |= s.raise_state(EPOCH_KEY, t)?;
+                        }
+                    }
+                    "clearHistory" => {
+                        if let Some(t) = e.payload["beforeUtcMs"].as_i64()
+                            && s.raise_state(CLEARED_KEY, t)?
+                        {
+                            s.clear_history_before(t)?;
+                            a.history_cleared = true;
+                            a.recs = true;
+                        }
+                    }
                     "playlistCreate" => a.new_playlists = true,
                     k if k.starts_with("playlist") => match s.playlist_named_by(&e.payload)? {
                         Some(id) => {
@@ -306,6 +360,10 @@ impl Store {
         let Some(p) = play_from(e) else {
             return Ok(false);
         };
+        // Cleared history stays cleared: an older play arriving late is dropped.
+        if p.started_utc_ms < self.state_number(CLEARED_KEY)?.unwrap_or(i64::MIN) {
+            return Ok(false);
+        }
         let held: Option<String> = self
             .conn
             .query_row(
@@ -424,6 +482,21 @@ impl Store {
             .prepare_cached("SELECT id FROM tracks WHERE song_key = ?1 ORDER BY id")?;
         let ids = st.query_map([song_key], |r| r.get(0))?;
         Ok(ids.collect::<rusqlite::Result<_>>()?)
+    }
+
+    /// A number kept in `recs_state`.
+    pub fn state_number(&self, key: &str) -> Result<Option<i64>> {
+        Ok(self.recs_state(key)?.and_then(|v| v.parse().ok()))
+    }
+
+    /// Raise a number in `recs_state` to `value` if it is higher (tombstones only
+    /// move forward). Returns whether it moved.
+    pub fn raise_state(&self, key: &str, value: i64) -> Result<bool> {
+        if self.state_number(key)?.is_some_and(|v| v >= value) {
+            return Ok(false);
+        }
+        self.set_recs_state(key, Some(&value.to_string()))?;
+        Ok(true)
     }
 
     /// The pull cursor (0 before the first pull).
@@ -731,5 +804,117 @@ mod tests {
         store.save_queue("{\"a\":1}", 5).unwrap();
         store.save_queue("{\"a\":2}", 6).unwrap();
         assert_eq!(store.saved_queue().unwrap().as_deref(), Some("{\"a\":2}"));
+    }
+}
+
+#[cfg(test)]
+mod recs_sync_tests {
+    use super::*;
+    use crate::test_support::store_with_source;
+
+    fn ev(id: &str, kind: &str, hlc: &str, device: &str, payload: Value) -> InEvent {
+        InEvent {
+            id: id.into(),
+            device_id: device.into(),
+            kind: kind.into(),
+            hlc: hlc.into(),
+            version: 0,
+            payload,
+            created_utc_ms: 100,
+        }
+    }
+
+    #[test]
+    fn reset_and_clear_are_tombstones_no_device_can_undo() {
+        let (store, _) = store_with_source();
+        let a = store
+            .apply_remote(&[ev(
+                "r1",
+                "resetSuggestions",
+                "h2",
+                "mac",
+                json!({ "epochUtcMs": 500 }),
+            )])
+            .unwrap();
+        assert!(a.recs);
+        // An older reset arriving later doesn't move the epoch back.
+        store
+            .apply_remote(&[ev(
+                "r0",
+                "resetSuggestions",
+                "h1",
+                "pad",
+                json!({ "epochUtcMs": 300 }),
+            )])
+            .unwrap();
+        assert_eq!(store.state_number(EPOCH_KEY).unwrap(), Some(500));
+        // Clear: plays before it go everywhere, and a late older play is dropped.
+        store
+            .conn
+            .execute_batch(
+                "INSERT INTO play_events (id, device_id, hlc, song_key, source_kind, source_item_id,
+                     title, artist, album, duration_ms, started_utc_ms, utc_offset_minutes, local_hour,
+                     local_weekday, listened_ms, end_reason, started_from, context_id, chosen_by,
+                     updated_utc_ms, synced)
+                 VALUES ('p1', 'ipad', 'h', 'k', 'jellyfin', 't', 'S', 'A', NULL, 200000, 50, 0, 9, 2,
+                     200000, 'finished', 'album', NULL, 'user', 50, 2)",
+            )
+            .unwrap();
+        let a = store
+            .apply_remote(&[ev(
+                "c1",
+                "clearHistory",
+                "h3",
+                "mac",
+                json!({ "beforeUtcMs": 1000 }),
+            )])
+            .unwrap();
+        assert!(a.history_cleared);
+        assert_eq!(store.recs_plays().unwrap().len(), 0);
+        let late = InEvent {
+            payload: json!({ "songKey": "k", "sourceKind": "jellyfin", "sourceItemId": "t",
+                "title": "S", "artist": "A", "durationMs": 200000, "startedUtcMs": 60,
+                "utcOffsetMinutes": 0, "localHour": 9, "localWeekday": 2, "listenedMs": 200000,
+                "endReason": "finished", "startedFrom": "album", "chosenBy": "user",
+                "updatedUtcMs": 60, "seeks": 0 }),
+            ..ev("p2", "play", "h4", "phone", json!({}))
+        };
+        assert_eq!(
+            store.apply_remote(&[late]).unwrap().plays,
+            0,
+            "an older play stays cleared"
+        );
+        assert_eq!(store.recs_plays().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn not_interested_on_two_devices_offline_ends_the_same_everywhere() {
+        let (phone, _) = store_with_source();
+        let (mac, _) = store_with_source();
+        let add = |hlc: &str, device: &str, removed: bool| {
+            ev(
+                hlc,
+                "notInterested",
+                hlc,
+                device,
+                json!({ "scope": "artist", "value": "Ember Cove",
+                "label": "Ember Cove", "reason": "notMyTaste", "bucket": 3, "removed": removed }),
+            )
+        };
+        // Offline: the phone adds it at h5, the Mac removes it at h7.
+        let phone_add = add("h5", "phone", false);
+        let mac_remove = add("h7", "mac", true);
+        phone
+            .apply_remote(std::slice::from_ref(&phone_add))
+            .unwrap();
+        mac.apply_remote(std::slice::from_ref(&mac_remove)).unwrap();
+        // Online: each gets the other's.
+        phone.apply_remote(&[mac_remove]).unwrap();
+        mac.apply_remote(&[phone_add]).unwrap();
+        for s in [&phone, &mac] {
+            let rows = s.not_interested_rows().unwrap();
+            assert_eq!(rows.len(), 1);
+            assert!(rows[0].removed, "the later removal wins on both");
+        }
     }
 }

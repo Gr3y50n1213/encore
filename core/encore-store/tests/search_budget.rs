@@ -124,6 +124,7 @@ fn library() -> LibraryDelta {
         playlists: vec![],
         removed_item_ids: vec![],
         favorite_item_ids: None,
+        play_counts: None,
         cursor: None,
     }
 }

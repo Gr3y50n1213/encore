@@ -609,6 +609,52 @@ impl JellyfinClient {
         Ok(ids)
     }
 
+    /// How often this user played each song in any app, and when last: Jellyfin's
+    /// own user data (`filters=IsPlayed`, `enableUserData`), the smart-picks prior
+    /// for a profile with no Encore history yet. (item ID, plays, last played).
+    pub async fn play_counts(&self, page_size: u32) -> Result<Vec<(String, u32, Option<i64>)>> {
+        let mut out = Vec::new();
+        let mut start: u64 = 0;
+        let limit = page_size.max(1).to_string();
+        loop {
+            let start_s = start.to_string();
+            let page = self
+                .items(&[
+                    ("includeItemTypes", "Audio"),
+                    ("recursive", "true"),
+                    ("filters", "IsPlayed"),
+                    ("enableImages", "false"),
+                    ("enableUserData", "true"),
+                    ("enableTotalRecordCount", "true"),
+                    ("sortBy", "SortName"),
+                    ("startIndex", start_s.as_str()),
+                    ("limit", limit.as_str()),
+                ])
+                .await?;
+            let items = page.items.unwrap_or_default();
+            let n = items.len() as u64;
+            for i in items {
+                let (Some(id), Some(u)) = (i.id, i.user_data) else {
+                    continue;
+                };
+                let last = u
+                    .last_played_date
+                    .as_deref()
+                    .and_then(super::time::parse_utc_ms);
+                out.push((
+                    id,
+                    u.play_count.unwrap_or(u32::from(u.played.unwrap_or(false))),
+                    last,
+                ));
+            }
+            start += n;
+            if n == 0 || start >= page.total_record_count.unwrap_or(0).max(0) as u64 {
+                break;
+            }
+        }
+        Ok(out)
+    }
+
     /// The primary image as PNG, at most `size_px` on its longer side, for colour
     /// sampling (board 04). PNG because it is lossless: every device decodes the
     /// same pixels, so every device makes the same palette. `tag` (the image tag)
