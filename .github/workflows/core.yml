@@ -9,6 +9,8 @@
 #   android  arm64-v8a, armeabi-v7a, x86_64 and x86: build, check 16 KB alignment and
 #            the exported symbols
 #   windows  core and server tests, then Dart calls the core on Windows
+#   server-image  the companion server's Docker image for amd64 and arm64, each run
+#            end to end (two cores, a like within a second)
 # apple and android are skipped when a change touches only server/, because nothing
 # they build comes from there. Run the workflow by hand to get the XCFramework and
 # jniLibs as artifacts, or with "regenerate" ticked to get fresh bindings.
@@ -593,3 +595,75 @@ jobs:
           source ../../../tools/ci/replay.sh && start_replay
           # --run-skipped: the library-flow test fails if the replay URL is missing.
           ENCORE_DART_LIB="$GITHUB_WORKSPACE/core/target/debug/encore_dart.dll" dart test --run-skipped
+
+  server-image:
+    # Phase 4: the companion server as it ships. The image is built for amd64 and
+    # cross-compiled for arm64 (server/Dockerfile), and each runs end to end: its
+    # health check, then two real cores (a phone and a Mac) sign in to it, its
+    # sign-in check asks the replay Jellyfin over HTTP, and a like on the phone must
+    # show on the Mac within a second. arm64 runs under QEMU here: a check that the
+    # image works, not of its speed.
+    name: "Server image: amd64 and arm64, end to end"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: QEMU for running the arm64 image
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qemu-user-static binfmt-support
+          docker buildx version
+
+      - name: Build the images (amd64 native, arm64 cross-compiled)
+        run: |
+          docker buildx build -f server/Dockerfile --platform linux/amd64 --load -t encore-server:amd64 .
+          docker buildx build -f server/Dockerfile --platform linux/arm64 --load -t encore-server:arm64 .
+          for a in amd64 arm64; do
+            echo "$a: $(docker image inspect -f '{{.Architecture}}, {{.Size}} bytes' encore-server:$a)"
+          done
+
+      - name: Rust (stable), for the two cores
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            server/target
+          key: server-image-${{ hashFiles('core/Cargo.lock', 'server/Cargo.lock') }}
+          restore-keys: server-image-
+
+      - name: Build the end-to-end test
+        working-directory: server
+        run: cargo test --locked --test two_devices --no-run
+
+      - name: Each image, end to end
+        run: |
+          python3 -I -B tools/ci/companion_fixture.py tools/fixtures/jellyfin/recorded.json "$RUNNER_TEMP/companion-replay.json"
+          source tools/ci/replay.sh && start_replay "$RUNNER_TEMP/companion-replay.json"
+          port=8097
+          for a in amd64 arm64; do
+            echo "::group::$a"
+            docker run -d --name "encore-$a" --network host \
+              -e ENCORE_SERVER_BIND="127.0.0.1:$port" -e ENCORE_JELLYFIN_URLS="$ENCORE_REPLAY_URL" \
+              "encore-server:$a"
+            ok=
+            for _ in $(seq 60); do
+              if docker exec "encore-$a" encore-server health; then ok=1; break; fi
+              sleep 1
+            done
+            test -n "$ok" || { docker logs "encore-$a"; exit 1; }
+            docker exec "encore-$a" id
+            (cd server && ENCORE_COMPANION_URL="http://127.0.0.1:$port" \
+              cargo test --locked --test two_devices through_the_docker_image -- --ignored --nocapture) \
+              || { docker logs "encore-$a"; exit 1; }
+            docker exec "encore-$a" encore-server backup /data/backup.sqlite
+            docker logs "encore-$a" 2>&1 | tail -n 5
+            docker stop "encore-$a"
+            port=$((port + 1))
+            echo "::endgroup::"
+          done

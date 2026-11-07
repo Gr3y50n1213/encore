@@ -387,3 +387,49 @@ fn deleting_the_profile_everywhere_signs_every_device_out_and_clears_this_one() 
     );
     assert!(phone.current_profile().is_some());
 }
+
+/// The like within a second through a server outside this process: the Docker
+/// image in CI (core.yml, the server-image job), whose sign-in check asks the
+/// replay Jellyfin over real HTTP. `ENCORE_COMPANION_URL` is its address on
+/// 127.0.0.1.
+#[test]
+#[ignore = "needs ENCORE_COMPANION_URL: the server-image job in core.yml"]
+fn a_like_shows_on_the_mac_within_a_second_through_the_docker_image() {
+    let url = std::env::var("ENCORE_COMPANION_URL").expect("set ENCORE_COMPANION_URL");
+    let port = url::Url::parse(&url).unwrap().port().expect("a port");
+    let addr: SocketAddr = format!("127.0.0.1:{port}").parse().unwrap();
+    let (_pd, phone, _pe, _) = device("phone", addr);
+    let (_md, mac, mac_events, _) = device("mac", addr);
+    block(phone.connect_companion(url.clone())).unwrap();
+    block(mac.connect_companion(url)).unwrap();
+    assert!(
+        mac_events
+            .wait_for(Duration::from_secs(15), |e| e
+                .sync_status
+                .as_ref()
+                .is_some_and(|s| s.state == SyncState::Idle))
+            .is_some()
+    );
+    let song = phone
+        .songs(SongSort::Title, 0, 1000)
+        .unwrap()
+        .into_iter()
+        .find(|s| !phone.are_liked(vec![s.id]).unwrap()[0])
+        .unwrap()
+        .id;
+    let liked_at = Instant::now();
+    phone.like(vec![song]).unwrap();
+    let seen = mac_events.wait_for(Duration::from_secs(5), |e| {
+        e.remote_change
+            .as_ref()
+            .is_some_and(|c| c.liked_song_ids.contains(&song))
+    });
+    let latency = liked_at.elapsed();
+    assert!(seen.is_some(), "the Mac never heard of the like");
+    println!(
+        "through the Docker image: a like on the phone showed on the Mac in {:.1} ms",
+        latency.as_secs_f64() * 1e3
+    );
+    assert!(latency < Duration::from_secs(1), "{latency:?}");
+    assert!(mac.are_liked(vec![song]).unwrap()[0]);
+}

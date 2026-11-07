@@ -57,6 +57,18 @@ fn health(bind: SocketAddr) -> ExitCode {
 #[tokio::main]
 async fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    // The health check needs only the address, not the rest of the settings.
+    if args.first().map(String::as_str) == Some("health") {
+        return match encore_server::bind_address(
+            std::env::var(encore_server::BIND_ENV).ok().as_deref(),
+        ) {
+            Ok(bind) => health(bind),
+            Err(e) => {
+                eprintln!("encore-server: {e}");
+                ExitCode::from(2)
+            }
+        };
+    }
     let config = match config() {
         Ok(c) => c,
         Err(e) => {
@@ -66,7 +78,6 @@ async fn main() -> ExitCode {
     };
     match args.first().map(String::as_str) {
         None | Some("serve") => {}
-        Some("health") => return health(config.bind),
         Some("backup") => {
             let Some(dest) = args.get(1) else {
                 eprintln!("encore-server: usage: encore-server backup <file>");

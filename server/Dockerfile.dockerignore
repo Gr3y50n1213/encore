@@ -1,0 +1,11 @@
+# Docker reads this for server/Dockerfile (BuildKit's per-Dockerfile ignore file).
+# The build needs core/, server/ and design/tokens.json; nothing else, and no
+# build output.
+*
+!core/
+!server/
+!design/tokens.json
+**/target/
+core/bindings/
+core/smoke/
+**/*.md

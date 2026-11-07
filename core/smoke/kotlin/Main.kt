@@ -12,6 +12,7 @@ import uk.gcartee.encore.core.DropTarget
 import uk.gcartee.encore.core.DropTargetKind
 import uk.gcartee.encore.core.LyricsSync
 import uk.gcartee.encore.core.SongSort
+import uk.gcartee.encore.core.SyncState
 import uk.gcartee.encore.core.CoreEvent
 import uk.gcartee.encore.core.CoreListener
 import uk.gcartee.encore.core.EncoreCore
@@ -99,6 +100,10 @@ fun main() {
     val exportFile = java.io.File(dir, "export.json")
     val exported = core.exportProfile(signedIn.profileId, exportFile.path)
     check(exported.bytes > 0uL && exportFile.length() == exported.bytes.toLong()) { "export" }
+    // Phase 4: the switcher's fields and the sync status cross the boundary.
+    val me = core.profiles().first { it.profileId == signedIn.profileId }
+    check(me.active && !me.locked && me.initials.isNotEmpty()) { "profiles" }
+    check(core.syncStatus().state == SyncState.NOT_CONNECTED) { "sync status" }
             val artAlbum = core.albums(AlbumSort.TITLE, 0u, 100u).first { it.hasArtwork }
             val palette = checkNotNull(core.albumPalette(artAlbum.id)) { "no palette" }
             check(palette.base == "3D0000" && palette.stops.size == 4) { palette.base }
@@ -110,7 +115,7 @@ fun main() {
             check(edit.added == 1u && edit.editId != null)
             core.undo(edit.editId!!)
             check(core.playlist(list.id).entries.size == entriesBefore.size)
-            flow = "library flow OK (signed in, synced ${synced[0].songs} songs, played an album, searched, lyrics, lyrics search, export, palette ${palette.base}, playlist edit and undo)"
+            flow = "library flow OK (signed in, synced ${synced[0].songs} songs, played an album, searched, lyrics, lyrics search, export, profiles, sync status, palette ${palette.base}, playlist edit and undo)"
         }
     }
 

@@ -1,0 +1,41 @@
+# An example: the Encore companion server next to an existing Jellyfin container.
+#
+#   docker compose -f server/compose.yaml up -d --build
+#
+# Run it from the repository root (the image is built from source; no image is
+# published yet). Then, in the app, connect to http://<this machine>:8097 on your
+# home network. For access away from home, use your own reverse proxy, Tailscale or
+# WireGuard with https; the app refuses plain http outside the home network.
+#
+# The data is in the encore-data volume (a named volume, so the server's own user
+# can write it). A backup, while it runs:
+#   docker compose -f server/compose.yaml exec encore-server encore-server backup /data/backup.sqlite
+#   docker compose -f server/compose.yaml cp encore-server:/data/backup.sqlite .
+
+services:
+  encore-server:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    image: encore-server:local
+    restart: unless-stopped
+    environment:
+      # The Jellyfin servers this companion trusts, comma-separated. A device can
+      # only sign in with an account on one of these. Use the address this
+      # container reaches Jellyfin at: its container name on a shared network, or
+      # the host's address.
+      ENCORE_JELLYFIN_URLS: "http://jellyfin:8096"
+    ports:
+      - "8097:8097"
+    volumes:
+      - encore-data:/data
+    # If Jellyfin runs in compose too, join its network so "jellyfin" resolves:
+    # networks: [jellyfin]
+
+volumes:
+  encore-data:
+
+# networks:
+#   jellyfin:
+#     external: true
+#     name: <your Jellyfin network>

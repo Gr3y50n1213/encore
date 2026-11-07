@@ -136,6 +136,12 @@ void main() {
           profileId: signedIn.profileId, destPath: exportFile.path);
       expect(exported.bytes, greaterThan(BigInt.zero));
       expect(exportFile.lengthSync(), exported.bytes.toInt());
+      // Phase 4: the switcher's fields and the sync status cross the boundary.
+      final me = core
+          .profiles()
+          .firstWhere((p) => p.profileId == signedIn.profileId);
+      expect(me.active && !me.locked && me.initials.isNotEmpty, isTrue);
+      expect(core.syncStatus().state, SyncState.notConnected);
       final artAlbum = core
           .albums(sort: AlbumSort.title, offset: 0, limit: 100)
           .firstWhere((a) => a.hasArtwork);

@@ -1,16 +1,17 @@
 # Source from a bash CI step, from any folder: starts the Jellyfin replay server
 # (replay_jellyfin.py) on the recording and exports ENCORE_REPLAY_URL for the smoke
 # tests. The server stops when the step's shell exits. Use one per step: each smoke
-# program signs in from the start.
+# program signs in from the start. An argument names another fixture file.
 
 start_replay() {
-  local here repo url_file py
+  local here repo url_file py fixture
   here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   repo="$(cd "$here/../.." && pwd)"
+  fixture="${1:-$repo/tools/fixtures/jellyfin/recorded.json}"
   url_file="$(mktemp -d)/replay-url"
   py=python3
   python3 -c '' >/dev/null 2>&1 || py=python # Windows runners: python3 may be a stub
-  "$py" -I -B "$here/replay_jellyfin.py" "$repo/tools/fixtures/jellyfin/recorded.json" "$url_file" \
+  "$py" -I -B "$here/replay_jellyfin.py" "$fixture" "$url_file" \
     2> "$url_file.log" &
   REPLAY_PID=$!
   trap 'kill "$REPLAY_PID" 2>/dev/null || true' EXIT

@@ -92,6 +92,11 @@ if let replay = ProcessInfo.processInfo.environment["ENCORE_REPLAY_URL"] {
     let exportFile = dir.appendingPathComponent("export.json").path
     let exported = try core.exportProfile(profileId: signedIn.profileId, destPath: exportFile)
     precondition(exported.bytes > 0 && FileManager.default.fileExists(atPath: exportFile), "export")
+    // Phase 4: the switcher's fields and the sync status cross the boundary.
+    let me = try core.profiles().first { $0.profileId == signedIn.profileId }!
+    precondition(me.active && !me.locked && !me.initials.isEmpty, "profiles")
+    let syncState = try core.syncStatus().state
+    precondition(syncState == .notConnected, "sync status")
     guard let artAlbum = try core.albums(sort: .title, offset: 0, limit: 100).first(where: { $0.hasArtwork }),
           let palette = try await core.albumPalette(albumId: artAlbum.id)
     else { preconditionFailure("no palette") }
@@ -107,7 +112,7 @@ if let replay = ProcessInfo.processInfo.environment["ENCORE_REPLAY_URL"] {
     try core.undo(editId: edit.editId!)
     let afterUndo = try core.playlist(playlistId: list.id).entries.count
     precondition(afterUndo == entriesBefore.count, "\(afterUndo) vs \(entriesBefore.count)")
-    flow = "library flow OK (signed in, synced \(synced[0].songs) songs, played an album, searched, lyrics, lyrics search, export, palette \(palette.base), playlist edit and undo)"
+    flow = "library flow OK (signed in, synced \(synced[0].songs) songs, played an album, searched, lyrics, lyrics search, export, profiles, sync status, palette \(palette.base), playlist edit and undo)"
 }
 
 print("Swift -> Rust: \(greeting) (core \(coreVersion())); EncoreCore async and errors OK; \(flow)")
