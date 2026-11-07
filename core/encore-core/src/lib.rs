@@ -16,6 +16,7 @@ mod companion;
 pub mod edits;
 pub mod library;
 pub mod palette;
+pub mod pin;
 pub mod playlog;
 pub mod queue;
 pub mod signal;

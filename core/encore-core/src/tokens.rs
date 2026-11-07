@@ -36,6 +36,13 @@ pub struct Tokens {
     pub palette: crate::palette::Settings,
     pub signal: crate::signal::Rules,
     pub undo_ms: i64,
+    pub pin_min_digits: usize,
+    pub pin_max_digits: usize,
+    pub pin_wrong_tries: u32,
+    pub pin_first_lock_ms: i64,
+    pub pin_lock_max_ms: i64,
+    pub guest_idle_ms: i64,
+    pub switch_flush: std::time::Duration,
     pub confirm_over_songs: u32,
 }
 
@@ -118,6 +125,13 @@ fn parse() -> Tokens {
             lightness_step: real(&v, "albumGradient.contrastLightnessStep"),
         },
         undo_ms: num(&v, "gestures.dragAndDrop.shortcutUndoMs") as i64,
+        pin_min_digits: num(&v, "profiles.pinMinDigits") as usize,
+        pin_max_digits: num(&v, "profiles.pinMaxDigits") as usize,
+        pin_wrong_tries: num(&v, "profiles.pinWrongTriesBeforeLock") as u32,
+        pin_first_lock_ms: num(&v, "profiles.pinFirstLockSeconds") as i64 * 1000,
+        pin_lock_max_ms: num(&v, "profiles.pinLockMaxSeconds") as i64 * 1000,
+        guest_idle_ms: num(&v, "profiles.guestIdleHours") as i64 * 3_600_000,
+        switch_flush: std::time::Duration::from_secs(num(&v, "profiles.switchFlushSeconds")),
         confirm_over_songs: num(&v, "gestures.dragAndDrop.confirmOverSongs") as u32,
         signal: crate::signal::Rules {
             early_skip_ms: num(&v, "smartPicks.earlySkipBoundarySeconds") * 1000,

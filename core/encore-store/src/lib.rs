@@ -17,6 +17,7 @@ mod edits;
 mod export;
 mod mirror;
 mod playlog;
+mod registry;
 mod schema;
 mod search;
 mod sync;
@@ -28,6 +29,7 @@ pub use edits::{EventRecord, OutboxRow, PlaylistItemRow, PlaylistRecord, UndoRow
 pub use export::{EXPORT_FORMAT, EXPORT_VERSION, ExportCounts, ExportHeader};
 pub use mirror::{ApplyStats, LOCAL_ITEM_PREFIX};
 pub use playlog::*;
+pub use registry::{PinRecord, Registry, RegistryProfile};
 pub use search::{LyricHit, SearchLimits, SearchResults, TopResult, fold_for_search};
 pub use sync::{Applied, InEvent, OutEvent, like_effect};
 

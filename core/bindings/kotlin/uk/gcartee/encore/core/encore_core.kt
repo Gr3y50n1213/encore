@@ -888,6 +888,30 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_unlike(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_biometrics_changed(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_end_guest(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_guest_session(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_last_active_profile(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_remove_profile_from_device(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_remove_profile_pin(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_rename_profile(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_reorder_profiles(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_set_profile_pin(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_start_guest(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_switch_profile(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_unlock_profile(
+    ): Int
     external fun uniffi_encore_core_checksum_method_corelistener_on_event(
     ): Int
     external fun uniffi_encore_core_checksum_constructor_encorecore_new(
@@ -1097,6 +1121,30 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_unlike(`ptr`: Long,`songIds`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_biometrics_changed(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_end_guest(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_guest_session(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_last_active_profile(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_remove_profile_from_device(`ptr`: Long,`profileId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_remove_profile_pin(`ptr`: Long,`profileId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_rename_profile(`ptr`: Long,`profileId`: RustBuffer.ByValue,`name`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_reorder_profiles(`ptr`: Long,`profileIds`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_set_profile_pin(`ptr`: Long,`profileId`: RustBuffer.ByValue,`newPin`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_start_guest(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_switch_profile(`ptr`: Long,`profileId`: RustBuffer.ByValue,`tokensIn`: RustBuffer.ByValue,`keepPlaying`: Byte,
+    ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_unlock_profile(`ptr`: Long,`profileId`: RustBuffer.ByValue,`pinIn`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     external fun uniffi_encore_core_fn_clone_corelistener(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Long
     external fun uniffi_encore_core_fn_free_corelistener(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -1504,6 +1552,42 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_unlike() and 0xFFFF) != 42881) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_biometrics_changed() and 0xFFFF) != 25368) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_end_guest() and 0xFFFF) != 36809) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_guest_session() and 0xFFFF) != 30644) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_last_active_profile() and 0xFFFF) != 6358) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_remove_profile_from_device() and 0xFFFF) != 41910) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_remove_profile_pin() and 0xFFFF) != 43127) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_rename_profile() and 0xFFFF) != 23675) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_reorder_profiles() and 0xFFFF) != 46567) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_set_profile_pin() and 0xFFFF) != 12865) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_start_guest() and 0xFFFF) != 46621) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_switch_profile() and 0xFFFF) != 31774) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_unlock_profile() and 0xFFFF) != 64461) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_corelistener_on_event() and 0xFFFF) != 61302) {
@@ -2826,6 +2910,84 @@ public interface EncoreCoreInterface {
      * Unlike songs; every copy of each song (on any album) stops being liked.
      */
     fun `unlike`(`songIds`: List<kotlin.Long>): EditResult
+    
+    /**
+     * The device's biometrics changed: every PIN is needed once before biometric
+     * unlock works again (board 14, States).
+     */
+    fun `biometricsChanged`()
+    
+    /**
+     * End Guest: the profile's own listening mode and queue come back (paused).
+     */
+    fun `endGuest`(): QueueState
+    
+    /**
+     * The Guest session, if one is going (it may have just ended for being idle).
+     */
+    fun `guestSession`(): GuestSession?
+    
+    /**
+     * The profile that was open last, to open at launch.
+     */
+    fun `lastActiveProfile`(): kotlin.String?
+    
+    /**
+     * Remove a profile from this device only (board 14, item 3): its folder here
+     * goes; its data on the companion server stays. Not deleting: that is
+     * `delete_profile_everywhere`. Delete its keychain entries after this.
+     */
+    fun `removeProfileFromDevice`(`profileId`: kotlin.String)
+    
+    /**
+     * Remove the open profile's PIN.
+     */
+    fun `removeProfilePin`(`profileId`: kotlin.String)
+    
+    /**
+     * Rename a profile on this device (None: back to the media-server user name).
+     */
+    fun `renameProfile`(`profileId`: kotlin.String, `name`: kotlin.String?)
+    
+    /**
+     * The switcher's order (Manage profiles); profiles not named keep their place
+     * after these.
+     */
+    fun `reorderProfiles`(`profileIds`: List<kotlin.String>)
+    
+    /**
+     * Lock the open profile with a PIN of `profiles.pinMinDigits` to
+     * `pinMaxDigits` digits (Manage profiles). It is a screen lock, not encryption.
+     */
+    fun `setProfilePin`(`profileId`: kotlin.String, `newPin`: kotlin.String)
+    
+    /**
+     * Start Guest on this device (board 14, item 5): nothing is recorded,
+     * recommended or synced, likes and playlists can't be saved, and the queue
+     * starts empty. The open profile's own queue is kept and comes back when Guest
+     * ends. Show "Guest, nothing is saved".
+     */
+    fun `startGuest`(): QueueState
+    
+    /**
+     * Switch to another profile on this device (board 14, item 2). A locked one
+     * must be unlocked first (`unlock_profile`). This profile's unsent changes are
+     * sent first (a few seconds at most; anything left goes next time), its queue
+     * is kept, and the other profile opens with its own queue, paused. With
+     * `keep_playing` the current queue moves over instead ("Keep playing"): the
+     * player keeps going and reports `playback_started` again, so the rest of the
+     * song counts for the new profile. `tokens` are the new profile's keychain
+     * entries. Async.
+     */
+    suspend fun `switchProfile`(`profileId`: kotlin.String, `tokensIn`: List<SourceToken>, `keepPlaying`: kotlin.Boolean): QueueState
+    
+    /**
+     * Unlock a profile for the next `switch_profile` or `open_profile`. `pin` None
+     * means the app's biometric check (Face ID, Touch ID, Windows Hello) passed;
+     * after the device's biometrics changed, the PIN is needed once. Five wrong
+     * PINs lock it for 30 s, then longer; the reason says how long.
+     */
+    fun `unlockProfile`(`profileId`: kotlin.String, `pinIn`: kotlin.String?)
     
     companion object
 }
@@ -4673,6 +4835,240 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
     
 
     
+    /**
+     * The device's biometrics changed: every PIN is needed once before biometric
+     * unlock works again (board 14, States).
+     */
+    @Throws(EncoreException::class)override fun `biometricsChanged`()
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_biometrics_changed(
+        it,
+        _status)
+}
+    }
+    
+    
+
+    
+    /**
+     * End Guest: the profile's own listening mode and queue come back (paused).
+     */
+    @Throws(EncoreException::class)override fun `endGuest`(): QueueState {
+            return FfiConverterTypeQueueState.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_end_guest(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * The Guest session, if one is going (it may have just ended for being idle).
+     */
+    @Throws(EncoreException::class)override fun `guestSession`(): GuestSession? {
+            return FfiConverterOptionalTypeGuestSession.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_guest_session(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * The profile that was open last, to open at launch.
+     */
+    @Throws(EncoreException::class)override fun `lastActiveProfile`(): kotlin.String? {
+            return FfiConverterOptionalString.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_last_active_profile(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Remove a profile from this device only (board 14, item 3): its folder here
+     * goes; its data on the companion server stays. Not deleting: that is
+     * `delete_profile_everywhere`. Delete its keychain entries after this.
+     */
+    @Throws(EncoreException::class)override fun `removeProfileFromDevice`(`profileId`: kotlin.String)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_remove_profile_from_device(
+        it,
+        
+        FfiConverterString.lower(`profileId`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Remove the open profile's PIN.
+     */
+    @Throws(EncoreException::class)override fun `removeProfilePin`(`profileId`: kotlin.String)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_remove_profile_pin(
+        it,
+        
+        FfiConverterString.lower(`profileId`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Rename a profile on this device (None: back to the media-server user name).
+     */
+    @Throws(EncoreException::class)override fun `renameProfile`(`profileId`: kotlin.String, `name`: kotlin.String?)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_rename_profile(
+        it,
+        
+        FfiConverterString.lower(`profileId`),
+        FfiConverterOptionalString.lower(`name`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * The switcher's order (Manage profiles); profiles not named keep their place
+     * after these.
+     */
+    @Throws(EncoreException::class)override fun `reorderProfiles`(`profileIds`: List<kotlin.String>)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_reorder_profiles(
+        it,
+        
+        FfiConverterSequenceString.lower(`profileIds`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Lock the open profile with a PIN of `profiles.pinMinDigits` to
+     * `pinMaxDigits` digits (Manage profiles). It is a screen lock, not encryption.
+     */
+    @Throws(EncoreException::class)override fun `setProfilePin`(`profileId`: kotlin.String, `newPin`: kotlin.String)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_set_profile_pin(
+        it,
+        
+        FfiConverterString.lower(`profileId`),
+        FfiConverterString.lower(`newPin`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Start Guest on this device (board 14, item 5): nothing is recorded,
+     * recommended or synced, likes and playlists can't be saved, and the queue
+     * starts empty. The open profile's own queue is kept and comes back when Guest
+     * ends. Show "Guest, nothing is saved".
+     */
+    @Throws(EncoreException::class)override fun `startGuest`(): QueueState {
+            return FfiConverterTypeQueueState.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_start_guest(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Switch to another profile on this device (board 14, item 2). A locked one
+     * must be unlocked first (`unlock_profile`). This profile's unsent changes are
+     * sent first (a few seconds at most; anything left goes next time), its queue
+     * is kept, and the other profile opens with its own queue, paused. With
+     * `keep_playing` the current queue moves over instead ("Keep playing"): the
+     * player keeps going and reports `playback_started` again, so the rest of the
+     * song counts for the new profile. `tokens` are the new profile's keychain
+     * entries. Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `switchProfile`(`profileId`: kotlin.String, `tokensIn`: List<SourceToken>, `keepPlaying`: kotlin.Boolean) : QueueState {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_switch_profile(
+                uniffiHandle,
+                
+        FfiConverterString.lower(`profileId`),
+        FfiConverterSequenceTypeSourceToken.lower(`tokensIn`),
+        FfiConverterBoolean.lower(`keepPlaying`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeQueueState.lift(it) },
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * Unlock a profile for the next `switch_profile` or `open_profile`. `pin` None
+     * means the app's biometric check (Face ID, Touch ID, Windows Hello) passed;
+     * after the device's biometrics changed, the PIN is needed once. Five wrong
+     * PINs lock it for 30 s, then longer; the reason says how long.
+     */
+    @Throws(EncoreException::class)override fun `unlockProfile`(`profileId`: kotlin.String, `pinIn`: kotlin.String?)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_unlock_profile(
+        it,
+        
+        FfiConverterString.lower(`profileId`),
+        FfiConverterOptionalString.lower(`pinIn`),_status)
+}
+    }
+    
+    
+
+    
 
     
 
@@ -5525,6 +5921,51 @@ public object FfiConverterTypeGenreSummary: FfiConverterRustBuffer<GenreSummary>
 
 
 
+/**
+ * A Guest session on this device (board 14, item 5): nothing is saved. It ends
+ * with `end_guest` or by itself after `profiles.guestIdleHours` idle.
+ */
+data class GuestSession (
+    var `startedUtcMs`: kotlin.Long
+    , 
+    /**
+     * When it ends if nothing plays before then.
+     */
+    var `endsIfIdleUtcMs`: kotlin.Long
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeGuestSession: FfiConverterRustBuffer<GuestSession> {
+    override fun read(buf: ByteBuffer): GuestSession {
+        return GuestSession(
+            FfiConverterLong.read(buf),
+            FfiConverterLong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: GuestSession) = (
+            FfiConverterLong.allocationSize(value.`startedUtcMs`) +
+            FfiConverterLong.allocationSize(value.`endsIfIdleUtcMs`)
+    )
+
+    override fun write(value: GuestSession, buf: ByteBuffer) {
+            FfiConverterLong.write(value.`startedUtcMs`, buf)
+            FfiConverterLong.write(value.`endsIfIdleUtcMs`, buf)
+    }
+}
+
+
+
 data class HttpHeader (
     var `name`: kotlin.String
     , 
@@ -6031,12 +6472,43 @@ public object FfiConverterTypePlaylistSummary: FfiConverterRustBuffer<PlaylistSu
 data class ProfileSummary (
     var `profileId`: kotlin.String
     , 
+    /**
+     * The name set in Manage profiles, or the media-server user name.
+     */
     var `displayName`: kotlin.String
     , 
     /**
-     * Where each source's token is kept in the keychain.
+     * Where each source's token is kept in the keychain (`source_id` 0 is the
+     * companion server's).
      */
     var `credentials`: List<CredentialKey>
+    , 
+    /**
+     * Up to two letters for the avatar's fallback (board 14).
+     */
+    var `initials`: kotlin.String
+    , 
+    /**
+     * The media server's user image, square; load it like artwork (the server
+     * serves user images without sign-in). None: show the initials.
+     */
+    var `avatarUrl`: kotlin.String?
+    , 
+    /**
+     * A PIN is set: `unlock_profile` before `switch_profile` or `open_profile`.
+     */
+    var `locked`: kotlin.Boolean
+    , 
+    /**
+     * The open profile (listed first).
+     */
+    var `active`: kotlin.Boolean
+    , 
+    /**
+     * The media server ended this profile's sign-in: the row shows "Sign in again"
+     * and its data stays until removed.
+     */
+    var `needsSignIn`: kotlin.Boolean
     
 ){
     
@@ -6056,19 +6528,34 @@ public object FfiConverterTypeProfileSummary: FfiConverterRustBuffer<ProfileSumm
             FfiConverterString.read(buf),
             FfiConverterString.read(buf),
             FfiConverterSequenceTypeCredentialKey.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
         )
     }
 
     override fun allocationSize(value: ProfileSummary) = (
             FfiConverterString.allocationSize(value.`profileId`) +
             FfiConverterString.allocationSize(value.`displayName`) +
-            FfiConverterSequenceTypeCredentialKey.allocationSize(value.`credentials`)
+            FfiConverterSequenceTypeCredentialKey.allocationSize(value.`credentials`) +
+            FfiConverterString.allocationSize(value.`initials`) +
+            FfiConverterOptionalString.allocationSize(value.`avatarUrl`) +
+            FfiConverterBoolean.allocationSize(value.`locked`) +
+            FfiConverterBoolean.allocationSize(value.`active`) +
+            FfiConverterBoolean.allocationSize(value.`needsSignIn`)
     )
 
     override fun write(value: ProfileSummary, buf: ByteBuffer) {
             FfiConverterString.write(value.`profileId`, buf)
             FfiConverterString.write(value.`displayName`, buf)
             FfiConverterSequenceTypeCredentialKey.write(value.`credentials`, buf)
+            FfiConverterString.write(value.`initials`, buf)
+            FfiConverterOptionalString.write(value.`avatarUrl`, buf)
+            FfiConverterBoolean.write(value.`locked`, buf)
+            FfiConverterBoolean.write(value.`active`, buf)
+            FfiConverterBoolean.write(value.`needsSignIn`, buf)
     }
 }
 
@@ -8918,6 +9405,38 @@ public object FfiConverterOptionalTypeArtworkPalette: FfiConverterRustBuffer<Art
         } else {
             buf.put(1)
             FfiConverterTypeArtworkPalette.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeGuestSession: FfiConverterRustBuffer<GuestSession?> {
+    override fun read(buf: ByteBuffer): GuestSession? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeGuestSession.read(buf)
+    }
+
+    override fun allocationSize(value: GuestSession?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeGuestSession.allocationSize(value)
+        }
+    }
+
+    override fun write(value: GuestSession?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeGuestSession.write(value, buf)
         }
     }
 }

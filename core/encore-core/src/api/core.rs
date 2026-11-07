@@ -141,6 +141,10 @@ struct Inner {
     sync_page_size: u32,
     /// Tests replay a recording instead of the network.
     transport_override: Option<Arc<dyn Transport>>,
+    /// The device registry: switcher order, names, avatars, PINs, Guest.
+    registry: Mutex<encore_store::Registry>,
+    /// Profiles unlocked for their next opening (each unlock is used once).
+    unlocked: Mutex<std::collections::HashSet<String>>,
 }
 
 /// The Encore core. Create one per app.
@@ -273,7 +277,11 @@ impl Inner {
             pinned_cert_sha256: pin.as_deref(),
             created_utc_ms: now_ms(),
         })?;
+        // A fresh sign-in: the media server no longer says it ended.
+        store.set_setting(profiles::SESSION_ENDED_KEY, "")?;
         drop(store);
+        // Signing in proves who it is: a PIN doesn't stop it opening.
+        lock(&self.unlocked)?.insert(id.clone());
         self.open_profile(
             &id,
             vec![SourceToken {
@@ -316,6 +324,7 @@ impl Inner {
     }
 
     fn open_profile(&self, id: &str, tokens_in: Vec<SourceToken>) -> Result<(), EncoreError> {
+        self.take_unlock(id)?;
         self.close_profile()?;
         let path = self.store_path(checked_profile_id(id)?);
         if !path.exists() {
@@ -362,7 +371,12 @@ impl Inner {
             }),
         };
         *lock(&self.profile)? = Some(Arc::new(profile));
-        Ok(())
+        {
+            let reg = lock(&self.registry)?;
+            reg.ensure(id, now_ms())?;
+            reg.set_state("last_active", Some(id))?;
+        }
+        self.after_open()
     }
 
     fn close_profile(&self) -> Result<(), EncoreError> {
@@ -372,6 +386,7 @@ impl Inner {
     /// Close the open profile and hand it back. The database stays open until the
     /// last holder (a background send, say) lets go of it.
     fn take_profile(&self) -> Result<Option<Arc<Profile>>, EncoreError> {
+        self.before_close();
         let old = lock(&self.profile)?.take();
         if let Some(p) = &old {
             // Stop syncing: unsent changes stay queued and go out next time.
@@ -793,6 +808,11 @@ impl EncoreCore {
             .enable_all()
             .build()
             .map_err(EncoreError::internal)?;
+        std::fs::create_dir_all(&config.data_dir).map_err(|e| EncoreError::Storage {
+            reason: format!("couldn't use the data folder ({e})"),
+        })?;
+        let registry =
+            encore_store::Registry::open(&Path::new(&config.data_dir).join("device.sqlite"))?;
         std::fs::create_dir_all(Path::new(&config.data_dir).join("profiles")).map_err(|e| {
             EncoreError::Storage {
                 reason: format!("couldn't use the data folder ({e})"),
@@ -810,6 +830,8 @@ impl EncoreCore {
                 poll_every,
                 sync_page_size,
                 transport_override,
+                registry: Mutex::new(registry),
+                unlocked: Mutex::new(Default::default()),
             }),
         }))
     }
@@ -950,6 +972,7 @@ impl EncoreCore {
     pub fn profiles(&self) -> Result<Vec<ProfileSummary>, EncoreError> {
         let dir = self.inner.profiles_dir();
         let mut out = Vec::new();
+        let mut ended = std::collections::HashSet::new();
         let entries = std::fs::read_dir(&dir).map_err(|e| EncoreError::Storage {
             reason: e.to_string(),
         })?;
@@ -965,7 +988,18 @@ impl EncoreCore {
             }
             let store = Store::open(&path)?;
             let sources = store.sources()?;
+            if store
+                .setting(profiles::SESSION_ENDED_KEY)?
+                .is_some_and(|v| v == "1")
+            {
+                ended.insert(id.clone());
+            }
             out.push(ProfileSummary {
+                initials: String::new(),
+                avatar_url: None,
+                locked: false,
+                active: false,
+                needs_sign_in: false,
                 display_name: sources
                     .first()
                     .map(|s| s.user_name.clone())
@@ -990,7 +1024,7 @@ impl EncoreCore {
                 profile_id: id,
             });
         }
-        Ok(out)
+        self.arrange_profiles(out, &ended)
     }
 
     /// Open a profile with the tokens the app read from its keychain. A play left
@@ -1424,7 +1458,7 @@ impl EncoreCore {
                 // Edits made here go first, so the pull can't put back what they
                 // changed. If the server can't be reached they keep waiting.
                 let _ = edits::flush(&p.store, id, source.as_ref(), now_ms()).await;
-                let stats = crate::library::sync_source(
+                let stats: Result<_, EncoreError> = crate::library::sync_source(
                     &p.store,
                     id,
                     source.as_ref(),
@@ -1432,7 +1466,21 @@ impl EncoreCore {
                     now_ms(),
                     &progress,
                 )
-                .await?;
+                .await
+                .map_err(Into::into);
+                // The media server ended the sign-in: the switcher says "Sign in again".
+                if let Err(EncoreError::SessionExpired { .. }) = &stats {
+                    lock(&p.store)?.set_setting(profiles::SESSION_ENDED_KEY, "1")?;
+                }
+                let stats = stats?;
+                // The user's image, for the switcher's avatar (best effort).
+                if let Ok(me) = source.client.me().await {
+                    let avatar = me
+                        .image_tag
+                        .as_deref()
+                        .map(|tag| (source.client.base_url().as_str(), me.user_id.as_str(), tag));
+                    lock(&inner.registry)?.set_avatar(&p.id, avatar)?;
+                }
                 {
                     // Favourites set or cleared elsewhere become likes here.
                     let store = lock(&p.store)?;
@@ -1721,6 +1769,7 @@ impl EncoreCore {
         started_from: StartedFrom,
         context_id: Option<String>,
     ) -> Result<QueueState, EncoreError> {
+        self.inner.guest_tick(true)?;
         let items = Inner::new_items(&song_ids, started_from, context_id);
         Ok(self
             .inner
@@ -1915,6 +1964,7 @@ impl EncoreCore {
     /// event at once (plan section 8). `utc_offset_minutes` is the device's offset
     /// right now (east positive).
     pub fn playback_started(&self, uid: i64, utc_offset_minutes: i32) -> Result<(), EncoreError> {
+        self.inner.guest_tick(true)?;
         let p = self.inner.profile()?;
         let mut pb = lock(&p.playback)?;
         let store = lock(&p.store)?;
@@ -1954,6 +2004,7 @@ impl EncoreCore {
     /// Progress from the player, about once a second. `listened_ms` counts only
     /// time actually played (not seeks). Emits Preload 20 s before the end.
     pub fn playback_progress(&self, position_ms: i64, listened_ms: i64) -> Result<(), EncoreError> {
+        self.inner.guest_tick(true)?;
         let p = self.inner.profile()?;
         let preload = {
             let mut pb = lock(&p.playback)?;
@@ -2568,6 +2619,7 @@ impl EncoreCore {
     }
 }
 
+mod profiles;
 mod sync_loop;
 #[cfg(test)]
 mod tests;

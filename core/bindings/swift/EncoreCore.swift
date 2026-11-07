@@ -1293,6 +1293,84 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
      */
     func unlike(songIds: [Int64]) throws  -> EditResult
     
+    /**
+     * The device's biometrics changed: every PIN is needed once before biometric
+     * unlock works again (board 14, States).
+     */
+    func biometricsChanged() throws 
+    
+    /**
+     * End Guest: the profile's own listening mode and queue come back (paused).
+     */
+    func endGuest() throws  -> QueueState
+    
+    /**
+     * The Guest session, if one is going (it may have just ended for being idle).
+     */
+    func guestSession() throws  -> GuestSession?
+    
+    /**
+     * The profile that was open last, to open at launch.
+     */
+    func lastActiveProfile() throws  -> String?
+    
+    /**
+     * Remove a profile from this device only (board 14, item 3): its folder here
+     * goes; its data on the companion server stays. Not deleting: that is
+     * `delete_profile_everywhere`. Delete its keychain entries after this.
+     */
+    func removeProfileFromDevice(profileId: String) throws 
+    
+    /**
+     * Remove the open profile's PIN.
+     */
+    func removeProfilePin(profileId: String) throws 
+    
+    /**
+     * Rename a profile on this device (None: back to the media-server user name).
+     */
+    func renameProfile(profileId: String, name: String?) throws 
+    
+    /**
+     * The switcher's order (Manage profiles); profiles not named keep their place
+     * after these.
+     */
+    func reorderProfiles(profileIds: [String]) throws 
+    
+    /**
+     * Lock the open profile with a PIN of `profiles.pinMinDigits` to
+     * `pinMaxDigits` digits (Manage profiles). It is a screen lock, not encryption.
+     */
+    func setProfilePin(profileId: String, newPin: String) throws 
+    
+    /**
+     * Start Guest on this device (board 14, item 5): nothing is recorded,
+     * recommended or synced, likes and playlists can't be saved, and the queue
+     * starts empty. The open profile's own queue is kept and comes back when Guest
+     * ends. Show "Guest, nothing is saved".
+     */
+    func startGuest() throws  -> QueueState
+    
+    /**
+     * Switch to another profile on this device (board 14, item 2). A locked one
+     * must be unlocked first (`unlock_profile`). This profile's unsent changes are
+     * sent first (a few seconds at most; anything left goes next time), its queue
+     * is kept, and the other profile opens with its own queue, paused. With
+     * `keep_playing` the current queue moves over instead ("Keep playing"): the
+     * player keeps going and reports `playback_started` again, so the rest of the
+     * song counts for the new profile. `tokens` are the new profile's keychain
+     * entries. Async.
+     */
+    func switchProfile(profileId: String, tokensIn: [SourceToken], keepPlaying: Bool) async throws  -> QueueState
+    
+    /**
+     * Unlock a profile for the next `switch_profile` or `open_profile`. `pin` None
+     * means the app's biometric check (Face ID, Touch ID, Windows Hello) passed;
+     * after the device's biometrics changed, the PIN is needed once. Five wrong
+     * PINs lock it for 30 s, then longer; the reason says how long.
+     */
+    func unlockProfile(profileId: String, pinIn: String?) throws 
+    
 }
 /**
  * The Encore core. Create one per app.
@@ -2629,6 +2707,177 @@ open func unlike(songIds: [Int64])throws  -> EditResult  {
 })
 }
     
+    /**
+     * The device's biometrics changed: every PIN is needed once before biometric
+     * unlock works again (board 14, States).
+     */
+open func biometricsChanged()throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_biometrics_changed(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * End Guest: the profile's own listening mode and queue come back (paused).
+     */
+open func endGuest()throws  -> QueueState  {
+    return try  FfiConverterTypeQueueState_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_end_guest(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * The Guest session, if one is going (it may have just ended for being idle).
+     */
+open func guestSession()throws  -> GuestSession?  {
+    return try  FfiConverterOptionTypeGuestSession.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_guest_session(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * The profile that was open last, to open at launch.
+     */
+open func lastActiveProfile()throws  -> String?  {
+    return try  FfiConverterOptionString.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_last_active_profile(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Remove a profile from this device only (board 14, item 3): its folder here
+     * goes; its data on the companion server stays. Not deleting: that is
+     * `delete_profile_everywhere`. Delete its keychain entries after this.
+     */
+open func removeProfileFromDevice(profileId: String)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_remove_profile_from_device(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(profileId),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * Remove the open profile's PIN.
+     */
+open func removeProfilePin(profileId: String)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_remove_profile_pin(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(profileId),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * Rename a profile on this device (None: back to the media-server user name).
+     */
+open func renameProfile(profileId: String, name: String?)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_rename_profile(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(profileId),
+        FfiConverterOptionString.lower(name),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * The switcher's order (Manage profiles); profiles not named keep their place
+     * after these.
+     */
+open func reorderProfiles(profileIds: [String])throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_reorder_profiles(
+            self.uniffiCloneHandle(),
+        FfiConverterSequenceString.lower(profileIds),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * Lock the open profile with a PIN of `profiles.pinMinDigits` to
+     * `pinMaxDigits` digits (Manage profiles). It is a screen lock, not encryption.
+     */
+open func setProfilePin(profileId: String, newPin: String)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_set_profile_pin(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(profileId),
+        FfiConverterString.lower(newPin),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * Start Guest on this device (board 14, item 5): nothing is recorded,
+     * recommended or synced, likes and playlists can't be saved, and the queue
+     * starts empty. The open profile's own queue is kept and comes back when Guest
+     * ends. Show "Guest, nothing is saved".
+     */
+open func startGuest()throws  -> QueueState  {
+    return try  FfiConverterTypeQueueState_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_start_guest(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Switch to another profile on this device (board 14, item 2). A locked one
+     * must be unlocked first (`unlock_profile`). This profile's unsent changes are
+     * sent first (a few seconds at most; anything left goes next time), its queue
+     * is kept, and the other profile opens with its own queue, paused. With
+     * `keep_playing` the current queue moves over instead ("Keep playing"): the
+     * player keeps going and reports `playback_started` again, so the rest of the
+     * song counts for the new profile. `tokens` are the new profile's keychain
+     * entries. Async.
+     */
+open func switchProfile(profileId: String, tokensIn: [SourceToken], keepPlaying: Bool)async throws  -> QueueState  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_switch_profile(
+                        self.uniffiCloneHandle(),FfiConverterString.lower(profileId),FfiConverterSequenceTypeSourceToken.lower(tokensIn),FfiConverterBool.lower(keepPlaying)
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_rust_buffer,
+            completeFunc: ffi_encore_core_rust_future_complete_rust_buffer,
+            freeFunc: ffi_encore_core_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterTypeQueueState_lift,
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
+}
+    
+    /**
+     * Unlock a profile for the next `switch_profile` or `open_profile`. `pin` None
+     * means the app's biometric check (Face ID, Touch ID, Windows Hello) passed;
+     * after the device's biometrics changed, the PIN is needed once. Five wrong
+     * PINs lock it for 30 s, then longer; the reason says how long.
+     */
+open func unlockProfile(profileId: String, pinIn: String?)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_unlock_profile(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(profileId),
+        FfiConverterOptionString.lower(pinIn),uniffiCallStatus
+    )
+}
+}
+    
 
     
 }
@@ -3729,6 +3978,70 @@ public func FfiConverterTypeGenreSummary_lower(_ value: GenreSummary) -> RustBuf
 }
 
 
+/**
+ * A Guest session on this device (board 14, item 5): nothing is saved. It ends
+ * with `end_guest` or by itself after `profiles.guestIdleHours` idle.
+ */
+public struct GuestSession: Equatable, Hashable {
+    public var startedUtcMs: Int64
+    /**
+     * When it ends if nothing plays before then.
+     */
+    public var endsIfIdleUtcMs: Int64
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(startedUtcMs: Int64, 
+        /**
+         * When it ends if nothing plays before then.
+         */endsIfIdleUtcMs: Int64) {
+        self.startedUtcMs = startedUtcMs
+        self.endsIfIdleUtcMs = endsIfIdleUtcMs
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension GuestSession: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeGuestSession: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> GuestSession {
+        return
+            try GuestSession(
+                startedUtcMs: FfiConverterInt64.read(from: &buf), 
+                endsIfIdleUtcMs: FfiConverterInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: GuestSession, into buf: inout [UInt8]) {
+        FfiConverterInt64.write(value.startedUtcMs, into: &buf)
+        FfiConverterInt64.write(value.endsIfIdleUtcMs, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeGuestSession_lift(_ buf: RustBuffer) throws -> GuestSession {
+    return try FfiConverterTypeGuestSession.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeGuestSession_lower(_ value: GuestSession) -> RustBuffer {
+    return FfiConverterTypeGuestSession.lower(value)
+}
+
+
 public struct HttpHeader: Equatable, Hashable {
     public var name: String
     public var value: String
@@ -4393,21 +4706,73 @@ public func FfiConverterTypePlaylistSummary_lower(_ value: PlaylistSummary) -> R
 
 public struct ProfileSummary: Equatable, Hashable {
     public var profileId: String
+    /**
+     * The name set in Manage profiles, or the media-server user name.
+     */
     public var displayName: String
     /**
-     * Where each source's token is kept in the keychain.
+     * Where each source's token is kept in the keychain (`source_id` 0 is the
+     * companion server's).
      */
     public var credentials: [CredentialKey]
+    /**
+     * Up to two letters for the avatar's fallback (board 14).
+     */
+    public var initials: String
+    /**
+     * The media server's user image, square; load it like artwork (the server
+     * serves user images without sign-in). None: show the initials.
+     */
+    public var avatarUrl: String?
+    /**
+     * A PIN is set: `unlock_profile` before `switch_profile` or `open_profile`.
+     */
+    public var locked: Bool
+    /**
+     * The open profile (listed first).
+     */
+    public var active: Bool
+    /**
+     * The media server ended this profile's sign-in: the row shows "Sign in again"
+     * and its data stays until removed.
+     */
+    public var needsSignIn: Bool
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(profileId: String, displayName: String, 
+    public init(profileId: String, 
         /**
-         * Where each source's token is kept in the keychain.
-         */credentials: [CredentialKey]) {
+         * The name set in Manage profiles, or the media-server user name.
+         */displayName: String, 
+        /**
+         * Where each source's token is kept in the keychain (`source_id` 0 is the
+         * companion server's).
+         */credentials: [CredentialKey], 
+        /**
+         * Up to two letters for the avatar's fallback (board 14).
+         */initials: String, 
+        /**
+         * The media server's user image, square; load it like artwork (the server
+         * serves user images without sign-in). None: show the initials.
+         */avatarUrl: String?, 
+        /**
+         * A PIN is set: `unlock_profile` before `switch_profile` or `open_profile`.
+         */locked: Bool, 
+        /**
+         * The open profile (listed first).
+         */active: Bool, 
+        /**
+         * The media server ended this profile's sign-in: the row shows "Sign in again"
+         * and its data stays until removed.
+         */needsSignIn: Bool) {
         self.profileId = profileId
         self.displayName = displayName
         self.credentials = credentials
+        self.initials = initials
+        self.avatarUrl = avatarUrl
+        self.locked = locked
+        self.active = active
+        self.needsSignIn = needsSignIn
     }
 
     
@@ -4428,7 +4793,12 @@ public struct FfiConverterTypeProfileSummary: FfiConverterRustBuffer {
             try ProfileSummary(
                 profileId: FfiConverterString.read(from: &buf), 
                 displayName: FfiConverterString.read(from: &buf), 
-                credentials: FfiConverterSequenceTypeCredentialKey.read(from: &buf)
+                credentials: FfiConverterSequenceTypeCredentialKey.read(from: &buf), 
+                initials: FfiConverterString.read(from: &buf), 
+                avatarUrl: FfiConverterOptionString.read(from: &buf), 
+                locked: FfiConverterBool.read(from: &buf), 
+                active: FfiConverterBool.read(from: &buf), 
+                needsSignIn: FfiConverterBool.read(from: &buf)
         )
     }
 
@@ -4436,6 +4806,11 @@ public struct FfiConverterTypeProfileSummary: FfiConverterRustBuffer {
         FfiConverterString.write(value.profileId, into: &buf)
         FfiConverterString.write(value.displayName, into: &buf)
         FfiConverterSequenceTypeCredentialKey.write(value.credentials, into: &buf)
+        FfiConverterString.write(value.initials, into: &buf)
+        FfiConverterOptionString.write(value.avatarUrl, into: &buf)
+        FfiConverterBool.write(value.locked, into: &buf)
+        FfiConverterBool.write(value.active, into: &buf)
+        FfiConverterBool.write(value.needsSignIn, into: &buf)
     }
 }
 
@@ -8595,6 +8970,30 @@ fileprivate struct FfiConverterOptionTypeArtworkPalette: FfiConverterRustBuffer 
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterOptionTypeGuestSession: FfiConverterRustBuffer {
+    typealias SwiftType = GuestSession?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeGuestSession.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeGuestSession.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterOptionTypePlaylistSummary: FfiConverterRustBuffer {
     typealias SwiftType = PlaylistSummary?
 
@@ -9829,6 +10228,42 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_unlike() != 42881) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_biometrics_changed() != 25368) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_end_guest() != 36809) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_guest_session() != 30644) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_last_active_profile() != 6358) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_remove_profile_from_device() != 41910) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_remove_profile_pin() != 43127) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_rename_profile() != 23675) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_reorder_profiles() != 46567) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_set_profile_pin() != 12865) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_start_guest() != 46621) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_switch_profile() != 31774) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_unlock_profile() != 64461) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_corelistener_on_event() != 61302) {

@@ -24,9 +24,10 @@ pub use encore_core::api::{
 };
 pub use encore_core::api::{
     ArtworkPalette, CompanionDevice, DropPreview, DropRefusal, DropTarget, DropTargetKind,
-    EditResult, ExportSummary, InterruptionKind, LyricBackground, LyricGap, LyricLine, LyricMatch,
-    LyricSide, LyricWord, LyricsFormat, LyricsOrigin, LyricsSync, PaletteScheme, PaletteSwatch,
-    SentEdits, Singer, SingerKind, SkipOrigin, SkipTarget, SongLyrics,
+    EditResult, ExportSummary, GuestSession, InterruptionKind, LyricBackground, LyricGap,
+    LyricLine, LyricMatch, LyricSide, LyricWord, LyricsFormat, LyricsOrigin, LyricsSync,
+    PaletteScheme, PaletteSwatch, SentEdits, Singer, SingerKind, SkipOrigin, SkipTarget,
+    SongLyrics,
 };
 use encore_core::api::{CoreListener, EncoreCore};
 
@@ -83,6 +84,17 @@ pub struct _ProfileSummary {
     pub profile_id: String,
     pub display_name: String,
     pub credentials: Vec<CredentialKey>,
+    pub initials: String,
+    pub avatar_url: Option<String>,
+    pub locked: bool,
+    pub active: bool,
+    pub needs_sign_in: bool,
+}
+
+#[frb(mirror(GuestSession))]
+pub struct _GuestSession {
+    pub started_utc_ms: i64,
+    pub ends_if_idle_utc_ms: i64,
 }
 
 #[frb(mirror(ServerRow))]
@@ -747,6 +759,62 @@ impl Encore {
     #[frb(sync)]
     pub fn profiles(&self) -> Result<Vec<ProfileSummary>, ApiError> {
         Ok(self.core.profiles()?)
+    }
+
+    // Phase 4: profiles on this device (board 14)
+    pub async fn switch_profile(
+        &self,
+        profile_id: String,
+        tokens: Vec<SourceToken>,
+        keep_playing: bool,
+    ) -> Result<QueueState, ApiError> {
+        Ok(self
+            .core
+            .switch_profile(profile_id, tokens, keep_playing)
+            .await?)
+    }
+    #[frb(sync)]
+    pub fn unlock_profile(&self, profile_id: String, pin: Option<String>) -> Result<(), ApiError> {
+        Ok(self.core.unlock_profile(profile_id, pin)?)
+    }
+    #[frb(sync)]
+    pub fn set_profile_pin(&self, profile_id: String, pin: String) -> Result<(), ApiError> {
+        Ok(self.core.set_profile_pin(profile_id, pin)?)
+    }
+    #[frb(sync)]
+    pub fn remove_profile_pin(&self, profile_id: String) -> Result<(), ApiError> {
+        Ok(self.core.remove_profile_pin(profile_id)?)
+    }
+    #[frb(sync)]
+    pub fn biometrics_changed(&self) -> Result<(), ApiError> {
+        Ok(self.core.biometrics_changed()?)
+    }
+    #[frb(sync)]
+    pub fn rename_profile(&self, profile_id: String, name: Option<String>) -> Result<(), ApiError> {
+        Ok(self.core.rename_profile(profile_id, name)?)
+    }
+    #[frb(sync)]
+    pub fn reorder_profiles(&self, profile_ids: Vec<String>) -> Result<(), ApiError> {
+        Ok(self.core.reorder_profiles(profile_ids)?)
+    }
+    pub fn remove_profile_from_device(&self, profile_id: String) -> Result<(), ApiError> {
+        Ok(self.core.remove_profile_from_device(profile_id)?)
+    }
+    #[frb(sync)]
+    pub fn last_active_profile(&self) -> Result<Option<String>, ApiError> {
+        Ok(self.core.last_active_profile()?)
+    }
+    #[frb(sync)]
+    pub fn start_guest(&self) -> Result<QueueState, ApiError> {
+        Ok(self.core.start_guest()?)
+    }
+    #[frb(sync)]
+    pub fn end_guest(&self) -> Result<QueueState, ApiError> {
+        Ok(self.core.end_guest()?)
+    }
+    #[frb(sync)]
+    pub fn guest_session(&self) -> Result<Option<GuestSession>, ApiError> {
+        Ok(self.core.guest_session()?)
     }
     #[frb(sync)]
     pub fn open_profile(

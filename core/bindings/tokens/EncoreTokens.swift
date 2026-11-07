@@ -1612,4 +1612,16 @@ public enum EncoreTokens {
         public static let refreshAfterDays: Int = 7
         public static let generatedWordTimingMinConfidence: Double = 0.8
     }
+
+    /// Source: plan section 6, board 14 (Profile switcher)
+    /// Status: Board 14's numbers: a 4 to 6 digit PIN, five wrong tries lock for 30 s and then longer, Guest ends after 4 hours idle. The doubling and its cap are starting values.
+    public enum Profiles {
+        public static let pinMinDigits: Int = 4
+        public static let pinMaxDigits: Int = 6
+        public static let pinWrongTriesBeforeLock: Int = 5
+        public static let pinFirstLockSeconds: Int = 30
+        public static let pinLockMaxSeconds: Int = 3600
+        public static let guestIdleHours: Int = 4
+        public static let switchFlushSeconds: Int = 3
+    }
 }

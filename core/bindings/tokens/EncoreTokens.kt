@@ -1642,4 +1642,18 @@ object EncoreTokens {
         const val refreshAfterDays: Int = 7
         const val generatedWordTimingMinConfidence: Double = 0.8
     }
+
+    /**
+     * Source: plan section 6, board 14 (Profile switcher)
+     * Status: Board 14's numbers: a 4 to 6 digit PIN, five wrong tries lock for 30 s and then longer, Guest ends after 4 hours idle. The doubling and its cap are starting values.
+     */
+    object Profiles {
+        const val pinMinDigits: Int = 4
+        const val pinMaxDigits: Int = 6
+        const val pinWrongTriesBeforeLock: Int = 5
+        const val pinFirstLockSeconds: Int = 30
+        const val pinLockMaxSeconds: Int = 3600
+        const val guestIdleHours: Int = 4
+        const val switchFlushSeconds: Int = 3
+    }
 }

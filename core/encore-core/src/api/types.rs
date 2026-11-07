@@ -92,9 +92,33 @@ pub struct CredentialKey {
 #[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
 pub struct ProfileSummary {
     pub profile_id: String,
+    /// The name set in Manage profiles, or the media-server user name.
     pub display_name: String,
-    /// Where each source's token is kept in the keychain.
+    /// Where each source's token is kept in the keychain (`source_id` 0 is the
+    /// companion server's).
     pub credentials: Vec<CredentialKey>,
+    /// Up to two letters for the avatar's fallback (board 14).
+    pub initials: String,
+    /// The media server's user image, square; load it like artwork (the server
+    /// serves user images without sign-in). None: show the initials.
+    pub avatar_url: Option<String>,
+    /// A PIN is set: `unlock_profile` before `switch_profile` or `open_profile`.
+    pub locked: bool,
+    /// The open profile (listed first).
+    pub active: bool,
+    /// The media server ended this profile's sign-in: the row shows "Sign in again"
+    /// and its data stays until removed.
+    pub needs_sign_in: bool,
+}
+
+/// A Guest session on this device (board 14, item 5): nothing is saved. It ends
+/// with `end_guest` or by itself after `profiles.guestIdleHours` idle.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct GuestSession {
+    pub started_utc_ms: i64,
+    /// When it ends if nothing plays before then.
+    pub ends_if_idle_utc_ms: i64,
 }
 
 /// A row on the Servers and sources page (board 18).

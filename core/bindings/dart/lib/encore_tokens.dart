@@ -27,6 +27,7 @@ abstract final class EncoreTokens {
   static const EncoreTokensLibrary library = EncoreTokensLibrary._();
   static const EncoreTokensSearch search = EncoreTokensSearch._();
   static const EncoreTokensLyrics lyrics = EncoreTokensLyrics._();
+  static const EncoreTokensProfiles profiles = EncoreTokensProfiles._();
 }
 
 final class EncoreTokensMeta {
@@ -2137,4 +2138,18 @@ final class EncoreTokensLyrics {
   final int lastLineSeconds = 5;
   final int refreshAfterDays = 7;
   final double generatedWordTimingMinConfidence = 0.8;
+}
+
+/// Source: plan section 6, board 14 (Profile switcher)
+/// Status: Board 14's numbers: a 4 to 6 digit PIN, five wrong tries lock for 30 s and then longer, Guest ends after 4 hours idle. The doubling and its cap are starting values.
+final class EncoreTokensProfiles {
+  const EncoreTokensProfiles._();
+
+  final int pinMinDigits = 4;
+  final int pinMaxDigits = 6;
+  final int pinWrongTriesBeforeLock = 5;
+  final int pinFirstLockSeconds = 30;
+  final int pinLockMaxSeconds = 3600;
+  final int guestIdleHours = 4;
+  final int switchFlushSeconds = 3;
 }

@@ -978,3 +978,283 @@ fn a_profile_reopens_with_the_token_from_the_keychain() {
     .unwrap();
     assert!(core.stream_for(id, Network::Wifi).is_ok());
 }
+
+/// Hands each request to whichever recording is in place, so one core can sign in
+/// as two people.
+#[derive(Debug)]
+struct Swap(Mutex<Arc<dyn Transport>>);
+
+impl Transport for Swap {
+    fn send(
+        &self,
+        req: encore_sources::transport::Request,
+    ) -> encore_sources::transport::BoxFuture<
+        '_,
+        encore_sources::Result<encore_sources::transport::Response>,
+    > {
+        let t = self.0.lock().unwrap().clone();
+        Box::pin(async move { t.send(req).await })
+    }
+}
+
+/// The recording as a second Jellyfin user (a stand-in: the owner's server was
+/// recorded with one user). Same library, another user ID, so another profile.
+fn second_user() -> Arc<dyn Transport> {
+    let alex = RECORDED.replace(
+        "d988144769a4706d8c624e4061739e78",
+        "a1e70000000000000000000000000002",
+    );
+    Arc::new(FixtureTransport::from_json(&alex).unwrap())
+}
+
+fn tokens_of(profile_id: &str) -> Vec<SourceToken> {
+    let _ = profile_id;
+    vec![SourceToken {
+        source_id: 1,
+        token: "anonymized-token".into(),
+    }]
+}
+
+/// Phase 4's "done when", core part: two people share an iPad with fully
+/// separate history. One core, one data folder, two profiles.
+#[test]
+fn two_people_share_an_ipad_with_fully_separate_history() {
+    let dir = temp_dir("ipad");
+    let swap = Arc::new(Swap(Mutex::new(
+        Arc::new(FixtureTransport::from_json(RECORDED).unwrap()) as Arc<dyn Transport>,
+    )));
+    let config = CoreConfig {
+        data_dir: dir.0.to_string_lossy().into_owned(),
+        device_id: "ipad".into(),
+        device_name: "iPad".into(),
+        platform: "test".into(),
+    };
+    let core = EncoreCore::build(config, Duration::ZERO, 50, Some(swap.clone())).unwrap();
+
+    // Sam signs in, plays a song, likes one, leaves a queue.
+    let sam = signed_in(&core).profile_id;
+    block(core.sync_library()).unwrap();
+    let songs = core.songs(SongSort::Title, 0, 1000).unwrap();
+    let not_liked: Vec<i64> = songs
+        .iter()
+        .map(|s| s.id)
+        .filter(|id| !core.are_liked(vec![*id]).unwrap()[0])
+        .take(2)
+        .collect();
+    let state = core
+        .play(
+            songs[..5].iter().map(|s| s.id).collect(),
+            2,
+            StartedFrom::Songs,
+            None,
+        )
+        .unwrap();
+    core.playback_started(state.current.unwrap().uid, 60)
+        .unwrap();
+    core.playback_ended(EndReason::Finished, 200_000).unwrap();
+    core.like(vec![not_liked[0]]).unwrap();
+    let sam_current = core.queue().unwrap().current.unwrap().song.id;
+
+    // Alex signs in on the same iPad: a new profile, opened, with nothing of Sam's.
+    *swap.0.lock().unwrap() = second_user();
+    let alex = signed_in(&core).profile_id;
+    assert_ne!(alex, sam);
+    assert_eq!(core.current_profile().as_deref(), Some(alex.as_str()));
+    block(core.sync_library()).unwrap();
+    assert!(
+        core.queue().unwrap().current.is_none(),
+        "Alex's queue starts empty"
+    );
+    assert!(
+        !core.are_liked(vec![not_liked[0]]).unwrap()[0],
+        "Sam's like isn't Alex's"
+    );
+    let export = |name: &str, id: &str| -> serde_json::Value {
+        let f = dir.0.join(name);
+        core.export_profile(id.into(), f.to_string_lossy().into_owned())
+            .unwrap();
+        serde_json::from_str(&std::fs::read_to_string(f).unwrap()).unwrap()
+    };
+    assert_eq!(
+        export("alex.json", &alex)["plays"],
+        serde_json::json!([]),
+        "no history of Sam's"
+    );
+
+    // The switcher: active first, names, initials, no locks yet.
+    core.rename_profile(alex.clone(), Some("Alex Kim".into()))
+        .unwrap();
+    let list = core.profiles().unwrap();
+    assert_eq!(list.len(), 2);
+    assert_eq!(
+        (list[0].profile_id.as_str(), list[0].active),
+        (alex.as_str(), true)
+    );
+    assert_eq!(
+        (list[0].display_name.as_str(), list[0].initials.as_str()),
+        ("Alex Kim", "AK")
+    );
+    assert!(!list[1].active && !list[1].locked && !list[1].needs_sign_in);
+    assert!(
+        list.iter().all(|p| p.avatar_url.is_none()),
+        "no /Users/Me in the recording yet"
+    );
+
+    // Back to Sam: Sam's queue, paused, and Sam's history and like.
+    *swap.0.lock().unwrap() = Arc::new(FixtureTransport::from_json(RECORDED).unwrap());
+    let q = block(core.switch_profile(sam.clone(), tokens_of(&sam), false)).unwrap();
+    assert_eq!(
+        q.current.map(|c| c.song.id),
+        Some(sam_current),
+        "the last queue loads"
+    );
+    assert!(core.are_liked(vec![not_liked[0]]).unwrap()[0]);
+    assert_eq!(
+        export("sam.json", &sam)["plays"].as_array().unwrap().len(),
+        1
+    );
+    assert_eq!(
+        core.last_active_profile().unwrap().as_deref(),
+        Some(sam.as_str())
+    );
+
+    // "Keep playing": Sam's queue moves over to Alex.
+    *swap.0.lock().unwrap() = second_user();
+    let q = block(core.switch_profile(alex.clone(), tokens_of(&alex), true)).unwrap();
+    assert_eq!(q.current.map(|c| c.song.id), Some(sam_current));
+    assert!(
+        export("alex2.json", &alex)["plays"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+
+    // Removing Alex from this device keeps Sam.
+    *swap.0.lock().unwrap() = Arc::new(FixtureTransport::from_json(RECORDED).unwrap());
+    block(core.switch_profile(sam.clone(), tokens_of(&sam), false)).unwrap();
+    core.remove_profile_from_device(alex.clone()).unwrap();
+    let list = core.profiles().unwrap();
+    assert_eq!(list.len(), 1);
+    assert_eq!(list[0].profile_id, sam);
+}
+
+/// Board 14: a PIN (or biometrics) before a locked profile opens; five wrong tries
+/// lock it; biometrics need the PIN once after they change.
+#[test]
+fn a_locked_profile_opens_only_after_its_pin() {
+    let dir = temp_dir("pin");
+    let (core, _) = core_on_recording(&dir);
+    let sam = signed_in(&core).profile_id;
+    assert!(matches!(
+        core.set_profile_pin(sam.clone(), "12a4".into()),
+        Err(EncoreError::NotAllowed { .. })
+    ));
+    core.set_profile_pin(sam.clone(), "4821".into()).unwrap();
+    assert!(core.profiles().unwrap()[0].locked);
+    core.close_profile().unwrap();
+    let locked = core.open_profile(sam.clone(), tokens_of(&sam));
+    assert!(
+        matches!(locked, Err(EncoreError::NotAllowed { .. })),
+        "locked"
+    );
+
+    // Four wrong tries say "Wrong PIN"; the fifth locks it for 30 s.
+    for _ in 0..4 {
+        let e = core
+            .unlock_profile(sam.clone(), Some("0000".into()))
+            .unwrap_err();
+        assert_eq!(e.to_string(), "Wrong PIN");
+    }
+    let e = core
+        .unlock_profile(sam.clone(), Some("0000".into()))
+        .unwrap_err();
+    assert!(e.to_string().contains("try again in 30 s"), "{e}");
+    let e = core
+        .unlock_profile(sam.clone(), Some("4821".into()))
+        .unwrap_err();
+    assert!(
+        e.to_string().starts_with("Too many wrong tries"),
+        "even the right PIN waits: {e}"
+    );
+    // (The 30 s pass.)
+    lock(&core.inner.registry)
+        .unwrap()
+        .set_pin_state(&sam, 0, 0, 1, false)
+        .unwrap();
+    core.unlock_profile(sam.clone(), Some("4821".into()))
+        .unwrap();
+    core.open_profile(sam.clone(), tokens_of(&sam)).unwrap();
+    // The unlock was used: closed again, it is locked again.
+    core.close_profile().unwrap();
+    assert!(core.open_profile(sam.clone(), tokens_of(&sam)).is_err());
+
+    // Biometrics passed (the app checked): fine, until the device's biometrics change.
+    core.unlock_profile(sam.clone(), None).unwrap();
+    core.open_profile(sam.clone(), tokens_of(&sam)).unwrap();
+    core.close_profile().unwrap();
+    core.biometrics_changed().unwrap();
+    assert!(core.unlock_profile(sam.clone(), None).is_err());
+    core.unlock_profile(sam.clone(), Some("4821".into()))
+        .unwrap();
+    core.open_profile(sam.clone(), tokens_of(&sam)).unwrap();
+    core.remove_profile_pin(sam.clone()).unwrap();
+    core.close_profile().unwrap();
+    core.open_profile(sam, tokens_of("")).unwrap();
+}
+
+/// Board 14, item 5: Guest records nothing and saves nothing, keeps the profile's
+/// queue aside, and ends on its own after the idle time.
+#[test]
+fn guest_saves_nothing_and_gives_the_queue_back() {
+    let dir = temp_dir("guest");
+    let (core, _) = core_on_recording(&dir);
+    let sam = signed_in(&core).profile_id;
+    block(core.sync_library()).unwrap();
+    let songs = core.songs(SongSort::Title, 0, 10).unwrap();
+    core.play(vec![songs[0].id, songs[1].id], 0, StartedFrom::Songs, None)
+        .unwrap();
+
+    let q = core.start_guest().unwrap();
+    assert!(q.current.is_none(), "Guest starts with an empty queue");
+    assert!(core.guest_session().unwrap().is_some());
+    let s = core
+        .play(vec![songs[5].id], 0, StartedFrom::Songs, None)
+        .unwrap();
+    core.playback_started(s.current.unwrap().uid, 0).unwrap();
+    core.playback_ended(EndReason::Finished, 200_000).unwrap();
+    assert!(matches!(
+        core.like(vec![songs[5].id]),
+        Err(EncoreError::NotAllowed { .. })
+    ));
+    let q = core.end_guest().unwrap();
+    assert_eq!(
+        q.current.map(|c| c.song.id),
+        Some(songs[0].id),
+        "Sam's queue is back"
+    );
+    assert!(core.guest_session().unwrap().is_none());
+    let f = dir.0.join("sam.json");
+    core.export_profile(sam, f.to_string_lossy().into_owned())
+        .unwrap();
+    let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(f).unwrap()).unwrap();
+    assert_eq!(
+        v["plays"],
+        serde_json::json!([]),
+        "Guest's play was never recorded"
+    );
+
+    // Idle past the limit: it ends by itself, and the queue comes back.
+    core.start_guest().unwrap();
+    lock(&core.inner.registry)
+        .unwrap()
+        .set_state("guest.activity", Some("0"))
+        .unwrap();
+    assert!(
+        core.guest_session().unwrap().is_none(),
+        "ended for being idle"
+    );
+    assert_eq!(
+        core.queue().unwrap().current.map(|c| c.song.id),
+        Some(songs[0].id)
+    );
+}
