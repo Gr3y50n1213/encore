@@ -97,6 +97,13 @@ if let replay = ProcessInfo.processInfo.environment["ENCORE_REPLAY_URL"] {
     precondition(me.active && !me.locked && !me.initials.isEmpty, "profiles")
     let syncState = try core.syncStatus().state
     precondition(syncState == .notConnected, "sync status")
+    // Phase 5: smart picks cross the boundary.
+    let auto = try core.refreshAutoplay()
+    precondition(auto.autoplay.count == 10 && auto.autoplay.allSatisfy { $0.chosenBy == .app }, "autoplay")
+    let home = try await core.home()
+    precondition(home.madeForYou.playsNeeded == 50 && !home.recentlyAdded.isEmpty, "home")
+    let skip = try core.notInterestedArtist(artist: auto.autoplay[0].song.artist, reason: .notMyTaste)
+    try core.removeNotInterested(item: skip)
     guard let artAlbum = try core.albums(sort: .title, offset: 0, limit: 100).first(where: { $0.hasArtwork }),
           let palette = try await core.albumPalette(albumId: artAlbum.id)
     else { preconditionFailure("no palette") }
@@ -112,7 +119,7 @@ if let replay = ProcessInfo.processInfo.environment["ENCORE_REPLAY_URL"] {
     try core.undo(editId: edit.editId!)
     let afterUndo = try core.playlist(playlistId: list.id).entries.count
     precondition(afterUndo == entriesBefore.count, "\(afterUndo) vs \(entriesBefore.count)")
-    flow = "library flow OK (signed in, synced \(synced[0].songs) songs, played an album, searched, lyrics, lyrics search, export, profiles, sync status, palette \(palette.base), playlist edit and undo)"
+    flow = "library flow OK (signed in, synced \(synced[0].songs) songs, played an album, searched, lyrics, lyrics search, export, profiles, sync status, smart picks, palette \(palette.base), playlist edit and undo)"
 }
 
 print("Swift -> Rust: \(greeting) (core \(coreVersion())); EncoreCore async and errors OK; \(flow)")

@@ -13,6 +13,8 @@ import uk.gcartee.encore.core.DropTargetKind
 import uk.gcartee.encore.core.LyricsSync
 import uk.gcartee.encore.core.SongSort
 import uk.gcartee.encore.core.SyncState
+import uk.gcartee.encore.core.ChosenBy
+import uk.gcartee.encore.core.NotInterestedReason
 import uk.gcartee.encore.core.CoreEvent
 import uk.gcartee.encore.core.CoreListener
 import uk.gcartee.encore.core.EncoreCore
@@ -104,6 +106,13 @@ fun main() {
     val me = core.profiles().first { it.profileId == signedIn.profileId }
     check(me.active && !me.locked && me.initials.isNotEmpty()) { "profiles" }
     check(core.syncStatus().state == SyncState.NOT_CONNECTED) { "sync status" }
+    // Phase 5: smart picks cross the boundary.
+    val auto = core.refreshAutoplay()
+    check(auto.autoplay.size == 10 && auto.autoplay.all { it.chosenBy == ChosenBy.APP }) { "autoplay" }
+    val home = core.home()
+    check(home.madeForYou.playsNeeded == 50u && home.recentlyAdded.isNotEmpty()) { "home" }
+    val skip = core.notInterestedArtist(auto.autoplay[0].song.artist, NotInterestedReason.NOT_MY_TASTE)
+    core.removeNotInterested(skip)
             val artAlbum = core.albums(AlbumSort.TITLE, 0u, 100u).first { it.hasArtwork }
             val palette = checkNotNull(core.albumPalette(artAlbum.id)) { "no palette" }
             check(palette.base == "3D0000" && palette.stops.size == 4) { palette.base }
@@ -115,7 +124,7 @@ fun main() {
             check(edit.added == 1u && edit.editId != null)
             core.undo(edit.editId!!)
             check(core.playlist(list.id).entries.size == entriesBefore.size)
-            flow = "library flow OK (signed in, synced ${synced[0].songs} songs, played an album, searched, lyrics, lyrics search, export, profiles, sync status, palette ${palette.base}, playlist edit and undo)"
+            flow = "library flow OK (signed in, synced ${synced[0].songs} songs, played an album, searched, lyrics, lyrics search, export, profiles, sync status, smart picks, palette ${palette.base}, playlist edit and undo)"
         }
     }
 

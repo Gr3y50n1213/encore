@@ -142,6 +142,17 @@ void main() {
           .firstWhere((p) => p.profileId == signedIn.profileId);
       expect(me.active && !me.locked && me.initials.isNotEmpty, isTrue);
       expect(core.syncStatus().state, SyncState.notConnected);
+      // Phase 5: smart picks cross the boundary.
+      final auto = core.refreshAutoplay();
+      expect(auto.autoplay.length, 10);
+      expect(auto.autoplay.every((e) => e.chosenBy == ChosenBy.app), isTrue);
+      final home = await core.home();
+      expect(home.madeForYou.playsNeeded, 50);
+      expect(home.recentlyAdded, isNotEmpty);
+      final skip = core.notInterestedArtist(
+          artist: auto.autoplay[0].song.artist,
+          reason: NotInterestedReason.notMyTaste);
+      core.removeNotInterested(item: skip);
       final artAlbum = core
           .albums(sort: AlbumSort.title, offset: 0, limit: 100)
           .firstWhere((a) => a.hasArtwork);
