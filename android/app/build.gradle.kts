@@ -287,6 +287,9 @@ dependencies {
     implementation(libs.jna) { artifact { type = "aar" } }
     implementation(libs.coroutines.android)
     implementation(libs.rustls.platform.verifier)
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.session)
+    implementation(libs.media3.datasource)
 
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)

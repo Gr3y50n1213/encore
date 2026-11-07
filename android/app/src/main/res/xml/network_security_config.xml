@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Plan section 19: plain http is allowed only to home-network addresses. Android's
+     config cannot name address ranges, so cleartext is permitted here and the rule is
+     enforced in code: the core refuses plain http to anything but a local address
+     (InsecureAddress, board 21), and every stream and artwork URL comes from the core.
+     Certificates: the system store and user-installed CAs, as the core's verifier uses. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

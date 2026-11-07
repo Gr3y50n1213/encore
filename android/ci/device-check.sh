@@ -16,6 +16,18 @@ tests="$(find "$apks" -name app-debug-androidTest.apk | head -n 1)"
 release="$(find "$apks" -name app-release.apk | head -n 1)"
 test -n "$debug" && test -n "$tests" && test -n "$release"
 
+# On any failure, keep the device log and print the crash, so the job says why.
+on_exit() {
+  status=$?
+  if [ "$status" -ne 0 ]; then
+    adb logcat -d > "$out/logcat.txt" 2>/dev/null || true
+    echo "---- crash, from logcat ----" >&2
+    grep -E -A 40 'FATAL EXCEPTION|Fatal signal|E AndroidRuntime' "$out/logcat.txt" | head -n 120 >&2 || true
+  fi
+  exit "$status"
+}
+trap on_exit EXIT
+
 adb wait-for-device
 sdk="$(adb shell getprop ro.build.version.sdk | tr -d '\r')"
 abi="$(adb shell getprop ro.product.cpu.abi | tr -d '\r')"
@@ -37,7 +49,7 @@ shot() { # name
 
 echo "== 2. Release build"
 adb install -r "$release"
-adb shell am start -W -n uk.gcartee.encore/.MainActivity | tee "$out/start.txt"
+adb shell am start -W -n uk.gcartee.encore/uk.gcartee.encore.app.MainActivity | tee "$out/start.txt"
 sleep 4
 pid="$(adb shell pidof uk.gcartee.encore | tr -d '\r' || true)"
 if [ -z "$pid" ]; then
@@ -48,11 +60,14 @@ if [ -z "$pid" ]; then
 fi
 adb shell uiautomator dump /sdcard/ui.xml > /dev/null
 adb shell cat /sdcard/ui.xml > "$out/ui-release.xml"
-# The core's greeting (core/encore-core/src/lib.rs `hello`), whatever the product name is.
-grep -Eq 'text="Hello, Android, from the [^"]+ core\."' "$out/ui-release.xml" \
-  || { echo "the core's greeting is not on the release build's screen" >&2; exit 1; }
-grep -Eq 'text="Core [0-9]+\.[0-9]+\.[0-9]+' "$out/ui-release.xml" \
-  || { echo "the core's version is not on screen" >&2; exit 1; }
+# A fresh install opens on Welcome (board 22), whose name comes from the core's
+# app_name(), the one brand constant (core/encore-core/src/brand.rs).
+name="$(sed -nE 's/^pub const APP_NAME: &str = "([^"]+)";/\1/p' core/encore-core/src/brand.rs)"
+test -n "$name"
+grep -Fq "text=\"$name\"" "$out/ui-release.xml" \
+  || { echo "the core's name ($name) is not on the release build's first screen" >&2; exit 1; }
+grep -Fq 'text="Get started"' "$out/ui-release.xml" \
+  || { echo "Welcome's Get started is not on screen" >&2; exit 1; }
 shot "release-light-api$sdk"
 
 echo "== 3. Dark theme"

@@ -1,9 +1,8 @@
 package uk.gcartee.encore.app
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
-import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -15,25 +14,27 @@ import uk.gcartee.encore.core.coreVersion
 import uk.gcartee.encore.core.hello
 
 /**
- * Phase 1's "done when": the app's first screen shows text that comes from the Rust core,
- * through the generated Kotlin bindings, JNA and libencore_core.so on a real Android runtime.
+ * The core on a real Android runtime: the generated bindings, JNA and libencore_core.so.
+ * Phase 1's line ("a screen whose text comes from the Rust core") now holds on Welcome,
+ * whose name is the core's `app_name()`.
  */
 @RunWith(AndroidJUnit4::class)
-class HelloScreenTest {
+class CoreOnDeviceTest {
     @get:Rule
     val rule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun theScreenShowsTheCoresWords() {
-        val name = appName()
-        val greeting = hello("Android")
+    fun theCoreAnswersThroughTheBindings() {
         // The core's own sentence (core/encore-core/src/lib.rs), not one typed in the app.
-        assertEquals("Hello, Android, from the $name core.", greeting)
+        assertEquals("Hello, Android, from the ${appName()} core.", hello("Android"))
         assertTrue(coreVersion().matches(Regex("""\d+\.\d+\.\d+.*""")))
+    }
 
-        rule.onNodeWithTag("title").assertIsDisplayed().assertTextEquals(name)
-        rule.onNodeWithTag("greeting").assertIsDisplayed().assertTextEquals(greeting)
-        rule.onNodeWithTag("version").assertIsDisplayed().assertTextEquals("Core ${coreVersion()}")
+    @Test
+    fun theFirstScreenShowsTheCoresName() {
+        // A fresh install has no profile, so the first screen is Welcome (board 22).
+        rule.onNodeWithText(appName()).assertIsDisplayed()
+        rule.onNodeWithText("Get started").assertIsDisplayed()
     }
 
     @Test

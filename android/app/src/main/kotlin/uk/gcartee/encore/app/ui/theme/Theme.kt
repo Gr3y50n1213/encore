@@ -8,6 +8,9 @@ import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.Typography
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.graphics.Color
 import uk.gcartee.encore.tokens.EncoreTokens.Color.Accents.Iris
 
@@ -111,9 +114,35 @@ fun irisDarkScheme(): ColorScheme = with(Iris.Dark) {
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun EncoreTheme(dark: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+    val type = typeForWindow()
     MaterialExpressiveTheme(
         colorScheme = if (dark) irisDarkScheme() else irisLightScheme(),
         motionScheme = MotionScheme.expressive(),
-        content = content,
+        typography = materialTypography(type),
+    ) {
+        CompositionLocalProvider(LocalEncoreType provides type, content = content)
+    }
+}
+
+/** Material's own components (buttons, fields, chips, menus) set in Inter at the token sizes. */
+private fun materialTypography(t: EncoreType): Typography {
+    val base = Typography()
+    fun TextStyle.inter() = copy(fontFamily = Inter)
+    return Typography(
+        displayLarge = base.displayLarge.inter(),
+        displayMedium = base.displayMedium.inter(),
+        displaySmall = t.displayTitle,
+        headlineLarge = t.onboardingTitle,
+        headlineMedium = t.pageTitle,
+        headlineSmall = t.sheetTitle,
+        titleLarge = t.nowPlayingTitle,
+        titleMedium = t.sectionHeader,
+        titleSmall = t.songRowTitle,
+        bodyLarge = base.bodyLarge.inter(),
+        bodyMedium = t.listRowTitle,
+        bodySmall = t.body,
+        labelLarge = base.labelLarge.inter(),
+        labelMedium = t.buttonLabel,
+        labelSmall = t.caption,
     )
 }
