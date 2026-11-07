@@ -58,8 +58,10 @@ pub(super) fn avatar_url(base: &str, user_id: &str, tag: &str) -> String {
         "{}/Users/{user_id}/Images/Primary",
         base.trim_end_matches('/')
     );
+    // The recording got a 2.7 MB original back with fillWidth alone, so the size is
+    // asked for every way Jellyfin takes it (unverified on a device).
     u.push_str(&format!(
-        "?tag={tag}&fillWidth=256&fillHeight=256&quality=90"
+        "?tag={tag}&fillWidth=256&fillHeight=256&maxWidth=256&maxHeight=256&quality=90"
     ));
     u
 }
@@ -533,7 +535,7 @@ mod tests {
         assert_eq!(initials(""), "?");
         assert_eq!(
             avatar_url("http://j:8096/", "u1", "t"),
-            "http://j:8096/Users/u1/Images/Primary?tag=t&fillWidth=256&fillHeight=256&quality=90"
+            "http://j:8096/Users/u1/Images/Primary?tag=t&fillWidth=256&fillHeight=256&maxWidth=256&maxHeight=256&quality=90"
         );
     }
 }

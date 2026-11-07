@@ -561,3 +561,40 @@ async fn the_jellyfin_check_asks_the_trusted_server_who_a_token_belongs_to() {
     let check = JellyfinCheck::new(urls, Arc::new(refused));
     assert_eq!(check.check("srv-1", "t").await, Err(CheckError::Rejected));
 }
+
+/// The real check on the owner's real replies (tools/fixtures/jellyfin/
+/// recorded-phase4.json, read-only, 7 November 2026): the token names its user;
+/// after sign-out the same token is refused.
+#[tokio::test]
+async fn the_jellyfin_check_on_the_recorded_server() {
+    use encore_sources::FixtureTransport;
+    const RECORDED: &str = include_str!("../../tools/fixtures/jellyfin/recorded-phase4.json");
+    let exchanges: Value = serde_json::from_str(RECORDED).unwrap();
+    let me = exchanges
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|x| x["path"] == "/Users/Me" && x["status"] == 200)
+        .unwrap();
+    let server_id = me["body"]["ServerId"].as_str().unwrap().to_owned();
+    let user_id = me["body"]["Id"].as_str().unwrap().to_owned();
+    // The recording names the server by its anonymized address.
+    let urls = jellyfin_urls("http://jellyfin.local:8096").unwrap();
+    let check = JellyfinCheck::new(
+        urls,
+        Arc::new(FixtureTransport::from_json(RECORDED).unwrap()),
+    );
+    let user = check.check(&server_id, "anonymized-token").await.unwrap();
+    assert_eq!(user.user_id, user_id);
+    assert_eq!(user.user_name, me["body"]["Name"].as_str().unwrap());
+    // The recording's next /Users/Me is after sign-out: refused.
+    assert_eq!(
+        check.check(&server_id, "anonymized-token").await,
+        Err(CheckError::Rejected)
+    );
+    // Another server's ID isn't this one.
+    assert_eq!(
+        check.check("someone-elses-server", "t").await,
+        Err(CheckError::UnknownServer)
+    );
+}

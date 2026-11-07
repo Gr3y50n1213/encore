@@ -22,6 +22,7 @@
 
 mod anonymize;
 mod phase3;
+mod phase4;
 
 use std::collections::{BTreeMap, HashSet};
 use std::hash::{BuildHasher, RandomState};
@@ -166,6 +167,9 @@ struct Args {
     out: PathBuf,
     /// Real covers, for a local check only; never committed (git-ignored).
     covers_dir: PathBuf,
+    /// Phase 4 only: sign in, `/Users/Me`, the user image, sign out, `/Users/Me`
+    /// again; read-only, written to recorded-phase4.json.
+    phase4: bool,
 }
 
 fn args() -> std::result::Result<Args, String> {
@@ -178,6 +182,7 @@ fn args() -> std::result::Result<Args, String> {
             env!("CARGO_MANIFEST_DIR"),
             "/../target/private-covers"
         )),
+        phase4: false,
     };
     let mut it = std::env::args().skip(1);
     while let Some(flag) = it.next() {
@@ -190,6 +195,7 @@ fn args() -> std::result::Result<Args, String> {
             }
             "--out" => a.out = PathBuf::from(value()?),
             "--covers-dir" => a.covers_dir = PathBuf::from(value()?),
+            "--phase4" => a.phase4 = true,
             "-h" | "--help" => {
                 return Err(include_str!("main.rs")
                     .lines()
@@ -281,6 +287,43 @@ fn to_fixture(a: &mut Anonymizer, x: &Exchange) -> Value {
     out
 }
 
+/// Anonymize the log and check nothing original survived; the JSON to write.
+fn publish(
+    recorder: &Recorder,
+    key: [u8; 32],
+    session: &jellyfin::Session,
+    secret: &str,
+    server_id: &str,
+) -> std::result::Result<String, String> {
+    let mut anon = Anonymizer::new(key);
+    let log = recorder.log.lock().map(|l| l.clone()).unwrap_or_default();
+    let exchanges = Value::Array(log.iter().map(|x| to_fixture(&mut anon, x)).collect());
+    if let Some(path) = anon.find_leak(&exchanges) {
+        return Err(format!(
+            "an original value survived at {path}; nothing was written"
+        ));
+    }
+    // find_leak checks every value, including request paths and queries. JSON keys
+    // are Jellyfin's schema names, so a plain-text scan of the file would flag a
+    // replaced word like "Default" that is also part of a key.
+    let published = serde_json::to_string_pretty(&exchanges).map_err(|e| e.to_string())?;
+    for (what, value) in [
+        ("the access token", session.token.as_str()),
+        ("the Quick Connect secret", secret),
+        ("the user ID", session.user_id.as_str()),
+        ("the server ID", server_id),
+        ("the user name", session.user_name.as_str()),
+    ] {
+        if value.len() >= 3 && published.contains(value) {
+            // Name the kind of value, never the value.
+            return Err(format!(
+                "{what} survived anonymization; nothing was written"
+            ));
+        }
+    }
+    Ok(published)
+}
+
 async fn run() -> std::result::Result<(), String> {
     let a = args()?;
     let key = random_key();
@@ -358,6 +401,43 @@ async fn run() -> std::result::Result<(), String> {
     println!("Signed in as {}.", session.user_name);
     let client = client.signed_in(session.token.clone(), session.user_id.clone());
 
+    if a.phase4 {
+        // Read-only: nothing on the server changes.
+        let mut p4 = phase4::run(&client, transport.as_ref()).await;
+        client.sign_out().await.map_err(|e| e.to_string())?;
+        println!("Signed out; the recorder's token is gone from the server.");
+        phase4::after_sign_out(&client, &mut p4).await;
+        let published = publish(&recorder, key, &session, &code.secret, &info.server_id)?;
+        std::fs::create_dir_all(&a.out).map_err(|e| e.to_string())?;
+        std::fs::write(a.out.join("recorded-phase4.json"), format!("{published}\n"))
+            .map_err(|e| e.to_string())?;
+        let notes = format!(
+            "# Jellyfin fixtures: Phase 4\n\n\
+             `recorded-phase4.json` is a read-only recording against a real Jellyfin {version} server,\n\
+             made with `tools/fixture-recorder --phase4`, for the companion server's sign-in check and\n\
+             the profile switcher's avatars. Anonymized like `recorded.json` (with its own random key,\n\
+             not kept), and a real user image is replaced by the project's own art.\n\n{lines}\n",
+            version = info.version,
+            lines = p4
+                .lines
+                .iter()
+                .map(|l| format!("- {l}"))
+                .chain(p4.warnings.iter().map(|w| format!("- Warning: {w}")))
+                .collect::<Vec<_>>()
+                .join("\n"),
+        );
+        std::fs::write(a.out.join("RECORDING-PHASE4.md"), notes).map_err(|e| e.to_string())?;
+        let n = recorder.log.lock().map(|l| l.len()).unwrap_or(0);
+        println!(
+            "Wrote {n} exchanges to {}.",
+            a.out.join("recorded-phase4.json").display()
+        );
+        for w in &p4.warnings {
+            println!("Warning: {w}");
+        }
+        return Ok(());
+    }
+
     let progress = |p: jellyfin::SyncProgress| print!("\rFirst sync: {} of {}   ", p.done, p.total);
     let first = jellyfin::sync_library(&client, None, &HashSet::new(), a.page_size, &progress)
         .await
@@ -390,32 +470,8 @@ async fn run() -> std::result::Result<(), String> {
     println!("Signed out; the recorder's token is gone from the server.");
 
     // Anonymize, check, write.
-    let mut anon = Anonymizer::new(key);
+    let published = publish(&recorder, key, &session, &code.secret, &info.server_id)?;
     let log = recorder.log.lock().map(|l| l.clone()).unwrap_or_default();
-    let exchanges = Value::Array(log.iter().map(|x| to_fixture(&mut anon, x)).collect());
-    if let Some(path) = anon.find_leak(&exchanges) {
-        return Err(format!(
-            "an original value survived at {path}; nothing was written"
-        ));
-    }
-    // find_leak checks every value, including request paths and queries. JSON keys
-    // are Jellyfin's schema names, so a plain-text scan of the file would flag a
-    // replaced word like "Default" that is also part of a key.
-    let published = serde_json::to_string_pretty(&exchanges).map_err(|e| e.to_string())?;
-    for (what, secret) in [
-        ("the access token", &session.token),
-        ("the Quick Connect secret", &code.secret),
-        ("the user ID", &session.user_id),
-        ("the server ID", &info.server_id),
-        ("the user name", &session.user_name),
-    ] {
-        if secret.len() >= 3 && published.contains(secret.as_str()) {
-            // Name the kind of value, never the value.
-            return Err(format!(
-                "{what} survived anonymization; nothing was written"
-            ));
-        }
-    }
     std::fs::create_dir_all(&a.out).map_err(|e| e.to_string())?;
     std::fs::write(a.out.join("recorded.json"), format!("{published}\n"))
         .map_err(|e| e.to_string())?;

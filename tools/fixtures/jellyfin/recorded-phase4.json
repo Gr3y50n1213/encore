@@ -1,0 +1,580 @@
+[
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "GET",
+    "path": "/System/Info/Public",
+    "query": {},
+    "status": 200,
+    "date": "2026-11-07T06:13:35Z",
+    "body": {
+      "ServerName": "Uc7l77s6210",
+      "Version": "12.0.0",
+      "ProductName": "Jellyfin Server",
+      "Id": "230bb906a4a1d5deef52258f66410858",
+      "StartupWizardCompleted": true
+    }
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "GET",
+    "path": "/QuickConnect/Enabled",
+    "query": {},
+    "status": 200,
+    "date": "2026-11-07T06:13:35Z",
+    "body": true
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "POST",
+    "path": "/QuickConnect/Initiate",
+    "query": {},
+    "status": 200,
+    "date": "2026-11-07T06:13:35Z",
+    "body": {
+      "Authenticated": false,
+      "Secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7",
+      "Code": "253959",
+      "DeviceId": "b2db93314ee06dca",
+      "DeviceName": "Rkzmyt qbojunt aymorhou",
+      "AppName": "Dcrrsc",
+      "AppVersion": "2.6.6",
+      "DateAdded": "2026-11-07T06:13:36.6858714Z"
+    }
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "GET",
+    "path": "/QuickConnect/Connect",
+    "query": {
+      "secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7"
+    },
+    "status": 200,
+    "date": "2026-11-07T06:13:35Z",
+    "body": {
+      "Authenticated": false,
+      "Secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7",
+      "Code": "253959",
+      "DeviceId": "b2db93314ee06dca",
+      "DeviceName": "Rkzmyt qbojunt aymorhou",
+      "AppName": "Dcrrsc",
+      "AppVersion": "2.6.6",
+      "DateAdded": "2026-11-07T06:13:36.6858714Z"
+    }
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "GET",
+    "path": "/QuickConnect/Connect",
+    "query": {
+      "secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7"
+    },
+    "status": 200,
+    "date": "2026-11-07T06:13:38Z",
+    "body": {
+      "Authenticated": false,
+      "Secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7",
+      "Code": "253959",
+      "DeviceId": "b2db93314ee06dca",
+      "DeviceName": "Rkzmyt qbojunt aymorhou",
+      "AppName": "Dcrrsc",
+      "AppVersion": "2.6.6",
+      "DateAdded": "2026-11-07T06:13:36.6858714Z"
+    }
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "GET",
+    "path": "/QuickConnect/Connect",
+    "query": {
+      "secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7"
+    },
+    "status": 200,
+    "date": "2026-11-07T06:13:41Z",
+    "body": {
+      "Authenticated": false,
+      "Secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7",
+      "Code": "253959",
+      "DeviceId": "b2db93314ee06dca",
+      "DeviceName": "Rkzmyt qbojunt aymorhou",
+      "AppName": "Dcrrsc",
+      "AppVersion": "2.6.6",
+      "DateAdded": "2026-11-07T06:13:36.6858714Z"
+    }
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "GET",
+    "path": "/QuickConnect/Connect",
+    "query": {
+      "secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7"
+    },
+    "status": 200,
+    "date": "2026-11-07T06:13:44Z",
+    "body": {
+      "Authenticated": false,
+      "Secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7",
+      "Code": "253959",
+      "DeviceId": "b2db93314ee06dca",
+      "DeviceName": "Rkzmyt qbojunt aymorhou",
+      "AppName": "Dcrrsc",
+      "AppVersion": "2.6.6",
+      "DateAdded": "2026-11-07T06:13:36.6858714Z"
+    }
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "GET",
+    "path": "/QuickConnect/Connect",
+    "query": {
+      "secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7"
+    },
+    "status": 200,
+    "date": "2026-11-07T06:13:47Z",
+    "body": {
+      "Authenticated": false,
+      "Secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7",
+      "Code": "253959",
+      "DeviceId": "b2db93314ee06dca",
+      "DeviceName": "Rkzmyt qbojunt aymorhou",
+      "AppName": "Dcrrsc",
+      "AppVersion": "2.6.6",
+      "DateAdded": "2026-11-07T06:13:36.6858714Z"
+    }
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "GET",
+    "path": "/QuickConnect/Connect",
+    "query": {
+      "secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7"
+    },
+    "status": 200,
+    "date": "2026-11-07T06:13:50Z",
+    "body": {
+      "Authenticated": false,
+      "Secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7",
+      "Code": "253959",
+      "DeviceId": "b2db93314ee06dca",
+      "DeviceName": "Rkzmyt qbojunt aymorhou",
+      "AppName": "Dcrrsc",
+      "AppVersion": "2.6.6",
+      "DateAdded": "2026-11-07T06:13:36.6858714Z"
+    }
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "GET",
+    "path": "/QuickConnect/Connect",
+    "query": {
+      "secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7"
+    },
+    "status": 200,
+    "date": "2026-11-07T06:13:53Z",
+    "body": {
+      "Authenticated": false,
+      "Secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7",
+      "Code": "253959",
+      "DeviceId": "b2db93314ee06dca",
+      "DeviceName": "Rkzmyt qbojunt aymorhou",
+      "AppName": "Dcrrsc",
+      "AppVersion": "2.6.6",
+      "DateAdded": "2026-11-07T06:13:36.6858714Z"
+    }
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "GET",
+    "path": "/QuickConnect/Connect",
+    "query": {
+      "secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7"
+    },
+    "status": 200,
+    "date": "2026-11-07T06:13:56Z",
+    "body": {
+      "Authenticated": false,
+      "Secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7",
+      "Code": "253959",
+      "DeviceId": "b2db93314ee06dca",
+      "DeviceName": "Rkzmyt qbojunt aymorhou",
+      "AppName": "Dcrrsc",
+      "AppVersion": "2.6.6",
+      "DateAdded": "2026-11-07T06:13:36.6858714Z"
+    }
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "GET",
+    "path": "/QuickConnect/Connect",
+    "query": {
+      "secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7"
+    },
+    "status": 200,
+    "date": "2026-11-07T06:14:00Z",
+    "body": {
+      "Authenticated": false,
+      "Secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7",
+      "Code": "253959",
+      "DeviceId": "b2db93314ee06dca",
+      "DeviceName": "Rkzmyt qbojunt aymorhou",
+      "AppName": "Dcrrsc",
+      "AppVersion": "2.6.6",
+      "DateAdded": "2026-11-07T06:13:36.6858714Z"
+    }
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "GET",
+    "path": "/QuickConnect/Connect",
+    "query": {
+      "secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7"
+    },
+    "status": 200,
+    "date": "2026-11-07T06:14:03Z",
+    "body": {
+      "Authenticated": false,
+      "Secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7",
+      "Code": "253959",
+      "DeviceId": "b2db93314ee06dca",
+      "DeviceName": "Rkzmyt qbojunt aymorhou",
+      "AppName": "Dcrrsc",
+      "AppVersion": "2.6.6",
+      "DateAdded": "2026-11-07T06:13:36.6858714Z"
+    }
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "GET",
+    "path": "/QuickConnect/Connect",
+    "query": {
+      "secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7"
+    },
+    "status": 200,
+    "date": "2026-11-07T06:14:06Z",
+    "body": {
+      "Authenticated": false,
+      "Secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7",
+      "Code": "253959",
+      "DeviceId": "b2db93314ee06dca",
+      "DeviceName": "Rkzmyt qbojunt aymorhou",
+      "AppName": "Dcrrsc",
+      "AppVersion": "2.6.6",
+      "DateAdded": "2026-11-07T06:13:36.6858714Z"
+    }
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "GET",
+    "path": "/QuickConnect/Connect",
+    "query": {
+      "secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7"
+    },
+    "status": 200,
+    "date": "2026-11-07T06:14:09Z",
+    "body": {
+      "Authenticated": false,
+      "Secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7",
+      "Code": "253959",
+      "DeviceId": "b2db93314ee06dca",
+      "DeviceName": "Rkzmyt qbojunt aymorhou",
+      "AppName": "Dcrrsc",
+      "AppVersion": "2.6.6",
+      "DateAdded": "2026-11-07T06:13:36.6858714Z"
+    }
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "GET",
+    "path": "/QuickConnect/Connect",
+    "query": {
+      "secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7"
+    },
+    "status": 200,
+    "date": "2026-11-07T06:14:12Z",
+    "body": {
+      "Authenticated": false,
+      "Secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7",
+      "Code": "253959",
+      "DeviceId": "b2db93314ee06dca",
+      "DeviceName": "Rkzmyt qbojunt aymorhou",
+      "AppName": "Dcrrsc",
+      "AppVersion": "2.6.6",
+      "DateAdded": "2026-11-07T06:13:36.6858714Z"
+    }
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "GET",
+    "path": "/QuickConnect/Connect",
+    "query": {
+      "secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7"
+    },
+    "status": 200,
+    "date": "2026-11-07T06:14:15Z",
+    "body": {
+      "Authenticated": false,
+      "Secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7",
+      "Code": "253959",
+      "DeviceId": "b2db93314ee06dca",
+      "DeviceName": "Rkzmyt qbojunt aymorhou",
+      "AppName": "Dcrrsc",
+      "AppVersion": "2.6.6",
+      "DateAdded": "2026-11-07T06:13:36.6858714Z"
+    }
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "GET",
+    "path": "/QuickConnect/Connect",
+    "query": {
+      "secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7"
+    },
+    "status": 200,
+    "date": "2026-11-07T06:14:18Z",
+    "body": {
+      "Authenticated": true,
+      "Secret": "af5da21245d89DCf97c9ABD42b077D96e544dB725f4bA473de3820a280Feecf7",
+      "Code": "253959",
+      "DeviceId": "b2db93314ee06dca",
+      "DeviceName": "Rkzmyt qbojunt aymorhou",
+      "AppName": "Dcrrsc",
+      "AppVersion": "2.6.6",
+      "DateAdded": "2026-11-07T06:15:18.4417457Z"
+    }
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "POST",
+    "path": "/Users/AuthenticateWithQuickConnect",
+    "query": {},
+    "status": 200,
+    "date": "2026-11-07T06:14:18Z",
+    "body": {
+      "User": {
+        "Name": "Uc7l77s6210",
+        "ServerId": "230bb906a4a1d5deef52258f66410858",
+        "Id": "014f1e79ae0f8eacc81b08b5fae17697",
+        "PrimaryImageTag": "1804c0962b9c97cde8793c68f5570fd2",
+        "HasPassword": true,
+        "HasConfiguredPassword": true,
+        "HasConfiguredEasyPassword": false,
+        "EnableAutoLogin": false,
+        "LastLoginDate": "4412-30-35V18:94:13.6793068Y",
+        "LastActivityDate": "9779-87-56L86:72:15.2911422B",
+        "Configuration": {
+          "AudioLanguagePreference": "hzp",
+          "PlayDefaultAudioTrack": true,
+          "SubtitleLanguagePreference": "hzp",
+          "DisplayMissingEpisodes": true,
+          "GroupedFolders": [],
+          "SubtitleMode": "Giwaz",
+          "DisplayCollectionsView": false,
+          "EnableLocalPassword": false,
+          "OrderedViews": [
+            "2e6104e0a9b2417e36cb8c855062f79b"
+          ],
+          "LatestItemsExcludes": [],
+          "MyMediaExcludes": [],
+          "HidePlayedInLatest": true,
+          "RememberAudioSelections": true,
+          "RememberSubtitleSelections": false,
+          "EnableNextEpisodeAutoPlay": true,
+          "CastReceiverId": "Bbc81e1f"
+        },
+        "Policy": {
+          "IsAdministrator": true,
+          "IsHidden": true,
+          "EnableCollectionManagement": false,
+          "EnableSubtitleManagement": false,
+          "EnableLyricManagement": false,
+          "IsDisabled": false,
+          "BlockedTags": [],
+          "AllowedTags": [],
+          "EnableUserPreferenceAccess": true,
+          "AccessSchedules": [],
+          "BlockUnratedItems": [],
+          "EnableRemoteControlOfOtherUsers": true,
+          "EnableSharedDeviceControl": true,
+          "EnableRemoteAccess": true,
+          "EnableLiveTvManagement": true,
+          "EnableLiveTvAccess": true,
+          "EnableMediaPlayback": true,
+          "EnableAudioPlaybackTranscoding": true,
+          "EnableVideoPlaybackTranscoding": true,
+          "EnablePlaybackRemuxing": true,
+          "ForceRemoteSourceTranscoding": false,
+          "EnableContentDeletion": true,
+          "EnableContentDeletionFromFolders": [],
+          "EnableContentDownloading": true,
+          "EnableSyncTranscoding": true,
+          "EnableMediaConversion": true,
+          "EnabledDevices": [],
+          "EnableAllDevices": true,
+          "EnabledChannels": [],
+          "EnableAllChannels": true,
+          "EnabledFolders": [],
+          "EnableAllFolders": true,
+          "InvalidLoginAttemptCount": 5,
+          "LoginAttemptsBeforeLockout": -1,
+          "MaxActiveSessions": 0,
+          "EnablePublicSharing": true,
+          "BlockedMediaFolders": [],
+          "BlockedChannels": [],
+          "RemoteClientBitrateLimit": 0,
+          "AuthenticationProviderId": "Tinmswic.Zbmfws.Kywxslkadrgoxnv.Lgxbq.AwjonczJmrwwifjrvdfbcFrdkymjr",
+          "PasswordResetProviderId": "Evxzapln.Xdqshx.Dnenfjdfldlzdiq.Uqamt.NwedrdhFiwfiposHkezxPrvmaars",
+          "SyncPlayAccess": "PwjejiGldUdwqOsibfs"
+        }
+      },
+      "SessionInfo": {
+        "PlayState": {
+          "CanSeek": false,
+          "IsPaused": false,
+          "IsMuted": false,
+          "RepeatMode": "SehyysEapl",
+          "PlaybackOrder": "Vkydrqg"
+        },
+        "AdditionalUsers": [],
+        "Capabilities": {
+          "PlayableMediaTypes": [],
+          "SupportedCommands": [],
+          "SupportsMediaControl": false,
+          "SupportsPersistentIdentifier": true
+        },
+        "PlayableMediaTypes": [],
+        "Id": "e81673a7c83da0776066f57a020a9373",
+        "UserId": "014f1e79ae0f8eacc81b08b5fae17697",
+        "UserName": "Uc7l77s6210",
+        "Client": "Dcrrsc",
+        "LastActivityDate": "1556-89-79U23:01:84.3077196P",
+        "LastPlaybackCheckIn": "1484-30-29Q65:08:53.9982707O",
+        "DeviceName": "Rkzmyt qbojunt aymorhou",
+        "DeviceId": "b2db93314ee06dca",
+        "ApplicationVersion": "2.6.6",
+        "IsActive": true,
+        "SupportsMediaControl": false,
+        "SupportsRemoteControl": false,
+        "NowPlayingQueue": [],
+        "HasCustomDeviceName": false,
+        "ServerId": "230bb906a4a1d5deef52258f66410858",
+        "UserPrimaryImageTag": "1804c0962b9c97cde8793c68f5570fd2",
+        "SupportedCommands": []
+      },
+      "AccessToken": "anonymized-token",
+      "ServerId": "230bb906a4a1d5deef52258f66410858"
+    }
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "GET",
+    "path": "/Users/Me",
+    "query": {},
+    "status": 200,
+    "date": "2026-11-07T06:14:18Z",
+    "body": {
+      "Name": "Uc7l77s6210",
+      "ServerId": "230bb906a4a1d5deef52258f66410858",
+      "Id": "014f1e79ae0f8eacc81b08b5fae17697",
+      "PrimaryImageTag": "1804c0962b9c97cde8793c68f5570fd2",
+      "HasPassword": true,
+      "HasConfiguredPassword": true,
+      "HasConfiguredEasyPassword": false,
+      "EnableAutoLogin": false,
+      "LastLoginDate": "4412-30-35V18:94:13.6793068Y",
+      "LastActivityDate": "9779-87-56L86:72:15.2911422B",
+      "Configuration": {
+        "AudioLanguagePreference": "hzp",
+        "PlayDefaultAudioTrack": true,
+        "SubtitleLanguagePreference": "hzp",
+        "DisplayMissingEpisodes": true,
+        "GroupedFolders": [],
+        "SubtitleMode": "Giwaz",
+        "DisplayCollectionsView": false,
+        "EnableLocalPassword": false,
+        "OrderedViews": [
+          "2e6104e0a9b2417e36cb8c855062f79b"
+        ],
+        "LatestItemsExcludes": [],
+        "MyMediaExcludes": [],
+        "HidePlayedInLatest": true,
+        "RememberAudioSelections": true,
+        "RememberSubtitleSelections": false,
+        "EnableNextEpisodeAutoPlay": true,
+        "CastReceiverId": "Bbc81e1f"
+      },
+      "Policy": {
+        "IsAdministrator": true,
+        "IsHidden": true,
+        "EnableCollectionManagement": false,
+        "EnableSubtitleManagement": false,
+        "EnableLyricManagement": false,
+        "IsDisabled": false,
+        "BlockedTags": [],
+        "AllowedTags": [],
+        "EnableUserPreferenceAccess": true,
+        "AccessSchedules": [],
+        "BlockUnratedItems": [],
+        "EnableRemoteControlOfOtherUsers": true,
+        "EnableSharedDeviceControl": true,
+        "EnableRemoteAccess": true,
+        "EnableLiveTvManagement": true,
+        "EnableLiveTvAccess": true,
+        "EnableMediaPlayback": true,
+        "EnableAudioPlaybackTranscoding": true,
+        "EnableVideoPlaybackTranscoding": true,
+        "EnablePlaybackRemuxing": true,
+        "ForceRemoteSourceTranscoding": false,
+        "EnableContentDeletion": true,
+        "EnableContentDeletionFromFolders": [],
+        "EnableContentDownloading": true,
+        "EnableSyncTranscoding": true,
+        "EnableMediaConversion": true,
+        "EnabledDevices": [],
+        "EnableAllDevices": true,
+        "EnabledChannels": [],
+        "EnableAllChannels": true,
+        "EnabledFolders": [],
+        "EnableAllFolders": true,
+        "InvalidLoginAttemptCount": 5,
+        "LoginAttemptsBeforeLockout": -1,
+        "MaxActiveSessions": 0,
+        "EnablePublicSharing": true,
+        "BlockedMediaFolders": [],
+        "BlockedChannels": [],
+        "RemoteClientBitrateLimit": 0,
+        "AuthenticationProviderId": "Tinmswic.Zbmfws.Kywxslkadrgoxnv.Lgxbq.AwjonczJmrwwifjrvdfbcFrdkymjr",
+        "PasswordResetProviderId": "Evxzapln.Xdqshx.Dnenfjdfldlzdiq.Uqamt.NwedrdhFiwfiposHkezxPrvmaars",
+        "SyncPlayAccess": "PwjejiGldUdwqOsibfs"
+      }
+    }
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "GET",
+    "path": "/Users/014f1e79ae0f8eacc81b08b5fae17697/Images/Primary",
+    "query": {
+      "fillHeight": "256",
+      "fillWidth": "256",
+      "quality": "90",
+      "tag": "1804c0962b9c97cde8793c68f5570fd2"
+    },
+    "status": 200,
+    "date": "2026-11-07T06:14:18Z",
+    "bodyText": "(non-JSON reply removed)"
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "POST",
+    "path": "/Sessions/Logout",
+    "query": {},
+    "status": 204,
+    "date": "2026-11-07T06:14:18Z"
+  },
+  {
+    "origin": "http://jellyfin.local:8096",
+    "method": "GET",
+    "path": "/Users/Me",
+    "query": {},
+    "status": 401,
+    "date": "2026-11-07T06:14:19Z"
+  }
+]
