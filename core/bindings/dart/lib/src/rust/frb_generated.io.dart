@@ -38,6 +38,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected String dco_decode_String(dynamic raw);
 
+@protected Adventurousness dco_decode_adventurousness(dynamic raw);
+
 @protected AlbumDetail dco_decode_album_detail(dynamic raw);
 
 @protected AlbumSort dco_decode_album_sort(dynamic raw);
@@ -78,6 +80,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
 
+@protected NotInterestedItem dco_decode_box_autoadd_not_interested_item(dynamic raw);
+
+@protected PickReason dco_decode_box_autoadd_pick_reason(dynamic raw);
+
 @protected PlaylistSummary dco_decode_box_autoadd_playlist_summary(dynamic raw);
 
 @protected QueueEntry dco_decode_box_autoadd_queue_entry(dynamic raw);
@@ -93,6 +99,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected SourceToken dco_decode_box_autoadd_source_token(dynamic raw);
 
 @protected SyncStatus dco_decode_box_autoadd_sync_status(dynamic raw);
+
+@protected TimeOfDay dco_decode_box_autoadd_time_of_day(dynamic raw);
 
 @protected TopResult dco_decode_box_autoadd_top_result(dynamic raw);
 
@@ -134,6 +142,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected GuestSession dco_decode_guest_session(dynamic raw);
 
+@protected Home dco_decode_home(dynamic raw);
+
 @protected HttpHeader dco_decode_http_header(dynamic raw);
 
 @protected int dco_decode_i_32(dynamic raw);
@@ -168,7 +178,15 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected List<LyricWord> dco_decode_list_lyric_word(dynamic raw);
 
+@protected List<MixSong> dco_decode_list_mix_song(dynamic raw);
+
+@protected List<MixSummary> dco_decode_list_mix_summary(dynamic raw);
+
+@protected List<NotInterestedItem> dco_decode_list_not_interested_item(dynamic raw);
+
 @protected List<PaletteSwatch> dco_decode_list_palette_swatch(dynamic raw);
+
+@protected List<PickReason> dco_decode_list_pick_reason(dynamic raw);
 
 @protected List<PlaylistEntry> dco_decode_list_playlist_entry(dynamic raw);
 
@@ -187,6 +205,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected List<QueueEntry> dco_decode_list_queue_entry(dynamic raw);
 
 @protected List<ServerRow> dco_decode_list_server_row(dynamic raw);
+
+@protected List<ShelfStat> dco_decode_list_shelf_stat(dynamic raw);
 
 @protected List<Singer> dco_decode_list_singer(dynamic raw);
 
@@ -216,7 +236,23 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected LyricsSync dco_decode_lyrics_sync(dynamic raw);
 
+@protected MixKind dco_decode_mix_kind(dynamic raw);
+
+@protected MixPage dco_decode_mix_page(dynamic raw);
+
+@protected MixShelf dco_decode_mix_shelf(dynamic raw);
+
+@protected MixSong dco_decode_mix_song(dynamic raw);
+
+@protected MixState dco_decode_mix_state(dynamic raw);
+
+@protected MixSummary dco_decode_mix_summary(dynamic raw);
+
 @protected Network dco_decode_network(dynamic raw);
+
+@protected NotInterestedItem dco_decode_not_interested_item(dynamic raw);
+
+@protected NotInterestedReason dco_decode_not_interested_reason(dynamic raw);
 
 @protected String? dco_decode_opt_String(dynamic raw);
 
@@ -236,6 +272,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
 
+@protected PickReason? dco_decode_opt_box_autoadd_pick_reason(dynamic raw);
+
 @protected PlaylistSummary? dco_decode_opt_box_autoadd_playlist_summary(dynamic raw);
 
 @protected QueueEntry? dco_decode_opt_box_autoadd_queue_entry(dynamic raw);
@@ -252,6 +290,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected SyncStatus? dco_decode_opt_box_autoadd_sync_status(dynamic raw);
 
+@protected TimeOfDay? dco_decode_opt_box_autoadd_time_of_day(dynamic raw);
+
 @protected TopResult? dco_decode_opt_box_autoadd_top_result(dynamic raw);
 
 @protected int? dco_decode_opt_box_autoadd_u_16(dynamic raw);
@@ -261,6 +301,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected PaletteScheme dco_decode_palette_scheme(dynamic raw);
 
 @protected PaletteSwatch dco_decode_palette_swatch(dynamic raw);
+
+@protected PickReason dco_decode_pick_reason(dynamic raw);
 
 @protected PlaylistDetail dco_decode_playlist_detail(dynamic raw);
 
@@ -278,6 +320,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected QuickConnectStart dco_decode_quick_connect_start(dynamic raw);
 
+@protected RadioSeed dco_decode_radio_seed(dynamic raw);
+
+@protected ReasonKind dco_decode_reason_kind(dynamic raw);
+
 @protected RemoteChange dco_decode_remote_change(dynamic raw);
 
 @protected RepeatMode dco_decode_repeat_mode(dynamic raw);
@@ -291,6 +337,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected ServerCheck dco_decode_server_check(dynamic raw);
 
 @protected ServerRow dco_decode_server_row(dynamic raw);
+
+@protected ShelfStat dco_decode_shelf_stat(dynamic raw);
 
 @protected SignedIn dco_decode_signed_in(dynamic raw);
 
@@ -316,11 +364,15 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected StreamQuality dco_decode_stream_quality(dynamic raw);
 
+@protected SuggestionStats dco_decode_suggestion_stats(dynamic raw);
+
 @protected SyncResult dco_decode_sync_result(dynamic raw);
 
 @protected SyncState dco_decode_sync_state(dynamic raw);
 
 @protected SyncStatus dco_decode_sync_status(dynamic raw);
+
+@protected TimeOfDay dco_decode_time_of_day(dynamic raw);
 
 @protected TopResult dco_decode_top_result(dynamic raw);
 
@@ -338,6 +390,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected BigInt dco_decode_usize(dynamic raw);
 
+@protected WhyThisSong dco_decode_why_this_song(dynamic raw);
+
 @protected AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
 
 @protected Encore sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(SseDeserializer deserializer);
@@ -349,6 +403,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected RustStreamSink<CoreEvent> sse_decode_StreamSink_core_event_Sse(SseDeserializer deserializer);
 
 @protected String sse_decode_String(SseDeserializer deserializer);
+
+@protected Adventurousness sse_decode_adventurousness(SseDeserializer deserializer);
 
 @protected AlbumDetail sse_decode_album_detail(SseDeserializer deserializer);
 
@@ -390,6 +446,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
 
+@protected NotInterestedItem sse_decode_box_autoadd_not_interested_item(SseDeserializer deserializer);
+
+@protected PickReason sse_decode_box_autoadd_pick_reason(SseDeserializer deserializer);
+
 @protected PlaylistSummary sse_decode_box_autoadd_playlist_summary(SseDeserializer deserializer);
 
 @protected QueueEntry sse_decode_box_autoadd_queue_entry(SseDeserializer deserializer);
@@ -405,6 +465,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected SourceToken sse_decode_box_autoadd_source_token(SseDeserializer deserializer);
 
 @protected SyncStatus sse_decode_box_autoadd_sync_status(SseDeserializer deserializer);
+
+@protected TimeOfDay sse_decode_box_autoadd_time_of_day(SseDeserializer deserializer);
 
 @protected TopResult sse_decode_box_autoadd_top_result(SseDeserializer deserializer);
 
@@ -446,6 +508,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected GuestSession sse_decode_guest_session(SseDeserializer deserializer);
 
+@protected Home sse_decode_home(SseDeserializer deserializer);
+
 @protected HttpHeader sse_decode_http_header(SseDeserializer deserializer);
 
 @protected int sse_decode_i_32(SseDeserializer deserializer);
@@ -480,7 +544,15 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected List<LyricWord> sse_decode_list_lyric_word(SseDeserializer deserializer);
 
+@protected List<MixSong> sse_decode_list_mix_song(SseDeserializer deserializer);
+
+@protected List<MixSummary> sse_decode_list_mix_summary(SseDeserializer deserializer);
+
+@protected List<NotInterestedItem> sse_decode_list_not_interested_item(SseDeserializer deserializer);
+
 @protected List<PaletteSwatch> sse_decode_list_palette_swatch(SseDeserializer deserializer);
+
+@protected List<PickReason> sse_decode_list_pick_reason(SseDeserializer deserializer);
 
 @protected List<PlaylistEntry> sse_decode_list_playlist_entry(SseDeserializer deserializer);
 
@@ -499,6 +571,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected List<QueueEntry> sse_decode_list_queue_entry(SseDeserializer deserializer);
 
 @protected List<ServerRow> sse_decode_list_server_row(SseDeserializer deserializer);
+
+@protected List<ShelfStat> sse_decode_list_shelf_stat(SseDeserializer deserializer);
 
 @protected List<Singer> sse_decode_list_singer(SseDeserializer deserializer);
 
@@ -528,7 +602,23 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected LyricsSync sse_decode_lyrics_sync(SseDeserializer deserializer);
 
+@protected MixKind sse_decode_mix_kind(SseDeserializer deserializer);
+
+@protected MixPage sse_decode_mix_page(SseDeserializer deserializer);
+
+@protected MixShelf sse_decode_mix_shelf(SseDeserializer deserializer);
+
+@protected MixSong sse_decode_mix_song(SseDeserializer deserializer);
+
+@protected MixState sse_decode_mix_state(SseDeserializer deserializer);
+
+@protected MixSummary sse_decode_mix_summary(SseDeserializer deserializer);
+
 @protected Network sse_decode_network(SseDeserializer deserializer);
+
+@protected NotInterestedItem sse_decode_not_interested_item(SseDeserializer deserializer);
+
+@protected NotInterestedReason sse_decode_not_interested_reason(SseDeserializer deserializer);
 
 @protected String? sse_decode_opt_String(SseDeserializer deserializer);
 
@@ -548,6 +638,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
 
+@protected PickReason? sse_decode_opt_box_autoadd_pick_reason(SseDeserializer deserializer);
+
 @protected PlaylistSummary? sse_decode_opt_box_autoadd_playlist_summary(SseDeserializer deserializer);
 
 @protected QueueEntry? sse_decode_opt_box_autoadd_queue_entry(SseDeserializer deserializer);
@@ -564,6 +656,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected SyncStatus? sse_decode_opt_box_autoadd_sync_status(SseDeserializer deserializer);
 
+@protected TimeOfDay? sse_decode_opt_box_autoadd_time_of_day(SseDeserializer deserializer);
+
 @protected TopResult? sse_decode_opt_box_autoadd_top_result(SseDeserializer deserializer);
 
 @protected int? sse_decode_opt_box_autoadd_u_16(SseDeserializer deserializer);
@@ -573,6 +667,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected PaletteScheme sse_decode_palette_scheme(SseDeserializer deserializer);
 
 @protected PaletteSwatch sse_decode_palette_swatch(SseDeserializer deserializer);
+
+@protected PickReason sse_decode_pick_reason(SseDeserializer deserializer);
 
 @protected PlaylistDetail sse_decode_playlist_detail(SseDeserializer deserializer);
 
@@ -590,6 +686,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected QuickConnectStart sse_decode_quick_connect_start(SseDeserializer deserializer);
 
+@protected RadioSeed sse_decode_radio_seed(SseDeserializer deserializer);
+
+@protected ReasonKind sse_decode_reason_kind(SseDeserializer deserializer);
+
 @protected RemoteChange sse_decode_remote_change(SseDeserializer deserializer);
 
 @protected RepeatMode sse_decode_repeat_mode(SseDeserializer deserializer);
@@ -603,6 +703,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected ServerCheck sse_decode_server_check(SseDeserializer deserializer);
 
 @protected ServerRow sse_decode_server_row(SseDeserializer deserializer);
+
+@protected ShelfStat sse_decode_shelf_stat(SseDeserializer deserializer);
 
 @protected SignedIn sse_decode_signed_in(SseDeserializer deserializer);
 
@@ -628,11 +730,15 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected StreamQuality sse_decode_stream_quality(SseDeserializer deserializer);
 
+@protected SuggestionStats sse_decode_suggestion_stats(SseDeserializer deserializer);
+
 @protected SyncResult sse_decode_sync_result(SseDeserializer deserializer);
 
 @protected SyncState sse_decode_sync_state(SseDeserializer deserializer);
 
 @protected SyncStatus sse_decode_sync_status(SseDeserializer deserializer);
+
+@protected TimeOfDay sse_decode_time_of_day(SseDeserializer deserializer);
 
 @protected TopResult sse_decode_top_result(SseDeserializer deserializer);
 
@@ -650,6 +756,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected BigInt sse_decode_usize(SseDeserializer deserializer);
 
+@protected WhyThisSong sse_decode_why_this_song(SseDeserializer deserializer);
+
 @protected void sse_encode_AnyhowException(AnyhowException self, SseSerializer serializer);
 
 @protected void sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(Encore self, SseSerializer serializer);
@@ -661,6 +769,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_StreamSink_core_event_Sse(RustStreamSink<CoreEvent> self, SseSerializer serializer);
 
 @protected void sse_encode_String(String self, SseSerializer serializer);
+
+@protected void sse_encode_adventurousness(Adventurousness self, SseSerializer serializer);
 
 @protected void sse_encode_album_detail(AlbumDetail self, SseSerializer serializer);
 
@@ -702,6 +812,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_box_autoadd_i_64(PlatformInt64 self, SseSerializer serializer);
 
+@protected void sse_encode_box_autoadd_not_interested_item(NotInterestedItem self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_pick_reason(PickReason self, SseSerializer serializer);
+
 @protected void sse_encode_box_autoadd_playlist_summary(PlaylistSummary self, SseSerializer serializer);
 
 @protected void sse_encode_box_autoadd_queue_entry(QueueEntry self, SseSerializer serializer);
@@ -717,6 +831,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_box_autoadd_source_token(SourceToken self, SseSerializer serializer);
 
 @protected void sse_encode_box_autoadd_sync_status(SyncStatus self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_time_of_day(TimeOfDay self, SseSerializer serializer);
 
 @protected void sse_encode_box_autoadd_top_result(TopResult self, SseSerializer serializer);
 
@@ -758,6 +874,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_guest_session(GuestSession self, SseSerializer serializer);
 
+@protected void sse_encode_home(Home self, SseSerializer serializer);
+
 @protected void sse_encode_http_header(HttpHeader self, SseSerializer serializer);
 
 @protected void sse_encode_i_32(int self, SseSerializer serializer);
@@ -792,7 +910,15 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_list_lyric_word(List<LyricWord> self, SseSerializer serializer);
 
+@protected void sse_encode_list_mix_song(List<MixSong> self, SseSerializer serializer);
+
+@protected void sse_encode_list_mix_summary(List<MixSummary> self, SseSerializer serializer);
+
+@protected void sse_encode_list_not_interested_item(List<NotInterestedItem> self, SseSerializer serializer);
+
 @protected void sse_encode_list_palette_swatch(List<PaletteSwatch> self, SseSerializer serializer);
+
+@protected void sse_encode_list_pick_reason(List<PickReason> self, SseSerializer serializer);
 
 @protected void sse_encode_list_playlist_entry(List<PlaylistEntry> self, SseSerializer serializer);
 
@@ -811,6 +937,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_list_queue_entry(List<QueueEntry> self, SseSerializer serializer);
 
 @protected void sse_encode_list_server_row(List<ServerRow> self, SseSerializer serializer);
+
+@protected void sse_encode_list_shelf_stat(List<ShelfStat> self, SseSerializer serializer);
 
 @protected void sse_encode_list_singer(List<Singer> self, SseSerializer serializer);
 
@@ -840,7 +968,23 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_lyrics_sync(LyricsSync self, SseSerializer serializer);
 
+@protected void sse_encode_mix_kind(MixKind self, SseSerializer serializer);
+
+@protected void sse_encode_mix_page(MixPage self, SseSerializer serializer);
+
+@protected void sse_encode_mix_shelf(MixShelf self, SseSerializer serializer);
+
+@protected void sse_encode_mix_song(MixSong self, SseSerializer serializer);
+
+@protected void sse_encode_mix_state(MixState self, SseSerializer serializer);
+
+@protected void sse_encode_mix_summary(MixSummary self, SseSerializer serializer);
+
 @protected void sse_encode_network(Network self, SseSerializer serializer);
+
+@protected void sse_encode_not_interested_item(NotInterestedItem self, SseSerializer serializer);
+
+@protected void sse_encode_not_interested_reason(NotInterestedReason self, SseSerializer serializer);
 
 @protected void sse_encode_opt_String(String? self, SseSerializer serializer);
 
@@ -860,6 +1004,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_opt_box_autoadd_i_64(PlatformInt64? self, SseSerializer serializer);
 
+@protected void sse_encode_opt_box_autoadd_pick_reason(PickReason? self, SseSerializer serializer);
+
 @protected void sse_encode_opt_box_autoadd_playlist_summary(PlaylistSummary? self, SseSerializer serializer);
 
 @protected void sse_encode_opt_box_autoadd_queue_entry(QueueEntry? self, SseSerializer serializer);
@@ -876,6 +1022,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_opt_box_autoadd_sync_status(SyncStatus? self, SseSerializer serializer);
 
+@protected void sse_encode_opt_box_autoadd_time_of_day(TimeOfDay? self, SseSerializer serializer);
+
 @protected void sse_encode_opt_box_autoadd_top_result(TopResult? self, SseSerializer serializer);
 
 @protected void sse_encode_opt_box_autoadd_u_16(int? self, SseSerializer serializer);
@@ -885,6 +1033,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_palette_scheme(PaletteScheme self, SseSerializer serializer);
 
 @protected void sse_encode_palette_swatch(PaletteSwatch self, SseSerializer serializer);
+
+@protected void sse_encode_pick_reason(PickReason self, SseSerializer serializer);
 
 @protected void sse_encode_playlist_detail(PlaylistDetail self, SseSerializer serializer);
 
@@ -902,6 +1052,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_quick_connect_start(QuickConnectStart self, SseSerializer serializer);
 
+@protected void sse_encode_radio_seed(RadioSeed self, SseSerializer serializer);
+
+@protected void sse_encode_reason_kind(ReasonKind self, SseSerializer serializer);
+
 @protected void sse_encode_remote_change(RemoteChange self, SseSerializer serializer);
 
 @protected void sse_encode_repeat_mode(RepeatMode self, SseSerializer serializer);
@@ -915,6 +1069,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_server_check(ServerCheck self, SseSerializer serializer);
 
 @protected void sse_encode_server_row(ServerRow self, SseSerializer serializer);
+
+@protected void sse_encode_shelf_stat(ShelfStat self, SseSerializer serializer);
 
 @protected void sse_encode_signed_in(SignedIn self, SseSerializer serializer);
 
@@ -940,11 +1096,15 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_stream_quality(StreamQuality self, SseSerializer serializer);
 
+@protected void sse_encode_suggestion_stats(SuggestionStats self, SseSerializer serializer);
+
 @protected void sse_encode_sync_result(SyncResult self, SseSerializer serializer);
 
 @protected void sse_encode_sync_state(SyncState self, SseSerializer serializer);
 
 @protected void sse_encode_sync_status(SyncStatus self, SseSerializer serializer);
+
+@protected void sse_encode_time_of_day(TimeOfDay self, SseSerializer serializer);
 
 @protected void sse_encode_top_result(TopResult self, SseSerializer serializer);
 
@@ -961,6 +1121,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_unit(void self, SseSerializer serializer);
 
 @protected void sse_encode_usize(BigInt self, SseSerializer serializer);
+
+@protected void sse_encode_why_this_song(WhyThisSong self, SseSerializer serializer);
                 }
                 
 

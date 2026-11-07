@@ -25,6 +25,9 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
  QueueState  addToUpNext({required Int64List songIds });
 
 
+ Adventurousness  adventurousness();
+
+
  AlbumDetail  album({required PlatformInt64 albumId });
 
 
@@ -56,6 +59,12 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 
  Future<ServerCheck>  checkAddress({required String address });
+
+
+ int  clearListeningHistory();
+
+
+ void  clearNotInterested();
 
 
  void  clearRecentSearches();
@@ -103,6 +112,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  Future<int>  fetchLyricsAhead({required int maxSongs });
 
 
+ void  fewerLikeThis({required PlatformInt64 songId });
+
+
  List<Song>  genreSongs({required String genre , required int offset , required int limit });
 
 
@@ -110,6 +122,12 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
 
 
  GuestSession?  guestSession();
+
+
+ void  hideMix({required String mixId });
+
+
+ Future<Home>  home();
 
 
  QueueState  jumpTo({required PlatformInt64 uid });
@@ -133,6 +151,12 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  Future<String?>  lyricsRaw({required PlatformInt64 songId });
 
 
+ MixPage  mix({required String mixId });
+
+
+ void  moreLikeThis({required PlatformInt64 songId });
+
+
  EditResult  moveInPlaylist({required PlatformInt64 playlistId , required int fromPosition , required int toPosition });
 
 
@@ -145,10 +169,25 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  SkipTarget  nextTarget();
 
 
+ void  notInThisMix({required String mixId , required PlatformInt64 songId });
+
+
+ NotInterestedItem  notInterestedArtist({required String artist , required NotInterestedReason reason });
+
+
+ List<NotInterestedItem>  notInterestedList();
+
+
+ NotInterestedItem  notInterestedSong({required PlatformInt64 songId , required NotInterestedReason reason });
+
+
  void  openProfile({required String profileId , required List<SourceToken> tokens });
 
 
  int  pendingEdits();
+
+
+ void  pinMix({required String mixId , required bool pinned });
 
 
  QueueState  play({required Int64List songIds , required int startIndex , required StartedFrom startedFrom , String? contextId });
@@ -205,10 +244,19 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  List<String>  recentSearches();
 
 
+ QueueState  refreshAutoplay();
+
+
+ Future<Home>  regenerateMixes();
+
+
  EditResult  removeFromPlaylist({required PlatformInt64 playlistId , required List<int> positions });
 
 
  QueueState  removeFromQueue({required PlatformInt64 uid });
+
+
+ void  removeNotInterested({required NotInterestedItem item });
 
 
  Future<void>  removeProfileFromDevice({required String profileId });
@@ -235,10 +283,16 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  QueueState  replayFromHistory({required PlatformInt64 uid });
 
 
+ void  resetSuggestions();
+
+
  Future<void>  restoreProfile({required String profileId , required String fromPath });
 
 
  Future<void>  revokeDevice({required String deviceId });
+
+
+ EditResult  saveMixAsPlaylist({required String mixId });
 
 
  SearchResults  search({required String query });
@@ -248,6 +302,12 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
 
 
  List<ServerRow>  servers();
+
+
+ void  setAdventurousness({required Adventurousness level });
+
+
+ QueueState  setAutoplay({required bool enabled });
 
 
  void  setListeningMode({required ListeningMode mode });
@@ -280,6 +340,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  PreviousResult  skipPrevious({required SkipOrigin origin , required PlatformInt64 positionMs });
 
 
+ QueueState  smartShuffle({required Int64List songIds , required StartedFrom startedFrom , String? contextId });
+
+
  Song  song({required PlatformInt64 songId });
 
 
@@ -287,6 +350,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
 
 
  QueueState  startGuest();
+
+
+ QueueState  startRadio({required RadioSeed seed , required PlatformInt64 id });
 
 
 /// Close the events stream (it reports done). Cancelling a subscription alone
@@ -298,6 +364,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
 
 
  StreamQuality  streamQuality({required Network network });
+
+
+ SuggestionStats  suggestionStats();
 
 
  Future<QueueState>  switchProfile({required String profileId , required List<SourceToken> tokens , required bool keepPlaying });
@@ -327,10 +396,21 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  void  unlockProfile({required String profileId , String? pin });
 
 
+ WhyThisSong  whyThisSong({required PlatformInt64 songId });
+
+
 
                     
                 }
                 
+
+enum Adventurousness {
+                    familiar,
+balanced,
+adventurous,
+                    ;
+                    
+                }
 
 class AlbumDetail  {
                 final AlbumSummary album;
@@ -870,6 +950,34 @@ final PlatformInt64 endsIfIdleUtcMs;
 
             }
 
+class Home  {
+                final MixShelf madeForYou;
+final List<Song> rediscover;
+final List<Song> recentlyPlayed;
+final List<Song> deepCuts;
+final List<Song> recentlyAdded;
+final List<Song> mostPlayed;
+
+                const Home({required this.madeForYou ,required this.rediscover ,required this.recentlyPlayed ,required this.deepCuts ,required this.recentlyAdded ,required this.mostPlayed ,});
+
+
+
+
+
+        @override
+        int get hashCode => madeForYou.hashCode^rediscover.hashCode^recentlyPlayed.hashCode^deepCuts.hashCode^recentlyAdded.hashCode^mostPlayed.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is Home &&
+                runtimeType == other.runtimeType
+                && madeForYou == other.madeForYou&& rediscover == other.rediscover&& recentlyPlayed == other.recentlyPlayed&& deepCuts == other.deepCuts&& recentlyAdded == other.recentlyAdded&& mostPlayed == other.mostPlayed;
+
+            }
+
 class HttpHeader  {
                 final String name;
 final String value;
@@ -1082,9 +1190,173 @@ unsynced,
                     
                 }
 
+enum MixKind {
+                    strongest,
+second,
+timeOfDay,
+drift,
+stretch,
+family,
+starter,
+                    ;
+                    
+                }
+
+class MixPage  {
+                final MixSummary summary;
+final List<MixSong> songs;
+
+                const MixPage({required this.summary ,required this.songs ,});
+
+
+
+
+
+        @override
+        int get hashCode => summary.hashCode^songs.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is MixPage &&
+                runtimeType == other.runtimeType
+                && summary == other.summary&& songs == other.songs;
+
+            }
+
+class MixShelf  {
+                final MixState state;
+final List<MixSummary> mixes;
+final int playsSoFar;
+final int playsNeeded;
+final PlatformInt64? madeUtcMs;
+final bool fromCompanion;
+
+                const MixShelf({required this.state ,required this.mixes ,required this.playsSoFar ,required this.playsNeeded ,this.madeUtcMs ,required this.fromCompanion ,});
+
+
+
+
+
+        @override
+        int get hashCode => state.hashCode^mixes.hashCode^playsSoFar.hashCode^playsNeeded.hashCode^madeUtcMs.hashCode^fromCompanion.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is MixShelf &&
+                runtimeType == other.runtimeType
+                && state == other.state&& mixes == other.mixes&& playsSoFar == other.playsSoFar&& playsNeeded == other.playsNeeded&& madeUtcMs == other.madeUtcMs&& fromCompanion == other.fromCompanion;
+
+            }
+
+class MixSong  {
+                final Song song;
+final PickReason? reason;
+final bool newToYou;
+
+                const MixSong({required this.song ,this.reason ,required this.newToYou ,});
+
+
+
+
+
+        @override
+        int get hashCode => song.hashCode^reason.hashCode^newToYou.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is MixSong &&
+                runtimeType == other.runtimeType
+                && song == other.song&& reason == other.reason&& newToYou == other.newToYou;
+
+            }
+
+enum MixState {
+                    fresh,
+outOfDate,
+notEnoughPlays,
+learningOff,
+private,
+                    ;
+                    
+                }
+
+class MixSummary  {
+                final String mixId;
+final MixKind kind;
+final String title;
+final String subtitle;
+final Int64List coverSongIds;
+final int songCount;
+final bool pinned;
+final PlatformInt64 madeUtcMs;
+
+                const MixSummary({required this.mixId ,required this.kind ,required this.title ,required this.subtitle ,required this.coverSongIds ,required this.songCount ,required this.pinned ,required this.madeUtcMs ,});
+
+
+
+
+
+        @override
+        int get hashCode => mixId.hashCode^kind.hashCode^title.hashCode^subtitle.hashCode^coverSongIds.hashCode^songCount.hashCode^pinned.hashCode^madeUtcMs.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is MixSummary &&
+                runtimeType == other.runtimeType
+                && mixId == other.mixId&& kind == other.kind&& title == other.title&& subtitle == other.subtitle&& coverSongIds == other.coverSongIds&& songCount == other.songCount&& pinned == other.pinned&& madeUtcMs == other.madeUtcMs;
+
+            }
+
 enum Network {
                     wifi,
 cellular,
+                    ;
+                    
+                }
+
+class NotInterestedItem  {
+                final PlatformInt64? songId;
+final String? artist;
+final String label;
+final NotInterestedReason reason;
+final PlatformInt64 addedUtcMs;
+
+                const NotInterestedItem({this.songId ,this.artist ,required this.label ,required this.reason ,required this.addedUtcMs ,});
+
+
+
+
+
+        @override
+        int get hashCode => songId.hashCode^artist.hashCode^label.hashCode^reason.hashCode^addedUtcMs.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is NotInterestedItem &&
+                runtimeType == other.runtimeType
+                && songId == other.songId&& artist == other.artist&& label == other.label&& reason == other.reason&& addedUtcMs == other.addedUtcMs;
+
+            }
+
+enum NotInterestedReason {
+                    notMyTaste,
+heardTooMuch,
+wrongMoment,
                     ;
                     
                 }
@@ -1117,6 +1389,36 @@ final double share;
             other is PaletteSwatch &&
                 runtimeType == other.runtimeType
                 && colour == other.colour&& share == other.share;
+
+            }
+
+class PickReason  {
+                final ReasonKind kind;
+final Song? song;
+final int? count;
+final int? of;
+final int? days;
+final TimeOfDay? timeOfDay;
+final String? artist;
+final String? genre;
+
+                const PickReason({required this.kind ,this.song ,this.count ,this.of ,this.days ,this.timeOfDay ,this.artist ,this.genre ,});
+
+
+
+
+
+        @override
+        int get hashCode => kind.hashCode^song.hashCode^count.hashCode^of.hashCode^days.hashCode^timeOfDay.hashCode^artist.hashCode^genre.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is PickReason &&
+                runtimeType == other.runtimeType
+                && kind == other.kind&& song == other.song&& count == other.count&& of == other.of&& days == other.days&& timeOfDay == other.timeOfDay&& artist == other.artist&& genre == other.genre;
 
             }
 
@@ -1310,6 +1612,30 @@ final int expiresInSeconds;
 
             }
 
+enum RadioSeed {
+                    song,
+album,
+artist,
+playlist,
+                    ;
+                    
+                }
+
+enum ReasonKind {
+                    finishedOften,
+playedTogether,
+timeOfDay,
+youLikedIt,
+rediscover,
+sameArtist,
+sameGenre,
+playedElsewhere,
+newToYou,
+recentlyAdded,
+                    ;
+                    
+                }
+
 class RemoteChange  {
                 final Int64List likedSongIds;
 final Int64List unlikedSongIds;
@@ -1462,6 +1788,34 @@ final bool signedIn;
             other is ServerRow &&
                 runtimeType == other.runtimeType
                 && sourceId == other.sourceId&& kind == other.kind&& name == other.name&& baseUrl == other.baseUrl&& version == other.version&& userName == other.userName&& songCount == other.songCount&& lastSyncUtcMs == other.lastSyncUtcMs&& signedIn == other.signedIn;
+
+            }
+
+class ShelfStat  {
+                final String shelf;
+final int plays;
+final int earlySkipsPer1000;
+final int finishedPer1000;
+final int artistsPer20X10;
+final int repeatsPer1000;
+
+                const ShelfStat({required this.shelf ,required this.plays ,required this.earlySkipsPer1000 ,required this.finishedPer1000 ,required this.artistsPer20X10 ,required this.repeatsPer1000 ,});
+
+
+
+
+
+        @override
+        int get hashCode => shelf.hashCode^plays.hashCode^earlySkipsPer1000.hashCode^finishedPer1000.hashCode^artistsPer20X10.hashCode^repeatsPer1000.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is ShelfStat &&
+                runtimeType == other.runtimeType
+                && shelf == other.shelf&& plays == other.plays&& earlySkipsPer1000 == other.earlySkipsPer1000&& finishedPer1000 == other.finishedPer1000&& artistsPer20X10 == other.artistsPer20X10&& repeatsPer1000 == other.repeatsPer1000;
 
             }
 
@@ -1714,6 +2068,30 @@ dataSaver,
                     
                 }
 
+class SuggestionStats  {
+                final PlatformInt64 sinceUtcMs;
+final List<ShelfStat> shelves;
+
+                const SuggestionStats({required this.sinceUtcMs ,required this.shelves ,});
+
+
+
+
+
+        @override
+        int get hashCode => sinceUtcMs.hashCode^shelves.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is SuggestionStats &&
+                runtimeType == other.runtimeType
+                && sinceUtcMs == other.sinceUtcMs&& shelves == other.shelves;
+
+            }
+
 class SyncResult  {
                 final PlatformInt64 sourceId;
 final int artists;
@@ -1779,6 +2157,15 @@ final String? reason;
 
             }
 
+enum TimeOfDay {
+                    night,
+morning,
+afternoon,
+evening,
+                    ;
+                    
+                }
+
 class TopResult  {
                 final ResultKind kind;
 final Song? song;
@@ -1812,4 +2199,28 @@ opus,
                     ;
                     
                 }
+
+class WhyThisSong  {
+                final List<PickReason> reasons;
+final List<Song> soundsLike;
+
+                const WhyThisSong({required this.reasons ,required this.soundsLike ,});
+
+
+
+
+
+        @override
+        int get hashCode => reasons.hashCode^soundsLike.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is WhyThisSong &&
+                runtimeType == other.runtimeType
+                && reasons == other.reasons&& soundsLike == other.soundsLike;
+
+            }
             
