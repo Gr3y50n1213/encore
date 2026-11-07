@@ -28,6 +28,7 @@ Last updated: 6 November 2026, Phase 2 (core): the owner's choices on fixtures a
 | Phase 3 core libraries (6 November 2026) | Approved: quick-xml 0.42.0 (TTML lyrics) and png 0.18.1 (album covers, lossless so every device makes the same palette). `core/THIRD_PARTY_LICENSES.md` |
 | Phase 3 recording (6 November 2026) | One Quick Connect session that may write to the owner's server and undo it: a temporary playlist ("Encore test - safe to delete") made, changed and deleted, and one favourite set and cleared. Done on 7 November 2026; the server was left as it was. `tools/fixtures/jellyfin/RECORDING.md` |
 | Phase 4 answers (7 November 2026) | Live updates by long-poll now, the WebSocket with handoff in Phase 7; only crates already in the build, used directly (rusqlite, sha2, getrandom, ulid, url, encore-sources), no mDNS yet (the address is typed); one read-only Quick Connect recording (done 7 November: `tools/fixtures/jellyfin/RECORDING-PHASE4.md`); the companion server is built and run in CI only, never on the owner's PC. |
+| Phase 5 answers (7 November 2026) | "Your own history" comes from Jellyfin's own data (play counts, last played, the Playback Reporting plugin's log if installed), read in one read-only recording and kept only on the owner's PC; CI uses generated histories. The mixes are built on the companion server; a profile without one builds them on the device. How the server gets the song list was left to me: devices send it (core-0013). |
 | Likes (6 November 2026) | A like is also a Jellyfin favourite, so other Jellyfin apps and devices see it before Phase 4 sync; favourites set elsewhere arrive as likes. `docs/adr/core-0008-edits-outbox-undo.md` |
 
 ## 2. Chosen for the owner (the owner delegated these)
@@ -58,6 +59,10 @@ Last updated: 6 November 2026, Phase 2 (core): the owner's choices on fixtures a
 | Guest (Phase 4) | A mode of the open profile (its media server still serves the music), not a second sign-in: nothing recorded or saved, its own empty queue, the profile's queue back at the end; it ends after 4 hours idle or when a profile opens. | `docs/adr/core-0011-profiles-on-a-device.md` |
 | PIN storage (Phase 4) | Salted, 100,000-round SHA-256 in the device registry; the lock-out (5 tries, 30 s doubling to an hour) is the real guard, since 10^6 PINs can't be made safe by a hash. A screen lock, not encryption (plan section 6). | `docs/adr/core-0011-profiles-on-a-device.md` |
 | Server image (Phase 4) | Debian trixie slim, non-root (uid 10001), one `/data` volume; arm64 cross-compiled on an amd64 builder rather than emulated. Not published to a registry yet: built from source with `server/compose.yaml`. | `server/Dockerfile` |
+| Smart picks v1 (Phase 5) | Pure and deterministic, with its own exp and PRNG so a phone, a desktop and the server pick the same; "sounds like" is played together, artist, genre and era until audio arrives; the hand-tuned score of section 21 | `docs/adr/core-0012-smart-picks-engine.md` |
+| Mixes on the server (Phase 5) | Devices send the song list (no audio, no token) instead of the server holding a Jellyfin API key; the server builds from the synced log; pins stay on the device | `docs/adr/core-0013-mixes-on-the-server.md` |
+| Small libraries (Phase 5) | A library with few artists can't fill 25 songs at 2 per artist: its mixes are as long as the caps allow (at least 10); the caps are never relaxed | `core/encore-recs/src/mixes.rs` |
+| Replay method (Phase 5) | Generated listeners with known tastes in CI (autoplay at most 60% of shuffle's early skips); the owner's history locally, only on songs with known outcomes, labelled by which check the data allowed | `docs/adr/core-0014-replay.md` |
 | Browse speed target | No browse budget exists in tokens, so every browse page is held to the search budget (50 ms on 50,000 songs) | `core/encore-store/tests/search_budget.rs` |
 | Where the build glue lives | Each platform track compiles the Rust core for its own targets inside its own folder (an XCFramework for Apple, the Android ABIs, the Windows and Linux libraries). The Rust source stays in `core/`. Each track has its own CI workflow file and its own `check` Makefile target | `CLAUDE.md` |
 
@@ -100,6 +105,8 @@ The owner has not answered these. They are the plan's defaults (plan section 15)
 
 | Item | Why it is open | Check against |
 | --- | --- | --- |
+| Every smart-picks number | Starting values (weights, half-life, 0.6 replay threshold, cluster rules, title vocabulary); the CI listeners are generated, not real | Replay on the owner's history (Phase 5 review) and on devices' logs once apps exist |
+| Smart picks on a phone | Budgets were measured on CI and this PC (20 ms next-song pick, 0.14 s mix build on 20,000 songs), not a phone | Phase 6 devices |
 | Companion on real devices and networks | The like-within-a-second was measured with two cores and the server on one machine (106 to 135 ms, the Docker images included); never over Wi-Fi or with phones | Phase 6 devices on the owner's network |
 | arm64 server speed | The arm64 image ran end to end under QEMU in CI (118.5 ms like), which proves it works, not its speed | A Raspberry Pi 5 or an arm64 NAS |
 | Avatar size | For a 256 px request the owner's Jellyfin returned a 2.7 MB original (not PNG); the address now also asks `maxWidth`/`maxHeight` | A device loading avatars |

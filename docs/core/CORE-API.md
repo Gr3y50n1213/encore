@@ -1,6 +1,6 @@
 # Encore core API (the contract)
 
-**Version 3** (Phase 4, 7 November 2026). Core crate version `0.1.0`.
+**Version 4** (Phase 5, 7 November 2026). Core crate version `0.1.0`.
 
 This file is the only thing the platform tracks may rely on. Every public call, event and type of the core is listed here before a platform uses it. A change that breaks a platform gets a line under "Changes" and a request in `docs/requests/` that says what to change.
 
@@ -11,6 +11,7 @@ This file is the only thing the platform tracks may rely on. Every public call, 
 | 0 | 1 | First version: `hello`, `core_version`, `app_name`; token constants |
 | 1 | 2 | `EncoreCore`: connect and sign in to Jellyfin (password or Quick Connect), profiles, library sync, browse, search, the queue, playback reporting with the play log, streams, artwork, raw lyrics, events. Nothing from API 0 changed. Kotlin now also needs kotlinx-coroutines (async calls are suspend functions). |
 | 2 | 3 | Added, nothing removed. Lyrics (`lyrics`, the word-timing-ready model); album and playlist palettes; the skip signal (`skip_next` / `skip_previous` with an origin, `next_target` / `previous_target`, `playback_interrupted`, `playback_seeked`); playlist writes and likes (`drop_preview`, `add_to`, `like`, `unlike`, `are_liked`, `liked_songs`, `remove_from_playlist`, `move_in_playlist`, `rename_playlist`, `undo`, `pending_edits`, `send_edits`); `backup_profile` / `restore_profile`; the error kind `NotAllowed`. `next()` and `previous()` stay, as the button. A platform that switches over every `ErrorKind` adds `NotAllowed`. |
+| 4 | 5 | Added, nothing removed. Smart picks: autoplay fills itself (`refresh_autoplay`, `set_autoplay`), `start_radio`, `smart_shuffle`, `why_this_song`, `more_like_this` / `fewer_like_this`, Not interested (`not_interested_song`, `not_interested_artist`, `remove_not_interested`, `not_interested_list`, `clear_not_interested`), `set_adventurousness` / `adventurousness`, `reset_suggestions`, `clear_listening_history`, `home`, `regenerate_mixes`, `mix`, `pin_mix`, `hide_mix`, `not_in_this_mix`, `save_mix_as_playlist`, `suggestion_stats`; their types. Private listening ends after 2 hours of silence. Queue entries the app chose (Autoplay, Smart shuffle) have `chosen_by` App. A platform that builds `QueueState` itself is unaffected. |
 | 3 | 4 | Added, nothing removed. The companion server (`connect_companion`, `disconnect_companion`, `sync_status`, `sync_now`, `companion_devices`, `revoke_device`, `delete_profile_everywhere`); profiles on one device (`switch_profile`, `unlock_profile`, `set_profile_pin`, `remove_profile_pin`, `biometrics_changed`, `rename_profile`, `reorder_profiles`, `remove_profile_from_device`, `last_active_profile`); Guest (`start_guest`, `end_guest`, `guest_session`). `ProfileSummary` gains `initials`, `avatar_url`, `locked`, `active`, `needs_sign_in`; `CoreEvent` gains `sync_status`, `remote_change`, `credential` and three kinds. `open_profile` refuses a locked profile until `unlock_profile`; a `SourceToken` with `source_id` 0 is the companion's. New `profiles` tokens. A platform that switches over every `EventKind` adds the three new kinds; one that builds `ProfileSummary` or `CoreEvent` itself adds the fields. |
 | 2.1 | 3 | Added, nothing removed. Lyrics search: `SearchResults.lyrics` (`[LyricMatch]`) and `fetch_lyrics_ahead(max_songs)`; `search.limits.lyrics` in tokens. Export: `export_profile(profile_id, dest_path)` returns `ExportSummary`. A platform that builds `SearchResults` itself (tests, previews) adds the `lyrics` field. |
 | 1, revised | 2 | Same day, after CI ran the bindings. Each error case carries its sentence as `reason`, no longer `message`, because the Kotlin exceptions clashed with `Throwable.message`. New calls: `clear_listener` (Swift, Kotlin) and `stopEvents` (Dart), which end the events. A platform that copied the first version renames `message` to `reason` in its error handling; nothing else changes. |
@@ -232,6 +233,35 @@ Every edit is **one call** with the whole list in the order shown, one event and
 
 Albums refuse drops: their songs come from the server's tags and folders. Guest can queue but not save. Copy versus move is the platform's choice: a move is `add_to`, then `remove_from_playlist`.
 
+### Smart picks (plan section 21; boards 15, 23, 37, 38)
+
+One engine chooses every song the app chooses, so a skip teaches every surface. Version 1 learns from how the user listens: what they finish and skip, what they play together, when they play it, likes and playlist adds. Audio features come in Phase 9. Design: docs/adr/core-0012 to 0014.
+
+| Call | Returns | Notes |
+| --- | --- | --- |
+| (automatic) | | When a song starts and fewer than 5 are upcoming, the core fills the queue's Autoplay section with 10 songs in the background and sends `QueueChanged`. Those entries have `chosen_by` App: show them under "Autoplay". Songs the user queued are never touched. |
+| `refresh_autoplay()` | `QueueState` | Fill Autoplay now (after Not interested, say). |
+| `set_autoplay(enabled)` | `QueueState` | The Queue's Autoplay switch (board 11). Off: the queue ends with its last song. |
+| `start_radio(seed, id)` | `QueueState` | `RadioSeed` Song, Album, Artist or Playlist with its ID. It plays the seed, then Autoplay keeps that seed for the session; playing anything by hand ends the radio. |
+| `smart_shuffle(song_ids, started_from, context_id)` | `QueueState` | The list shuffled with one suggestion after every 4 songs. Suggestions have `chosen_by` App: show the spark mark, and a swipe removes one (`remove_from_queue`). |
+| `why_this_song(song_id)` | `WhyThisSong` | Board 38: `reasons` (one or two `PickReason`s) and `sounds_like` (up to two songs that open on tap). Word each reason from its `kind` and fields; examples are in the types. |
+| `more_like_this(song_id)` / `fewer_like_this(song_id)` | – | A light haptic and a one-line confirmation. `NotAllowed` in Guest and with learning off. |
+| `not_interested_song(song_id, reason)` / `not_interested_artist(artist, reason)` | `NotInterestedItem` | The song or artist leaves every smart surface at once; a song still plays when picked. Show Undo for 5 s: `remove_not_interested(item)`. `NotInterestedReason`: NotMyTaste, HeardTooMuch (rests it 30 days), WrongMoment (this time of day only). |
+| `not_interested_list()` / `clear_not_interested()` | `[NotInterestedItem]` / – | Settings, Not interested. |
+| `set_adventurousness(level)` / `adventurousness()` | – / `Adventurousness` | Familiar 5%, Balanced 10%, Adventurous 20% of picks new to the user ("About 1 in 10 picks will be new to you"); fixed at Balanced under 50 plays. Applies from the next refill. |
+| `reset_suggestions()` | – | Board 38, note 5: forgets what was learned. Likes, playlists, history and Not interested stay. Synced; no device can undo it. |
+| `clear_listening_history()` | `u32` | Board 38, note 6: deletes every play and lyric tap so far, here, on the companion server and on every device; returns how many plays went. |
+| `home()` / `regenerate_mixes()` | `Home` | Async. `made_for_you` (a `MixShelf`: `state`, `mixes` (pinned first), `plays_so_far` of `plays_needed`, `made_utc_ms`, `from_companion`), `rediscover`, `recently_played`, `deep_cuts`, `recently_added`, `most_played`. The set is the companion server's when the profile has one that answers, else built on this device. A new set comes at the first request after 06:00, after 25 new plays or on Regenerate, never while one of its mixes plays. A build can take up to 20 s on a big library: show yesterday's tiles meanwhile. |
+| `mix(mix_id)` | `MixPage` | Board 15: the summary and its songs, each with one reason (`MixSong.reason`) and `new_to_you`. Play it with `play(ids, i, StartedFrom::Mix, Some(mix_id))`. |
+| `pin_mix(mix_id, pinned)` / `hide_mix(mix_id)` | – | Up to 10 pinned (`NotAllowed` past that). Hide takes it out of today's set. |
+| `not_in_this_mix(mix_id, song_id)` | – | Board 15, item 5: removes it, and the mix's mood learns it doesn't fit. |
+| `save_mix_as_playlist(mix_id)` | `EditResult` | A normal playlist named after the mix, written to the media server. |
+| `suggestion_stats()` | `SuggestionStats` | How suggestions are doing (board 38, note 7), the last 4 weeks per shelf. Numbers are per 1,000 (show 123 as 12.3%). Local only. |
+
+**Mix states** (`MixState`): Fresh; OutOfDate (48 h without a good build: show the age and Refresh, never an empty tile); NotEnoughPlays ("Encore is still learning", with 12 of 50); LearningOff (Recently added and Most played instead); Private (Private listening or Guest). Under 50 plays the shelf may hold a Starter mix or up to three family mixes. Every state has a text label.
+
+**What doesn't count** (unchanged from Phase 3): interruptions, errors, seeks, accidents under 2 s, too soon, ended by the system. Private listening, Guest and Learn-from-my-listening-off store nothing.
+
 ## Events
 
 `set_listener(listener)` in Swift and Kotlin (implement `CoreListener.on_event`), `events()` in Dart (a `Stream<CoreEvent>`). One listener at a time: setting a new one replaces the old. `clear_listener()` (Swift, Kotlin) and `stopEvents()` (Dart) stop events. In Dart, `stopEvents()` is what ends the stream: cancelling a subscription alone does not, because the core still holds the stream. One `CoreEvent` record; only the fields its `kind` names are set.
@@ -257,6 +287,12 @@ All are plain records and enums. IDs and times are 64-bit signed integers (milli
 | `QuickConnectStart` | `code`, `expires_in_seconds` |
 | `SignedIn` | `profile_id`, `source_id`, `credential_key`, `token`, `user_name` |
 | `SourceToken` | `source_id`, `token` |
+| `PickReason` / `ReasonKind` | `kind`, `song?`, `count?`, `of?`, `days?`, `time_of_day?`, `artist?`, `genre?` / FinishedOften, PlayedTogether, TimeOfDay, YouLikedIt, Rediscover, SameArtist, SameGenre, PlayedElsewhere, NewToYou, RecentlyAdded |
+| `WhyThisSong` | `reasons`, `sounds_like` |
+| `NotInterestedItem` | `song_id?`, `artist?`, `label`, `reason`, `added_utc_ms` |
+| `Home` / `MixShelf` / `MixSummary` | see Smart picks / `state`, `mixes`, `plays_so_far`, `plays_needed`, `made_utc_ms?`, `from_companion` / `mix_id`, `kind`, `title`, `subtitle`, `cover_song_ids` (the 2×2 mosaic), `song_count`, `pinned`, `made_utc_ms` |
+| `MixPage` / `MixSong` | `summary`, `songs` / `song`, `reason?`, `new_to_you` |
+| `SuggestionStats` / `ShelfStat` | `since_utc_ms`, `shelves` / `shelf`, `plays`, `early_skips_per_1000`, `finished_per_1000`, `artists_per_20_x10`, `repeats_per_1000` |
 | `ProfileSummary` | `profile_id`, `display_name`, `credentials: [CredentialKey { source_id, key }]`, `initials`, `avatar_url?`, `locked`, `active`, `needs_sign_in` |
 | `GuestSession` | `started_utc_ms`, `ends_if_idle_utc_ms` |
 | `SyncStatus` / `SyncState` | `state`, `pending`, `last_synced_utc_ms?`, `server_url?`, `reason?` / NotConnected, Idle, Syncing, Offline, SignedOut |
@@ -436,4 +472,13 @@ Everything below is in API version 3. It is tested in Rust, including two real c
 - **Keychain handling**: the companion token (`source_id` 0) arrives and rotates through `CredentialChanged`.
 - **The server**: anyone can run it next to Jellyfin with server/compose.yaml.
 
-Not available yet: smart picks and Autoplay (Phase 5), handoff and the WebSocket (Phase 7), downloads and offline artwork (Phase 8), recaps (Phase 11), finding the companion on the network by itself (mDNS; the address is typed).
+## What the platform tracks can build now (Phase 5)
+
+Everything below is in API version 4. It is tested in Rust on the owner's recording, against generated listeners (docs/core/REPLAY-RESULTS.md) and end to end with the companion server, and called from Swift, Kotlin and Dart in CI.
+
+- **Home and the Mixes tab** (boards 05, 15, 23): Made for you with every card state, Rediscover, Recently played, Deep Cuts, Recently added, Most played; mix pages with a reason per row; Pin, Hide, Regenerate, Save as playlist, Not in this mix.
+- **The queue's Autoplay section** (board 11) and its switch; radio from any song, album, artist or playlist; Smart shuffle with the spark mark.
+- **Why this song, More/Fewer like this, Not interested** with Undo and its Settings list (board 38).
+- **Settings, Mixes and suggestions:** How adventurous, Learn from my listening (`set_listening_mode`), Reset suggestions, Clear listening history, How suggestions are doing.
+
+Not available yet: handoff and the WebSocket (Phase 7), downloads and offline artwork (Phase 8), recaps (Phase 11), finding the companion on the network by itself (mDNS; the address is typed).

@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Encore companion server
   version: 0.1.0
-  summary: Profiles, sign-in by media-server token, and the synced event log (Phase 4).
+  summary: Profiles, sign-in by media-server token, the synced event log (Phase 4), and the mixes (Phase 5).
   description: |
     The optional companion server (plan section 5). It never stores music. Owned by
     the core and server track; the core's client is `core/encore-core/src/companion.rs`.
@@ -12,7 +12,7 @@ info:
     for a person and never contains a token. 401 means the device must refresh, or
     sign in again if refreshing fails; 429 carries `Retry-After`.
 
-    Not here yet: `GET /ws` (Phase 7), recommendations (Phase 5), lyrics proxy,
+    Not here yet: `GET /ws` (Phase 7), lyrics proxy,
     recap (Phase 11), the admin page beyond status.
 servers:
   - url: http://encore:8097
@@ -220,6 +220,71 @@ paths:
                   cursor: { type: integer }
                   more: { type: boolean }
         "401": { $ref: "#/components/responses/Error" }
+  /catalog:
+    put:
+      summary: The profile's song list for smart picks, replaced whole (up to 64 MB). No audio, no token.
+      security: [{ access: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [hash, songs]
+              properties:
+                hash: { type: string, maxLength: 128, description: SHA-256 of the songs JSON. }
+                songs:
+                  type: array
+                  items:
+                    type: object
+                    description: encore-recs Song (key, title, artists, album, album_artist, genres, year, duration_ms, added_utc_ms, server_play_count, server_last_played_utc_ms, server_favorite, explicit).
+      responses:
+        "200": { description: Stored. }
+        "401": { $ref: "#/components/responses/Error" }
+  /catalog/hash:
+    get:
+      summary: The hash of the song list the server holds (null when none), so an unchanged one isn't sent.
+      security: [{ access: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hash: { type: [string, "null"] }
+  /recs/home:
+    post:
+      summary: Today's mix set for the profile, built from its synced events and its catalog.
+      description: |
+        Built at the first request after 06:00 in the profile's time zone, after 25 new plays,
+        or on regenerate; never replacing the set while a device plays one of its mixes.
+        404 when no catalog has been sent yet. docs/adr/core-0013.
+      security: [{ access: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                utcOffsetMinutes: { type: integer }
+                hidden: { type: array, items: { type: string }, description: Mix IDs hidden today. }
+                recentTitles: { type: array, items: { type: string }, description: Titles shown in the last 14 days. }
+                regenerate: { type: boolean }
+                playingMixId: { type: [string, "null"] }
+      responses:
+        "200":
+          description: The set (encore-recs MixSet) and whether it was built now.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  set: { type: object }
+                  builtNow: { type: boolean }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { description: The build took too long and there is no earlier set. }
   /admin/status:
     get:
       summary: Counts only, and only from loopback or private addresses.
