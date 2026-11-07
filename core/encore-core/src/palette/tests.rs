@@ -239,6 +239,43 @@ fn awkward_covers() {
     assert_eq!(sample(300, 20, &wide, 64).len(), 60 * 4);
 }
 
+/// Real covers from the owner's library, kept only on that computer
+/// (tools/target/private-covers, written by the fixture recorder; copyrighted, so
+/// never committed). Run by hand:
+///   ENCORE_PRIVATE_COVERS=../tools/target/private-covers cargo test -p encore-core real_covers -- --ignored --nocapture
+#[test]
+#[ignore = "needs the owner's covers: ENCORE_PRIVATE_COVERS"]
+fn real_covers_keep_text_readable() {
+    let dir = std::env::var("ENCORE_PRIVATE_COVERS").expect("set ENCORE_PRIVATE_COVERS");
+    let s = settings();
+    let mut files: Vec<_> = std::fs::read_dir(dir)
+        .unwrap()
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.extension().is_some_and(|x| x == "png"))
+        .collect();
+    files.sort();
+    assert!(!files.is_empty());
+    let (mut dark, mut light, mut lowest) = (0, 0, f64::INFINITY);
+    for f in &files {
+        let p = palette_of_png(&std::fs::read(f).unwrap(), &s)
+            .unwrap()
+            .expect("a cover has a palette");
+        let min = if p.scheme == Scheme::Light { 7.0 } else { 4.5 };
+        assert!(p.lowest_contrast >= min, "{}: {}", f.display(), p.lowest_contrast);
+        assert_eq!(p.stops.len(), 4);
+        match p.scheme {
+            Scheme::Dark => dark += 1,
+            Scheme::Light => light += 1,
+        }
+        lowest = lowest.min(p.lowest_contrast - min);
+    }
+    println!(
+        "{} real covers: {dark} dark, {light} light; every one readable, smallest margin over its minimum {lowest:.2}",
+        files.len()
+    );
+}
+
 #[test]
 fn broken_files_are_errors_not_panics() {
     let s = settings();

@@ -665,6 +665,8 @@ fn playlist_drops_likes_and_undo_through_the_api() {
         .iter()
         .map(|s| s.id)
         .filter(|id| !in_playlist.contains(id))
+        // Not already liked: the owner's favourites arrive as likes.
+        .filter(|id| !core.are_liked(vec![*id]).unwrap()[0])
         .take(6)
         .collect();
     let before = core.playlist(playlist.id).unwrap().entries.len();
@@ -711,15 +713,17 @@ fn playlist_drops_likes_and_undo_through_the_api() {
         Err(EncoreError::NotAllowed { .. })
     ));
 
-    // Likes.
+    // Likes. Favourites set on the server arrived as likes with the sync.
+    let base = core.liked_songs(0, 1000).unwrap().len();
+    assert!(base > 0, "the recording's favourites become likes");
     let liked = core.like(songs[2..4].to_vec()).unwrap();
     assert_eq!(
         core.are_liked(songs[1..5].to_vec()).unwrap(),
         [false, true, true, false]
     );
-    assert_eq!(core.liked_songs(0, 10).unwrap().len(), 2);
+    assert_eq!(core.liked_songs(0, 1000).unwrap().len(), base + 2);
     core.undo(liked.edit_id.unwrap()).unwrap();
-    assert_eq!(core.liked_songs(0, 10).unwrap().len(), 0);
+    assert_eq!(core.liked_songs(0, 1000).unwrap().len(), base);
 
     // Up Next at the line, and its Undo.
     core.play(songs[..3].to_vec(), 0, StartedFrom::Songs, None)
