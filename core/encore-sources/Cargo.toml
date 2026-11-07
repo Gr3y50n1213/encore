@@ -16,6 +16,11 @@ url.workspace = true
 reqwest.workspace = true
 rustls.workspace = true
 rustls-platform-verifier.workspace = true
+# Phase 7: the live link (src/ws.rs).
+tokio = { workspace = true, features = ["net", "time", "sync", "rt", "macros"] }
+tokio-tungstenite.workspace = true
+tokio-rustls.workspace = true
+futures-util.workspace = true
 
 # Android only: the certificate verifier's one-time setup (docs/requests/core-0001).
 [target.'cfg(target_os = "android")'.dependencies]

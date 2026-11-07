@@ -122,7 +122,11 @@ pub fn history_from(events: &[Event], catalog: &recs::Catalog) -> recs::History 
         let v = &e.payload;
         match e.kind.as_str() {
             "play" => {
-                let Some(key) = v["songKey"].as_str() else {
+                // A part handed off to another device: that device's play counts.
+                let Some(key) = v["songKey"]
+                    .as_str()
+                    .filter(|_| v["endReason"] != "handedOff")
+                else {
                     continue;
                 };
                 h.plays.push(recs::Play {

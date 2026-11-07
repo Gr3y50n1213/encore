@@ -126,6 +126,31 @@ impl ServerCertVerifier for PinningVerifier {
     }
 }
 
+/// The TLS settings every connection uses: the operating system's verifier, plus a
+/// fingerprint the user chose to trust. The second value holds the fingerprint of a
+/// certificate the verifier refused (for "Trust this certificate?").
+pub fn tls_config(
+    pinned_sha256: Option<&str>,
+) -> Result<(rustls::ClientConfig, Arc<Mutex<Option<String>>>)> {
+    let provider = Arc::new(rustls::crypto::ring::default_provider());
+    let tls_err = |e: rustls::Error| SourceError::Unreachable(Unreachable::Tls(e.to_string()));
+    let platform = rustls_platform_verifier::Verifier::new(provider.clone()).map_err(tls_err)?;
+    let rejected = Arc::new(Mutex::new(None));
+    let verifier = Arc::new(PinningVerifier {
+        platform,
+        pinned: pinned_sha256.map(str::to_ascii_lowercase),
+        provider: provider.clone(),
+        rejected: rejected.clone(),
+    });
+    let config = rustls::ClientConfig::builder_with_provider(provider)
+        .with_safe_default_protocol_versions()
+        .map_err(tls_err)?
+        .dangerous()
+        .with_custom_certificate_verifier(verifier)
+        .with_no_client_auth();
+    Ok((config, rejected))
+}
+
 #[derive(Debug)]
 pub struct HttpTransport {
     client: reqwest::Client,
@@ -136,23 +161,7 @@ impl HttpTransport {
     /// `pinned_sha256`: a certificate fingerprint the user chose to trust for this
     /// server, if any.
     pub fn new(pinned_sha256: Option<&str>, connect_timeout: Duration) -> Result<HttpTransport> {
-        let provider = Arc::new(rustls::crypto::ring::default_provider());
-        let tls_err = |e: rustls::Error| SourceError::Unreachable(Unreachable::Tls(e.to_string()));
-        let platform =
-            rustls_platform_verifier::Verifier::new(provider.clone()).map_err(tls_err)?;
-        let rejected = Arc::new(Mutex::new(None));
-        let verifier = Arc::new(PinningVerifier {
-            platform,
-            pinned: pinned_sha256.map(str::to_ascii_lowercase),
-            provider: provider.clone(),
-            rejected: rejected.clone(),
-        });
-        let config = rustls::ClientConfig::builder_with_provider(provider)
-            .with_safe_default_protocol_versions()
-            .map_err(tls_err)?
-            .dangerous()
-            .with_custom_certificate_verifier(verifier)
-            .with_no_client_auth();
+        let (config, rejected) = tls_config(pinned_sha256)?;
         let client = reqwest::Client::builder()
             .use_preconfigured_tls(config)
             .connect_timeout(connect_timeout)
@@ -206,6 +215,7 @@ impl Transport for HttpTransport {
                 Method::Post => self.client.post(req.url),
                 Method::Put => self.client.put(req.url),
                 Method::Delete => self.client.delete(req.url),
+                Method::Patch => self.client.patch(req.url),
             };
             for (k, v) in &req.headers {
                 b = b.header(k, v);

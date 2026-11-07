@@ -60,6 +60,13 @@ rustls-platform-verifier = "0.7.1"
 # track on 6 Nov 2026, on condition it breaks nothing elsewhere). The same version
 # rustls-platform-verifier uses, so there is one copy.
 jni = { version = "0.22.4", default-features = false }
+# Phase 7, approved by the owner on 7 Nov 2026: the live link to the companion
+# server (handoff, presence, remote control). tokio-tungstenite without its TLS
+# features: the stream is the core's own rustls (tokio-rustls, already in the build
+# through reqwest, without its aws-lc-rs default).
+tokio-tungstenite = { version = "0.29.0", default-features = false, features = ["handshake"] }
+tokio-rustls = { version = "0.26.6", default-features = false, features = ["tls12"] }
+futures-util = { version = "0.3.34", default-features = false, features = ["sink"] }
 
 [workspace.lints.rust]
 missing_debug_implementations = "warn"

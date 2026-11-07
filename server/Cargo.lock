@@ -319,6 +319,7 @@ dependencies = [
 name = "encore-sources"
 version = "0.1.0"
 dependencies = [
+ "futures-util",
  "jni",
  "reqwest",
  "rustls",
@@ -327,6 +328,9 @@ dependencies = [
  "serde_json",
  "sha2",
  "thiserror",
+ "tokio",
+ "tokio-rustls",
+ "tokio-tungstenite",
  "unicode-normalization",
  "url",
 ]

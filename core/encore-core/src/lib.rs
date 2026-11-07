@@ -14,6 +14,7 @@ pub mod api;
 pub mod brand;
 mod companion;
 pub mod edits;
+mod handoff;
 pub mod library;
 pub mod palette;
 pub mod pin;

@@ -90,6 +90,10 @@ impl Session {
         self.stopped.load(Ordering::SeqCst)
     }
 
+    pub(super) fn is_stopped(&self) -> bool {
+        self.stopped()
+    }
+
     pub(super) fn status(&self) -> SyncStatus {
         self.status
             .lock()
@@ -180,7 +184,11 @@ pub(super) fn last_synced(p: &Profile) -> Option<i64> {
 /// A valid access token, refreshing (and handing the app the new refresh token)
 /// when it is about to expire. One refresh at a time: two at once would look like
 /// a copied token to the server.
-async fn access(inner: &Inner, s: &Session, force: bool) -> Result<String, CompanionError> {
+pub(super) async fn access(
+    inner: &Inner,
+    s: &Session,
+    force: bool,
+) -> Result<String, CompanionError> {
     let mut t = s.tokens.lock().await;
     if force || t.access.is_empty() || t.access_expires_utc_ms - now_ms() < 120_000 {
         let fresh = s.client.refresh(&t.refresh).await?;
@@ -445,9 +453,12 @@ pub(super) fn start(
     s: Arc<Session>,
 ) {
     let push = rt.spawn(pusher(inner.clone(), p.clone(), s.clone()));
-    let pull = rt.spawn(puller(inner, p, s.clone()));
+    let pull = rt.spawn(puller(inner.clone(), p.clone(), s.clone()));
+    // Phase 7: the live link (presence, handoff, remote control).
+    let live = rt.spawn(super::live::run(inner, p, s.clone()));
     if let Ok(mut t) = s.tasks.lock() {
         t.push(push);
         t.push(pull);
+        t.push(live);
     }
 }

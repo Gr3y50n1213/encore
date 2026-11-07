@@ -240,6 +240,44 @@ impl Queue {
         }
     }
 
+    /// Put a whole queue in place as another device had it (a handoff): History,
+    /// the current song, Up Next and Autoplay in their order, with its shuffle,
+    /// repeat and Autoplay settings. Up Next is not shuffled again: it arrives in
+    /// the order it was playing in, which unshuffling then keeps.
+    #[allow(clippy::too_many_arguments)]
+    pub fn restore(
+        &mut self,
+        history: Vec<NewItem>,
+        current: NewItem,
+        up_next: Vec<NewItem>,
+        autoplay: Vec<NewItem>,
+        shuffle: bool,
+        repeat: RepeatMode,
+        autoplay_enabled: bool,
+    ) {
+        self.save_undo();
+        let history: Vec<QueueItem> = history.into_iter().map(|n| self.make(n)).collect();
+        let current = self.make(current);
+        let up_next: Vec<QueueItem> = up_next.into_iter().map(|n| self.make(n)).collect();
+        let autoplay: Vec<QueueItem> = autoplay.into_iter().map(|n| self.make(n)).collect();
+        let mut session = vec![current.clone()];
+        session.extend(up_next.iter().cloned());
+        self.state = State {
+            history,
+            current: Some(current),
+            up_next,
+            autoplay: if autoplay_enabled {
+                autoplay
+            } else {
+                Vec::new()
+            },
+            session,
+            shuffle,
+            repeat,
+            autoplay_enabled,
+        };
+    }
+
     /// Insert at the top of Up Next.
     pub fn play_next(&mut self, items: Vec<NewItem>) {
         self.save_undo();
@@ -808,5 +846,59 @@ mod tests {
         uids.sort();
         uids.dedup();
         assert_eq!(uids.len(), 3);
+    }
+}
+
+#[cfg(test)]
+mod restore_tests {
+    use super::*;
+
+    fn n(id: i64) -> NewItem {
+        NewItem {
+            track_id: id,
+            chosen_by: ChosenBy::User,
+            started_from: StartedFrom::Album,
+            context_id: None,
+        }
+    }
+
+    #[test]
+    fn a_handed_off_queue_arrives_as_it_was() {
+        let mut q = Queue::new(7);
+        q.play(vec![n(99)], 0);
+        q.restore(
+            vec![n(1)],
+            n(2),
+            vec![n(4), n(3)],
+            vec![n(5)],
+            true,
+            RepeatMode::All,
+            true,
+        );
+        let v = q.view();
+        let ids = |items: &[QueueItem]| items.iter().map(|i| i.track_id).collect::<Vec<_>>();
+        assert_eq!(ids(v.history), vec![1]);
+        assert_eq!(v.current.map(|i| i.track_id), Some(2));
+        assert_eq!(ids(v.up_next), vec![4, 3], "not shuffled again");
+        assert_eq!(ids(v.autoplay), vec![5]);
+        assert!(v.shuffle && v.autoplay_enabled);
+        assert_eq!(v.repeat, RepeatMode::All);
+        // Unshuffling keeps the order it arrived in.
+        q.set_shuffle(false);
+        assert_eq!(ids(q.view().up_next), vec![4, 3]);
+        // Autoplay off: no Autoplay section.
+        q.restore(
+            vec![],
+            n(2),
+            vec![],
+            vec![n(5)],
+            false,
+            RepeatMode::Off,
+            false,
+        );
+        assert!(q.view().autoplay.is_empty());
+        // Undo puts back the queue that was here.
+        assert!(q.undo());
+        assert_eq!(q.view().current.map(|i| i.track_id), Some(2));
     }
 }

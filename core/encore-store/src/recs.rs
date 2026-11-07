@@ -146,7 +146,7 @@ impl Store {
         let mut st = self.conn.prepare(
             "SELECT song_key, started_utc_ms, utc_offset_minutes, listened_ms, signal, chosen_by,
                     started_from
-             FROM play_events ORDER BY started_utc_ms, id",
+             FROM play_events WHERE end_reason <> 'handedOff' ORDER BY started_utc_ms, id",
         )?;
         let rows = st.query_map([], |r| {
             Ok(RecsPlayRow {
@@ -168,7 +168,8 @@ impl Store {
         let mut st = self.conn.prepare(
             "SELECT (SELECT min(t.id) FROM tracks t WHERE t.song_key = p.song_key), count(*) AS n
              FROM play_events p
-             WHERE EXISTS (SELECT 1 FROM tracks t WHERE t.song_key = p.song_key)
+             WHERE p.end_reason <> 'handedOff'
+               AND EXISTS (SELECT 1 FROM tracks t WHERE t.song_key = p.song_key)
              GROUP BY p.song_key ORDER BY n DESC, p.song_key LIMIT ?1",
         )?;
         let mut ids: Vec<i64> = st

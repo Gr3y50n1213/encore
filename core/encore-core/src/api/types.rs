@@ -1117,6 +1117,27 @@ pub enum EventKind {
     /// companion key (`source_id` 0), replacing the old one; an empty token means
     /// delete it. Store it before anything else: the old one no longer works.
     CredentialChanged,
+    /// `output_devices` is set: the output picker's devices changed (board 12).
+    DevicesChanged,
+    /// `device` is set: offer "Continue from <name>" (board 12, item 1). Shown at
+    /// most once per session per device, never while this device plays.
+    ContinueAvailable,
+    /// `handoff` is set: playback is coming here. Load `handoff.entry` (with
+    /// `stream_for`), then call `handoff_ready` and start at the position it returns,
+    /// or `handoff_failed` with why.
+    HandoffIncoming,
+    /// `handoff` is set: the other device has started. Fade out and pause now.
+    HandoffConfirmed,
+    /// `handoff` is set with `reason`: it didn't happen. A sender keeps playing and
+    /// shows why (a toast, the error haptic).
+    HandoffFailed,
+    /// `remote_command` is set: another of your devices controls this one. Do it
+    /// as if the button here was pressed (Play, Pause, Next, Previous, seek,
+    /// volume). Queue edits are done already (`QueueChanged` follows).
+    RemoteCommand,
+    /// `device` is set: the device this one controls changed (now playing,
+    /// position, volume): update the "Playing on…" capsule.
+    RemoteState,
 }
 
 /// One event. Only the fields its `kind` names are set.
@@ -1133,6 +1154,10 @@ pub struct CoreEvent {
     pub sync_status: Option<SyncStatus>,
     pub remote_change: Option<RemoteChange>,
     pub credential: Option<SourceToken>,
+    pub output_devices: Option<OutputDevices>,
+    pub device: Option<OutputDevice>,
+    pub handoff: Option<HandoffInfo>,
+    pub remote_command: Option<RemoteCommand>,
 }
 
 impl CoreEvent {
@@ -1148,8 +1173,148 @@ impl CoreEvent {
             sync_status: None,
             remote_change: None,
             credential: None,
+            output_devices: None,
+            device: None,
+            handoff: None,
+            remote_command: None,
         }
     }
+}
+
+// ---------------------------------------------------------------- handoff (Phase 7)
+
+/// What another of your devices is doing (board 12).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum DeviceState {
+    Playing,
+    Paused,
+    /// Signed in and reachable, nothing playing.
+    Idle,
+    /// Not connected now: dimmed; tapping it shakes with the reason. Gone after
+    /// 30 days.
+    Offline,
+}
+
+/// A song another device plays, as it describes it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct RemoteSong {
+    pub title: String,
+    pub artist: String,
+    pub album: Option<String>,
+    pub duration_ms: i64,
+    /// The same song in this device's library, when it has it (for artwork).
+    pub song_id: Option<i64>,
+}
+
+/// One row of the output picker's "Your devices" (board 12, item 5).
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct OutputDevice {
+    /// The companion server's ID for it: pass it to `hand_off_to` and the rest.
+    pub device_id: String,
+    pub name: String,
+    /// ios, ipados, macos, android, windows, linux.
+    pub platform: String,
+    pub this_device: bool,
+    pub state: DeviceState,
+    /// None when idle, offline, or under Private listening there.
+    pub song: Option<RemoteSong>,
+    /// Where it is in the song now (estimated between updates).
+    pub position_ms: i64,
+    /// 0 to 1.
+    pub volume: f64,
+    /// Private listening is on there: show "Private listening", never the song.
+    pub private_listening: bool,
+    pub last_seen_utc_ms: i64,
+}
+
+/// Whether handoff can be offered at all, and why not (board 12, "States").
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum OutputState {
+    /// Your devices are listed.
+    Ready,
+    /// "Sign in on another device to hand off music."
+    NoOtherDevices,
+    /// The companion can't be reached: the devices section is disabled with
+    /// `reason` and a retry.
+    Unreachable,
+    /// No companion server: hide the devices section.
+    NoCompanion,
+    /// Guest or no profile: no handoff.
+    NotAvailable,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct OutputDevices {
+    pub state: OutputState,
+    pub reason: Option<String>,
+    /// This device first, then the others; offline ones last.
+    pub devices: Vec<OutputDevice>,
+}
+
+/// A handoff in progress or just finished.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct HandoffInfo {
+    pub transfer_id: String,
+    /// The other device.
+    pub device_id: String,
+    pub device_name: String,
+    /// HandoffIncoming: the song to load (the queue is in place already).
+    pub entry: Option<QueueEntry>,
+    /// HandoffIncoming: the position if it started now; `handoff_ready` gives the
+    /// exact one.
+    pub position_ms: i64,
+    /// HandoffIncoming: start playing (false: load it paused).
+    pub playing: bool,
+    /// 0 to 1: the sender's volume.
+    pub volume: f64,
+    /// Songs of the queue this device's library doesn't have (left out).
+    pub unknown_songs: u32,
+    /// HandoffFailed: why, in words for a toast.
+    pub reason: Option<String>,
+}
+
+/// Remote control (board 12, "Remote control"): what a controller asks the playing
+/// device to do. Song IDs are the controller's; the playing device finds them in
+/// its own library. `uid`s are the playing device's (from `remote_queue`).
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum RemoteCommand {
+    Play,
+    Pause,
+    Next,
+    Previous,
+    SeekTo { position_ms: i64 },
+    SetVolume { level: f64 },
+    PlayNext { song_ids: Vec<i64> },
+    AddToUpNext { song_ids: Vec<i64> },
+    Remove { uid: i64 },
+    Move { uid: i64, to_index: u32 },
+    JumpTo { uid: i64 },
+}
+
+/// One song of the playing device's queue, as the controller sees it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct RemoteQueueItem {
+    /// The playing device's uid: pass it back in Remove, Move and JumpTo.
+    pub uid: i64,
+    pub song: RemoteSong,
+    pub chosen_by: ChosenBy,
+}
+
+/// The playing device's queue (Now Playing's queue sheet while controlling).
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct RemoteQueue {
+    pub current: Option<RemoteQueueItem>,
+    pub up_next: Vec<RemoteQueueItem>,
+    pub autoplay: Vec<RemoteQueueItem>,
 }
 
 /// Implemented by the app to receive events. Called on a core thread: hop to the

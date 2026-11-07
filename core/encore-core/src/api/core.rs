@@ -111,6 +111,8 @@ struct Playback {
     /// While Private listening is on: when something last played (it ends after
     /// `smartPicks.privateListeningEndsAfterHoursSilent` of silence).
     private_last_activity_utc_ms: Option<i64>,
+    /// A handed-off song's uid and the listening time it brings (Phase 7).
+    handoff_carry: Option<(u64, u64)>,
 }
 
 impl Playback {
@@ -137,6 +139,8 @@ struct Profile {
     companion: Mutex<Option<Arc<sync_loop::Session>>>,
     /// Smart picks' model, rebuilt when its inputs change.
     recs: Mutex<Option<recs::RecsCache>>,
+    /// Handoff and remote control (Phase 7). A leaf lock.
+    live: Mutex<live::Live>,
 }
 
 struct Inner {
@@ -368,6 +372,7 @@ impl Inner {
             lyrics_ahead_failed: Mutex::new(Default::default()),
             companion: Mutex::new(None),
             recs: Mutex::new(None),
+            live: Mutex::new(Default::default()),
             store: Mutex::new(store),
             sources: Mutex::new(sources),
             playback: Mutex::new(Playback {
@@ -381,6 +386,7 @@ impl Inner {
                 radio_seed: None,
                 utc_offset_minutes: 0,
                 private_last_activity_utc_ms: None,
+                handoff_carry: None,
             }),
         };
         *lock(&self.profile)? = Some(Arc::new(profile));
@@ -1916,6 +1922,7 @@ impl EncoreCore {
     /// Seeking back before the preload point lets Preload come again.
     pub fn playback_seeked(&self, from_ms: i64, to_ms: i64) -> Result<(), EncoreError> {
         let _ = from_ms;
+        self.inner.note_playback(None, Some(to_ms));
         let p = self.inner.profile()?;
         let mut pb = lock(&p.playback)?;
         let store = lock(&p.store)?;
@@ -2040,7 +2047,14 @@ impl EncoreCore {
             chosen_by: item.chosen_by,
             started_utc_ms: now_ms(),
             utc_offset_minutes,
+            carried_listened_ms: 0,
         };
+        let mut start = start;
+        if let Some((carry_uid, carried)) = pb.handoff_carry.take()
+            && carry_uid == item.uid
+        {
+            start.carried_listened_ms = carried;
+        }
         let previous = pb.last_listened_ms;
         let closing = pb.closing();
         pb.log.start(&store, &start, previous, &closing)?;
@@ -2051,6 +2065,7 @@ impl EncoreCore {
         // Let go of both locks before the background refill takes them.
         drop(store);
         drop(pb);
+        self.inner.note_playback(Some(true), Some(0));
         // Keep Autoplay filled, in the background (the next-song decision reads it).
         if let Some(rt) = &self.rt {
             let inner = self.inner.clone();
@@ -2066,12 +2081,16 @@ impl EncoreCore {
     pub fn playback_progress(&self, position_ms: i64, listened_ms: i64) -> Result<(), EncoreError> {
         self.inner.guest_tick(true)?;
         let p = self.inner.profile()?;
+        let mut drifted = false;
         let preload = {
             let mut pb = lock(&p.playback)?;
             let store = lock(&p.store)?;
             pb.last_listened_ms = listened_ms.max(0) as u64;
             let listened = pb.last_listened_ms;
             pb.log.progress(&store, listened, now_ms())?;
+            if let Ok(mut live) = lock(&p.live) {
+                drifted = live.note_position(position_ms);
+            }
             let Some(uid) = pb.playing_uid else {
                 return Ok(());
             };
@@ -2090,6 +2109,9 @@ impl EncoreCore {
                 None
             }
         };
+        if drifted {
+            self.inner.publish_presence();
+        }
         if let Some(next) = preload {
             let mut e = CoreEvent::of(EventKind::Preload);
             e.preload = Some(next);
@@ -2124,6 +2146,7 @@ impl EncoreCore {
             pb.playing_uid = None;
             pb.last_listened_ms = 0;
         }
+        self.inner.note_playback(Some(false), None);
         let advance = match reason {
             EndReason::Finished => Some(Advance::Ended),
             EndReason::Error => Some(Advance::Skip),
@@ -2680,6 +2703,7 @@ impl EncoreCore {
     }
 }
 
+mod live;
 mod profiles;
 mod recs;
 mod sync_loop;

@@ -125,7 +125,7 @@ pub fn classify(f: &Facts, r: &Rules) -> Signal {
         EndReason::Finished => return Signal::Finished,
         EndReason::Error => return Signal::Error,
         EndReason::Interrupted => return Signal::Interruption,
-        EndReason::EndedBySystem => return Signal::System,
+        EndReason::EndedBySystem | EndReason::HandedOff => return Signal::System,
         EndReason::PausedAbandoned => return Signal::PausedAbandoned,
         EndReason::Skipped => {
             if f.ms_since_interruption

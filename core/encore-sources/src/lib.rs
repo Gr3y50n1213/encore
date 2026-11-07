@@ -16,6 +16,7 @@ pub mod model;
 pub mod song_key;
 pub mod source;
 pub mod transport;
+pub mod ws;
 
 pub use error::{Result, SourceError, Unreachable};
 pub use model::*;

@@ -20,6 +20,7 @@ pub enum Method {
     Post,
     Put,
     Delete,
+    Patch,
 }
 
 impl Method {
@@ -29,6 +30,7 @@ impl Method {
             Method::Post => "POST",
             Method::Put => "PUT",
             Method::Delete => "DELETE",
+            Method::Patch => "PATCH",
         }
     }
 }

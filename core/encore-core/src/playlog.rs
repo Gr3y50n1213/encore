@@ -33,6 +33,9 @@ pub enum EndReason {
     /// A sleep timer, a closed app or a lost connection; also a play found
     /// unfinished after a crash.
     EndedBySystem,
+    /// Playback moved to another device (Phase 7). This part is never counted or
+    /// learned from: the other device's play carries its listening time on.
+    HandedOff,
 }
 
 impl EndReason {
@@ -44,6 +47,7 @@ impl EndReason {
             EndReason::Interrupted => "interrupted",
             EndReason::Error => "error",
             EndReason::EndedBySystem => "endedBySystem",
+            EndReason::HandedOff => "handedOff",
         }
     }
 }
@@ -85,6 +89,9 @@ pub struct PlayStart {
     pub started_utc_ms: i64,
     /// The device's UTC offset at that moment, in minutes (east positive).
     pub utc_offset_minutes: i32,
+    /// Listening time carried over from another device's part of this play
+    /// (a handoff); 0 otherwise. It counts as listened, for the skip signal too.
+    pub carried_listened_ms: u64,
 }
 
 /// Local hour (0 to 23) and ISO weekday (1 Monday to 7 Sunday) of a UTC instant.
@@ -115,6 +122,7 @@ struct OpenPlay {
     duration_ms: u64,
     chosen_by: ChosenBy,
     song_key: String,
+    carried_ms: u64,
 }
 
 /// What is known when a play closes, beyond how it ended.
@@ -224,7 +232,7 @@ impl PlayLog {
             utc_offset_minutes: s.utc_offset_minutes,
             local_hour,
             local_weekday,
-            listened_ms: 0,
+            listened_ms: s.carried_listened_ms,
             end_reason: IN_PROGRESS.to_owned(),
             started_from: s.started_from.as_str().to_owned(),
             context_id: s.context_id.clone(),
@@ -241,6 +249,7 @@ impl PlayLog {
             duration_ms: s.duration_ms,
             chosen_by: s.chosen_by,
             song_key: s.song_key.clone(),
+            carried_ms: s.carried_listened_ms,
         });
         Ok(Some(id))
     }
@@ -268,7 +277,7 @@ impl PlayLog {
             return Ok(false);
         }
         open.last_checkpoint_utc_ms = now_utc_ms;
-        store.checkpoint_play_event(&open.id, listened_ms, now_utc_ms)
+        store.checkpoint_play_event(&open.id, listened_ms + open.carried_ms, now_utc_ms)
     }
 
     /// The current play ended, with nothing known about what moved on from it.
@@ -298,6 +307,7 @@ impl PlayLog {
         let Some(open) = self.open.take() else {
             return Ok(None);
         };
+        let listened_ms = listened_ms + open.carried_ms;
         let rules = crate::tokens::tokens().signal;
         if reason == EndReason::Skipped && now_utc_ms - open.started_utc_ms < rules.coalesce_ms {
             store.discard_play_event(&open.id)?;
@@ -387,6 +397,7 @@ mod tests {
             chosen_by: ChosenBy::User,
             started_utc_ms: ms,
             utc_offset_minutes: -300,
+            carried_listened_ms: 0,
         }
     }
 

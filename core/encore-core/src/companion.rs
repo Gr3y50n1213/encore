@@ -428,6 +428,24 @@ impl Client {
     }
 
     /// `DELETE /devices/{id}`.
+    /// `PATCH /devices/{id}`: board 12's Rename.
+    pub(crate) async fn rename_device(
+        &self,
+        access: &str,
+        id: &str,
+        name: &str,
+    ) -> Result<(), CompanionError> {
+        self.send(
+            Method::Patch,
+            &format!("/devices/{id}"),
+            Some(access),
+            Some(json!({ "name": name })),
+            Self::QUICK,
+        )
+        .await
+        .map(|_| ())
+    }
+
     pub(crate) async fn revoke(&self, access: &str, id: &str) -> Result<(), CompanionError> {
         let id: String = url::form_urlencoded::byte_serialize(id.as_bytes()).collect();
         self.send(

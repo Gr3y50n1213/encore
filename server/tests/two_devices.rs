@@ -69,6 +69,30 @@ impl CoreListener for Events {
 }
 
 impl Events {
+    /// The `n`th event (from 1) that `matches`, waiting up to `limit` for it.
+    fn wait_nth(
+        &self,
+        limit: Duration,
+        n: usize,
+        matches: impl Fn(&CoreEvent) -> bool,
+    ) -> Option<CoreEvent> {
+        let t = Instant::now();
+        while t.elapsed() < limit {
+            if let Some(e) = self
+                .0
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|e| matches(e))
+                .nth(n - 1)
+            {
+                return Some(e.clone());
+            }
+            std::thread::sleep(Duration::from_millis(2));
+        }
+        None
+    }
+
     /// Wait (up to `limit`) for an event that `matches`; how long it took.
     fn wait_for(&self, limit: Duration, matches: impl Fn(&CoreEvent) -> bool) -> Option<Duration> {
         let t = Instant::now();
@@ -104,7 +128,14 @@ fn temp_dir(name: &str) -> TempDir {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let d = std::env::temp_dir().join(format!("encore-e2e-{name}-{}-{nanos}", std::process::id()));
+    // Every test names its devices "phone" and "mac", and tests run at once: a
+    // counter keeps two of them from ever sharing a folder.
+    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let n = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let d = std::env::temp_dir().join(format!(
+        "encore-e2e-{name}-{}-{nanos}-{n}",
+        std::process::id()
+    ));
     std::fs::create_dir_all(&d).unwrap();
     TempDir(d)
 }
@@ -491,4 +522,254 @@ fn the_mixes_come_from_the_companion_server_and_the_device_builds_them_without_i
     let alone = block(phone.regenerate_mixes()).unwrap().made_for_you;
     assert!(!alone.from_companion);
     assert!(!alone.mixes.is_empty());
+}
+
+/// Phase 7's "done when", core part: phone-to-desktop transfer starts in under 1
+/// second (here: from the tap to the Mac's confirmation, through a real server and
+/// real WebSockets; the Mac's "player" is ready at once, as with a cached track).
+/// Then the play counts once, the phone pulls it back, the Mac remote-controls the
+/// phone, a failed handoff leaves the phone playing, and a rename shows everywhere.
+#[test]
+fn playback_moves_between_devices_and_is_counted_once() {
+    use encore_core::api::{AlbumSort, DeviceState, OutputState, RemoteCommand};
+    let server_dir = temp_dir("server-handoff");
+    let (addr, _server) = start_server(&server_dir);
+    let url = format!("http://127.0.0.1:{}", addr.port());
+    let (_pd, phone, phone_events, profile) = device("phone", addr);
+    let (md, mac, mac_events, _) = device("mac", addr);
+    block(phone.connect_companion(url.clone())).unwrap();
+    block(mac.connect_companion(url)).unwrap();
+
+    // Both live links up: each sees the other.
+    let ready = |c: &EncoreCore| {
+        let t = Instant::now();
+        while t.elapsed() < Duration::from_secs(15) {
+            let o = c.output_devices().unwrap();
+            if o.state == OutputState::Ready && o.devices.len() == 2 {
+                return o;
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        panic!("no other device: {:?}", c.output_devices().unwrap());
+    };
+    let mac_id = ready(&phone)
+        .devices
+        .into_iter()
+        .find(|d| !d.this_device)
+        .unwrap()
+        .device_id;
+    let phone_id = ready(&mac)
+        .devices
+        .into_iter()
+        .find(|d| !d.this_device)
+        .unwrap()
+        .device_id;
+
+    // The phone plays an album, 30 s in.
+    let album = phone
+        .albums(AlbumSort::Title, 0, 100)
+        .unwrap()
+        .into_iter()
+        .find(|a| a.song_count >= 3)
+        .unwrap();
+    let songs = phone.album(album.id).unwrap().songs;
+    let state = phone
+        .play(
+            songs.iter().map(|s| s.id).collect(),
+            0,
+            StartedFrom::Album,
+            Some("ctx".into()),
+        )
+        .unwrap();
+    phone
+        .playback_started(state.current.unwrap().uid, 60)
+        .unwrap();
+    phone.playback_progress(30_000, 30_000).unwrap();
+
+    // The Mac sees it playing, and offers "Continue from phone" once.
+    let offered = mac_events
+        .wait_nth(Duration::from_secs(5), 1, |e| {
+            e.kind == EventKind::ContinueAvailable
+        })
+        .expect("Continue from phone");
+    assert_eq!(offered.device.as_ref().unwrap().name, "phone");
+    // The 30 s position follows the first presence within moments.
+    let t = Instant::now();
+    let row = loop {
+        let row = mac
+            .output_devices()
+            .unwrap()
+            .devices
+            .into_iter()
+            .find(|d| d.device_id == phone_id)
+            .unwrap();
+        if row.position_ms >= 30_000 || t.elapsed() > Duration::from_secs(2) {
+            break row;
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    };
+    assert_eq!(row.state, DeviceState::Playing);
+    assert_eq!(row.song.as_ref().unwrap().title, songs[0].title);
+    assert!(row.position_ms >= 30_000, "{}", row.position_ms);
+
+    // Push: the Mac's player loads the song and starts at the position it's given.
+    let platform = |core: Arc<EncoreCore>, events: Arc<Events>, nth: usize, fail: bool| {
+        std::thread::spawn(move || {
+            let e = events
+                .wait_nth(Duration::from_secs(5), nth, |e| {
+                    e.kind == EventKind::HandoffIncoming
+                })
+                .expect("HandoffIncoming");
+            let info = e.handoff.unwrap();
+            if fail {
+                core.handoff_failed(info.transfer_id.clone(), "Can't play that here".into())
+                    .unwrap();
+                return (info, -1);
+            }
+            let pos = core.handoff_ready(info.transfer_id.clone()).unwrap();
+            core.playback_started(info.entry.as_ref().unwrap().uid, 60)
+                .unwrap();
+            (info, pos)
+        })
+    };
+    let mac_player = platform(mac.clone(), mac_events.clone(), 1, false);
+    let tapped = Instant::now();
+    block(phone.hand_off_to(mac_id.clone())).unwrap();
+    let took = tapped.elapsed();
+    let (info, pos) = mac_player.join().unwrap();
+    println!(
+        "handoff: from the tap to the Mac's confirmation in {:.1} ms (the Mac started at {pos} ms)",
+        took.as_secs_f64() * 1e3
+    );
+    assert!(took < Duration::from_secs(1), "{took:?}");
+    assert_eq!(info.entry.as_ref().unwrap().song.title, songs[0].title);
+    assert!(info.playing && info.unknown_songs == 0);
+    assert!((30_000..32_000).contains(&pos), "{pos}");
+    assert!(
+        phone_events
+            .wait_nth(Duration::from_secs(2), 1, |e| e.kind
+                == EventKind::HandoffConfirmed)
+            .is_some(),
+        "the phone fades out"
+    );
+    let q = mac.queue().unwrap();
+    assert_eq!(q.current.unwrap().song.title, songs[0].title);
+    assert_eq!(q.up_next.len(), songs.len() - 1);
+
+    // Counted once: the phone's part is "handedOff", the Mac's play carries its time.
+    mac.playback_ended(EndReason::Finished, 170_000).unwrap();
+    block(phone.sync_now()).unwrap();
+    block(mac.sync_now()).unwrap();
+    let export = md.0.join("handoff-export.json");
+    let t = Instant::now();
+    let plays = loop {
+        mac.export_profile(profile.clone(), export.to_string_lossy().into_owned())
+            .unwrap();
+        let v: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&export).unwrap()).unwrap();
+        let plays = v["plays"].as_array().cloned().unwrap_or_default();
+        if plays.len() >= 2 || t.elapsed() > Duration::from_secs(5) {
+            break plays;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    };
+    let handed: Vec<_> = plays
+        .iter()
+        .filter(|p| p["end_reason"] == "handedOff")
+        .collect();
+    let finished: Vec<_> = plays
+        .iter()
+        .filter(|p| p["end_reason"] == "finished")
+        .collect();
+    assert_eq!((handed.len(), finished.len()), (1, 1), "{plays:#?}");
+    assert_eq!(
+        finished[0]["listened_ms"], 200_000,
+        "30 s on the phone + 170 s on the Mac"
+    );
+
+    // Pull: the Mac plays the next song; the phone pulls it back.
+    let next = mac.queue().unwrap().current.unwrap();
+    mac.playback_started(next.uid, 60).unwrap();
+    mac.playback_progress(5_000, 5_000).unwrap();
+    std::thread::sleep(Duration::from_millis(100));
+    let phone_player = platform(phone.clone(), phone_events.clone(), 1, false);
+    block(phone.pull_from(mac_id.clone())).unwrap();
+    let (pulled, _) = phone_player.join().unwrap();
+    assert_eq!(pulled.entry.unwrap().song.title, next.song.title);
+    assert!(
+        mac_events
+            .wait_nth(Duration::from_secs(2), 1, |e| e.kind
+                == EventKind::HandoffConfirmed)
+            .is_some(),
+        "the Mac fades out"
+    );
+
+    // Remote control from the Mac: pause goes to the phone's player; a queue edit
+    // is done by the phone's core.
+    block(mac.remote_command(phone_id.clone(), RemoteCommand::Pause)).unwrap();
+    assert!(
+        phone_events
+            .wait_nth(Duration::from_secs(2), 1, |e| e.remote_command
+                == Some(RemoteCommand::Pause))
+            .is_some()
+    );
+    let remote = block(mac.remote_queue(phone_id.clone())).unwrap();
+    assert_eq!(remote.current.unwrap().song.title, next.song.title);
+    let extra = mac.songs(SongSort::Title, 0, 1).unwrap()[0].clone();
+    block(mac.remote_command(
+        phone_id.clone(),
+        RemoteCommand::PlayNext {
+            song_ids: vec![extra.id],
+        },
+    ))
+    .unwrap();
+    assert_eq!(phone.queue().unwrap().up_next[0].song.title, extra.title);
+
+    // A handoff the Mac can't take: the phone keeps playing and says why.
+    phone.playback_resumed(6_000).unwrap();
+    let mac_refuses = platform(mac.clone(), mac_events.clone(), 2, true);
+    let refused = block(phone.hand_off_to(mac_id.clone()));
+    mac_refuses.join().unwrap();
+    assert!(refused.is_err());
+    let failed = phone_events
+        .wait_nth(Duration::from_secs(2), 1, |e| {
+            e.kind == EventKind::HandoffFailed
+        })
+        .unwrap();
+    assert_eq!(
+        failed.handoff.unwrap().reason.as_deref(),
+        Some("Can't play that here")
+    );
+    let me = phone
+        .output_devices()
+        .unwrap()
+        .devices
+        .into_iter()
+        .find(|d| d.this_device)
+        .unwrap();
+    assert_eq!(me.state, DeviceState::Playing, "the phone kept playing");
+
+    // Rename from the Mac; the phone sees it.
+    block(mac.rename_device(mac_id.clone(), "Living Room Mac".into())).unwrap();
+    let t = Instant::now();
+    while t.elapsed() < Duration::from_secs(5) {
+        if phone
+            .output_devices()
+            .unwrap()
+            .devices
+            .iter()
+            .any(|d| d.name == "Living Room Mac")
+        {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    assert!(
+        phone
+            .output_devices()
+            .unwrap()
+            .devices
+            .iter()
+            .any(|d| d.name == "Living Room Mac")
+    );
 }
