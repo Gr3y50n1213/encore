@@ -50,6 +50,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -216,8 +218,11 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                 }
                 Column(Modifier.weight(1f).fillMaxSize()) {
                     if (offline) OfflineBanner()
+                    // Board 08: the page runs behind the mini player, which floats over it, so a
+                    // tinted album page reaches the bar. Pages pad their lists by its height.
+                    var miniHeight by remember { mutableIntStateOf(0) }
                     Box(Modifier.weight(1f)) {
-                        val inner = PaddingValues(bottom = 0.dp)
+                        val inner = PaddingValues(bottom = with(LocalDensity.current) { miniHeight.toDp() })
                         val top = nav.top
                         AnimatedContent(
                             targetState = nav.tab to top,
@@ -255,10 +260,12 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                                 }
                             }
                         }
+                        Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onSizeChanged { miniHeight = it.height }) {
+                            MiniPlayer(host, player, onExpand = { nowPlaying = true }, modifier = Modifier.padding(vertical = Grid.base.dp).let { if (wide) it.navigationBarsPadding() else it }, bar = wide)
+                        }
                         // Toasts sit above the mini player and never cover controls (board 20).
-                        SnackbarHost(toaster.host, Modifier.align(Alignment.BottomCenter).padding(bottom = Grid.base.dp).semantics { liveRegion = LiveRegionMode.Polite })
+                        SnackbarHost(toaster.host, Modifier.align(Alignment.BottomCenter).padding(bottom = inner.calculateBottomPadding() + Grid.base.dp).semantics { liveRegion = LiveRegionMode.Polite })
                     }
-                    MiniPlayer(host, player, onExpand = { nowPlaying = true }, modifier = Modifier.padding(vertical = Grid.base.dp).let { if (wide) it.navigationBarsPadding() else it }, bar = wide)
                     if (!wide) {
                         NavigationBar {
                             Tab.entries.forEach { tab ->
