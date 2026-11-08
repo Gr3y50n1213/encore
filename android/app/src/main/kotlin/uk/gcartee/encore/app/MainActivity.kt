@@ -16,8 +16,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Edge to edge cannot be turned off at API 36; every screen reads its insets. The
-        // navigation bar is fully clear: no grey contrast scrim over the gesture handle (One
-        // UI draws one otherwise); the app's own bottom bar runs underneath it instead.
+        // navigation bar's background follows the navigation mode
+        // (NavigationBarForNavigationMode): clear for gestures, the system scrim for buttons.
         enableEdgeToEdge(
             navigationBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
         )
@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** Again after a rotation (this activity handles it itself): no scrim, clear bars. */
+    /** Again after a rotation (this activity handles it itself): clear bar colours. */
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
         super.onConfigurationChanged(newConfig)
         clearSystemBars()
@@ -43,7 +43,6 @@ class MainActivity : ComponentActivity() {
     private fun clearSystemBars() {
         window.navigationBarColor = android.graphics.Color.TRANSPARENT
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) window.navigationBarDividerColor = android.graphics.Color.TRANSPARENT
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.isNavigationBarContrastEnforced = false
     }
 
     override fun onStart() {

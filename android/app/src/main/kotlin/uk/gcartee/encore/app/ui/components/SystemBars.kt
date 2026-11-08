@@ -37,3 +37,25 @@ fun SystemBarIconsFor(background: Color) {
         }
     }
 }
+
+/**
+ * The navigation bar as each device's own navigation expects it (Android's edge-to-edge
+ * guidance): with gesture navigation the bar is fully clear and the app draws to the
+ * bottom edge, the handle over it; with three-button navigation the system's translucent
+ * scrim stays so the buttons read over anything. A tablet's taskbar is the system's own
+ * and stays as it is. Gesture navigation has no tappable inset at the bottom, buttons do.
+ */
+@Composable
+fun NavigationBarForNavigationMode() {
+    val view = LocalView.current
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val tappable = androidx.compose.foundation.layout.WindowInsets.tappableElement
+    val buttons = tappable.getBottom(density) > 0 ||
+        tappable.getLeft(density, androidx.compose.ui.unit.LayoutDirection.Ltr) > 0 ||
+        tappable.getRight(density, androidx.compose.ui.unit.LayoutDirection.Ltr) > 0
+    androidx.compose.runtime.SideEffect {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            view.context.activity()?.window?.isNavigationBarContrastEnforced = buttons
+        }
+    }
+}

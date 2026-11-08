@@ -101,6 +101,8 @@ import uk.gcartee.encore.tokens.EncoreTokens.Motion.Timing
 /** First launch: Welcome, then Connect; later launches go straight to the library. */
 @Composable
 fun EncoreRoot(host: CoreHost) {
+    // Clear behind gestures, the system's scrim behind buttons, on every screen.
+    uk.gcartee.encore.app.ui.components.NavigationBarForNavigationMode()
     val open by host.profileOpen.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
