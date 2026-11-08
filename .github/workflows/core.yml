@@ -302,7 +302,7 @@ jobs:
           dart analyze
           source ../../../tools/ci/replay.sh && start_replay
           # --run-skipped: the library-flow test fails if the replay URL is missing.
-          out="$(ENCORE_DART_LIB="$GITHUB_WORKSPACE/core/target/debug/libencore_dart.so" dart test --run-skipped --reporter expanded)"
+          out="$(ENCORE_DART_LIB="$GITHUB_WORKSPACE/core/target/debug/libencore_dart.so" dart test --run-skipped --reporter expanded)" || { status=$?; echo "$out"; exit $status; }
           echo "$out"
           grep -oE 'parity [0-9a-f]{8}' <<<"$out" | head -n 1 > ../../target/parity-dart.txt
 
@@ -678,7 +678,7 @@ jobs:
           dart pub get
           source ../../../tools/ci/replay.sh && start_replay
           # --run-skipped: the library-flow test fails if the replay URL is missing.
-          out="$(ENCORE_DART_LIB="$GITHUB_WORKSPACE/core/target/debug/encore_dart.dll" dart test --run-skipped --reporter expanded)"
+          out="$(ENCORE_DART_LIB="$GITHUB_WORKSPACE/core/target/debug/encore_dart.dll" dart test --run-skipped --reporter expanded)" || { status=$?; echo "$out"; exit $status; }
           echo "$out"
           grep -qF "parity $PARITY" <<<"$out"
 
