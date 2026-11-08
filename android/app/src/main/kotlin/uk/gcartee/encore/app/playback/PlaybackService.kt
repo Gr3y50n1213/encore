@@ -15,6 +15,7 @@ import androidx.media3.datasource.DataSourceBitmapLoader
 import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.common.MediaItem
 import androidx.media3.session.MediaLibraryService
@@ -53,6 +54,7 @@ class PlaybackService : MediaLibraryService() {
         val dataSource = dataSourceFactory()
         val exo = ExoPlayer.Builder(this)
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSource))
+            .setLoadControl(wholeSongLoadControl())
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(C.USAGE_MEDIA)
@@ -143,14 +145,36 @@ class PlaybackService : MediaLibraryService() {
     }
 
     /**
+     * Read a song through in one go (up to [WHOLE_SONG_MS] or [BUFFER_BYTES]) instead of
+     * ExoPlayer's 50 s. A transcoded stream (a capped quality) can't be resumed: when the
+     * player paused reading it, the idle connection was dropped, and each reopen started
+     * a new transcode on the server. The owner's Jellyfin got 3-4 per song and crashed
+     * killing one (8 November 2026). One read per song also lets the radio sleep sooner.
+     */
+    private fun wholeSongLoadControl(): DefaultLoadControl = DefaultLoadControl.Builder()
+        .setBufferDurationsMs(
+            WHOLE_SONG_MS,
+            WHOLE_SONG_MS,
+            DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
+            DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS,
+        )
+        .setTargetBufferBytes(BUFFER_BYTES)
+        .setPrioritizeTimeOverSizeThresholds(false)
+        .build()
+
+    /**
      * Streams go through the rolling cache (Phase 8), keyed by the core's
      * `cache_key`; a downloaded song is a `file://` and goes straight to the file.
      * [cached] false is for artwork, which the image loaders keep themselves.
      */
     private fun dataSourceFactory(cached: Boolean = true): DataSource.Factory {
+        // A busy server can take a few seconds to start a transcode: a short timeout made
+        // the player retry, and every retry was another transcode.
         val http = DefaultHttpDataSource.Factory()
             .setUserAgent("${appName()} Android")
             .setAllowCrossProtocolRedirects(false)
+            .setConnectTimeoutMs(CONNECT_TIMEOUT_MS)
+            .setReadTimeoutMs(READ_TIMEOUT_MS)
         val limit = runCatching { CoreHost.get(this).core.downloadSettings().cacheLimitBytes.toLong() }
             .getOrDefault(DEFAULT_CACHE_BYTES)
         val network: DataSource.Factory = if (cached && limit > 0) {
@@ -169,6 +193,10 @@ class PlaybackService : MediaLibraryService() {
 
     private companion object {
         const val DEFAULT_CACHE_BYTES = 1_000_000_000L
+        const val WHOLE_SONG_MS = 15 * 60_000
+        const val BUFFER_BYTES = 32 * 1024 * 1024
+        const val CONNECT_TIMEOUT_MS = 10_000
+        const val READ_TIMEOUT_MS = 20_000
         val TRANSPORT = setOf(
             Player.COMMAND_SEEK_TO_NEXT,
             Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,
