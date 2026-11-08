@@ -108,6 +108,7 @@ fun NowPlayingScreen(
     val still = reduceMotion()
     val scope = rememberCoroutineScope()
     val colours = rememberFieldColours(host, song.albumId)
+    uk.gcartee.encore.app.ui.components.SystemBarIconsFor(colours.base)
     val content = colours.text
     var panel by rememberSaveable { mutableStateOf(PlayerPanel.Artwork) }
     var liked by remember(song.id) { mutableStateOf(actions.isLiked(song)) }
@@ -169,7 +170,8 @@ fun NowPlayingScreen(
         AlbumField(colours, Modifier.fillMaxSize())
         Column(Modifier.fillMaxSize().safeDrawingPadding().padding(horizontal = (Grid.base * 3).dp)) {
             // Item 1: collapse, "Playing from", More.
-            Row(Modifier.fillMaxWidth().padding(vertical = Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
+            // Board 10: with Lyrics or the Queue open the header is the compact song row below.
+            if (panel == PlayerPanel.Artwork || landscape) Row(Modifier.fillMaxWidth().padding(vertical = Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
                 FilledTonalIconButton(
                     onClick = onCollapse,
                     colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = content.copy(alpha = 0.16f), contentColor = content),
@@ -226,9 +228,9 @@ fun NowPlayingScreen(
                 }
                 Box { SongMenu(song, expanded = menu, onDismiss = { menu = false }, place = MenuPlace(chosenBy = entry.chosenBy)) }
             }
-            val controls: @Composable () -> Unit = {
+            val controls: @Composable (Boolean) -> Unit = { compact ->
                 Column {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    if (!compact) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             // Item 3: title opens the album, artist the artist, both collapsing first.
                             Text(
@@ -283,7 +285,7 @@ fun NowPlayingScreen(
                     )
                     var remaining by rememberSaveable { mutableStateOf(false) }
                     val pos = scrubbing ?: state.positionMs
-                    Row(Modifier.fillMaxWidth()) {
+                    if (!compact) Row(Modifier.fillMaxWidth()) {
                         Text(formatDuration(pos), style = type.caption, color = colours.secondary)
                         Spacer(Modifier.weight(1f))
                         Text(
@@ -305,6 +307,7 @@ fun NowPlayingScreen(
                             onScan = { forward, active -> if (active) PlaybackHub.startScan(context, forward) else PlaybackHub.stopScan(context) },
                             container = content,
                             onContainer = colours.base,
+                            size = if (compact) TransportSize.Medium else TransportSize.Large,
                         )
                     }
                     Spacer(Modifier.height((Grid.base * 3).dp))
@@ -351,11 +354,50 @@ fun NowPlayingScreen(
             if (landscape) {
                 Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy((Grid.base * 3).dp)) {
                     artArea(Modifier.weight(1f).fillMaxSize())
-                    Box(Modifier.weight(1f).fillMaxSize(), contentAlignment = Alignment.Center) { controls() }
+                    Box(Modifier.weight(1f).fillMaxSize(), contentAlignment = Alignment.Center) { controls(false) }
                 }
+            } else if (panel != PlayerPanel.Artwork) {
+                // Board 10, item 1: art and title stay pinned so the song is always known; a
+                // tap returns to the artwork. Item 8: the controls, compact.
+                Row(Modifier.fillMaxWidth().padding(vertical = Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        Modifier.weight(1f).clickable(onClickLabel = "Show artwork") { panel = PlayerPanel.Artwork },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Artwork(ArtworkOf.SONG, song.id, COMPACT_ART_DP.dp, Modifier.size(COMPACT_ART_DP.dp), cornerRadius = 12.dp)
+                        Spacer(Modifier.size((Grid.base * 1.5f).dp))
+                        Column {
+                            Text(song.title, style = type.songRowTitle.copy(fontSize = type.nowPlayingSubtitle.fontSize), color = content, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(song.artist, style = type.body, color = colours.secondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                    Box {
+                        FilledTonalIconButton(
+                            onClick = { moreMenu = true },
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = content.copy(alpha = 0.16f), contentColor = content),
+                        ) { Icon(Icons.more(), contentDescription = "More") }
+                        SongMenu(song, expanded = moreMenu, onDismiss = { moreMenu = false }, place = MenuPlace(chosenBy = entry.chosenBy))
+                    }
+                }
+                Box(Modifier.weight(1f).fillMaxWidth()) {
+                    when (panel) {
+                        PlayerPanel.Lyrics -> LyricsPanel(host, song, scrubbing ?: state.positionMs, content, onSeek = { PlaybackHub.seekTo(context, it) }, modifier = Modifier.fillMaxSize())
+                        else -> {
+                            // Board 11: the queue is a light sheet, drawn in the theme's colours.
+                            androidx.compose.material3.Surface(
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+                                color = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerLow,
+                                modifier = Modifier.fillMaxSize().padding(vertical = Grid.base.dp),
+                            ) {
+                                QueuePanel(host, androidx.compose.material3.MaterialTheme.colorScheme.onSurface, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize())
+                            }
+                        }
+                    }
+                }
+                controls(true)
             } else {
                 artArea(Modifier.weight(1f).fillMaxWidth())
-                controls()
+                controls(false)
             }
         }
     }
@@ -418,6 +460,7 @@ private fun ArtworkArea(
 }
 
 private const val PAUSED_SCALE = 0.88f
+private const val COMPACT_ART_DP = 52
 private const val ART_MAX_DP = 420
 private const val ART_RADIUS_DP = 28
 private const val COLLAPSE_FRACTION = 0.3f

@@ -101,6 +101,8 @@ fun WelcomeScreen(onGetStarted: () -> Unit, onExistingProfile: (() -> Unit)?) {
         lineIn.animateTo(1f, tween(FADE_UP_MS))
     }
 
+    // Dark in both themes by design, so the bar icons are light.
+    uk.gcartee.encore.app.ui.components.SystemBarIconsFor(tokenColor(Iris.Dark.surfaceContainerLowest))
     Box(Modifier.fillMaxSize().background(tokenColor(Iris.Dark.surfaceContainerLowest))) {
         DriftingField(still, Modifier.fillMaxSize().clearAndSetSemantics { })
         // Tablet and desktop: a centred column 420 dp wide over the same background. The

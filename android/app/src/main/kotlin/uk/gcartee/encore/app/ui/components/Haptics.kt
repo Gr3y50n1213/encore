@@ -34,7 +34,22 @@ enum class Haptic(val constant: Int) {
 
 class Haptics(private val view: View) {
     fun perform(haptic: Haptic) {
-        ViewCompat.performHapticFeedback(view, haptic.constant)
+        if (HapticSetting.enabled) ViewCompat.performHapticFeedback(view, haptic.constant)
+    }
+}
+
+/** Board 17's Haptics switch. The system's own haptic settings still win (tokens, haptics). */
+object HapticSetting {
+    @Volatile var enabled: Boolean = true
+        private set
+
+    fun load(context: android.content.Context) {
+        enabled = context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE).getBoolean("haptics", true)
+    }
+
+    fun set(context: android.content.Context, on: Boolean) {
+        enabled = on
+        context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE).edit().putBoolean("haptics", on).apply()
     }
 }
 

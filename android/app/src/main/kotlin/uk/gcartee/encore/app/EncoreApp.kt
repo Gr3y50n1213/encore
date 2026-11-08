@@ -13,5 +13,6 @@ class EncoreApp : Application() {
         // The player and the artwork loader trust the same fingerprints the user trusted
         // for the core (board 21, item 3).
         TrustedCertificates.get(this)
+        uk.gcartee.encore.app.ui.components.HapticSetting.load(this)
     }
 }

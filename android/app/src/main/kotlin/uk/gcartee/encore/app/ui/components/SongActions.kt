@@ -65,6 +65,8 @@ class AppActions(
     private val context: Context,
     val open: (Route) -> Unit,
     val openNowPlaying: () -> Unit,
+    /** The profile sheet (board 14), which also leads to Settings (board 17). */
+    val openProfiles: () -> Unit = {},
 ) {
     private val core get() = host.core
 

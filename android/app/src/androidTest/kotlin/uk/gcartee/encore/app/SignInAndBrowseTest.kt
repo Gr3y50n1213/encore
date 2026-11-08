@@ -102,8 +102,9 @@ class SignInAndBrowseTest {
         rule.onNodeWithText("Queue").performClick()
         rule.waitUntilAtLeastOneExists(hasText("Autoplay"), TIMEOUT)
         shot("06-queue")
-        rule.onNodeWithContentDescription("Close Now Playing").performClick()
-        rule.waitUntilDoesNotExist(hasContentDescription("Close Now Playing"), TIMEOUT)
+        // Back closes Now Playing (board 09, item 1); the compact queue view has no arrow.
+        Espresso.pressBack()
+        rule.waitUntilDoesNotExist(hasText("Familiar to adventurous"), TIMEOUT)
 
         // A playlist page lists its songs (the owner found it broken on 7 November 2026).
         val playlist = host.core.playlists(0u, 50u).firstOrNull { it.songCount > 0u }
@@ -132,8 +133,11 @@ class SignInAndBrowseTest {
         // Library still shows the playlist opened above; tapping its tab again returns to its root (board 05, item 6).
         rule.onNodeWithText("Library").performClick()
         rule.onAllNodesWithText("Library").onFirst().performClick()
-        rule.waitUntilAtLeastOneExists(hasContentDescription("Settings"), TIMEOUT)
-        rule.onNodeWithContentDescription("Settings").performClick()
+        // Settings is reached from the avatar (boards 14 and 17).
+        rule.waitUntilAtLeastOneExists(hasContentDescription("Profiles and settings"), TIMEOUT)
+        rule.onNodeWithContentDescription("Profiles and settings").performClick()
+        rule.waitUntilAtLeastOneExists(hasText("Settings"), TIMEOUT)
+        rule.onNodeWithText("Settings").performClick()
         rule.waitUntilAtLeastOneExists(hasText("Appearance"), TIMEOUT)
         shot("10-settings")
         rule.onNodeWithText("Appearance").performClick()

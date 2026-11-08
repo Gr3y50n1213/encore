@@ -156,7 +156,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     val expanded = widthDp >= Breakpoints.expandedRailFrom
     val offline = rememberOffline(context)
     val actions = remember(nav) {
-        AppActions(host, toaster, context, open = { route -> nowPlaying = false; nav.push(route) }, openNowPlaying = { nowPlaying = true })
+        AppActions(host, toaster, context, open = { route -> nowPlaying = false; nav.push(route) }, openNowPlaying = { nowPlaying = true }, openProfiles = { profiles = true })
     }
 
     LaunchedEffect(Unit) {

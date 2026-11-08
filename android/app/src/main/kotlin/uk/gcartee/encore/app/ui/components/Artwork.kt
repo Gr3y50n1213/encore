@@ -7,6 +7,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -49,6 +50,8 @@ fun Artwork(
     cornerRadius: Dp = 8.dp,
     /** False: transparent until the image arrives, so something drawn beneath shows (a mosaic). */
     placeholder: Boolean = true,
+    /** True: fill the frame it is given (a carousel item) instead of keeping a square. */
+    fill: Boolean = false,
 ) {
     val context = LocalContext.current
     val px = with(LocalDensity.current) { size.roundToPx() }.coerceIn(64, 1200)
@@ -59,7 +62,7 @@ fun Artwork(
     val shape = RoundedCornerShape(cornerRadius)
     Box(
         modifier
-            .aspectRatio(1f)
+            .let { if (fill) it.fillMaxSize() else it.aspectRatio(1f) }
             .clip(shape)
             .let { if (placeholder) it.background(MaterialTheme.colorScheme.surfaceContainerHighest) else it }
             .clearAndSetSemantics { },

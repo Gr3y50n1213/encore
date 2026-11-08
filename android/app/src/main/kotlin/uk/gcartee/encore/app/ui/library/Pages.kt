@@ -57,6 +57,9 @@ import androidx.compose.ui.unit.dp
 import uk.gcartee.encore.app.core.CoreHost
 import uk.gcartee.encore.app.core.userMessage
 import uk.gcartee.encore.app.ui.components.AlbumTile
+import uk.gcartee.encore.app.ui.components.ConnectedButtons
+import uk.gcartee.encore.app.ui.components.GroupButton
+import uk.gcartee.encore.app.ui.components.SystemBarIconsFor
 import uk.gcartee.encore.app.ui.components.Artwork
 import uk.gcartee.encore.app.ui.components.Haptic
 import uk.gcartee.encore.app.ui.components.Icons
@@ -150,25 +153,14 @@ private fun Header(
         meta?.let { Text(it, style = type.body, color = tint.secondary) }
         Spacer(Modifier.height((Grid.base * 2).dp))
         if (onPlay != null || onShuffle != null) {
-            // Item 4: one connected group: outer corners round, facing corners 10 dp.
-            val facing = CornerSize(Radius.buttonGroupFacingCorner.dp)
-            val round = CornerSize(50)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)) {
-                Button(
-                    onClick = { haptics.perform(Haptic.Soft); onPlay?.invoke() },
-                    enabled = onPlay != null,
-                    shape = RoundedCornerShape(round, facing, facing, round),
-                    colors = ButtonDefaults.buttonColors(containerColor = tint.content, contentColor = tint.field),
-                    modifier = Modifier.weight(1f).height(BUTTON_DP.dp),
-                ) { Text("Play", style = type.sectionHeader) }
-                Button(
-                    onClick = { haptics.perform(Haptic.Soft); onShuffle?.invoke() },
-                    enabled = onShuffle != null,
-                    shape = RoundedCornerShape(facing, round, round, facing),
-                    colors = ButtonDefaults.buttonColors(containerColor = tint.content.copy(alpha = 0.16f), contentColor = tint.content),
-                    modifier = Modifier.weight(1f).height(BUTTON_DP.dp),
-                ) { Text("Shuffle", style = type.sectionHeader) }
-            }
+            // Item 4: one connected group; the pressed button rounds fully and widens.
+            ConnectedButtons(
+                listOf(
+                    GroupButton("Play", tint.content, tint.field, icon = Icons.play(), enabled = onPlay != null) { onPlay?.invoke() },
+                    GroupButton("Shuffle", tint.content.copy(alpha = 0.16f), tint.content, icon = Icons.shuffle(), enabled = onShuffle != null) { onShuffle?.invoke() },
+                ),
+                height = BUTTON_DP.dp,
+            )
             Spacer(Modifier.height((Grid.base * 2).dp))
         }
     }
@@ -190,6 +182,7 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
     val album = detail.album
     val ids = remember(detail) { detail.songs.map { it.id } }
     val multiDisc = remember(detail) { detail.songs.mapNotNull { it.discNumber }.distinct().size > 1 }
+    SystemBarIconsFor(tint.field)
     val more = remember(album.id) {
         runCatching { host.core.search(album.artist).albums.filter { it.artist == album.artist && it.id != album.id }.take(12) }.getOrDefault(emptyList())
     }
@@ -266,6 +259,7 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
         EmptyState("This playlist isn't in your library", "It may have been removed from the server.")
         return
     }
+    SystemBarIconsFor(tint.field)
     val playable = remember(detail) { detail.entries.mapNotNull { it.song } }
     val ids = remember(playable) { playable.map { it.id } }
     val name = detail.playlist.name
@@ -396,6 +390,7 @@ fun MixScreen(host: CoreHost, mixId: String, playingSongId: Long?, onBack: () ->
     val first = summary.coverSongIds.firstOrNull()
     val firstSong = remember(first) { first?.let { runCatching { host.core.song(it) }.getOrNull() } }
     val tint = rememberTint({ firstSong?.albumId?.let { host.core.albumPalette(it) } }, first ?: 0L)
+    SystemBarIconsFor(tint.field)
     val ids = remember(page) { page.songs.map { it.song.id } }
     var pinned by remember(summary.pinned) { mutableStateOf(summary.pinned) }
     val notIcon = Icons.block()
@@ -479,6 +474,20 @@ fun Mosaic(songIds: List<Long>, modifier: Modifier = Modifier, size: Int = COVER
         ids.chunked(2).forEach { row ->
             Row(Modifier.fillMaxWidth()) {
                 row.forEach { id -> Artwork(ArtworkOf.SONG, id, (size / 2).dp, Modifier.weight(1f), cornerRadius = 0.dp) }
+                if (row.size == 1) Box(Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+/** The same mosaic filling any frame (a carousel item), each cell cropped to fit. */
+@Composable
+fun MosaicFill(songIds: List<Long>, modifier: Modifier = Modifier) {
+    val ids = songIds.take(4)
+    Column(modifier) {
+        ids.chunked(2).forEach { row ->
+            Row(Modifier.weight(1f).fillMaxWidth()) {
+                row.forEach { id -> Artwork(ArtworkOf.SONG, id, 160.dp, Modifier.weight(1f).fillMaxSize(), cornerRadius = 0.dp, fill = true) }
                 if (row.size == 1) Box(Modifier.weight(1f))
             }
         }

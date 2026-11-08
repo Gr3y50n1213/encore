@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.FilledTonalIconButton
@@ -136,7 +136,8 @@ fun PlayPauseButton(
             },
     ) {
         if (loading) {
-            CircularProgressIndicator(Modifier.size((size.playH / 3).dp), color = content, strokeWidth = 3.dp)
+            // Board 20, item 4: the expressive loading indicator, a shape morphing as it turns.
+            LoadingIndicator(Modifier.size((size.playH * 0.6f).dp), color = content)
         } else {
             Icon(if (playing) Icons.pause() else Icons.play(), contentDescription = null, modifier = Modifier.size((size.playH / 2.4f).dp))
         }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -63,6 +64,7 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
     var query by rememberSaveable { mutableStateOf("") }
     var recents by remember { mutableStateOf(runCatching { host.core.recentSearches() }.getOrDefault(emptyList())) }
     var shown by remember { mutableStateOf<SearchResults?>(null) }
+    var scope by rememberSaveable { mutableStateOf("All") }
     // GUARD: results are frozen from touch-down until release, so a row that re-ranks
     // under the finger never launches the wrong song.
     var touching by remember { mutableStateOf(false) }
@@ -90,16 +92,24 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
     }
 
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
-        OutlinedTextField(
+        // Item 1: Android docks a filled search bar at the top, the avatar inside it.
+        androidx.compose.material3.TextField(
             value = query,
             onValueChange = { query = it },
             placeholder = { Text("Songs, albums, artists, lyrics") },
             leadingIcon = { Icon(Icons.search(), contentDescription = null) },
             trailingIcon = {
                 if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.close(), contentDescription = "Clear") }
+                else uk.gcartee.encore.app.ui.home.ProfileButton(host, uk.gcartee.encore.app.ui.components.LocalAppActions.current.openProfiles)
             },
             singleLine = true,
             shape = CircleShape,
+            colors = androidx.compose.material3.TextFieldDefaults.colors(
+                focusedContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh,
+                unfocusedContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh,
+                focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+            ),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = {
                 // Item 1: the return key saves the query.
@@ -109,6 +119,33 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
             }),
             modifier = Modifier.fillMaxWidth().padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp),
         )
+        // Item 1: Android's scope chips. Downloaded searches downloads, which come in Phase 8.
+        androidx.compose.foundation.lazy.LazyRow(
+            contentPadding = PaddingValues(horizontal = (Grid.base * 2).dp),
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(Grid.base.dp),
+            modifier = Modifier.padding(bottom = Grid.base.dp),
+        ) {
+            items(listOf("All", "Library", "Downloaded")) { label ->
+                val on = label == scope
+                val enabled = label != "Downloaded"
+                androidx.compose.material3.Surface(
+                    onClick = { if (enabled) scope = label },
+                    enabled = enabled,
+                    shape = CircleShape,
+                    color = if (on) androidx.compose.material3.MaterialTheme.colorScheme.secondaryContainer else androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = when {
+                        on -> androidx.compose.material3.MaterialTheme.colorScheme.onSecondaryContainer
+                        enabled -> androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
+                        else -> androidx.compose.material3.MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    },
+                    modifier = Modifier.height(48.dp),
+                ) {
+                    androidx.compose.foundation.layout.Box(Modifier.padding(horizontal = (Grid.base * 2.5f).dp), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                        Text(label, style = type.sectionHeader)
+                    }
+                }
+            }
+        }
         val results = shown
         val listState = rememberLazyListState()
         LaunchedEffect(listState) {
@@ -135,15 +172,16 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
                             }, modifier = Modifier.padding(end = Grid.base.dp)) { Text("Clear all") }
                         }
                     }
+                    // Item 2: a tap fills the field and runs it; Remove deletes one.
                     items(recents, key = { it }) { r ->
                         androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                             androidx.compose.foundation.layout.Box(Modifier.weight(1f)) {
-                                ListRow(r, null, onClick = { query = r }) { Icon(Icons.history(), contentDescription = null) }
+                                ListRow(r, null, onClick = { query = r })
                             }
-                            IconButton(onClick = {
+                            TextButton(onClick = {
                                 host.core.removeRecentSearch(r)
                                 recents = recents - r
-                            }) { Icon(Icons.close(), contentDescription = "Remove $r") }
+                            }, modifier = Modifier.padding(end = Grid.base.dp)) { Text("Remove", style = type.caption) }
                         }
                     }
                 }

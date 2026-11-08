@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -46,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import java.text.NumberFormat
@@ -108,9 +110,6 @@ fun LibraryScreen(host: CoreHost, onOpen: (Route) -> Unit, playingSongId: Long?,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text("Library", style = type.pageTitle, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
-            // Board 17: Settings sits in the Library tab on phones.
-            FilledTonalIconButton(onClick = { onOpen(Route.Settings()) }) { Icon(Icons.settings(), contentDescription = "Settings") }
-            Spacer(Modifier.size(Grid.base.dp))
             val sortable = shelf == Shelf.Albums || shelf == Shelf.Songs
             Box {
                 // Item 2: Sort.
@@ -130,6 +129,9 @@ fun LibraryScreen(host: CoreHost, onOpen: (Route) -> Unit, playingSongId: Long?,
                     }
                 }
             }
+            Spacer(Modifier.size(Grid.base.dp))
+            // Board 14: the avatar on Library too; its sheet holds Settings (board 17).
+            uk.gcartee.encore.app.ui.home.ProfileButton(host, uk.gcartee.encore.app.ui.components.LocalAppActions.current.openProfiles)
         }
         // Item 1: filter chips; one is always active.
         LazyRow(
@@ -137,8 +139,9 @@ fun LibraryScreen(host: CoreHost, onOpen: (Route) -> Unit, playingSongId: Long?,
             horizontalArrangement = Arrangement.spacedBy(Grid.base.dp),
         ) {
             items(Shelf.entries) { s ->
-                FilterChip(
-                    selected = s == shelf,
+                // Board 06: filled tonal pills, the active one stronger; no outline.
+                val on = s == shelf
+                androidx.compose.material3.Surface(
                     onClick = {
                         if (s != shelf) {
                             haptics.perform(Haptic.Tick)
@@ -146,9 +149,18 @@ fun LibraryScreen(host: CoreHost, onOpen: (Route) -> Unit, playingSongId: Long?,
                             prefs.shelf = s
                         }
                     },
-                    label = { Text(s.label, style = type.sectionHeader) },
-                    modifier = Modifier.semantics { role = Role.Tab },
-                )
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    color = if (on) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = if (on) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.height(CHIP_DP.dp).semantics {
+                        role = Role.Tab
+                        selected = on
+                    },
+                ) {
+                    Box(Modifier.padding(horizontal = (Grid.base * 2.5f).dp), contentAlignment = Alignment.Center) {
+                        Text(s.label, style = if (on) type.sectionHeader else type.sectionHeader.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Normal))
+                    }
+                }
             }
         }
         SyncRow(sync)
@@ -173,7 +185,8 @@ fun LibraryScreen(host: CoreHost, onOpen: (Route) -> Unit, playingSongId: Long?,
                             prefs.setGrid(shelf, true)
                         },
                         shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
-                    ) { Text("Grid", style = type.buttonLabel) }
+                        colors = tonalToggle(),
+                    ) { Text("Grid", style = if (grid) type.buttonLabelSelected else type.buttonLabel) }
                     ToggleButton(
                         checked = !grid,
                         onCheckedChange = {
@@ -182,7 +195,8 @@ fun LibraryScreen(host: CoreHost, onOpen: (Route) -> Unit, playingSongId: Long?,
                             prefs.setGrid(shelf, false)
                         },
                         shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
-                    ) { Text("List", style = type.buttonLabel) }
+                        colors = tonalToggle(),
+                    ) { Text("List", style = if (!grid) type.buttonLabelSelected else type.buttonLabel) }
                 }
             }
         }
@@ -330,3 +344,14 @@ fun EmptyState(title: String, reason: String) {
 }
 
 private const val TILE_MIN_DP = 150
+private const val CHIP_DP = 48
+
+/** Board 06, item 3: the selected one filled with the tonal colour, the other lighter. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun tonalToggle() = androidx.compose.material3.ToggleButtonDefaults.colors(
+    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    checkedContainerColor = MaterialTheme.colorScheme.inversePrimary,
+    checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+)

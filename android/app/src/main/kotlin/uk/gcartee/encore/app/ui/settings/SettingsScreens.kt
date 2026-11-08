@@ -92,7 +92,7 @@ private const val OUTER = 24
 private const val INNER = 6
 
 /** A settings row; a trailing lambda is its tap action. */
-class Row0(val title: String, val value: String? = null, val icon: (@Composable () -> Painter)? = null, val destructive: Boolean = false, val trailing: (@Composable () -> Unit)? = null, val onClick: (() -> Unit)? = null)
+class Row0(val title: String, val value: String? = null, val icon: (@Composable () -> Painter)? = null, val destructive: Boolean = false, val right: String? = null, val trailing: (@Composable () -> Unit)? = null, val onClick: (() -> Unit)? = null)
 
 fun LazyListScope.group(title: String?, rows: List<Row0>) {
     if (rows.isEmpty()) return
@@ -125,7 +125,12 @@ fun LazyListScope.group(title: String?, rows: List<Row0>) {
                     Text(r.title, style = type.listRowTitle, color = if (r.destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
                     r.value?.let { Text(it, style = type.body, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
-                r.trailing?.invoke()
+                // Board 17: a value on the right, then the chevron for rows that open a page.
+                r.right?.let { Text(it, style = type.body, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(end = Grid.base.dp)) }
+                when {
+                    r.trailing != null -> r.trailing.invoke()
+                    r.onClick != null && !r.destructive -> Icon(Icons.chevron(), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
     }
@@ -165,25 +170,65 @@ private fun SettingsHome(host: CoreHost, onBack: () -> Unit, onProfiles: () -> U
     val actions = LocalAppActions.current
     val profile = remember { runCatching { host.core.profiles().firstOrNull { it.active } }.getOrNull() }
     var query by rememberSaveable { mutableStateOf("") }
-    val pages = listOf(
-        Row0("Playback and quality", "Streaming quality on Wi-Fi and cellular", { Icons.play() }) { actions.open(Route.Settings("playback")) },
-        Row0("Mixes and suggestions", "How adventurous picks are, Not interested", { Icons.spark() }) { actions.open(Route.Settings("suggestions")) },
-        Row0("Appearance", "Light or dark, accent colour", { Icons.settings() }) { actions.open(Route.Settings("appearance")) },
-        Row0("Servers and sources", "Your media server and the companion server", { Icons.servers() }) { actions.open(Route.Settings("servers")) },
-        Row0("Privacy and data", "What is kept, export, delete", { Icons.privacy() }) { actions.open(Route.Settings("privacy")) },
-        Row0("About and licenses", "${appName()} ${versionName(LocalContext.current)}", { Icons.info() }) { actions.open(Route.Settings("licences")) },
+    val context = LocalContext.current
+    val haptics = rememberHaptics()
+    val appearance by Appearance.choice.collectAsState()
+    var hapticsOn by remember { mutableStateOf(uk.gcartee.encore.app.ui.components.HapticSetting.enabled) }
+    val server = remember { runCatching { host.core.servers().firstOrNull()?.name }.getOrNull() }
+    // Board 17's groups, rows without icons, a chevron where a page opens.
+    val groups = listOf(
+        listOf(
+            Row0("Playback and quality") { actions.open(Route.Settings("playback")) },
+            Row0("Mixes and suggestions") { actions.open(Route.Settings("suggestions")) },
+        ),
+        listOf(
+            Row0("Servers and sources") { actions.open(Route.Settings("servers")) },
+            Row0("Privacy and data") { actions.open(Route.Settings("privacy")) },
+        ),
+        listOf(
+            Row0("Appearance", right = if (appearance.mode == ThemeMode.System) "Auto" else appearance.mode.label) { actions.open(Route.Settings("appearance")) },
+            Row0("Haptics", trailing = {
+                Switch(hapticsOn, onCheckedChange = { on ->
+                    uk.gcartee.encore.app.ui.components.HapticSetting.set(context, on)
+                    hapticsOn = on
+                    if (on) haptics.perform(Haptic.ToggleOn)
+                })
+            }),
+            Row0("About and licenses", right = versionName(context)) { actions.open(Route.Settings("licences")) },
+        ),
     )
     Page("Settings", onBack, contentPadding) {
         item {
-            // Search: filters every page by name.
+            // Search: filters every setting by name.
             OutlinedTextField(query, { query = it }, placeholder = { Text("Search settings") }, singleLine = true, shape = CircleShape, leadingIcon = { Icon(Icons.search(), contentDescription = null) }, modifier = Modifier.fillMaxWidth().padding(horizontal = (Grid.base * 2).dp))
         }
-        if (query.isBlank()) {
-            // Item 1: the account card.
-            group(null, listOf(Row0(profile?.displayName ?: "Profile", "Profiles, PIN, Guest, sign out", { Icons.artist() }, onClick = onProfiles)))
-        }
         val q = query.trim()
-        group(null, pages.filter { q.isEmpty() || it.title.contains(q, ignoreCase = true) || (it.value?.contains(q, ignoreCase = true) == true) })
+        if (q.isEmpty()) item {
+            // Item 1: the account card, tonal, avatar and server, opening the profiles.
+            Surface(
+                onClick = onProfiles,
+                shape = RoundedCornerShape(OUTER.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = (Grid.base * 2).dp, vertical = (Grid.base * 2).dp),
+            ) {
+                Row(Modifier.padding((Grid.base * 2).dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(48.dp).background(MaterialTheme.colorScheme.surfaceContainerHighest, CircleShape), contentAlignment = Alignment.Center) {
+                        Text(profile?.initials ?: "You", style = LocalEncoreType.current.buttonLabelSelected)
+                    }
+                    Spacer(Modifier.width((Grid.base * 2).dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(profile?.displayName ?: "You", style = LocalEncoreType.current.sectionHeader)
+                        server?.let { Text(it, style = LocalEncoreType.current.body, color = MaterialTheme.colorScheme.onSecondaryContainer) }
+                    }
+                    Icon(Icons.chevron(), contentDescription = null)
+                }
+            }
+        }
+        groups.forEach { rows ->
+            val shown = rows.filter { q.isEmpty() || it.title.contains(q, ignoreCase = true) }
+            group(null, shown)
+            if (shown.isNotEmpty()) item { Spacer(Modifier.height((Grid.base * 2).dp)) }
+        }
     }
 }
 
@@ -207,6 +252,36 @@ fun <T> Choices(options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Un
                 },
                 modifier = Modifier.weight(1f).semantics { role = Role.RadioButton },
             ) { Text(label, style = LocalEncoreType.current.buttonLabel, maxLines = 1) }
+        }
+    }
+}
+
+/**
+ * Board 17, item 4: how adventurous suggestions are, a 3-step slider with a detent tick
+ * (SEGMENT_FREQUENT_TICK) at each step.
+ */
+@Composable
+fun AdventurousSlider(level: Adventurousness, onChange: (Adventurousness) -> Unit) {
+    val haptics = rememberHaptics()
+    val steps = listOf(Adventurousness.FAMILIAR, Adventurousness.BALANCED, Adventurousness.ADVENTUROUS)
+    var position by remember(level) { mutableStateOf(steps.indexOf(level).toFloat()) }
+    Column {
+        androidx.compose.material3.Slider(
+            value = position,
+            onValueChange = { v ->
+                if (Math.round(v) != Math.round(position)) haptics.perform(Haptic.Tick)
+                position = v
+            },
+            onValueChangeFinished = { onChange(steps[Math.round(position).coerceIn(0, 2)]) },
+            valueRange = 0f..2f,
+            steps = 1,
+            modifier = Modifier.fillMaxWidth().semantics { stateDescription = steps[Math.round(position).coerceIn(0, 2)].name.lowercase() },
+        )
+        Row(Modifier.fillMaxWidth()) {
+            val type = LocalEncoreType.current
+            Text("Familiar", style = type.caption, modifier = Modifier.weight(1f))
+            Text("Balanced", style = type.caption)
+            Text("Adventurous", style = type.caption, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
         }
     }
 }
@@ -248,8 +323,8 @@ private fun SuggestionsPage(host: CoreHost, onBack: () -> Unit, contentPadding: 
     Page("Mixes and suggestions", onBack, contentPadding) {
         item { Label("How adventurous") }
         item {
-            Choices(listOf(Adventurousness.FAMILIAR to "Familiar", Adventurousness.BALANCED to "Balanced", Adventurousness.ADVENTUROUS to "Adventurous"), level) { l ->
-                runCatching { host.core.setAdventurousness(l) }.onSuccess { level = l }
+            Box(Modifier.padding(horizontal = (Grid.base * 3).dp)) {
+                AdventurousSlider(level) { l -> runCatching { host.core.setAdventurousness(l) }.onSuccess { level = l } }
             }
         }
         item {

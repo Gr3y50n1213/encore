@@ -41,6 +41,8 @@ import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
+import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -55,7 +57,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -76,6 +80,7 @@ import uk.gcartee.encore.app.ui.components.rememberHaptics
 import uk.gcartee.encore.app.ui.components.toPath
 import uk.gcartee.encore.app.ui.library.EmptyState
 import uk.gcartee.encore.app.ui.library.Mosaic
+import uk.gcartee.encore.app.ui.library.MosaicFill
 import uk.gcartee.encore.app.ui.library.SectionTitle
 import uk.gcartee.encore.app.ui.library.SyncRow
 import uk.gcartee.encore.app.ui.library.madeWhen
@@ -150,7 +155,8 @@ fun HomeScreen(host: CoreHost, data: HomeData, onProfile: () -> Unit, reselect: 
                 item { SectionTitle("Made for you") }
                 item { MadeForYou(home, data, onOpenMix = { actions.open(Route.Mix(it)) }, onRefresh = { scope.launch { data.load(regenerate = true) } }) }
                 // Items 3 and 4: tiles open, never play; Rediscover holds Not interested.
-                shelf("Recently played", home.recentlyPlayed)
+                // Board 05: Recently played is a row of small tiles, Rediscover larger.
+                shelf("Recently played", home.recentlyPlayed, tileDp = SMALL_TILE_DP)
                 shelf("Rediscover", home.rediscover)
                 shelf("Deep cuts", home.deepCuts)
                 shelf("Recently added", home.recentlyAdded)
@@ -167,24 +173,31 @@ fun HomeScreen(host: CoreHost, data: HomeData, onProfile: () -> Unit, reselect: 
 @Composable
 fun PageTitleRow(title: String, host: CoreHost, onProfile: () -> Unit, trailing: (@Composable () -> Unit)? = null) {
     val type = LocalEncoreType.current
-    val profile = remember { runCatching { host.core.profiles().firstOrNull { it.active } }.getOrNull() }
-    val pending = remember { runCatching { host.core.pendingEdits() }.getOrDefault(0u) > 0u }
     Row(
         Modifier.fillMaxWidth().statusBarsPadding().padding(start = (Grid.base * 2).dp, end = (Grid.base * 2).dp, top = (Grid.base * 2).dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(title, style = type.pageTitle, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f).semantics { heading() })
         trailing?.invoke()
-        Box {
-            FilledIconButton(
-                onClick = onProfile,
-                colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest, contentColor = MaterialTheme.colorScheme.onSurface),
-                modifier = Modifier.size(48.dp),
-            ) {
-                Text(profile?.initials ?: "You", style = type.buttonLabelSelected)
-            }
-            if (pending) Box(Modifier.align(Alignment.TopEnd).size(10.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
+        ProfileButton(host, onProfile)
+    }
+}
+
+/** Board 05, item 1 and board 14: the avatar (initials until an image), a dot while changes wait to sync. */
+@Composable
+fun ProfileButton(host: CoreHost, onProfile: () -> Unit) {
+    val type = LocalEncoreType.current
+    val profile = remember { runCatching { host.core.profiles().firstOrNull { it.active } }.getOrNull() }
+    val pending = remember { runCatching { host.core.pendingEdits() }.getOrDefault(0u) > 0u }
+    Box {
+        FilledIconButton(
+            onClick = onProfile,
+            colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest, contentColor = MaterialTheme.colorScheme.onSurface),
+            modifier = Modifier.size(48.dp).semantics { contentDescription = "Profiles and settings" },
+        ) {
+            Text(profile?.initials ?: "You", style = type.buttonLabelSelected)
         }
+        if (pending) Box(Modifier.align(Alignment.TopEnd).size(10.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
     }
 }
 
@@ -214,10 +227,23 @@ private fun MadeForYou(home: Home, data: HomeData, onOpenMix: (String) -> Unit, 
             FilledTonalButton(onClick = onRefresh, enabled = !data.loading) { Text("Refresh") }
         }
     }
-    // Android's first tile is wide (board 05, item 2).
-    LazyRow(contentPadding = PaddingValues(horizontal = (Grid.base * 2).dp), horizontalArrangement = Arrangement.spacedBy((Grid.base * 2).dp)) {
-        itemsIndexed(shelf.mixes, key = { _, m -> m.mixId }) { i, m ->
-            MixTile(m, wide = i == 0, onOpen = { onOpenMix(m.mixId) })
+    // Board 05, item 2: Android's first tile is wide and shrinks as it scrolls off: the
+    // Material 3 Expressive multi-browse carousel, snapping one tile at a time. Rounded
+    // tiles here; the Material shapes are the Mixes tab's (board 23).
+    val state = rememberCarouselState { shelf.mixes.size }
+    HorizontalMultiBrowseCarousel(
+        state = state,
+        preferredItemWidth = CAROUSEL_ITEM_DP.dp,
+        itemSpacing = Grid.base.dp,
+        contentPadding = PaddingValues(horizontal = (Grid.base * 2).dp),
+        modifier = Modifier.fillMaxWidth().height(CAROUSEL_HEIGHT_DP.dp),
+    ) { i ->
+        val m = shelf.mixes[i]
+        Column(Modifier.fillMaxSize().combinedClickable(onClick = { onOpenMix(m.mixId) })) {
+            MosaicFill(m.coverSongIds, Modifier.weight(1f).fillMaxWidth().maskClip(MaterialTheme.shapes.extraLarge))
+            Spacer(Modifier.height(6.dp))
+            Text(m.title, style = type.tileTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(m.subtitle, style = type.tileSubtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -241,13 +267,21 @@ fun MixTile(m: MixSummary, wide: Boolean, onOpen: () -> Unit, modifier: Modifier
     val w = if (wide) (TILE_ART_DP * 1.25f) else TILE_ART_DP * 0.9f
     // 2xTAP does nothing, so nobody likes a playlist by accident.
     Column(modifier.width(w.dp).combinedClickable(onClick = onOpen)) {
-        Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(shapeFor(m.mixId))) { Mosaic(m.coverSongIds, size = w.toInt()) }
+        // Board 23: the mix's own Material shape with a tonal ring, the mosaic inside it.
+        val shape = shapeFor(m.mixId)
+        val ring = if (Math.floorMod(m.mixId.hashCode(), 2) == 0) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.tertiaryContainer
+        Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(shape).background(ring).padding(RING_DP.dp).clip(shape)) {
+            MosaicFill(m.coverSongIds, Modifier.fillMaxSize())
+        }
         Spacer(Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(m.title, style = type.tileTitle, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
             if (m.pinned) {
-                Spacer(Modifier.width(4.dp))
-                Icon(Icons.pin(true), contentDescription = "Pinned", modifier = Modifier.size(14.dp))
+                // Item 4: a "Pinned" label.
+                Spacer(Modifier.width(6.dp))
+                Surface(shape = CircleShape, color = Color.Transparent, border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) {
+                    Text("Pinned", style = type.caption, modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp))
+                }
             }
         }
         Text(m.subtitle, style = type.tileSubtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -255,7 +289,7 @@ fun MixTile(m: MixSummary, wide: Boolean, onOpen: () -> Unit, modifier: Modifier
 }
 
 /** A shelf of songs shown as their albums; a tap opens the album and never plays. */
-private fun androidx.compose.foundation.lazy.LazyListScope.shelf(title: String, songs: List<Song>) {
+private fun androidx.compose.foundation.lazy.LazyListScope.shelf(title: String, songs: List<Song>, tileDp: Int = SHELF_TILE_DP) {
     val albums = songs.filter { it.albumId != null }.distinctBy { it.albumId }
     if (albums.isEmpty()) return
     item { SectionTitle(title) }
@@ -264,7 +298,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.shelf(title: String, 
         LazyRow(contentPadding = PaddingValues(horizontal = (Grid.base * 2).dp), horizontalArrangement = Arrangement.spacedBy((Grid.base * 2).dp)) {
             items(albums.size) { i ->
                 val s = albums[i]
-                SongAlbumTile(s, onOpen = { s.albumId?.let { actions.open(Route.Album(it)) } })
+                SongAlbumTile(s, tileDp, onOpen = { s.albumId?.let { actions.open(Route.Album(it)) } })
             }
         }
     }
@@ -272,14 +306,14 @@ private fun androidx.compose.foundation.lazy.LazyListScope.shelf(title: String, 
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun SongAlbumTile(song: Song, onOpen: () -> Unit) {
+private fun SongAlbumTile(song: Song, tileDp: Int, onOpen: () -> Unit) {
     val type = LocalEncoreType.current
     val haptics = rememberHaptics()
     val actions = LocalAppActions.current
     var menu by remember { mutableStateOf(false) }
     Box {
-        Column(Modifier.width((TILE_ART_DP * 0.75f).dp).combinedClickable(onClick = onOpen, onLongClick = { haptics.perform(Haptic.LongPress); menu = true })) {
-            Artwork(uk.gcartee.encore.core.ArtworkOf.SONG, song.id, (TILE_ART_DP * 0.75f).dp, Modifier.fillMaxWidth(), cornerRadius = TILE_RADIUS_DP.dp)
+        Column(Modifier.width(tileDp.dp).combinedClickable(onClick = onOpen, onLongClick = { haptics.perform(Haptic.LongPress); menu = true })) {
+            Artwork(uk.gcartee.encore.core.ArtworkOf.SONG, song.id, tileDp.dp, Modifier.fillMaxWidth(), cornerRadius = (tileDp / 7).dp)
             Spacer(Modifier.height(6.dp))
             Text(song.albumTitle ?: song.title, style = type.tileTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(song.albumArtist.ifBlank { song.artist }, style = type.tileSubtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
@@ -327,8 +361,9 @@ fun MixesScreen(host: CoreHost, data: HomeData, onProfile: () -> Unit, contentPa
             }
             else -> {
                 // Item 1: when and where they were made.
+                val count = shelf.mixes.size
                 Text(
-                    (if (shelf.fromCompanion) "Made on your server · " else "Made on this device · ") + madeWhen(shelf.madeUtcMs),
+                    "${if (count == 1) "One new mix" else "$count new mixes"} today, made on ${if (shelf.fromCompanion) "your server" else "this device"}",
                     style = type.caption,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = (Grid.base * 2).dp),
@@ -358,3 +393,10 @@ fun MixesScreen(host: CoreHost, data: HomeData, onProfile: () -> Unit, contentPa
         }
     }
 }
+
+// Board 05's sizes, measured from the Android render.
+private const val CAROUSEL_ITEM_DP = 220
+private const val CAROUSEL_HEIGHT_DP = 236
+private const val SHELF_TILE_DP = 120
+private const val SMALL_TILE_DP = 96
+private const val RING_DP = 6

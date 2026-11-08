@@ -155,6 +155,15 @@ fun ProfileSheet(host: CoreHost, playing: Boolean, onDismiss: () -> Unit, onSwit
                 }
             }
             HorizontalDivider(Modifier.padding(vertical = Grid.base.dp))
+            // Board 17: Settings, reached from the avatar on Home and Library.
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 56.dp).combinedClickable(onClick = { onDismiss(); actions.open(uk.gcartee.encore.app.ui.nav.Route.Settings()) }).padding(horizontal = (Grid.base * 3).dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.settings(), contentDescription = null)
+                Spacer(Modifier.width((Grid.base * 2).dp))
+                Text("Settings", style = type.listRowTitle)
+            }
             Row(
                 Modifier.fillMaxWidth().heightIn(min = 56.dp).combinedClickable(onClick = { onDismiss(); onAddAccount() }).padding(horizontal = (Grid.base * 3).dp),
                 verticalAlignment = Alignment.CenterVertically,
