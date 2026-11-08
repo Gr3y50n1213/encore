@@ -11,6 +11,7 @@ import uk.gcartee.encore.core.AlbumSort
 import uk.gcartee.encore.core.DownloadKind
 import uk.gcartee.encore.core.DownloadStop
 import uk.gcartee.encore.core.DownloadTarget
+import uk.gcartee.encore.core.Network
 import uk.gcartee.encore.core.CoreConfig
 import uk.gcartee.encore.core.DropTarget
 import uk.gcartee.encore.core.DropTargetKind
