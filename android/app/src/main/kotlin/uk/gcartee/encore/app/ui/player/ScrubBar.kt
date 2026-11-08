@@ -10,6 +10,13 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.WavyProgressIndicatorDefaults
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -113,14 +120,7 @@ fun ScrubBar(
         }
     }
     val reported = (scrub ?: (positionMs.toFloat() / duration)).coerceIn(0f, 1f)
-    // The wave eases in when playing starts and flattens when it stops or is held.
-    val amplitude by animateFloatAsState(if (playing && scrub == null && !still) 1f else 0f, tween(AMPLITUDE_MS), label = "amplitude")
-    val phase by rememberInfiniteTransition(label = "wave").animateFloat(
-        0f, (2 * PI).toFloat(),
-        infiniteRepeatable(tween(WAVE_PERIOD_MS, easing = LinearEasing)),
-        label = "phase",
-    )
-    Box(
+    BoxWithConstraints(
         modifier
             .fillMaxWidth()
             .height(BAR_TOUCH_DP.dp)
@@ -170,71 +170,40 @@ fun ScrubBar(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             )
         } else {
-            Canvas(Modifier.fillMaxSize()) {
-                // Read here, in drawing, so the glide redraws without recomposing anything.
-                val fraction = (scrub ?: ((smooth?.invoke() ?: positionMs).toFloat() / duration)).coerceIn(0f, 1f)
-                val stroke = STROKE_DP.dp.toPx()
-                val gap = GAP_DP.dp.toPx()
-                val handleW = HANDLE_W_DP.dp.toPx()
-                val handleH = HANDLE_H_DP.dp.toPx()
-                val wave = WAVELENGTH_DP.dp.toPx()
-                val height = WAVE_HEIGHT_DP.dp.toPx() * amplitude
-                val cy = size.height / 2
-                val head = (fraction * size.width).coerceIn(handleW / 2, size.width - handleW / 2)
-                // Unplayed track, then the stop dot at the end.
-                val trackStart = head + handleW / 2 + gap
-                if (trackStart < size.width) {
-                    drawLine(colour.copy(alpha = 0.24f), Offset(trackStart, cy), Offset(size.width - stroke / 2, cy), stroke, StrokeCap.Round)
-                }
-                drawCircle(colour, stroke / 2, Offset(size.width - stroke / 2, cy))
-                // Played part: a wave pinned at the head, travelling away from it.
-                val playedEnd = head - handleW / 2 - gap
-                if (playedEnd > stroke / 2) {
-                    val path = Path()
-                    var x = stroke / 2
-                    var first = true
-                    val step = STEP_PX
-                    while (true) {
-                        val d = playedEnd - x
-                        val taper = smoothStep((d / (wave * TAPER_WAVES)).coerceIn(0f, 1f))
-                        val y = cy + height * taper * sin((2 * PI * d / wave - phase).toFloat())
-                        if (first) {
-                            path.moveTo(x, y)
-                            first = false
-                        } else {
-                            path.lineTo(x, y)
-                        }
-                        if (x >= playedEnd) break
-                        x = (x + step).coerceAtMost(playedEnd)
+            // Material 3 Expressive's own wavy indicator, its wave and motion as designed,
+            // a touch slower than its default; it reads the frame-time position itself, so
+            // it glides rather than stepping. The tall pill handle sits at the head.
+            LinearWavyProgressIndicator(
+                progress = { (scrub ?: ((smooth?.invoke() ?: positionMs).toFloat() / duration)).coerceIn(0f, 1f) },
+                color = colour,
+                trackColor = colour.copy(alpha = 0.24f),
+                amplitude = { if (playing && scrub == null && !still) 1f else 0f },
+                waveSpeed = WavyProgressIndicatorDefaults.LinearDeterminateWavelength * WAVE_SPEED,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            )
+            val widthPx = constraints.maxWidth
+            Box(
+                Modifier
+                    .align(Alignment.CenterStart)
+                    .offset {
+                        val f = (scrub ?: ((smooth?.invoke() ?: positionMs).toFloat() / duration)).coerceIn(0f, 1f)
+                        val handle = HANDLE_W_DP.dp.toPx()
+                        IntOffset((f * widthPx - handle / 2 - GAP_DP.dp.toPx()).coerceIn(0f, (widthPx - handle - 2 * GAP_DP.dp.toPx()).coerceAtLeast(0f)).toInt(), 0)
                     }
-                    drawPath(path, colour, style = Stroke(width = stroke, cap = StrokeCap.Round))
-                }
-                // The tall pill handle; the gap around it is the field showing through.
-                drawRoundRect(
-                    colour,
-                    topLeft = Offset(head - handleW / 2, cy - handleH / 2),
-                    size = Size(handleW, handleH),
-                    cornerRadius = CornerRadius(handleW / 2),
-                )
-            }
+                    .size(width = (HANDLE_W_DP + 2 * GAP_DP).dp, height = (HANDLE_H_DP + 2 * GAP_DP).dp)
+                    .padding(GAP_DP.dp)
+                    .background(colour, RoundedCornerShape(50)),
+            )
         }
     }
 }
-
-private fun smoothStep(t: Float): Float = t * t * (3 - 2 * t)
 
 // Board 09's handle, measured from the Android render.
 private const val BAR_TOUCH_DP = 48
 private const val BAND_DP = 56
 private const val HANDLE_W_DP = 4
 private const val HANDLE_H_DP = 24
-private const val GAP_DP = 4
+private const val GAP_DP = 2
+private const val WAVE_SPEED = 0.75f
 private const val STALL_MS = 500L
-private const val STROKE_DP = 4
-private const val WAVELENGTH_DP = 36
-private const val WAVE_HEIGHT_DP = 3
-private const val TAPER_WAVES = 0.6f
-private const val WAVE_PERIOD_MS = 2_600
-private const val AMPLITUDE_MS = 400
-private const val STEP_PX = 3f
 private const val JITTER_MS = 400L
