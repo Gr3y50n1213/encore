@@ -316,7 +316,10 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
     var version by remember { mutableIntStateOf(0) }
     val remote by host.remoteChanges.collectAsState()
     val detail: PlaylistDetail? = remember(playlistId, version, remote) { runCatching { host.core.playlist(playlistId) }.getOrNull() }
-    val tint = rememberTint({ host.core.playlistPalette(playlistId) }, playlistId)
+    // Board 04: the page takes a tint from a palette. A playlist without its own image
+    // takes the palette of its first song's album, the top-left of its mosaic.
+    val firstAlbum = detail?.entries?.firstNotNullOfOrNull { it.song?.albumId }
+    val tint = rememberTint({ host.core.playlistPalette(playlistId) ?: firstAlbum?.let { host.core.albumPalette(it) } }, playlistId to firstAlbum)
     if (detail == null) {
         EmptyState("This playlist isn't in your library", "It may have been removed from the server.")
         return
