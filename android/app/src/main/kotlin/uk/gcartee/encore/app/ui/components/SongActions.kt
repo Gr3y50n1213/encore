@@ -51,6 +51,7 @@ import androidx.compose.ui.window.DialogWindowProvider
 import kotlin.math.roundToInt
 import uk.gcartee.encore.app.ui.onboarding.reduceMotion
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -181,168 +182,98 @@ data class MenuPlace(
 data class MenuExtra(val label: String, val destructive: Boolean, val icon: (@Composable () -> Painter)? = null, val action: () -> Unit)
 
 /**
- * Board 13. Android's popup scales from the row. Groups: queue, library, navigate, then the
- * destructive group apart and in red. Lifting the finger without sliding picks nothing,
- * and the first item is never pre-selected (DropdownMenu does neither).
+ * Board 13's actions, in the app's one action sheet (ActionSheet). The song and a Like
+ * toggle head it; Play next, Add to queue and Add to playlist are the quick tiles; then
+ * radio and the ways to the album and artist (hidden where you already are), Why this
+ * song for the app's picks, the page's extras, and Not interested apart and in red.
  */
 @Composable
-fun SongMenu(
-    song: Song,
-    expanded: Boolean,
-    onDismiss: () -> Unit,
-    place: MenuPlace = MenuPlace(),
-    anchor: Rect? = null,
-    lifted: (@Composable () -> Unit)? = null,
-) {
+fun SongMenu(song: Song, expanded: Boolean, onDismiss: () -> Unit, place: MenuPlace = MenuPlace()) {
     val actions = LocalAppActions.current
     val haptics = rememberHaptics()
     var playlistSheet by remember { mutableStateOf(false) }
     var why by remember { mutableStateOf(false) }
-    val liked = remember(song.id, expanded) { if (expanded) actions.isLiked(song) else false }
-    // The render: one rounded card, text only, groups split by a band of the darker tone,
-    // sentence case.
-    val items: @Composable () -> Unit = {
-        MenuItem("Play next") { onDismiss(); actions.playNext(listOf(song)) }
-        MenuItem("Add to queue") { onDismiss(); actions.addToQueue(listOf(song)) }
-        MenuItem("Add to playlist") { onDismiss(); playlistSheet = true }
-        GroupGap()
-        MenuItem(if (liked) "Unlike" else "Like") {
-            onDismiss()
-            if (actions.setLiked(song, !liked)) haptics.perform(if (liked) Haptic.ToggleOff else Haptic.ToggleOn)
-        }
-        MenuItem("Start radio") { onDismiss(); actions.startRadio(song) }
-        GroupGap()
-        if (song.albumId != null && song.albumId != place.onAlbum) MenuItem("Go to album") { onDismiss(); actions.goToAlbum(song) }
-        if (!place.onArtist) MenuItem("Go to artist") { onDismiss(); actions.goToArtist(song) }
-        if (place.chosenBy == ChosenBy.APP) MenuItem("Why this song") { onDismiss(); why = true }
-        place.extra.filter { !it.destructive }.forEach { e -> MenuItem(e.label) { onDismiss(); e.action() } }
-        GroupGap()
-        place.extra.filter { it.destructive }.forEach { e -> MenuItem(e.label, destructive = true) { onDismiss(); e.action() } }
-        MenuItem("Not interested", destructive = true) { onDismiss(); actions.notInterested(song) }
-    }
-    if (anchor != null && lifted != null) {
-        // Item 1: from a row, the row lifts and the menu grows out of it.
-        if (expanded) LiftedMenu(anchor, onDismiss, lifted, items)
-    } else {
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = onDismiss,
-            shape = RoundedCornerShape(MENU_RADIUS_DP.dp),
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        ) { items() }
+    if (expanded) {
+        var liked by remember(song.id) { mutableStateOf(actions.isLiked(song)) }
+        val next = Icons.playNext()
+        val queue = Icons.queue()
+        val add = Icons.playlistAdd()
+        val radio = Icons.radio()
+        val album = Icons.album()
+        val artist = Icons.artist()
+        val info = Icons.info()
+        val block = Icons.block()
+        val remove = Icons.remove()
+        val extras = place.extra.map { e -> Triple(e, e.icon?.invoke(), e.destructive) }
+        ActionSheet(
+            onDismiss = onDismiss,
+            header = {
+                SongSheetHeader(song, liked) {
+                    val want = !liked
+                    if (actions.setLiked(song, want)) {
+                        liked = want
+                        haptics.perform(if (want) Haptic.ToggleOn else Haptic.ToggleOff)
+                    }
+                }
+            },
+            quick = listOf(
+                SheetAction("Play next", next) { actions.playNext(listOf(song)) },
+                SheetAction("Add to queue", queue) { actions.addToQueue(listOf(song)) },
+                SheetAction("Add to playlist", add) { playlistSheet = true },
+            ),
+            groups = listOf(
+                listOfNotNull(
+                    SheetAction("Start radio", radio) { actions.startRadio(song) },
+                    if (song.albumId != null && song.albumId != place.onAlbum) SheetAction("Go to album", album) { actions.goToAlbum(song) } else null,
+                    if (!place.onArtist) SheetAction("Go to artist", artist) { actions.goToArtist(song) } else null,
+                    if (place.chosenBy == ChosenBy.APP) SheetAction("Why this song", info) { why = true } else null,
+                ) + extras.filter { !it.third }.map { (e, icon, _) -> SheetAction(e.label, icon) { e.action() } },
+                extras.filter { it.third }.map { (e, icon, _) -> SheetAction(e.label, icon ?: remove, destructive = true) { e.action() } } +
+                    SheetAction("Not interested", block, destructive = true) { actions.notInterested(song) },
+            ),
+        )
     }
     if (playlistSheet) AddToPlaylistSheet(listOf(song)) { playlistSheet = false }
     if (why) WhyThisSongSheet(song) { why = false }
 }
 
+/** The sheet's head: the cover, title and artist, and Like (its heart pops, board 35). */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun MenuItem(label: String, destructive: Boolean = false, onClick: () -> Unit) {
-    val colour = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-    DropdownMenuItem(
-        text = { Text(label, style = LocalEncoreType.current.listRowTitle.copy(fontSize = MENU_TEXT_SP.sp), color = colour) },
-        onClick = onClick,
-    )
-}
-
-/** Board 13: the gap between groups, drawn as a band of the darker tone. */
-@Composable
-private fun GroupGap() {
-    Box(Modifier.fillMaxWidth().padding(vertical = 4.dp).height(MENU_GAP_DP.dp).background(MaterialTheme.colorScheme.surfaceContainerHighest))
-}
-
-/**
- * Board 13, item 1: the pressed row lifts to 1.03 with a shadow in the tonal highlight,
- * everything else dims (and blurs from Android 12, where the window can), and the menu
- * grows out of the row on the expressive spring, below it or above it if there is no room.
- * A tap outside closes it with no change.
- */
-@Composable
-private fun LiftedMenu(anchor: Rect, onDismiss: () -> Unit, lifted: @Composable () -> Unit, items: @Composable () -> Unit) {
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
-        val view = LocalView.current
-        DisposableEffect(view) {
-            (view.parent as? DialogWindowProvider)?.window?.let { w ->
-                w.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-                w.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
-                w.setDimAmount(MENU_DIM)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    w.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
-                    w.attributes = w.attributes.apply { blurBehindRadius = MENU_BLUR_PX }
-                }
-            }
-            onDispose { }
+private fun SongSheetHeader(song: Song, liked: Boolean, onLike: () -> Unit) {
+    val type = LocalEncoreType.current
+    val heart = rememberPop(liked)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Artwork(uk.gcartee.encore.core.ArtworkOf.SONG, song.id, HEADER_ART_DP.dp, Modifier.size(HEADER_ART_DP.dp), cornerRadius = HEADER_ART_RADIUS_DP.dp)
+        Spacer(Modifier.width((Grid.base * 2).dp))
+        Column(Modifier.weight(1f)) {
+            Text(song.title, style = type.sectionHeader, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            Text(
+                listOfNotNull(song.artist, song.albumTitle).joinToString(" · "),
+                style = type.body,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
         }
-        val still = reduceMotion()
-        val appear = remember { Animatable(if (still) 1f else 0f) }
-        LaunchedEffect(Unit) { appear.animateTo(1f, spring(dampingRatio = APPEAR_DAMPING, stiffness = Spring.StiffnessMediumLow)) }
-        val density = LocalDensity.current
-        var origin by remember { mutableStateOf(Offset.Zero) }
-        var root by remember { mutableStateOf(IntSize.Zero) }
-        var card by remember { mutableStateOf(IntSize.Zero) }
-        Box(
-            Modifier
-                .fillMaxSize()
-                .onGloballyPositioned {
-                    origin = it.positionOnScreen()
-                    root = it.size
-                }
-                .pointerInput(Unit) { detectTapGestures { onDismiss() } },
+        Spacer(Modifier.width(Grid.base.dp))
+        androidx.compose.material3.FilledTonalIconToggleButton(
+            checked = liked,
+            onCheckedChange = { onLike() },
+            shapes = androidx.compose.material3.IconButtonDefaults.toggleableShapes(
+                shape = RoundedCornerShape(50),
+                pressedShape = RoundedCornerShape(12.dp),
+                checkedShape = RoundedCornerShape(16.dp),
+            ),
+            modifier = Modifier.size(48.dp).semantics { stateDescription = if (liked) "Liked" else "Not liked" },
         ) {
-            val left = anchor.left - origin.x
-            val top = anchor.top - origin.y
-            Box(
-                Modifier
-                    .offset { IntOffset(left.roundToInt(), top.roundToInt()) }
-                    .size(with(density) { anchor.width.toDp() }, with(density) { anchor.height.toDp() })
-                    .graphicsLayer {
-                        val s = 1f + LIFT_SCALE * appear.value
-                        scaleX = s
-                        scaleY = s
-                    }
-                    .shadow((LIFT_SHADOW_DP * appear.value).dp, RoundedCornerShape(LIFT_RADIUS_DP.dp))
-                    .background(MaterialTheme.colorScheme.secondaryContainer, RoundedCornerShape(LIFT_RADIUS_DP.dp)),
-            ) { lifted() }
-            val gap = with(density) { MENU_GAP_FROM_ROW_DP.dp.toPx() }
-            val edge = with(density) { MENU_EDGE_DP.dp.toPx() }
-            val below = top + anchor.height + gap + card.height <= root.height - edge
-            val cardTop = (if (below) top + anchor.height + gap else top - gap - card.height)
-                .coerceIn(edge, (root.height - edge - card.height).coerceAtLeast(edge))
-            val cardLeft = (left + edge).coerceAtMost((root.width - edge - card.width).coerceAtLeast(edge))
-            Surface(
-                shape = RoundedCornerShape(MENU_RADIUS_DP.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                shadowElevation = MENU_SHADOW_DP.dp,
-                modifier = Modifier
-                    .offset { IntOffset(cardLeft.roundToInt(), cardTop.roundToInt()) }
-                    .onSizeChanged { card = it }
-                    .graphicsLayer {
-                        transformOrigin = TransformOrigin(0.15f, if (below) 0f else 1f)
-                        val s = MENU_START_SCALE + (1f - MENU_START_SCALE) * appear.value
-                        scaleX = s
-                        scaleY = s
-                        alpha = appear.value.coerceIn(0f, 1f)
-                    },
-            ) {
-                Column(Modifier.width(IntrinsicSize.Max).padding(vertical = Grid.base.dp)) { items() }
-            }
+            Icon(Icons.favorite(liked), contentDescription = "Like", modifier = Modifier.graphicsLayer { scaleX = heart; scaleY = heart })
         }
     }
 }
 
-private const val MENU_RADIUS_DP = 16
-private const val MENU_DIM = 0.32f
-private const val MENU_BLUR_PX = 40
-private const val APPEAR_DAMPING = 0.8f
-private const val LIFT_SCALE = 0.03f
-private const val LIFT_SHADOW_DP = 8
-private const val LIFT_RADIUS_DP = 20
-private const val MENU_GAP_FROM_ROW_DP = 8
-private const val MENU_EDGE_DP = 16
-private const val MENU_SHADOW_DP = 6
-private const val MENU_START_SCALE = 0.85f
-private const val MENU_GAP_DP = 6
-private const val MENU_TEXT_SP = 15
-
+private const val HEADER_ART_DP = 56
+private const val HEADER_ART_RADIUS_DP = 14
 /** Board 13, item 2: several playlists can be ticked at once, plus a New Playlist row. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

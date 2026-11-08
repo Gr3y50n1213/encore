@@ -271,7 +271,12 @@ class CorePlayback(
             publish()
             return
         }
-        if (currentUid() == entry.uid) return
+        if (currentUid() == entry.uid) {
+            // Already loaded (the core's NowPlaying can arrive while a swipe settles, and
+            // the settle paused it): still honour "keep playing" (board 42, rule 4).
+            if (play && !exo.playWhenReady) exo.play()
+            return
+        }
         if (exo.mediaItemCount > 1 && uidAt(1) == entry.uid) {
             exo.seekToDefaultPosition(1)
             exo.removeMediaItem(0)

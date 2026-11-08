@@ -54,6 +54,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.ui.graphics.graphicsLayer
 import uk.gcartee.encore.core.SongSort
@@ -186,20 +192,29 @@ fun PageTitleRow(title: String, host: CoreHost, onProfile: () -> Unit, trailing:
     }
 }
 
-/** Board 05, item 1 and board 14: the avatar (initials until an image), a dot while changes wait to sync. */
+/**
+ * Board 05, item 1 and board 14: the avatar, the media server's picture or the initials,
+ * with a dot while changes wait to sync. It presses in a little on a spring.
+ */
 @Composable
-fun ProfileButton(host: CoreHost, onProfile: () -> Unit) {
-    val type = LocalEncoreType.current
+fun ProfileButton(host: CoreHost, onProfile: () -> Unit, size: androidx.compose.ui.unit.Dp = 48.dp) {
     val profile = remember { runCatching { host.core.profiles().firstOrNull { it.active } }.getOrNull() }
     val pending = remember { runCatching { host.core.pendingEdits() }.getOrDefault(0u) > 0u }
-    Box {
-        FilledIconButton(
-            onClick = onProfile,
-            colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest, contentColor = MaterialTheme.colorScheme.onSurface),
-            modifier = Modifier.size(48.dp).semantics { contentDescription = "Profiles and settings" },
-        ) {
-            Text(profile?.initials ?: "You", style = type.buttonLabelSelected)
-        }
+    val press = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val pressed by press.collectIsPressedAsState()
+    val scale by androidx.compose.animation.core.animateFloatAsState(if (pressed) 0.9f else 1f, androidx.compose.animation.core.spring(dampingRatio = 0.6f), label = "press")
+    Box(
+        Modifier
+            .size(size)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(CircleShape)
+            .clickable(interactionSource = press, indication = androidx.compose.material3.ripple(), onClick = onProfile)
+            .semantics { contentDescription = "Profiles and settings" },
+    ) {
+        uk.gcartee.encore.app.ui.components.ProfileAvatar(profile?.initials ?: "You", profile?.avatarUrl, size)
         if (pending) Box(Modifier.align(Alignment.TopEnd).size(10.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
     }
 }
@@ -347,7 +362,8 @@ fun ScrollToTopOn(reselect: Int, list: LazyListState) {
 /**
  * Board 23: today's mixes in a 2-column grid (3 to 5 on wider windows), each cover a
  * mosaic in its own Material shape, a small play button at its corner (44 dp hit area,
- * away from the card's tap), pinned ones first.
+ * away from the card's tap), pinned ones first. The title scrolls away with the grid, as
+ * Home's does.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -357,40 +373,45 @@ fun MixesScreen(host: CoreHost, data: HomeData, onProfile: () -> Unit, contentPa
     LaunchedEffect(Unit) { if (data.home == null) data.load() }
     val shelf = data.home?.madeForYou
     val grid = rememberLazyGridState()
-    Column(Modifier.fillMaxSize()) {
-        PageTitleRow("Mixes", host, onProfile)
-        when {
-            shelf == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator() }
-            shelf.mixes.isEmpty() -> MixesLearning(host, shelf.playsSoFar.toInt(), shelf.playsNeeded.toInt(), contentPadding)
-            else -> {
-                // Item 1: when and where they were made.
-                val count = shelf.mixes.size
-                Text(
-                    "${if (count == 1) "One new mix" else "$count new mixes"} today, made on ${if (shelf.fromCompanion) "your server" else "this device"}",
-                    style = type.caption,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = (Grid.base * 2).dp),
-                )
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(MIX_MIN_DP.dp),
-                    state = grid,
-                    contentPadding = PaddingValues(start = (Grid.base * 2).dp, end = (Grid.base * 2).dp, top = (Grid.base * 2).dp, bottom = contentPadding.calculateBottomPadding() + (Grid.base * 2).dp),
-                    horizontalArrangement = Arrangement.spacedBy((Grid.base * 2).dp),
-                    verticalArrangement = Arrangement.spacedBy((Grid.base * 3).dp),
-                ) {
-                    items(shelf.mixes.sortedByDescending { it.pinned }, key = { it.mixId }) { m ->
-                        Box {
-                            MixTile(m, wide = false, onOpen = { actions.open(Route.Mix(m.mixId)) }, modifier = Modifier.fillMaxWidth())
-                            // Item 3: play from the card.
-                            FilledIconButton(
-                                onClick = {
-                                    val ids = runCatching { host.core.mix(m.mixId).songs.map { it.song.id } }.getOrDefault(emptyList())
-                                    actions.play(ids, 0, StartedFrom.MIX, m.mixId, m.title)
-                                },
-                                modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(44.dp),
-                            ) { Icon(Icons.play(), contentDescription = "Play ${m.title}") }
-                        }
-                    }
+    when {
+        shelf == null -> Column(Modifier.fillMaxSize()) {
+            PageTitleRow("Mixes", host, onProfile)
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator() }
+        }
+        shelf.mixes.isEmpty() -> MixesLearning(host, shelf.playsSoFar.toInt(), shelf.playsNeeded.toInt(), onProfile, contentPadding)
+        else -> LazyVerticalGrid(
+            columns = GridCells.Adaptive(MIX_MIN_DP.dp),
+            state = grid,
+            contentPadding = PaddingValues(start = (Grid.base * 2).dp, end = (Grid.base * 2).dp, bottom = contentPadding.calculateBottomPadding() + (Grid.base * 2).dp),
+            horizontalArrangement = Arrangement.spacedBy((Grid.base * 2).dp),
+            verticalArrangement = Arrangement.spacedBy((Grid.base * 3).dp),
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+                // The grid pads its sides; the title row brings its own padding, so it bleeds.
+                Column(Modifier.bleed((Grid.base * 2).dp)) {
+                    PageTitleRow("Mixes", host, onProfile)
+                    // Item 1: when and where they were made.
+                    val count = shelf.mixes.size
+                    Text(
+                        "${if (count == 1) "One new mix" else "$count new mixes"} today, made on ${if (shelf.fromCompanion) "your server" else "this device"}",
+                        style = type.caption,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = (Grid.base * 2).dp, end = (Grid.base * 2).dp, top = Grid.base.dp),
+                    )
+                }
+            }
+            items(shelf.mixes.sortedByDescending { it.pinned }, key = { it.mixId }) { m ->
+                Box {
+                    MixTile(m, wide = false, onOpen = { actions.open(Route.Mix(m.mixId)) }, modifier = Modifier.fillMaxWidth())
+                    // Item 3: play from the card.
+                    FilledIconButton(
+                        onClick = {
+                            val ids = runCatching { host.core.mix(m.mixId).songs.map { it.song.id } }.getOrDefault(emptyList())
+                            actions.play(ids, 0, StartedFrom.MIX, m.mixId, m.title)
+                        },
+                        modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(44.dp),
+                    ) { Icon(Icons.play(), contentDescription = "Play ${m.title}") }
                 }
             }
         }
@@ -398,104 +419,72 @@ fun MixesScreen(host: CoreHost, data: HomeData, onProfile: () -> Unit, contentPa
 }
 
 /**
- * Boards 15, 23 and 38, before there are any mixes: the card says Encore is still learning
- * with the plays so far on a progress line and a Play something button (board 15, "Not
- * enough history"); under it the four mix shapes wait as tonal placeholders, two turning
- * slowly and two breathing, so the tab looks like it is working on them. Reduce Motion
- * keeps them still.
+ * Boards 15, 23 and 38, before there are any mixes: the learning animation, what is
+ * happening in one plain sentence, the plays so far on a progress line and Play something
+ * (board 15, "Not enough history"). It scrolls, title and all, on small screens.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun MixesLearning(host: CoreHost, plays: Int, needed: Int, contentPadding: PaddingValues) {
+private fun MixesLearning(host: CoreHost, plays: Int, needed: Int, onProfile: () -> Unit, contentPadding: PaddingValues) {
     val type = LocalEncoreType.current
     val actions = LocalAppActions.current
     val scheme = MaterialTheme.colorScheme
-    val still = uk.gcartee.encore.app.ui.onboarding.reduceMotion()
-    val motion = androidx.compose.animation.core.rememberInfiniteTransition(label = "learning")
-    val turn by motion.animateFloat(
-        0f, 360f,
-        androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(LEARNING_TURN_MS, easing = androidx.compose.animation.core.LinearEasing)),
-        label = "turn",
-    )
-    val breathe by motion.animateFloat(
-        LEARNING_BREATHE_MIN, 1f,
-        androidx.compose.animation.core.infiniteRepeatable(
-            androidx.compose.animation.core.tween(LEARNING_BREATHE_MS, easing = androidx.compose.animation.core.FastOutSlowInEasing),
-            androidx.compose.animation.core.RepeatMode.Reverse,
-        ),
-        label = "breathe",
-    )
-    val shapes = remember { listOf(MaterialShapes.Cookie9Sided, MaterialShapes.Square, MaterialShapes.Arch, MaterialShapes.Clover4Leaf).map { PolygonShape(it) } }
-    val tones = listOf(scheme.primaryContainer, scheme.tertiaryContainer, scheme.secondaryContainer, scheme.surfaceContainerHighest)
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(MIX_MIN_DP.dp),
-        contentPadding = PaddingValues(start = (Grid.base * 2).dp, end = (Grid.base * 2).dp, top = Grid.base.dp, bottom = contentPadding.calculateBottomPadding() + (Grid.base * 2).dp),
-        horizontalArrangement = Arrangement.spacedBy((Grid.base * 2).dp),
-        verticalArrangement = Arrangement.spacedBy((Grid.base * 3).dp),
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = contentPadding.calculateBottomPadding() + (Grid.base * 2).dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
-            Surface(color = scheme.surfaceContainer, shape = androidx.compose.foundation.shape.RoundedCornerShape(LEARNING_CARD_RADIUS_DP.dp)) {
-                Column(Modifier.fillMaxWidth().padding((Grid.base * 2.5f).dp)) {
-                    Text("Encore is still learning", style = type.sectionHeader)
-                    Spacer(Modifier.height(4.dp))
-                    Text("Play a few more songs and your mixes will start. They're made on this phone, from what you play.", style = type.body, color = scheme.onSurfaceVariant)
-                    Spacer(Modifier.height((Grid.base * 2).dp))
-                    androidx.compose.material3.LinearWavyProgressIndicator(
-                        progress = { if (needed > 0) (plays.toFloat() / needed).coerceIn(0f, 1f) else 0f },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(Modifier.height((Grid.base * 1.5f).dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("$plays of $needed plays", style = type.caption, color = scheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-                        androidx.compose.material3.Button(onClick = {
-                            val ids = runCatching { host.core.songs(SongSort.RECENTLY_ADDED, 0u, PLAY_SOMETHING_SONGS.toUInt()).map { it.id } }.getOrDefault(emptyList())
-                            if (ids.isNotEmpty()) actions.play(ids, ids.indices.random(), StartedFrom.SONGS, null, "Your library", shuffle = true)
-                        }) {
-                            Icon(Icons.shuffle(), contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(Grid.base.dp))
-                            Text("Play something")
-                        }
-                    }
-                }
-            }
+        PageTitleRow("Mixes", host, onProfile)
+        Spacer(Modifier.height((Grid.base * 3).dp))
+        LearningOrb(Modifier.size(LEARNING_ORB_DP.dp))
+        Spacer(Modifier.height((Grid.base * 3).dp))
+        Text("Encore is learning your taste", style = type.collectionTitle.copy(fontSize = LEARNING_TITLE_SP.sp), textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(horizontal = (Grid.base * 4).dp))
+        Spacer(Modifier.height(Grid.base.dp))
+        Text(
+            "Keep listening and your mixes will appear here. They're made on this phone, from what you play.",
+            style = type.body.copy(fontSize = 15.sp, lineHeight = 21.sp),
+            color = scheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.padding(horizontal = (Grid.base * 4).dp),
+        )
+        Spacer(Modifier.height((Grid.base * 3).dp))
+        Column(Modifier.padding(horizontal = (Grid.base * 5).dp).fillMaxWidth()) {
+            androidx.compose.material3.LinearWavyProgressIndicator(
+                progress = { if (needed > 0) (plays.toFloat() / needed).coerceIn(0f, 1f) else 0f },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(Grid.base.dp))
+            Text("$plays of $needed plays", style = type.caption, color = scheme.onSurfaceVariant, modifier = Modifier.align(Alignment.CenterHorizontally))
         }
-        items(shapes.size) { i ->
-            Column(Modifier.semantics { contentDescription = "A mix being made" }) {
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f)
-                        .graphicsLayer {
-                            if (!still) {
-                                // Cookie and clover turn, opposite ways; squircle and arch breathe.
-                                if (i % 3 == 0) rotationZ = if (i == 0) turn else -turn
-                                else {
-                                    scaleX = breathe
-                                    scaleY = breathe
-                                }
-                            }
-                        }
-                        .clip(shapes[i])
-                        .background(tones[i]),
-                )
-                Spacer(Modifier.height(Grid.base.dp))
-                // Where the title and line will go.
-                Box(Modifier.fillMaxWidth(0.7f).height(14.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(7.dp)).background(scheme.surfaceContainerHighest))
-                Spacer(Modifier.height(6.dp))
-                Box(Modifier.fillMaxWidth(0.45f).height(10.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(5.dp)).background(scheme.surfaceContainerHigh))
-            }
+        Spacer(Modifier.height((Grid.base * 3).dp))
+        androidx.compose.material3.Button(
+            onClick = {
+                val ids = runCatching { host.core.songs(SongSort.RECENTLY_ADDED, 0u, PLAY_SOMETHING_SONGS.toUInt()).map { it.id } }.getOrDefault(emptyList())
+                if (ids.isNotEmpty()) actions.play(ids, ids.indices.random(), StartedFrom.SONGS, null, "Your library", shuffle = true)
+            },
+            modifier = Modifier.height(56.dp),
+        ) {
+            Icon(Icons.shuffle(), contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(Grid.base.dp))
+            Text("Play something", style = type.sectionHeader.copy(fontSize = 16.sp))
         }
     }
 }
 
-private const val LEARNING_TURN_MS = 24_000
+/** Lets a full-width item ignore [horizontal] of its list's side padding on each side. */
+fun Modifier.bleed(horizontal: androidx.compose.ui.unit.Dp): Modifier = this.then(
+    Modifier.layout { measurable, constraints ->
+        val extra = horizontal.roundToPx()
+        val wide = constraints.copy(minWidth = constraints.minWidth + 2 * extra, maxWidth = constraints.maxWidth + 2 * extra)
+        val placeable = measurable.measure(wide)
+        layout(constraints.maxWidth, placeable.height) { placeable.place(-extra, 0) }
+    },
+)
+
 // Two columns even with a large display size (the S20 FE at its zoom is about 360 dp wide).
 private const val MIX_MIN_DP = 128
-private const val LEARNING_BREATHE_MS = 2_400
-private const val LEARNING_BREATHE_MIN = 0.94f
-private const val LEARNING_CARD_RADIUS_DP = 24
+private const val LEARNING_ORB_DP = 240
+private const val LEARNING_TITLE_SP = 26
 private const val PLAY_SOMETHING_SONGS = 300
-
 // Board 05's sizes, measured from the Android render.
 private const val CAROUSEL_ITEM_DP = 220
 // Board 05: the large tile is wider than tall (about 220 by 176 dp), its labels below.

@@ -13,6 +13,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.ui.draw.clip
 import kotlin.math.abs
 import androidx.compose.foundation.layout.Arrangement
@@ -72,9 +77,13 @@ private sealed interface LyricsLoad {
     data class Ready(val lyrics: SongLyrics) : LyricsLoad
 }
 
-/** Board 10, drawn in place of the artwork on Now Playing (item 8). */
+/**
+ * Board 10, drawn in place of the artwork on Now Playing (item 8). [position] is the
+ * frame-time playing position (ScrubBar's rememberSmoothPosition), read where it is drawn
+ * so lines change on time and words fill smoothly without recomposing the list each frame.
+ */
 @Composable
-fun LyricsPanel(host: CoreHost, song: Song, positionMs: Long, colour: Color, onSeek: (Long) -> Unit, modifier: Modifier = Modifier) {
+fun LyricsPanel(host: CoreHost, song: Song, position: () -> Long, colour: Color, onSeek: (Long) -> Unit, modifier: Modifier = Modifier) {
     val type = LocalEncoreType.current
     var load by remember(song.id) { mutableStateOf<LyricsLoad>(LyricsLoad.Loading) }
     LaunchedEffect(song.id) {
@@ -90,22 +99,24 @@ fun LyricsPanel(host: CoreHost, song: Song, positionMs: Long, colour: Color, onS
         LyricsLoad.None -> Box(modifier, contentAlignment = Alignment.Center) {
             Text("No lyrics for this song", style = type.sectionHeader, color = colour.copy(alpha = 0.72f))
         }
-        is LyricsLoad.Ready -> Lines(host, l.lyrics, positionMs, colour, onSeek, modifier)
+        is LyricsLoad.Ready -> Lines(host, l.lyrics, position, colour, onSeek, modifier)
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Lines(host: CoreHost, lyrics: SongLyrics, positionMs: Long, colour: Color, onSeek: (Long) -> Unit, modifier: Modifier) {
+private fun Lines(host: CoreHost, lyrics: SongLyrics, position: () -> Long, colour: Color, onSeek: (Long) -> Unit, modifier: Modifier) {
     val type = LocalEncoreType.current
     val still = reduceMotion()
     val synced = lyrics.syncLevel != LyricsSync.UNSYNCED
-    // After a tap the highlight moves at once; the player's reported position catches up a
-    // moment later and takes over, so the lines never flick back to where they were.
+    // After a tap the highlight moves at once; the player's position catches up a moment
+    // later and takes over, so the lines never flick back to where they were.
     var pending by remember { mutableStateOf<Long?>(null) }
-    LaunchedEffect(positionMs) {
-        val p = pending
-        if (p != null && abs(positionMs - p) < CAUGHT_UP_MS) pending = null
+    LaunchedEffect(Unit) {
+        snapshotFlow { position() }.collect { p ->
+            val want = pending
+            if (want != null && abs(p - want) < CAUGHT_UP_MS) pending = null
+        }
     }
     LaunchedEffect(pending) {
         if (pending != null) {
@@ -113,8 +124,11 @@ private fun Lines(host: CoreHost, lyrics: SongLyrics, positionMs: Long, colour: 
             pending = null
         }
     }
-    val at = pending ?: positionMs
-    val current = if (synced) lyrics.lines.indexOfLast { (it.startMs ?: Long.MAX_VALUE) <= at } else -1
+    // A line lights a moment early, so the change has finished as the singing starts.
+    val at: () -> Long = { (pending ?: position()) + LEAD_MS }
+    val current by remember(lyrics) {
+        derivedStateOf { if (synced) lyrics.lines.indexOfLast { (it.startMs ?: Long.MAX_VALUE) <= at() } else -1 }
+    }
     val list = rememberLazyListState()
     var lastTouchEnd by remember { mutableLongStateOf(0L) }
     var back by remember { mutableStateOf<Long?>(null) }
@@ -141,7 +155,14 @@ private fun Lines(host: CoreHost, lyrics: SongLyrics, positionMs: Long, colour: 
         // list's top padding counts, and the first placement waits for the list's size.
         val height = snapshotFlow { list.layoutInfo.viewportSize.height }.first { it > 0 }
         val offset = list.layoutInfo.beforeContentPadding - (height * ACTIVE_LINE_FROM_TOP).toInt()
-        if (still || !placed) list.scrollToItem(current, offset) else list.animateScrollToItem(current, offset)
+        val index = current + if (synced) 0 else 1
+        val seen = list.layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
+        when {
+            still || !placed -> list.scrollToItem(index, offset)
+            // One unhurried glide to the next line instead of a spring that overshoots.
+            seen != null -> list.animateScrollBy((seen.offset + offset).toFloat(), tween(LINE_SCROLL_MS, easing = FastOutSlowInEasing))
+            else -> list.animateScrollToItem(index, offset)
+        }
         placed = true
     }
     LaunchedEffect(back) {
@@ -152,7 +173,7 @@ private fun Lines(host: CoreHost, lyrics: SongLyrics, positionMs: Long, colour: 
     }
 
     if (lyrics.instrumental) {
-        Box(modifier, contentAlignment = Alignment.Center) { BreathingDots(colour, 1f) }
+        Box(modifier, contentAlignment = Alignment.Center) { BreathingDots(colour) { 1f } }
         return
     }
     Box(modifier) {
@@ -163,18 +184,21 @@ private fun Lines(host: CoreHost, lyrics: SongLyrics, positionMs: Long, colour: 
             itemsIndexed(lyrics.lines) { i, line ->
                 val past = synced && i < current
                 val active = synced && i == current
-                val alpha by animateFloatAsState(
+                val lineAlpha by animateFloatAsState(
                     when {
                         !synced -> 1f
                         active -> 1f
                         past -> PAST_ALPHA
                         else -> UPCOMING_ALPHA
                     },
+                    tween(LINE_FADE_MS),
                     label = "line",
                 )
-                val gapBefore = lyrics.gaps.firstOrNull { g ->
-                    ((g.afterLine?.toInt() ?: -1) == i - 1) && positionMs in g.startMs until g.endMs
-                }
+                // The sung line grows a touch; the others settle back, all on one curve.
+                val scale by animateFloatAsState(if (active || !synced) 1f else IDLE_SCALE, tween(LINE_FADE_MS, easing = FastOutSlowInEasing), label = "scale")
+                val blurDp by animateFloatAsState(if (past) PAST_BLUR_DP else 0f, tween(LINE_FADE_MS), label = "blur")
+                val gap = remember(i) { lyrics.gaps.firstOrNull { g -> (g.afterLine?.toInt() ?: -1) == i - 1 } }
+                val inGap by remember(i) { derivedStateOf { gap != null && position() in gap.startMs until gap.endMs } }
                 Column(
                     Modifier
                         .fillMaxWidth()
@@ -182,7 +206,7 @@ private fun Lines(host: CoreHost, lyrics: SongLyrics, positionMs: Long, colour: 
                         .clickable(enabled = synced && line.startMs != null) {
                             val start = line.startMs ?: return@clickable
                             // Item 7: tap plays from the line and offers the way back.
-                            back = positionMs
+                            back = position()
                             pending = start
                             onSeek(start)
                             runCatching { host.core.lyricLineTapped(i.toUInt(), start) }
@@ -190,15 +214,28 @@ private fun Lines(host: CoreHost, lyrics: SongLyrics, positionMs: Long, colour: 
                         .padding(horizontal = (Grid.base * 2).dp, vertical = 10.dp),
                     horizontalAlignment = if (line.side == LyricSide.OPPOSITE) Alignment.End else Alignment.Start,
                 ) {
-                    gapBefore?.let { g ->
-                        BreathingDots(colour, ((positionMs - g.startMs).toFloat() / (g.endMs - g.startMs)).coerceIn(0f, 1f))
+                    // Item 6: the dots open and close smoothly instead of popping in, so the
+                    // move from an instrumental gap to the next line does not jump.
+                    androidx.compose.animation.AnimatedVisibility(
+                        inGap,
+                        enter = androidx.compose.animation.expandVertically(tween(LINE_FADE_MS)) + fadeIn(tween(LINE_FADE_MS)),
+                        exit = androidx.compose.animation.shrinkVertically(tween(LINE_FADE_MS)) + fadeOut(tween(LINE_FADE_MS / 2)),
+                    ) {
+                        val g = gap
+                        BreathingDots(colour) { if (g == null) 0f else ((position() - g.startMs).toFloat() / (g.endMs - g.startMs)).coerceIn(0f, 1f) }
                     }
+                    val opposite = line.side == LyricSide.OPPOSITE
                     val lineModifier = Modifier
-                        .alpha(alpha)
-                        .let { if (past && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) it.blur(PAST_BLUR_DP.dp) else it }
+                        .graphicsLayer {
+                            alpha = lineAlpha
+                            scaleX = scale
+                            scaleY = scale
+                            transformOrigin = TransformOrigin(if (opposite) 1f else 0f, 0.5f)
+                        }
+                        .let { if (blurDp > 0.05f && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) it.blur(blurDp.dp) else it }
                     if (active && line.words.isNotEmpty()) {
-                        FlowRow(lineModifier, horizontalArrangement = if (line.side == LyricSide.OPPOSITE) Arrangement.End else Arrangement.Start) {
-                            line.words.forEach { w -> SungWord(w, positionMs, colour) }
+                        FlowRow(lineModifier, horizontalArrangement = if (opposite) Arrangement.End else Arrangement.Start) {
+                            line.words.forEach { w -> SungWord(w, position, colour) }
                         }
                     } else {
                         Text(
@@ -214,7 +251,7 @@ private fun Lines(host: CoreHost, lyrics: SongLyrics, positionMs: Long, colour: 
                         Text(bg.text, style = type.lyricLine.copy(fontSize = type.lyricLine.fontSize * 0.65f), color = colour.copy(alpha = 0.6f))
                     }
                     line.translation?.let {
-                        Text(it, style = type.lyricLine.copy(fontSize = type.lyricLine.fontSize * 0.6f), color = colour.copy(alpha = 0.6f * alpha))
+                        Text(it, style = type.lyricLine.copy(fontSize = type.lyricLine.fontSize * 0.6f), color = colour.copy(alpha = 0.6f * lineAlpha))
                     }
                 }
             }
@@ -234,10 +271,9 @@ private fun Lines(host: CoreHost, lyrics: SongLyrics, positionMs: Long, colour: 
 
 /** Each word fills left to right across its own sung time, with a soft edge. */
 @Composable
-private fun SungWord(w: LyricWord, positionMs: Long, colour: Color) {
+private fun SungWord(w: LyricWord, position: () -> Long, colour: Color) {
     val type = LocalEncoreType.current
     val span = (w.endMs - w.startMs).coerceAtLeast(1)
-    val fill = ((positionMs - w.startMs).toFloat() / span).coerceIn(0f, 1f)
     Box {
         Text(w.text + if (w.spaceAfter) " " else "", style = type.lyricLine, color = colour.copy(alpha = UPCOMING_ALPHA))
         Text(
@@ -246,6 +282,8 @@ private fun SungWord(w: LyricWord, positionMs: Long, colour: Color) {
             color = colour,
             modifier = Modifier.drawWithContent {
                 val word = this
+                // Read while drawing: the fill moves every frame without recomposing.
+                val fill = ((position() + LEAD_MS - w.startMs).toFloat() / span).coerceIn(0f, 1f)
                 clipRect(right = size.width * fill) { word.drawContent() }
             },
         )
@@ -254,12 +292,16 @@ private fun SungWord(w: LyricWord, positionMs: Long, colour: Color) {
 
 /** Item 6: three dots breathe in time and fill one by one before the next line. */
 @Composable
-private fun BreathingDots(colour: Color, progress: Float) {
+private fun BreathingDots(colour: Color, progress: () -> Float) {
     val breathe by rememberInfiniteTransition(label = "dots").animateFloat(0.85f, 1.15f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "b")
-    Row(Modifier.padding(vertical = 8.dp).clearAndSetSemantics { }, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    // Drawn, not composed: each dot brightens smoothly as its third of the gap passes.
+    androidx.compose.foundation.Canvas(Modifier.padding(vertical = 8.dp).size(width = DOTS_W_DP.dp, height = DOTS_H_DP.dp).clearAndSetSemantics { }) {
+        val p = progress()
+        val r = 5.dp.toPx() * breathe
+        val step = 20.dp.toPx()
         repeat(3) { i ->
-            val lit = progress >= (i + 1) / 3f
-            Box(Modifier.size((10 * breathe).dp).background(colour.copy(alpha = if (lit) 1f else 0.35f), CircleShape))
+            val lit = ((p - i / 3f) * 3f).coerceIn(0f, 1f)
+            drawCircle(colour.copy(alpha = 0.35f + 0.65f * lit), r, androidx.compose.ui.geometry.Offset(r + 2.dp.toPx() + i * step, size.height / 2))
         }
     }
 }
@@ -267,6 +309,12 @@ private fun BreathingDots(colour: Color, progress: Float) {
 private const val PAST_ALPHA = 0.4f
 private const val UPCOMING_ALPHA = 0.55f
 private const val PAST_BLUR_DP = 1.2f
+private const val LEAD_MS = 150L
+private const val LINE_SCROLL_MS = 650
+private const val LINE_FADE_MS = 450
+private const val IDLE_SCALE = 0.96f
+private const val DOTS_W_DP = 56
+private const val DOTS_H_DP = 16
 private const val BACK_PILL_MS = 4_000L
 
 private const val ACTIVE_LINE_FROM_TOP = 0.3f

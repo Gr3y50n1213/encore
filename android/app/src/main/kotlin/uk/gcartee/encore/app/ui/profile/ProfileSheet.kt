@@ -137,9 +137,13 @@ fun ProfileSheet(host: CoreHost, playing: Boolean, onDismiss: () -> Unit, onSwit
                             .semantics { stateDescription = if (p.active) "Current profile" else if (p.needsSignIn) "Sign in again" else "" },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Avatar(if (p.active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest) {
-                            Text(p.initials, style = type.buttonLabelSelected, color = if (p.active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+                        uk.gcartee.encore.app.ui.components.ProfileAvatar(
+                            p.initials,
+                            p.avatarUrl,
+                            AVATAR_DP.dp,
+                            container = if (p.active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
+                            content = if (p.active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                         Spacer(Modifier.width((Grid.base * 2).dp))
                         Column(Modifier.weight(1f)) {
                             Text(p.displayName, style = type.listRowTitle)

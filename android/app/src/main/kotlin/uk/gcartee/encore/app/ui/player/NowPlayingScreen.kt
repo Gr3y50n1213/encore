@@ -115,6 +115,9 @@ fun NowPlayingScreen(
     var panel by rememberSaveable { mutableStateOf(PlayerPanel.Artwork) }
     var liked by remember(song.id) { mutableStateOf(actions.isLiked(song)) }
     var scrubbing by remember { mutableStateOf<Long?>(null) }
+    // The position on frame time, read where it is drawn (the bar, the lyrics).
+    val smooth = rememberSmoothPosition(state.positionMs, state.isPlaying, state.durationMs)
+    val position: () -> Long = { scrubbing ?: smooth.value }
     var scrubHeld by remember { mutableStateOf(false) }
     var menu by remember { mutableStateOf(false) }
     var moreMenu by remember { mutableStateOf(false) }
@@ -141,21 +144,41 @@ fun NowPlayingScreen(
         }
     }
 
+    var fullHeight by remember { mutableStateOf(1f) }
     BoxWithConstraints(
         Modifier
             .fillMaxSize()
-            .graphicsLayer { translationY = drag.value }
+            .graphicsLayer {
+                // Item 1: the screen follows the finger down, shrinking a little, rounding
+                // its corners and dimming, so it reads as settling into the mini player.
+                translationY = drag.value
+                val p = (drag.value / fullHeight).coerceIn(0f, 1f)
+                val s = 1f - COLLAPSE_SHRINK * p
+                scaleX = s
+                scaleY = s
+                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f)
+                shape = androidx.compose.foundation.shape.RoundedCornerShape((COLLAPSE_RADIUS_DP * p).dp)
+                clip = p > 0f
+                alpha = 1f - COLLAPSE_FADE * p
+            }
             .pointerInput(scrubHeld) {
                 if (scrubHeld) return@pointerInput
                 val height = size.height.toFloat()
+                fullHeight = height
+                val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
+                val flick = COLLAPSE_FLICK_DP.dp.toPx()
                 detectVerticalDragGestures(
+                    onDragStart = { tracker.resetTracking() },
                     onDragEnd = {
+                        val velocity = tracker.calculateVelocity().y
                         scope.launch {
-                            if (drag.value > height * COLLAPSE_FRACTION) {
+                            if (drag.value > height * COLLAPSE_FRACTION || velocity > flick) {
+                                // Carry on down from where the finger let go, at its speed,
+                                // then close: no snap back to the top before the exit.
+                                drag.animateTo(height, androidx.compose.animation.core.spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow), initialVelocity = velocity.coerceAtLeast(0f))
                                 onCollapse()
-                                drag.snapTo(0f)
                             } else {
-                                drag.animateTo(0f, spring())
+                                drag.animateTo(0f, androidx.compose.animation.core.spring(dampingRatio = 0.8f, stiffness = androidx.compose.animation.core.Spring.StiffnessMedium), initialVelocity = velocity)
                             }
                         }
                     },
@@ -163,6 +186,7 @@ fun NowPlayingScreen(
                 ) { change, amount ->
                     if (drag.value + amount < 0f) return@detectVerticalDragGestures
                     change.consume()
+                    tracker.addPosition(change.uptimeMillis, androidx.compose.ui.geometry.Offset(0f, drag.value + amount))
                     scope.launch { drag.snapTo(drag.value + amount) }
                 }
             },
@@ -186,10 +210,7 @@ fun NowPlayingScreen(
                     }
                 }
                 Box {
-                    FilledTonalIconButton(
-                        onClick = { moreMenu = true },
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = content.copy(alpha = 0.16f), contentColor = content),
-                    ) { Icon(Icons.more(), contentDescription = "More") }
+                    MoreButton(moreMenu, content) { moreMenu = true }
                     // Item 4: the artwork's menu plus Private listening (Sleep Timer is Phase 9).
                     SongMenu(
                         song,
@@ -224,7 +245,7 @@ fun NowPlayingScreen(
                             if (!liked) toggleLike(true) else haptics.perform(Haptic.Confirm)
                             heart = true
                         }, onMenu = { menu = true }, onEnd = { endOfQueue = it })
-                        PlayerPanel.Lyrics -> LyricsPanel(host, song, scrubbing ?: state.positionMs, content, onSeek = { PlaybackHub.seekAndPlay(context, it) }, modifier = Modifier.fillMaxSize())
+                        PlayerPanel.Lyrics -> LyricsPanel(host, song, position, content, onSeek = { PlaybackHub.seekAndPlay(context, it) }, modifier = Modifier.fillMaxSize())
                         PlayerPanel.Queue -> QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize().fadingEdges(), onColour = colours.base)
                     }
                 }
@@ -284,6 +305,7 @@ fun NowPlayingScreen(
                     Spacer(Modifier.height(Grid.base.dp))
                     // Item 5.
                     ScrubBar(
+                        smooth = { smooth.value },
                         positionMs = state.positionMs,
                         durationMs = state.durationMs,
                         playing = state.isPlaying,
@@ -382,17 +404,14 @@ fun NowPlayingScreen(
                         }
                     }
                     Box {
-                        FilledTonalIconButton(
-                            onClick = { moreMenu = true },
-                            colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = content.copy(alpha = 0.16f), contentColor = content),
-                        ) { Icon(Icons.more(), contentDescription = "More") }
+                        MoreButton(moreMenu, content) { moreMenu = true }
                         SongMenu(song, expanded = moreMenu, onDismiss = { moreMenu = false }, place = MenuPlace(chosenBy = entry.chosenBy))
                     }
                 }
                 // Lyrics and the Queue sit straight on the field, fading at their edges.
                 Box(Modifier.weight(1f).fillMaxWidth().fadingEdges()) {
                     when (panel) {
-                        PlayerPanel.Lyrics -> LyricsPanel(host, song, scrubbing ?: state.positionMs, content, onSeek = { PlaybackHub.seekAndPlay(context, it) }, modifier = Modifier.fillMaxSize())
+                        PlayerPanel.Lyrics -> LyricsPanel(host, song, position, content, onSeek = { PlaybackHub.seekAndPlay(context, it) }, modifier = Modifier.fillMaxSize())
                         else -> QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize(), onColour = colours.base)
                     }
                 }
@@ -421,7 +440,7 @@ private fun ArtworkArea(
     val context = LocalContext.current
     val haptics = rememberHaptics()
     val still = reduceMotion()
-    val scale by animateFloatAsState(if (state.isPlaying || still) 1f else PAUSED_SCALE, label = "art")
+    val scale by animateFloatAsState(if (state.isPlaying || still) 1f else PAUSED_SCALE, androidx.compose.animation.core.spring(dampingRatio = ART_DAMPING, stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow), label = "art")
     val wide = LocalConfiguration.current.screenWidthDp
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         SkipSwipe(
@@ -443,7 +462,13 @@ private fun ArtworkArea(
                         scaleY = s
                     }
                     .combinedClickable(
-                        onClick = {},
+                        // The owner: a tap on the cover plays or pauses, like the button; the
+                        // cover shrinks to 88 % paused and grows back playing (item 2).
+                        onClick = {
+                            haptics.perform(Haptic.Transport)
+                            PlaybackHub.togglePlay(context)
+                        },
+                        onClickLabel = if (state.isPlaying) "Pause" else "Play",
                         onDoubleClick = onLike,
                         onLongClick = {
                             haptics.perform(Haptic.LongPress)
@@ -462,7 +487,36 @@ private fun ArtworkArea(
 }
 
 private const val PAUSED_SCALE = 0.88f
+private const val COLLAPSE_SHRINK = 0.1f
+private const val COLLAPSE_RADIUS_DP = 36
+private const val COLLAPSE_FADE = 0.35f
+private const val COLLAPSE_FLICK_DP = 900
+private const val ART_DAMPING = 0.7f
 private const val COMPACT_ART_DP = 52
+
+/**
+ * More, on the field: round at rest, it squeezes when pressed and stays a squircle while
+ * its sheet is open (board 35's toggle rule), so it is clear what opened the sheet.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun MoreButton(open: Boolean, content: Color, onOpen: () -> Unit) {
+    androidx.compose.material3.FilledTonalIconToggleButton(
+        checked = open,
+        onCheckedChange = { onOpen() },
+        shapes = IconButtonDefaults.toggleableShapes(
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
+            pressedShape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+            checkedShape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+        ),
+        colors = IconButtonDefaults.filledTonalIconToggleButtonColors(
+            containerColor = content.copy(alpha = 0.16f),
+            contentColor = content,
+            checkedContainerColor = content.copy(alpha = 0.30f),
+            checkedContentColor = content,
+        ),
+    ) { Icon(Icons.more(), contentDescription = "More") }
+}
 private const val ART_MAX_DP = 420
 private const val ART_RADIUS_DP = 28
 private const val COLLAPSE_FRACTION = 0.3f

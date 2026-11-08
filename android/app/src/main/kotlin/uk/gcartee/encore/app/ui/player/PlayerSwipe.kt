@@ -76,6 +76,28 @@ fun SkipSwipe(
         }
     }
     val hero = spring<Float>(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMediumLow)
+    // A committed skip always plays the whole slide, however light the flick, on one curve.
+    val commit = androidx.compose.animation.core.tween<Float>(COMMIT_MS, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+    // After the slide the neighbour stays in place until the new song is current, so the
+    // song just left never flashes back for a frame.
+    var committing by remember { mutableStateOf(false) }
+    LaunchedEffect(current?.uid) {
+        if (committing) {
+            offset.snapTo(0f)
+            neighbour = null
+            committing = false
+        }
+    }
+    LaunchedEffect(committing) {
+        if (committing) {
+            delay(COMMIT_TIMEOUT_MS)
+            if (committing) {
+                offset.animateTo(0f, hero)
+                neighbour = null
+                committing = false
+            }
+        }
+    }
 
     Box(
         modifier
@@ -138,10 +160,15 @@ fun SkipSwipe(
                     if (horizontal == true && (armed || flicked)) {
                         if (flicked && !armed) haptics.perform(Haptic.Armed)
                         scope.launch {
-                            if (!still) offset.animateTo(if (raw < 0) -width.toFloat() else width.toFloat(), hero)
-                            if (forward) onNext() else onPrevious()
-                            offset.snapTo(0f)
-                            neighbour = null
+                            if (still) {
+                                if (forward) onNext() else onPrevious()
+                                offset.snapTo(0f)
+                                neighbour = null
+                            } else {
+                                offset.animateTo(if (raw < 0) -width.toFloat() else width.toFloat(), commit)
+                                committing = true
+                                if (forward) onNext() else onPrevious()
+                            }
                         }
                     } else {
                         if (horizontal == true && atEnd) endShown = true
@@ -156,16 +183,22 @@ fun SkipSwipe(
         val x = if (still) 0f else offset.value
         Box(Modifier.fillMaxWidth().graphicsLayer {
             translationX = x
-            // The song you are leaving dims and shrinks a little.
+            // The song you are leaving fades out as it goes and shrinks a little.
             val f = (abs(x) / (width.coerceAtLeast(1))).coerceIn(0f, 1f)
-            alpha = 1f - 0.4f * f
-            scaleX = 1f - 0.06f * f
-            scaleY = 1f - 0.06f * f
+            alpha = 1f - f
+            scaleX = 1f - 0.08f * f
+            scaleY = 1f - 0.08f * f
         }) { content(current, Slot.Current) }
         if (neighbour != null && x != 0f) {
-            // The song you head to arrives from the side you drag toward.
+            // The song you head to arrives from the side you drag toward, fading in.
             val from = if (x < 0) width.toFloat() else -width.toFloat()
-            Box(Modifier.fillMaxWidth().graphicsLayer { translationX = from + x }) { content(neighbour, Slot.Neighbour) }
+            Box(Modifier.fillMaxWidth().graphicsLayer {
+                translationX = from + x
+                alpha = (abs(x) / (width.coerceAtLeast(1))).coerceIn(0f, 1f)
+            }) { content(neighbour, Slot.Neighbour) }
         }
     }
 }
+
+private const val COMMIT_MS = 320
+private const val COMMIT_TIMEOUT_MS = 1_500L

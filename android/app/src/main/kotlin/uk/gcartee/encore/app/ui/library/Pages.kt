@@ -206,6 +206,20 @@ private fun iconButton(tint: PageTint, icon: androidx.compose.ui.graphics.painte
     else -> GroupButton(null, tint.content.copy(alpha = 0.16f), tint.content, icon = icon, description = description, weight = ICON_WEIGHT, onClick = onClick)
 }
 
+/** The head of an album's or mix's action sheet: its cover, title and one line. */
+@Composable
+private fun SheetHeader(title: String, line: String?, cover: @Composable () -> Unit) {
+    val type = LocalEncoreType.current
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        cover()
+        Spacer(Modifier.width((Grid.base * 2).dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, style = type.sectionHeader, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            line?.let { Text(it, style = type.body, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
+        }
+    }
+}
+
 /** Board 08, item 1: Back and More, tonal rounded squares that round fully when pressed. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -254,10 +268,22 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
                         var open by remember { mutableStateOf(false) }
                         Box {
                             PageButton(tint, { open = true }) { Icon(Icons.more(), contentDescription = "More") }
-                            DropdownMenu(open, onDismissRequest = { open = false }) {
-                                DropdownMenuItem(text = { Text("Play next") }, onClick = { open = false; actions.playNext(detail.songs) })
-                                DropdownMenuItem(text = { Text("Add to queue") }, onClick = { open = false; actions.addToQueue(detail.songs) })
-                                DropdownMenuItem(text = { Text("Go to artist") }, onClick = { open = false; detail.songs.firstOrNull()?.let(actions::goToArtist) })
+                            // Item 1's More, in the app's one action sheet.
+                            if (open) {
+                                val next = Icons.playNext()
+                                val queue = Icons.queue()
+                                val download = Icons.download()
+                                val artistIcon = Icons.artist()
+                                uk.gcartee.encore.app.ui.components.ActionSheet(
+                                    onDismiss = { open = false },
+                                    header = { SheetHeader(album.title, album.artist) { Artwork(ArtworkOf.ALBUM, album.id, 56.dp, Modifier.size(56.dp), cornerRadius = 14.dp) } },
+                                    quick = listOf(
+                                        uk.gcartee.encore.app.ui.components.SheetAction("Play next", next) { actions.playNext(detail.songs) },
+                                        uk.gcartee.encore.app.ui.components.SheetAction("Add to queue", queue) { actions.addToQueue(detail.songs) },
+                                        uk.gcartee.encore.app.ui.components.SheetAction("Download", download) { actions.toaster.show(DOWNLOADS_LATER) },
+                                    ),
+                                    groups = listOf(listOf(uk.gcartee.encore.app.ui.components.SheetAction("Go to artist", artistIcon) { detail.songs.firstOrNull()?.let(actions::goToArtist) })),
+                                )
                             }
                         }
                     },
@@ -484,17 +510,23 @@ fun MixScreen(host: CoreHost, mixId: String, playingSongId: Long?, onBack: () ->
                         var open by remember { mutableStateOf(false) }
                         Box {
                             PageButton(tint, { open = true }) { Icon(Icons.more(), contentDescription = "More") }
-                            DropdownMenu(open, onDismissRequest = { open = false }) {
-                                DropdownMenuItem(text = { Text("Save as playlist") }, onClick = {
-                                    open = false
-                                    runCatching { host.core.saveMixAsPlaylist(mixId) }
-                                        .onSuccess { actions.toaster.show("Saved as a playlist") }
-                                        .onFailure { actions.toaster.show(it.userMessage()) }
-                                })
-                                DropdownMenuItem(text = { Text("Hide this mix", color = MaterialTheme.colorScheme.error) }, onClick = {
-                                    open = false
-                                    runCatching { host.core.hideMix(mixId) }.onSuccess { onBack(); actions.toaster.show("Hidden from today's mixes") }
-                                })
+                            if (open) {
+                                val save = Icons.playlistAdd()
+                                val hide = Icons.block()
+                                uk.gcartee.encore.app.ui.components.ActionSheet(
+                                    onDismiss = { open = false },
+                                    header = { SheetHeader(summary.title, summary.subtitle) { Box(Modifier.size(56.dp).clip(uk.gcartee.encore.app.ui.home.shapeFor(mixId))) { MosaicFill(summary.coverSongIds, Modifier.fillMaxSize()) } } },
+                                    groups = listOf(
+                                        listOf(uk.gcartee.encore.app.ui.components.SheetAction("Save as playlist", save) {
+                                            runCatching { host.core.saveMixAsPlaylist(mixId) }
+                                                .onSuccess { actions.toaster.show("Saved as a playlist") }
+                                                .onFailure { actions.toaster.show(it.userMessage()) }
+                                        }),
+                                        listOf(uk.gcartee.encore.app.ui.components.SheetAction("Hide this mix", hide, destructive = true) {
+                                            runCatching { host.core.hideMix(mixId) }.onSuccess { onBack(); actions.toaster.show("Hidden from today's mixes") }
+                                        }),
+                                    ),
+                                )
                             }
                         }
                     },

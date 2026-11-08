@@ -101,7 +101,10 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
             leadingIcon = { Icon(Icons.search(), contentDescription = null) },
             trailingIcon = {
                 if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.close(), contentDescription = "Clear") }
-                else uk.gcartee.encore.app.ui.home.ProfileButton(host, uk.gcartee.encore.app.ui.components.LocalAppActions.current.openProfiles)
+                // The avatar sits inside the bar with room around it, not against its edge.
+                else androidx.compose.foundation.layout.Box(Modifier.padding(end = Grid.base.dp)) {
+                    uk.gcartee.encore.app.ui.home.ProfileButton(host, uk.gcartee.encore.app.ui.components.LocalAppActions.current.openProfiles, size = SEARCH_AVATAR_DP.dp)
+                }
             },
             singleLine = true,
             shape = CircleShape,
@@ -274,3 +277,4 @@ private const val LEAF_BIG_DP = 28
 private const val LEAF_SMALL_DP = 8
 private const val TILE_HEIGHT_DP = 84
 private const val SHUFFLE_ALL_SONGS = 300
+private const val SEARCH_AVATAR_DP = 40

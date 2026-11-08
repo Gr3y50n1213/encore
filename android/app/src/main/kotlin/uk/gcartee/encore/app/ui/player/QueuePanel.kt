@@ -35,6 +35,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.foundation.background
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -89,6 +97,18 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
     }
 
     var adventurous by remember { mutableStateOf(false) }
+    val upNextDrag = remember { Reorder() }
+    val autoDrag = remember { Reorder() }
+    // The queue came back changed: show it, not the order held since the drop.
+    LaunchedEffect(q.upNext) { upNextDrag.holding = false }
+    LaunchedEffect(q.autoplay) { autoDrag.holding = false }
+    LaunchedEffect(upNextDrag.holding, autoDrag.holding) {
+        if (upNextDrag.holding || autoDrag.holding) {
+            delay(HOLD_TIMEOUT_MS)
+            upNextDrag.holding = false
+            autoDrag.holding = false
+        }
+    }
     LazyColumn(modifier, contentPadding = PaddingValues(bottom = (Grid.base * 2).dp)) {
         item {
             // Item 1: the title, then Shuffle, Repeat and Autoplay as tonal toggles whose
@@ -159,7 +179,7 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
         if (q.upNext.isEmpty()) item {
             Text("Nothing queued. Autoplay continues with songs you'll like.", style = type.body, color = colour.copy(alpha = 0.72f), modifier = Modifier.padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp))
         }
-        reorderable(q.upNext, host, colour, isAutoplay = false, ::edit)
+        reorderable(upNextDrag.shown(q.upNext), host, colour, isAutoplay = false, ::edit, upNextDrag)
         item {
             Row(Modifier.fillMaxWidth().padding(start = (Grid.base * 2).dp, end = Grid.base.dp, top = (Grid.base * 2).dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("Autoplay", style = type.caption, color = colour.copy(alpha = 0.72f), modifier = Modifier.weight(1f))
@@ -184,7 +204,7 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
                     Text("Picking songs you'll like…", style = type.body, color = colour.copy(alpha = 0.72f))
                 }
             }
-            else -> reorderable(q.autoplay, host, colour, isAutoplay = true, ::edit)
+            else -> reorderable(autoDrag.shown(q.autoplay), host, colour, isAutoplay = true, ::edit, autoDrag)
         }
     }
 
@@ -241,9 +261,26 @@ private fun StateToggle(on: Boolean, state: String, colour: Color, onColour: Col
 }
 
 /**
+ * A drag in progress within one section of the queue. While a row is held, [order] is
+ * the section as it now stands; the core is told once, on release, and the new order
+ * stays on screen until the queue comes back changed, so nothing flicks back.
+ */
+private class Reorder {
+    var dragging by mutableStateOf<Long?>(null)
+    var holding by mutableStateOf(false)
+    var offset by mutableFloatStateOf(0f)
+    var order by mutableStateOf<List<QueueEntry>>(emptyList())
+    var startIndex = -1
+
+    fun shown(live: List<QueueEntry>): List<QueueEntry> = if (dragging != null || holding) order else live
+}
+
+/**
  * Items 4 and 5: tap jumps, the handle lifts the row to reorder (DRAG_START on pick-up,
- * GESTURE_END on drop; the row body never drags). Swipe right is Play Next, left past
- * 60 % is Remove (Undo for 5 s); on Autoplay rows left is "Not this", a strong dislike.
+ * GESTURE_END on drop; the row body never drags). As the row passes half of a neighbour
+ * they swap places with a tick, and the others slide out of the way on a spring. Swipe
+ * right is Play Next, left past 60 % is Remove (Undo for 5 s); on Autoplay rows left is
+ * "Not this", a strong dislike, and a dragged Autoplay row moves into Up Next.
  */
 private fun LazyListScope.reorderable(
     entries: List<QueueEntry>,
@@ -251,11 +288,15 @@ private fun LazyListScope.reorderable(
     colour: Color,
     isAutoplay: Boolean,
     edit: (String?, Boolean, () -> QueueState) -> Unit,
+    drag: Reorder,
 ) {
     itemsIndexed(entries, key = { _, e -> (if (isAutoplay) "a" else "u") + e.uid }) { index, e ->
         val haptics = rememberHaptics()
-        var dragY by remember { mutableFloatStateOf(0f) }
         var rowH by remember { mutableFloatStateOf(1f) }
+        // The drag handler outlives recompositions; it must see the section as it is now.
+        val section by androidx.compose.runtime.rememberUpdatedState(entries)
+        val held = drag.dragging == e.uid
+        val lift by animateFloatAsState(if (held) 1f else 0f, tween(LIFT_MS), label = "lift")
         val removeIcon = Icons.remove()
         val blockIcon = Icons.block()
         val nextIcon = Icons.playNext()
@@ -272,8 +313,17 @@ private fun LazyListScope.reorderable(
         val toEnd = SwipeAction("Play Next", destructive = false, icon = { nextIcon }) { edit("Playing next", true) { host.core.playNext(listOf(e.song.id)) } }
         Row(
             Modifier
-                .zIndex(if (dragY != 0f) 1f else 0f)
-                .graphicsLayer { translationY = dragY }
+                // The held row follows the finger; the rest glide into their new places.
+                .animateItem(fadeInSpec = null, fadeOutSpec = null, placementSpec = if (held) null else spring(stiffness = Spring.StiffnessMediumLow))
+                .zIndex(if (held) 1f else 0f)
+                .onSizeChanged { rowH = it.height.toFloat().coerceAtLeast(1f) }
+                .graphicsLayer {
+                    translationY = if (held) drag.offset else 0f
+                    val s = 1f + LIFT_SCALE * lift
+                    scaleX = s
+                    scaleY = s
+                }
+                .background(colour.copy(alpha = HELD_ALPHA * lift), RoundedCornerShape(HELD_RADIUS_DP.dp))
                 .semantics {
                     customActions = listOf(
                         CustomAccessibilityAction("Move up") { edit(null, true) { host.core.moveInQueue(e.uid, (index - 1).coerceAtLeast(0).toUInt()) }; true },
@@ -304,31 +354,68 @@ private fun LazyListScope.reorderable(
                     .heightIn(min = 48.dp)
                     .padding(horizontal = 12.dp)
                     .pointerInput(e.uid) {
-                        rowH = size.height.toFloat().coerceAtLeast(1f) + 16.dp.toPx()
                         detectDragGestures(
-                            onDragStart = { haptics.perform(Haptic.DragStart) },
+                            onDragStart = {
+                                haptics.perform(Haptic.DragStart)
+                                drag.order = section
+                                drag.startIndex = section.indexOfFirst { it.uid == e.uid }
+                                drag.offset = 0f
+                                drag.dragging = e.uid
+                            },
                             onDragEnd = {
-                                val steps = Math.round(dragY / rowH)
-                                dragY = 0f
+                                val final = drag.order.indexOfFirst { it.uid == e.uid }
+                                val moved = final >= 0 && final != drag.startIndex
                                 haptics.perform(Haptic.ScrubEnd)
-                                if (steps != 0) {
+                                drag.holding = moved
+                                drag.dragging = null
+                                drag.offset = 0f
+                                if (moved) {
                                     // Reordering an autoplay row moves it into Up Next.
-                                    val to = if (isAutoplay) Int.MAX_VALUE else (index + steps).coerceAtLeast(0)
-                                    edit(null, true) { host.core.moveInQueue(e.uid, to.coerceAtMost(10_000).toUInt()) }
+                                    val to = if (isAutoplay) AUTOPLAY_TO_UP_NEXT else final
+                                    edit(null, true) { host.core.moveInQueue(e.uid, to.toUInt()) }
                                 }
                             },
-                            onDragCancel = { dragY = 0f },
+                            onDragCancel = {
+                                drag.dragging = null
+                                drag.holding = false
+                                drag.offset = 0f
+                            },
                         ) { change, amount ->
                             change.consume()
-                            dragY += amount.y
+                            drag.offset += amount.y
+                            val list = drag.order.toMutableList()
+                            var i = list.indexOfFirst { it.uid == e.uid }
+                            if (i < 0) return@detectDragGestures
+                            var swapped = false
+                            while (drag.offset > rowH / 2 && i < list.lastIndex) {
+                                java.util.Collections.swap(list, i, i + 1)
+                                i++
+                                drag.offset -= rowH
+                                swapped = true
+                            }
+                            while (drag.offset < -rowH / 2 && i > 0) {
+                                java.util.Collections.swap(list, i, i - 1)
+                                i--
+                                drag.offset += rowH
+                                swapped = true
+                            }
+                            if (swapped) {
+                                haptics.perform(Haptic.Tick)
+                                drag.order = list
+                            }
                         }
                     },
             )
         }
     }
 }
-
 private const val HIGHLIGHT_ALPHA = 0.14f
 private const val TONAL_ALPHA = 0.16f
 private const val AUTOPLAY_FILLS_BELOW = 5
 private const val TOGGLE_POP = 1.15f
+private const val LIFT_MS = 150
+private const val LIFT_SCALE = 0.02f
+private const val HELD_ALPHA = 0.14f
+private const val HELD_RADIUS_DP = 16
+private const val AUTOPLAY_TO_UP_NEXT = 10_000
+private const val HOLD_TIMEOUT_MS = 2_000L

@@ -282,9 +282,7 @@ private fun SettingsHome(host: CoreHost, onBack: () -> Unit, onProfiles: () -> U
                 modifier = Modifier.fillMaxWidth().padding(horizontal = (Grid.base * 2).dp, vertical = (Grid.base * 2).dp),
             ) {
                 Row(Modifier.padding((Grid.base * 2).dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(48.dp).background(MaterialTheme.colorScheme.surfaceContainerHighest, CircleShape), contentAlignment = Alignment.Center) {
-                        Text(profile?.initials ?: "You", style = LocalEncoreType.current.buttonLabelSelected)
-                    }
+                    uk.gcartee.encore.app.ui.components.ProfileAvatar(profile?.initials ?: "You", profile?.avatarUrl, 48.dp)
                     Spacer(Modifier.width((Grid.base * 2).dp))
                     Column(Modifier.weight(1f)) {
                         Text(profile?.displayName ?: "You", style = LocalEncoreType.current.sectionHeader)

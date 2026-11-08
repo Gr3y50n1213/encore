@@ -50,6 +50,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalConfiguration
@@ -260,32 +261,41 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                                 }
                             }
                         }
-                        Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onSizeChanged { miniHeight = it.height }) {
+                        // The mini player and, on phones, the navigation bar float over the
+                        // page together; pages pad their lists by the pair's height.
+                        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onSizeChanged { miniHeight = it.height }) {
                             MiniPlayer(host, player, onExpand = { nowPlaying = true }, modifier = Modifier.padding(vertical = Grid.base.dp).let { if (wide) it.navigationBarsPadding() else it }, bar = wide)
+                            if (!wide) {
+                                // Material 3 Expressive is round: the bar's top corners are 28 dp
+                                // and it runs under the clear gesture area to the screen's edge.
+                                NavigationBar(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                    modifier = Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(topStart = NAV_RADIUS_DP.dp, topEnd = NAV_RADIUS_DP.dp)),
+                                ) {
+                                    Tab.entries.forEach { tab ->
+                                        val selected = nav.tab == tab
+                                        NavigationBarItem(
+                                            selected = selected,
+                                            onClick = { nav.select(tab) },
+                                            icon = { TabIcon(tab, selected) },
+                                            label = { Text(tab.name, style = if (selected) type.navLabelSelected else type.navLabel) },
+                                        )
+                                    }
+                                }
+                            }
                         }
                         // Toasts sit above the mini player and never cover controls (board 20).
                         SnackbarHost(toaster.host, Modifier.align(Alignment.BottomCenter).padding(bottom = inner.calculateBottomPadding() + Grid.base.dp).semantics { liveRegion = LiveRegionMode.Polite })
-                    }
-                    if (!wide) {
-                        NavigationBar {
-                            Tab.entries.forEach { tab ->
-                                val selected = nav.tab == tab
-                                NavigationBarItem(
-                                    selected = selected,
-                                    onClick = { nav.select(tab) },
-                                    icon = { TabIcon(tab, selected) },
-                                    label = { Text(tab.name, style = if (selected) type.navLabelSelected else type.navLabel) },
-                                )
-                            }
-                        }
                     }
                 }
             }
             ContinueBanner(host, continueFrom, onDone = { continueFrom = null })
             AnimatedVisibility(
                 visible = nowPlaying && player.entry != null,
-                enter = if (still) fadeIn(tween(Timing.reduceMotionCrossfadeMs)) else slideInVertically { it } + fadeIn(),
-                exit = if (still) fadeOut(tween(Timing.reduceMotionCrossfadeMs)) else slideOutVertically { it } + fadeOut(),
+                // Up on the expressive spring; down on one smooth curve, from wherever a
+                // swipe left it (NowPlayingScreen carries a swipe down itself).
+                enter = if (still) fadeIn(tween(Timing.reduceMotionCrossfadeMs)) else slideInVertically(androidx.compose.animation.core.spring(dampingRatio = 0.9f, stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow)) { it } + fadeIn(tween(OPEN_FADE_MS)),
+                exit = if (still) fadeOut(tween(Timing.reduceMotionCrossfadeMs)) else slideOutVertically(tween(CLOSE_MS, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it } + fadeOut(tween(CLOSE_MS)),
             ) {
                 NowPlayingScreen(
                     host,
@@ -418,3 +428,7 @@ private const val LIST_PANE_DP = 340
 private const val PANE_GAP_DP = 12
 private const val PANE_RADIUS_DP = 28
 private val EXPANDED_RAIL_DP = Breakpoints.expandedRailWidth
+
+private const val OPEN_FADE_MS = 200
+private const val CLOSE_MS = 280
+private const val NAV_RADIUS_DP = 28

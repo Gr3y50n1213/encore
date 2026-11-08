@@ -17,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -103,6 +104,27 @@ object ArtworkCache {
         bitmap
     }
 
+    /**
+     * A profile's picture from the media server (`ProfileSummary.avatar_url`, served
+     * without a token, CORE-API). Cached in memory only, so a changed picture shows on
+     * the next launch.
+     */
+    fun memoryUrl(url: String, px: Int): ImageBitmap? = memory.get("url-$px-$url")
+
+    suspend fun loadUrl(url: String, px: Int): ImageBitmap? = withContext(Dispatchers.IO) {
+        val key = "url-$px-$url"
+        memory.get(key)?.let { return@withContext it }
+        val bytes = fetch(url, emptyMap()) ?: return@withContext null
+        val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
+        var sample = 1
+        while (opts.outWidth / (sample * 2) >= px && opts.outHeight / (sample * 2) >= px) sample *= 2
+        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })?.asImageBitmap()
+            ?: return@withContext null
+        memory.put(key, bitmap)
+        bitmap
+    }
+
     private fun fetch(url: String, headers: Map<String, String>): ByteArray? = runCatching {
         val conn = URL(url).openConnection() as HttpURLConnection
         try {
@@ -119,4 +141,35 @@ object ArtworkCache {
 
     private fun hash(s: String): String =
         MessageDigest.getInstance("SHA-256").digest(s.toByteArray()).joinToString("") { "%02x".format(it) }
+}
+
+/**
+ * A profile's circle (boards 05 and 14): the media server's user picture when there is one
+ * (`avatar_url`), else the initials on a tonal circle.
+ */
+@Composable
+fun ProfileAvatar(
+    initials: String,
+    avatarUrl: String?,
+    size: Dp,
+    modifier: Modifier = Modifier,
+    container: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.surfaceContainerHighest,
+    content: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
+) {
+    val px = with(LocalDensity.current) { size.roundToPx() }.coerceIn(48, 512)
+    var image by remember(avatarUrl, px) { mutableStateOf(avatarUrl?.let { ArtworkCache.memoryUrl(it, px) }) }
+    LaunchedEffect(avatarUrl, px) {
+        if (image == null && avatarUrl != null) image = ArtworkCache.loadUrl(avatarUrl, px)
+    }
+    Box(
+        modifier.size(size).clip(androidx.compose.foundation.shape.CircleShape).background(container),
+        contentAlignment = androidx.compose.ui.Alignment.Center,
+    ) {
+        val bitmap = image
+        if (bitmap != null) {
+            Image(bitmap = bitmap, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.matchParentSize())
+        } else {
+            androidx.compose.material3.Text(initials, style = uk.gcartee.encore.app.ui.theme.LocalEncoreType.current.buttonLabelSelected, color = content)
+        }
+    }
 }

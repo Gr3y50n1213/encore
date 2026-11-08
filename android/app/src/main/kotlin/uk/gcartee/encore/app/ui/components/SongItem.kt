@@ -7,13 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionOnScreen
-import androidx.compose.ui.unit.toSize
 import uk.gcartee.encore.core.Song
 
 /** The default row swipes (board 42): right is Play Next, left is Add to Queue. */
@@ -48,43 +42,19 @@ fun SongItem(
     toStart: SwipeAction? = defaultSwipes(song).second,
 ) {
     var menu by remember { mutableStateOf(false) }
-    var anchor by remember { mutableStateOf<Rect?>(null) }
-    // Where the row is, read only when it is pressed (not on every scroll frame).
-    val where = remember { arrayOfNulls<LayoutCoordinates>(1) }
     SwipeRow(toEnd = toEnd, toStart = toStart, rowColor = rowColor) {
-        Box(Modifier.onGloballyPositioned { where[0] = it }) {
+        Box {
             SongRow(
                 song,
                 playing = playing,
                 onClick = onClick,
-                onLongClick = {
-                    anchor = where[0]?.takeIf { it.isAttached }?.let { Rect(it.positionOnScreen(), it.size.toSize()) }
-                    menu = true
-                },
+                onLongClick = { menu = true },
                 trackNumber = trackNumber,
                 subtitle = subtitle,
                 contentColor = contentColor,
                 secondaryColor = secondaryColor,
             )
-            // Board 13: the row lifts into the tonal highlight and the menu grows from it.
-            SongMenu(
-                song,
-                expanded = menu,
-                onDismiss = { menu = false },
-                place = place,
-                anchor = anchor,
-                lifted = {
-                    SongRow(
-                        song,
-                        playing = playing,
-                        onClick = {},
-                        trackNumber = trackNumber,
-                        subtitle = subtitle,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        secondaryColor = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f),
-                    )
-                },
-            )
+            SongMenu(song, expanded = menu, onDismiss = { menu = false }, place = place)
         }
     }
 }
