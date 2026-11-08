@@ -34,6 +34,8 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FilledTonalIconToggleButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
@@ -88,8 +90,11 @@ import uk.gcartee.encore.tokens.EncoreTokens.Radius
 /** A palette colour from the core ("3D0000" or "#3D0000"). */
 fun paletteColor(hex: String): Color = Color(0xFF000000 or hex.removePrefix("#").toLong(16))
 
-/** A page's tint (board 08, item 2): the palette's base and text, else the theme. */
-data class PageTint(val field: Color, val content: Color, val secondary: Color)
+/**
+ * A page's tint (board 08, item 2): the palette's base and text, else the theme. [themed]
+ * is the no-artwork case, where Play takes the profile accent (board 08, States).
+ */
+data class PageTint(val field: Color, val content: Color, val secondary: Color, val themed: Boolean = false)
 
 @Composable
 fun rememberTint(load: suspend () -> ArtworkPalette?, key: Any): PageTint {
@@ -104,6 +109,7 @@ fun rememberTint(load: suspend () -> ArtworkPalette?, key: Any): PageTint {
         animateColorAsState(field, fade, label = "field").value,
         animateColorAsState(content, fade, label = "content").value,
         animateColorAsState(secondary, fade, label = "secondary").value,
+        themed = p == null,
     )
 }
 
@@ -129,10 +135,8 @@ private fun Header(
     val haptics = rememberHaptics()
     Column(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = (Grid.base * 2).dp)) {
         Row(Modifier.fillMaxWidth().padding(vertical = Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
-            // Item 1: tonal buttons over the tinted page.
-            FilledTonalIconButton(onClick = onBack, colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = tint.content.copy(alpha = 0.14f), contentColor = tint.content)) {
-                Icon(Icons.back(), contentDescription = "Back")
-            }
+            // Item 1: tonal rounded-square buttons over the tinted page, rounding when pressed.
+            PageButton(tint, onBack) { Icon(Icons.back(), contentDescription = "Back") }
             Spacer(Modifier.weight(1f))
             trailing?.invoke()
         }
@@ -156,8 +160,16 @@ private fun Header(
             // Item 4: one connected group; the pressed button rounds fully and widens.
             ConnectedButtons(
                 listOf(
-                    GroupButton("Play", tint.content, tint.field, icon = Icons.play(), enabled = onPlay != null) { onPlay?.invoke() },
-                    GroupButton("Shuffle", tint.content.copy(alpha = 0.16f), tint.content, icon = Icons.shuffle(), enabled = onShuffle != null) { onShuffle?.invoke() },
+                    if (tint.themed) {
+                        GroupButton("Play", MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary, icon = Icons.play(), enabled = onPlay != null) { onPlay?.invoke() }
+                    } else {
+                        GroupButton("Play", tint.content, tint.field, icon = Icons.play(), enabled = onPlay != null) { onPlay?.invoke() }
+                    },
+                    if (tint.themed) {
+                        GroupButton("Shuffle", MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer, icon = Icons.shuffle(), enabled = onShuffle != null) { onShuffle?.invoke() }
+                    } else {
+                        GroupButton("Shuffle", tint.content.copy(alpha = 0.16f), tint.content, icon = Icons.shuffle(), enabled = onShuffle != null) { onShuffle?.invoke() }
+                    },
                 ),
                 height = BUTTON_DP.dp,
             )
@@ -167,6 +179,18 @@ private fun Header(
 }
 
 private fun songs(n: Int) = if (n == 1) "1 song" else "$n songs"
+
+/** Board 08, item 1: Back and More, tonal rounded squares that round fully when pressed. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun PageButton(tint: PageTint, onClick: () -> Unit, content: @Composable () -> Unit) {
+    FilledTonalIconButton(
+        onClick = onClick,
+        shapes = IconButtonDefaults.shapes(RoundedCornerShape(PAGE_BUTTON_RADIUS_DP.dp), RoundedCornerShape(50)),
+        colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = tint.content.copy(alpha = 0.14f), contentColor = tint.content),
+        modifier = Modifier.size(PAGE_BUTTON_DP.dp),
+    ) { content() }
+}
 
 
 /** Board 08. */
@@ -199,6 +223,17 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
                     onPlay = { actions.play(ids, 0, StartedFrom.ALBUM, album.id.toString(), album.title) },
                     onShuffle = { actions.play(ids, ids.indices.random(), StartedFrom.ALBUM, album.id.toString(), album.title, shuffle = true) },
                     onSubtitle = { detail.songs.firstOrNull()?.let(actions::goToArtist) },
+                    trailing = {
+                        var open by remember { mutableStateOf(false) }
+                        Box {
+                            PageButton(tint, { open = true }) { Icon(Icons.more(), contentDescription = "More") }
+                            DropdownMenu(open, onDismissRequest = { open = false }) {
+                                DropdownMenuItem(text = { Text("Play Next") }, leadingIcon = { Icon(Icons.playNext(), null) }, onClick = { open = false; actions.playNext(detail.songs) })
+                                DropdownMenuItem(text = { Text("Add to Queue") }, leadingIcon = { Icon(Icons.queue(), null) }, onClick = { open = false; actions.addToQueue(detail.songs) })
+                                DropdownMenuItem(text = { Text("Go to Artist") }, leadingIcon = { Icon(Icons.artist(), null) }, onClick = { open = false; detail.songs.firstOrNull()?.let(actions::goToArtist) })
+                            }
+                        }
+                    },
                 ) {
                     Artwork(ArtworkOf.ALBUM, album.id, COVER_DP.dp, Modifier.fillMaxWidth(), cornerRadius = COVER_RADIUS_DP.dp)
                 }
@@ -330,7 +365,7 @@ fun ArtistScreen(host: CoreHost, artistId: Long, playingSongId: Long?, onBack: (
     }
     val name = detail.artist.name
     val ids = remember(songs) { songs.map { it.id } }
-    val tint = PageTint(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.onSurface, MaterialTheme.colorScheme.onSurfaceVariant)
+    val tint = PageTint(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.onSurface, MaterialTheme.colorScheme.onSurfaceVariant, themed = true)
     LazyColumn(Modifier.fillMaxSize().background(tint.field), contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding() + (Grid.base * 2).dp)) {
         item {
             val n = detail.albums.size
@@ -519,3 +554,5 @@ private const val COVER_RADIUS_DP = 28
 private const val BUTTON_DP = 56
 private const val ARTIST_SONGS = 200
 private const val ROW_TILE_DP = TILE_ART_DP * 3 / 4
+private const val PAGE_BUTTON_DP = 48
+private const val PAGE_BUTTON_RADIUS_DP = 14

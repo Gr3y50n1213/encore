@@ -389,7 +389,7 @@ fun NowPlayingScreen(
                                 color = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerLow,
                                 modifier = Modifier.fillMaxSize().padding(vertical = Grid.base.dp),
                             ) {
-                                QueuePanel(host, androidx.compose.material3.MaterialTheme.colorScheme.onSurface, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize())
+                                QueuePanel(host, androidx.compose.material3.MaterialTheme.colorScheme.onSurface, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize(), accent = androidx.compose.material3.MaterialTheme.colorScheme.secondaryContainer)
                             }
                         }
                     }

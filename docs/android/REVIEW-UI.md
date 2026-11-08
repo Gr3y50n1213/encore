@@ -33,6 +33,8 @@
 | Play button shape | Rounded square paused, circle playing | Round paused, rounded square playing | Section 22, everywhere |
 | Track swipe end to start | Likes, past 40 % | Add to Queue, past 25 % | Board 42 |
 | Facing corners in a button group | 8 dp | 10 dp (tokens) | The tokens |
+| Queue toggles (board 11 render) | Shuffle on drawn as a circle, off as rounded squares | On is the rounded square, off round | Section 22 |
+| Search "Browse by mood" and Settings "Lyrics", "Downloads", "Lock screen and widgets", "Crossfade" (boards 07, 17) | Drawn | No core behind them yet (Phases 8 to 10) | Left out rather than shown doing nothing |
 
 ## Not built yet, and why
 

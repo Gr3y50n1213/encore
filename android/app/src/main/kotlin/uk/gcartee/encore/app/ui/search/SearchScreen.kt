@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import uk.gcartee.encore.app.core.CoreHost
 import uk.gcartee.encore.app.playback.PlaybackHub
 import uk.gcartee.encore.app.ui.components.Artwork
@@ -134,14 +135,14 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
                     shape = CircleShape,
                     color = if (on) androidx.compose.material3.MaterialTheme.colorScheme.secondaryContainer else androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh,
                     contentColor = when {
-                        on -> androidx.compose.material3.MaterialTheme.colorScheme.onSecondaryContainer
+                        on -> androidx.compose.material3.MaterialTheme.colorScheme.primary
                         enabled -> androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
                         else -> androidx.compose.material3.MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                     },
                     modifier = Modifier.height(48.dp),
                 ) {
                     androidx.compose.foundation.layout.Box(Modifier.padding(horizontal = (Grid.base * 2.5f).dp), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                        Text(label, style = type.sectionHeader)
+                        Text(label, style = type.sectionHeader.copy(fontSize = uk.gcartee.encore.app.ui.library.CHIP_TEXT_SP.sp, fontWeight = if (on) androidx.compose.ui.text.font.FontWeight.Medium else androidx.compose.ui.text.font.FontWeight.Normal))
                     }
                 }
             }

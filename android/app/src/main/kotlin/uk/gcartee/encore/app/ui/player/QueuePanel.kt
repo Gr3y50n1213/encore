@@ -65,7 +65,11 @@ import uk.gcartee.encore.tokens.EncoreTokens.Grid
 /** Board 11, drawn in place of the artwork on Now Playing (item 8). */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Modifier = Modifier) {
+fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Modifier = Modifier, accent: Color? = null) {
+    // On the light sheet the highlights are the theme's tonal container (board 11); over the
+    // album's field (landscape) they are the field's own colour, faintly.
+    val highlight = accent ?: colour.copy(alpha = 0.10f)
+    val checked = accent ?: colour.copy(alpha = 0.22f)
     val queue by host.queue.collectAsState()
     val q = queue ?: return
     val type = LocalEncoreType.current
@@ -87,11 +91,11 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
             // shape tells the state (section 22).
             Row(Modifier.fillMaxWidth().padding(start = (Grid.base * 2).dp, end = Grid.base.dp, top = (Grid.base * 2).dp, bottom = Grid.base.dp), horizontalArrangement = Arrangement.spacedBy(Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("Queue", style = type.sheetTitle, color = colour, modifier = Modifier.weight(1f))
-                StateToggle(q.shuffle, if (q.shuffle) "Shuffle on" else "Shuffle off", colour, onToggle = { on ->
+                StateToggle(q.shuffle, if (q.shuffle) "Shuffle on" else "Shuffle off", colour, checked, onToggle = { on ->
                     haptics.perform(if (on) Haptic.ToggleOn else Haptic.ToggleOff)
                     edit(null) { host.core.setShuffle(on) }
                 }) { Icon(Icons.shuffle(), contentDescription = "Shuffle") }
-                StateToggle(q.repeat != RepeatMode.OFF, "Repeat ${q.repeat.name.lowercase()}", colour, onToggle = {
+                StateToggle(q.repeat != RepeatMode.OFF, "Repeat ${q.repeat.name.lowercase()}", colour, checked, onToggle = {
                     val next = when (q.repeat) {
                         RepeatMode.OFF -> RepeatMode.ALL
                         RepeatMode.ALL -> RepeatMode.ONE
@@ -100,7 +104,7 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
                     haptics.perform(if (next == RepeatMode.OFF) Haptic.ToggleOff else Haptic.ToggleOn)
                     edit(null) { host.core.setRepeat(next) }
                 }) { Icon(if (q.repeat == RepeatMode.ONE) Icons.repeatOne() else Icons.repeat(), contentDescription = "Repeat") }
-                StateToggle(q.autoplayEnabled, if (q.autoplayEnabled) "Autoplay on" else "Autoplay off", colour, onToggle = { on ->
+                StateToggle(q.autoplayEnabled, if (q.autoplayEnabled) "Autoplay on" else "Autoplay off", colour, checked, onToggle = { on ->
                     haptics.perform(if (on) Haptic.ToggleOn else Haptic.ToggleOff)
                     edit(null) { host.core.setAutoplay(on) }
                 }) { Icon(Icons.radio(), contentDescription = "Autoplay") }
@@ -110,8 +114,8 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
         if (q.history.isNotEmpty()) {
             item {
                 Row(Modifier.fillMaxWidth().clickable { historyOpen = !historyOpen }.padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("History", style = type.songRowTitle, color = colour, modifier = Modifier.weight(1f))
-                    Text(if (historyOpen) "Hide" else "Show ${q.history.size}", style = type.buttonLabel, color = colour.copy(alpha = 0.72f))
+                    Text("History", style = type.caption, color = colour.copy(alpha = 0.72f), modifier = Modifier.weight(1f))
+                    Text(if (historyOpen) "Hide" else "Show ${q.history.size}", style = type.caption, color = colour.copy(alpha = 0.72f))
                 }
             }
             if (historyOpen) itemsIndexed(q.history, key = { _, e -> "h${e.uid}" }) { _, e ->
@@ -122,13 +126,12 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
         }
         // Item 3: the now playing row; no swipe, so a slip can't dismiss it.
         q.current?.let { c ->
-            item { Title("Now playing", colour) }
             item(key = "now${c.uid}") {
-                // Item 3: highlighted, with live level bars.
+                // Item 3: highlighted, with live level bars; no heading, the highlight says it.
                 androidx.compose.material3.Surface(
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                    color = colour.copy(alpha = 0.10f),
-                    modifier = Modifier.padding(horizontal = Grid.base.dp),
+                    color = highlight,
+                    modifier = Modifier.padding(horizontal = Grid.base.dp, vertical = Grid.base.dp),
                 ) {
                     SongItem(c.song, playing = true, onClick = onPlayer, contentColor = colour, secondaryColor = colour.copy(alpha = 0.72f), rowColor = Color.Transparent, toEnd = null, toStart = null)
                 }
@@ -136,8 +139,8 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
         }
         item {
             Row(Modifier.fillMaxWidth().padding(start = (Grid.base * 2).dp, end = Grid.base.dp, top = (Grid.base * 2).dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("Up next", style = type.songRowTitle, color = colour, modifier = Modifier.weight(1f))
-                if (q.upNext.isNotEmpty()) TextButton(onClick = { confirmClear = true }) { Text("Clear", color = colour) }
+                Text("Up next", style = type.caption, color = colour.copy(alpha = 0.72f), modifier = Modifier.weight(1f))
+                if (q.upNext.isNotEmpty()) TextButton(onClick = { confirmClear = true }) { Text("Clear", style = type.caption, color = colour.copy(alpha = 0.72f)) }
             }
         }
         if (q.upNext.isEmpty()) item {
@@ -146,7 +149,7 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
         reorderable(q.upNext, host, colour, isAutoplay = false, ::edit)
         item {
             Row(Modifier.fillMaxWidth().padding(start = (Grid.base * 2).dp, end = Grid.base.dp, top = (Grid.base * 2).dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("Autoplay", style = type.songRowTitle, color = colour, modifier = Modifier.weight(1f))
+                Text("Autoplay", style = type.caption, color = colour.copy(alpha = 0.72f), modifier = Modifier.weight(1f))
                 // Item 1, HOLD on Autoplay: the Familiar to Adventurous slider, here as a link.
                 TextButton(onClick = { adventurous = true }) { Text("Familiar to adventurous", style = type.caption, color = colour.copy(alpha = 0.72f)) }
             }
@@ -156,7 +159,12 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
                 Text("Autoplay is off", style = type.body, color = colour.copy(alpha = 0.72f), modifier = Modifier.padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp))
             }
             q.autoplay.isEmpty() -> item {
-                Text("Picking songs you'll like…", style = type.body, color = colour.copy(alpha = 0.72f), modifier = Modifier.padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp))
+                // States: refilling shows the expressive loading indicator, not a sentence alone.
+                Row(Modifier.padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.material3.LoadingIndicator(Modifier.size(32.dp), color = colour.copy(alpha = 0.72f))
+                    Spacer(Modifier.width(Grid.base.dp))
+                    Text("Picking songs you'll like…", style = type.body, color = colour.copy(alpha = 0.72f))
+                }
             }
             else -> reorderable(q.autoplay, host, colour, isAutoplay = true, ::edit)
         }
@@ -189,15 +197,11 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
     }
 }
 
-@Composable
-private fun Title(text: String, colour: Color) {
-    Text(text, style = LocalEncoreType.current.songRowTitle, color = colour, modifier = Modifier.padding(start = (Grid.base * 2).dp, top = (Grid.base * 2).dp, bottom = 4.dp))
-}
 
 /** A round toggle that turns into a rounded square when on (section 22). */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun StateToggle(on: Boolean, state: String, colour: Color, onToggle: (Boolean) -> Unit, icon: @Composable () -> Unit) {
+private fun StateToggle(on: Boolean, state: String, colour: Color, checked: Color, onToggle: (Boolean) -> Unit, icon: @Composable () -> Unit) {
     val h = AndroidToggleShape.Sizes.Compact.height
     IconToggleButton(
         checked = on,
@@ -210,7 +214,7 @@ private fun StateToggle(on: Boolean, state: String, colour: Color, onToggle: (Bo
         colors = IconButtonDefaults.iconToggleButtonColors(
             containerColor = colour.copy(alpha = 0.08f),
             contentColor = colour,
-            checkedContainerColor = colour.copy(alpha = 0.22f),
+            checkedContainerColor = checked,
             checkedContentColor = colour,
         ),
         modifier = Modifier.size(AndroidToggleShape.Sizes.Compact.touchTarget.dp).semantics { stateDescription = state },

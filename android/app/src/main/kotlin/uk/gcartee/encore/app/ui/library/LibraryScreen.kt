@@ -50,6 +50,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import java.text.NumberFormat
 import uk.gcartee.encore.app.core.CoreHost
 import uk.gcartee.encore.app.core.SyncUi
@@ -151,14 +152,15 @@ fun LibraryScreen(host: CoreHost, onOpen: (Route) -> Unit, playingSongId: Long?,
                     },
                     shape = androidx.compose.foundation.shape.CircleShape,
                     color = if (on) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-                    contentColor = if (on) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                    // The render draws the active label in the accent.
+                    contentColor = if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.height(CHIP_DP.dp).semantics {
                         role = Role.Tab
                         selected = on
                     },
                 ) {
                     Box(Modifier.padding(horizontal = (Grid.base * 2.5f).dp), contentAlignment = Alignment.Center) {
-                        Text(s.label, style = if (on) type.sectionHeader else type.sectionHeader.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Normal))
+                        Text(s.label, style = if (on) type.sectionHeader.copy(fontSize = CHIP_TEXT_SP.sp) else type.sectionHeader.copy(fontSize = CHIP_TEXT_SP.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Normal))
                     }
                 }
             }
@@ -355,3 +357,5 @@ private fun tonalToggle() = androidx.compose.material3.ToggleButtonDefaults.colo
     checkedContainerColor = MaterialTheme.colorScheme.inversePrimary,
     checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
 )
+/** Board 06: chip labels at 16 sp. */
+internal const val CHIP_TEXT_SP = 16

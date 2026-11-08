@@ -242,8 +242,10 @@ private fun MadeForYou(home: Home, data: HomeData, onOpenMix: (String) -> Unit, 
         Column(Modifier.fillMaxSize().combinedClickable(onClick = { onOpenMix(m.mixId) })) {
             MosaicFill(m.coverSongIds, Modifier.weight(1f).fillMaxWidth().maskClip(MaterialTheme.shapes.extraLarge))
             Spacer(Modifier.height(6.dp))
-            Text(m.title, style = type.tileTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(m.subtitle, style = type.tileSubtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            // Inset a little: the carousel clips each item to its mask, which can sit a hair
+            // inside the item, and the first letter must never be cut.
+            Text(m.title, style = type.tileTitle, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = CAROUSEL_LABEL_INSET_DP.dp))
+            Text(m.subtitle, style = type.tileSubtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = CAROUSEL_LABEL_INSET_DP.dp))
         }
     }
 }
@@ -396,7 +398,9 @@ fun MixesScreen(host: CoreHost, data: HomeData, onProfile: () -> Unit, contentPa
 
 // Board 05's sizes, measured from the Android render.
 private const val CAROUSEL_ITEM_DP = 220
-private const val CAROUSEL_HEIGHT_DP = 236
+// Board 05: the large tile is wider than tall (about 220 by 176 dp), its labels below.
+private const val CAROUSEL_HEIGHT_DP = 222
+private const val CAROUSEL_LABEL_INSET_DP = 4
 private const val SHELF_TILE_DP = 120
 private const val SMALL_TILE_DP = 96
 private const val RING_DP = 6

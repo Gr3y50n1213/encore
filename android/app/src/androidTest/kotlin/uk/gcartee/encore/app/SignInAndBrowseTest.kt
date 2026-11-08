@@ -141,7 +141,7 @@ class SignInAndBrowseTest {
         rule.waitUntilAtLeastOneExists(hasText("Appearance"), TIMEOUT)
         shot("10-settings")
         rule.onNodeWithText("Appearance").performClick()
-        rule.waitUntilAtLeastOneExists(hasText("Accent colour"), TIMEOUT)
+        rule.waitUntilAtLeastOneExists(hasText("Accent color"), TIMEOUT)
         shot("11-appearance")
     }
 

@@ -200,7 +200,21 @@ private fun SettingsHome(host: CoreHost, onBack: () -> Unit, onProfiles: () -> U
     Page("Settings", onBack, contentPadding) {
         item {
             // Search: filters every setting by name.
-            OutlinedTextField(query, { query = it }, placeholder = { Text("Search settings") }, singleLine = true, shape = CircleShape, leadingIcon = { Icon(Icons.search(), contentDescription = null) }, modifier = Modifier.fillMaxWidth().padding(horizontal = (Grid.base * 2).dp))
+            // A filled pill, the same search bar as the Search tab (board 07).
+            androidx.compose.material3.TextField(
+                query, { query = it },
+                placeholder = { Text("Search settings") },
+                singleLine = true,
+                shape = CircleShape,
+                leadingIcon = { Icon(Icons.search(), contentDescription = null) },
+                colors = androidx.compose.material3.TextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                    unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                ),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = (Grid.base * 2).dp),
+            )
         }
         val q = query.trim()
         if (q.isEmpty()) item {
@@ -372,7 +386,7 @@ private fun AppearancePage(host: CoreHost, onBack: () -> Unit, contentPadding: P
     Page("Appearance", onBack, contentPadding) {
         item { Label("Theme") }
         item { Choices(ThemeMode.entries.map { it to it.label }, choice.mode) { Appearance.set(context, choice.copy(mode = it)) } }
-        item { Label("Accent colour") }
+        item { Label("Accent color") }
         item {
             val options = ACCENTS + if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) listOf(WALLPAPER) else emptyList()
             LazyRow(contentPadding = PaddingValues(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp), horizontalArrangement = Arrangement.spacedBy((Grid.base * 2).dp)) {
@@ -597,7 +611,7 @@ private fun LicencesPage(onBack: () -> Unit, contentPadding: PaddingValues) {
         ))
         item {
             Text(
-                text.ifBlank { "The licence list ships with release builds." } + "\n\n" + inter,
+                text.ifBlank { "The license list ships with release builds." } + "\n\n" + inter,
                 style = LocalEncoreType.current.caption,
                 modifier = Modifier.padding((Grid.base * 3).dp),
             )
