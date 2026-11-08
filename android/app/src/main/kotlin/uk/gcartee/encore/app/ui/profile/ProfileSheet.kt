@@ -156,10 +156,12 @@ fun ProfileSheet(host: CoreHost, playing: Boolean, onDismiss: () -> Unit, onSwit
                         }
                         if (p.active) Icon(Icons.check(), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     }
-                    // Item 3: row actions. Removing is not deleting (that lives in Privacy and data).
-                    DropdownMenu(menu, onDismissRequest = { menu = false }) {
-                        DropdownMenuItem(text = { Text("Remove from this device", color = MaterialTheme.colorScheme.error) }, onClick = {
-                            menu = false
+                    // Item 3: row actions, in the app's one action sheet. Removing is not
+                    // deleting (that lives in Privacy and data).
+                    if (menu) uk.gcartee.encore.app.ui.components.ActionSheet(
+                        onDismiss = { menu = false },
+                        header = { Text(p.displayName, style = type.sectionHeader) },
+                        groups = listOf(listOf(uk.gcartee.encore.app.ui.components.SheetAction("Remove from this device", Icons.remove(), destructive = true) {
                             confirm = "Remove ${p.displayName} from this phone? Their history stays on the companion server." to {
                                 runCatching { host.core.removeProfileFromDevice(p.profileId) }
                                     .onSuccess {
@@ -169,8 +171,8 @@ fun ProfileSheet(host: CoreHost, playing: Boolean, onDismiss: () -> Unit, onSwit
                                     }
                                     .onFailure { actions.toaster.show(it.userMessage()) }
                             }
-                        })
-                    }
+                        })),
+                    )
                 }
             }
             // Item 4: Add account, drawn like a profile row with a + in its circle.

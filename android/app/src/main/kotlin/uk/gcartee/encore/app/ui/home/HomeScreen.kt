@@ -447,17 +447,34 @@ private fun SongAlbumTile(song: Song, tileDp: Int, onOpen: () -> Unit) {
             Text(song.albumTitle ?: song.title, style = type.tileTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(song.albumArtist.ifBlank { song.artist }, style = type.tileSubtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
         }
-        // Item 3: the item menu; Rediscover's includes Not interested.
-        DropdownMenu(menu, onDismissRequest = { menu = false }) {
-            DropdownMenuItem(text = { Text("Play") }, onClick = {
-                menu = false
-                song.albumId?.let { id ->
-                    val ids = runCatching { actions.host.core.album(id).songs.map { it.id } }.getOrDefault(emptyList())
-                    actions.play(ids, 0, StartedFrom.ALBUM, id.toString(), song.albumTitle)
-                }
-            })
-            DropdownMenuItem(text = { Text("Play next") }, onClick = { menu = false; actions.playNext(listOf(song)) })
-            DropdownMenuItem(text = { Text("Not interested", color = MaterialTheme.colorScheme.error) }, onClick = { menu = false; actions.notInterested(song) })
+        // Item 3: the item menu, the app's one action sheet; Rediscover's includes Not interested.
+        if (menu) {
+            val playIcon = Icons.play()
+            val next = Icons.playNext()
+            val block = Icons.block()
+            uk.gcartee.encore.app.ui.components.ActionSheet(
+                onDismiss = { menu = false },
+                header = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Artwork(uk.gcartee.encore.core.ArtworkOf.SONG, song.id, 56.dp, Modifier.size(56.dp), cornerRadius = 14.dp)
+                        Spacer(Modifier.width((Grid.base * 2).dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(song.albumTitle ?: song.title, style = type.sectionHeader, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            Text(song.albumArtist.ifBlank { song.artist }, style = type.body, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                },
+                quick = listOf(
+                    uk.gcartee.encore.app.ui.components.SheetAction("Play", playIcon) {
+                        song.albumId?.let { id ->
+                            val ids = runCatching { actions.host.core.album(id).songs.map { it.id } }.getOrDefault(emptyList())
+                            actions.play(ids, 0, StartedFrom.ALBUM, id.toString(), song.albumTitle)
+                        }
+                    },
+                    uk.gcartee.encore.app.ui.components.SheetAction("Play next", next) { actions.playNext(listOf(song)) },
+                ),
+                groups = listOf(listOf(uk.gcartee.encore.app.ui.components.SheetAction("Not interested", block, destructive = true) { actions.notInterested(song) })),
+            )
         }
     }
 }

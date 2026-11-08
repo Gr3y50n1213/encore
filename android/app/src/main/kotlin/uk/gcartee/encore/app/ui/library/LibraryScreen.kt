@@ -276,7 +276,10 @@ private fun AlbumsList(host: CoreHost, sort: AlbumSort, grid: Boolean, generatio
             verticalArrangement = Arrangement.spacedBy((Grid.base * 1.5f).dp),
         ) {
             itemsIndexed(pager.items, key = { _, a -> a.id }) { _, album ->
-                AlbumTile(album, onClick = { onOpen(Route.Album(album.id)) }, card = true)
+                // Board 06, item 4: a long press opens the album's sheet.
+                var menu by remember { mutableStateOf(false) }
+                AlbumTile(album, onClick = { onOpen(Route.Album(album.id)) }, onLongClick = { menu = true }, card = true)
+                if (menu) AlbumSheet(host, album) { menu = false }
             }
         }
     } else {
@@ -471,4 +474,44 @@ internal fun <T> ChoiceGroup(options: List<Pair<T, String>>, selected: T, onSele
             }
         }
     }
+}
+
+/** Board 06, item 4: an album's actions, in the app's one action sheet. */
+@Composable
+private fun AlbumSheet(host: CoreHost, album: uk.gcartee.encore.core.AlbumSummary, onDismiss: () -> Unit) {
+    val actions = uk.gcartee.encore.app.ui.components.LocalAppActions.current
+    val type = LocalEncoreType.current
+    val songs = { runCatching { host.core.album(album.id).songs }.getOrDefault(emptyList()) }
+    val playIcon = Icons.play()
+    val next = Icons.playNext()
+    val queue = Icons.queue()
+    val artist = Icons.artist()
+    val download = Icons.download()
+    uk.gcartee.encore.app.ui.components.ActionSheet(
+        onDismiss = onDismiss,
+        header = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                uk.gcartee.encore.app.ui.components.Artwork(uk.gcartee.encore.core.ArtworkOf.ALBUM, album.id, 56.dp, Modifier.size(56.dp), cornerRadius = 14.dp)
+                Spacer(Modifier.width((Grid.base * 2).dp))
+                Column(Modifier.weight(1f)) {
+                    Text(album.title, style = type.sectionHeader, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    Text(album.artist, style = type.body, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                }
+            }
+        },
+        quick = listOf(
+            uk.gcartee.encore.app.ui.components.SheetAction("Play", playIcon) {
+                val ids = songs().map { it.id }
+                if (ids.isNotEmpty()) actions.play(ids, 0, StartedFrom.ALBUM, album.id.toString(), album.title)
+            },
+            uk.gcartee.encore.app.ui.components.SheetAction("Play next", next) { actions.playNext(songs()) },
+            uk.gcartee.encore.app.ui.components.SheetAction("Add to queue", queue) { actions.addToQueue(songs()) },
+        ),
+        groups = listOf(
+            listOf(
+                uk.gcartee.encore.app.ui.components.SheetAction("Go to artist", artist) { songs().firstOrNull()?.let(actions::goToArtist) },
+                uk.gcartee.encore.app.ui.components.SheetAction("Download", download) { actions.toaster.show(DOWNLOADS_LATER) },
+            ),
+        ),
+    )
 }
