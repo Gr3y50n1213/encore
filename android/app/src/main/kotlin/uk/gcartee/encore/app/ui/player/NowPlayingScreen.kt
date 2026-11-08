@@ -61,6 +61,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import uk.gcartee.encore.app.core.CoreHost
 import uk.gcartee.encore.app.playback.PlaybackHub
@@ -175,10 +176,11 @@ fun NowPlayingScreen(
                         val velocity = tracker.calculateVelocity().y
                         scope.launch {
                             if (drag.value > height * COLLAPSE_FRACTION || velocity > flick) {
-                                // Carry on down from where the finger let go, at its speed,
-                                // then close: no snap back to the top before the exit.
-                                drag.animateTo(height, androidx.compose.animation.core.spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow), initialVelocity = velocity.coerceAtLeast(0f))
+                                // Hand over to the morph into the mini player (EncoreRoot) at
+                                // once; the finger's offset eases out as the morph shrinks, so
+                                // nothing jumps.
                                 onCollapse()
+                                drag.animateTo(0f, androidx.compose.animation.core.spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow), initialVelocity = velocity.coerceAtLeast(0f))
                             } else {
                                 drag.animateTo(0f, androidx.compose.animation.core.spring(dampingRatio = 0.8f, stiffness = androidx.compose.animation.core.Spring.StiffnessMedium), initialVelocity = velocity)
                             }
@@ -197,11 +199,14 @@ fun NowPlayingScreen(
         val landscape = maxWidth > maxHeight
         // Read here, in the BoxWithConstraints scope itself.
         val shortWindow = maxHeight < LANDSCAPE_TALL_DP.dp
+        // A phone on its side: nothing scrolls on the controls side, so the top bar's two
+        // buttons move into that column and the spacing tightens.
+        val dense = landscape && shortWindow
         AlbumField(colours, Modifier.fillMaxSize())
         Column(Modifier.fillMaxSize().safeDrawingPadding().padding(horizontal = (Grid.base * 3).dp)) {
             // Item 1: collapse, "Playing from", More.
             // Board 10: with Lyrics or the Queue open the header is the compact song row below.
-            if (panel == PlayerPanel.Artwork || landscape) Row(Modifier.fillMaxWidth().padding(vertical = Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
+            if ((panel == PlayerPanel.Artwork || landscape) && !dense) Row(Modifier.fillMaxWidth().padding(vertical = Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
                 FilledTonalIconButton(
                     onClick = onCollapse,
                     colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = content.copy(alpha = 0.16f), contentColor = content),
@@ -257,12 +262,26 @@ fun NowPlayingScreen(
             }
             val controls: @Composable (Boolean, TransportSize) -> Unit = { compact, transport ->
                 Column {
+                    if (dense) {
+                        // Collapse and More, at the top of the controls instead of a top bar.
+                        Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            FilledTonalIconButton(
+                                onClick = onCollapse,
+                                colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = content.copy(alpha = 0.16f), contentColor = content),
+                            ) { Icon(Icons.collapse(), contentDescription = "Close Now Playing") }
+                            Spacer(Modifier.weight(1f))
+                            Box {
+                                MoreButton(moreMenu, content) { moreMenu = true }
+                                SongMenu(song, expanded = moreMenu, onDismiss = { moreMenu = false }, place = MenuPlace(chosenBy = entry.chosenBy))
+                            }
+                        }
+                    }
                     if (!compact) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             // Item 3: title opens the album, artist the artist, both collapsing first.
                             Text(
                                 song.title,
-                                style = type.nowPlayingTitle,
+                                style = if (dense) type.nowPlayingTitle.copy(fontSize = DENSE_TITLE_SP.sp, lineHeight = (DENSE_TITLE_SP + 4).sp) else type.nowPlayingTitle,
                                 color = content,
                                 maxLines = 1,
                                 modifier = Modifier
@@ -302,7 +321,7 @@ fun NowPlayingScreen(
                                 checkedContainerColor = content,
                                 checkedContentColor = colours.base,
                             ),
-                            modifier = Modifier.size(56.dp).semantics { stateDescription = if (liked) "Liked" else "Not liked" },
+                            modifier = Modifier.size(if (dense) 48.dp else 56.dp).semantics { stateDescription = if (liked) "Liked" else "Not liked" },
                         ) { Icon(Icons.favorite(liked), contentDescription = "Like", modifier = Modifier.graphicsLayer { scaleX = heart; scaleY = heart }) }
                     }
                     if (endOfQueue) Text("End of queue", style = type.caption, color = content.copy(alpha = 0.8f))
@@ -331,7 +350,7 @@ fun NowPlayingScreen(
                             modifier = Modifier.clickable { remaining = !remaining },
                         )
                     }
-                    Spacer(Modifier.height((Grid.base * 2).dp))
+                    Spacer(Modifier.height(if (dense) Grid.base.dp else (Grid.base * 2).dp))
                     // Item 6: three separate buttons 8 dp apart, centred.
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                         TransportRow(
@@ -346,7 +365,7 @@ fun NowPlayingScreen(
                             size = transport,
                         )
                     }
-                    Spacer(Modifier.height((Grid.base * 3).dp))
+                    Spacer(Modifier.height(if (dense) (Grid.base * 1.5f).dp else (Grid.base * 3).dp))
                     // Item 8: Lyrics, Output and Queue, one connected group.
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)) {
                         listOf(PlayerPanel.Lyrics to "Lyrics", null to "Output", PlayerPanel.Queue to "Queue").forEachIndexed { i, (p, label) ->
@@ -384,19 +403,16 @@ fun NowPlayingScreen(
                             }
                         }
                     }
-                    Spacer(Modifier.height((Grid.base * 2).dp))
+                    Spacer(Modifier.height(if (dense) 0.dp else (Grid.base * 2).dp))
                 }
             }
             if (landscape) {
-                // A short window (a phone on its side) takes the medium transport, and the
-                // side column scrolls rather than cutting anything off.
-                val short = shortWindow
+                // The controls side is fixed: it fits (the medium transport on a short window),
+                // so only the artwork's swipe, the lyrics and the queue move.
                 Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy((Grid.base * 3).dp)) {
-                    artArea(Modifier.weight(1f).fillMaxSize())
+                    artArea(Modifier.weight(1f).fillMaxSize().padding(vertical = if (dense) Grid.base.dp else 0.dp))
                     Box(Modifier.weight(1f).fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Box(Modifier.verticalScroll(rememberScrollState())) {
-                            controls(false, if (short) TransportSize.Medium else TransportSize.Large)
-                        }
+                        controls(false, if (shortWindow) TransportSize.Medium else TransportSize.Large)
                     }
                 }
             } else if (panel != PlayerPanel.Artwork) {
@@ -534,6 +550,7 @@ private fun MoreButton(open: Boolean, content: Color, onOpen: () -> Unit) {
 }
 private const val ART_MAX_DP = 420
 private const val LANDSCAPE_TALL_DP = 520
+private const val DENSE_TITLE_SP = 22
 private const val ART_RADIUS_DP = 28
 private const val COLLAPSE_FRACTION = 0.3f
 private const val MARQUEE_DELAY_MS = 1_500

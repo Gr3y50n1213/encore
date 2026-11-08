@@ -16,6 +16,7 @@ import androidx.compose.ui.test.printToString
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -60,7 +61,9 @@ class SignInAndBrowseTest {
         rule.onNodeWithTag("address").performTextInput(replayUrl!!)
         rule.mainClock.advanceTimeBy(CHECK_AFTER_MS)
         rule.waitUntilAtLeastOneExists(hasText("Found Jellyfin", substring = true), TIMEOUT)
-        rule.onNodeWithTag("quick-connect").performScrollTo().performClick()
+        // The keyboard may still cover the lower form (API 28 keeps it open after typing),
+        // so press the button through its click action, not a touch at its position.
+        rule.onNodeWithTag("quick-connect").performScrollTo().performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
 
         // Quick Connect approves (the recording's approval) and the profile opens. Each
         // step is waited for on its own, so a failure says which one stalled and why.

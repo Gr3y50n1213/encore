@@ -50,6 +50,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -148,6 +151,10 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     val nav = rememberNavigator()
     val player by PlaybackHub.state.collectAsState(PlayerState())
     var nowPlaying by rememberSaveable { mutableStateOf(false) }
+    // Where the mini player is and how big the screen is, for the morph between them.
+    var miniRect by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+    var screen by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
+    val density = LocalDensity.current
     var profiles by remember { mutableStateOf(false) }
     var output by remember { mutableStateOf(false) }
     var addingAccount by rememberSaveable { mutableStateOf(false) }
@@ -159,6 +166,10 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     val widthDp = LocalConfiguration.current.screenWidthDp
     val wide = widthDp >= Breakpoints.railFrom
     val expanded = widthDp >= Breakpoints.expandedRailFrom
+    // The owner (8 November 2026): on a portrait tablet (about 880 dp) the 240 dp labelled
+    // rail beside the list and the page squeezed the page. The labelled rail waits for a
+    // Large window (1200 dp, a landscape tablet); below that the 80 dp rail serves.
+    val railLabelled = widthDp >= LABELLED_RAIL_FROM_DP
     val offline = rememberOffline(context)
     val actions = remember(nav) {
         AppActions(host, toaster, context, open = { route -> nowPlaying = false; nav.push(route) }, openNowPlaying = { nowPlaying = true }, openProfiles = { profiles = true })
@@ -202,8 +213,8 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
         }
         Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             Row(Modifier.fillMaxSize()) {
-                if (expanded) {
-                    // Board 29, item 1: from 840 dp the expanded rail, 240 dp, labels beside the icons.
+                if (railLabelled) {
+                    // Board 29, item 1: the expanded rail, 240 dp, labels beside the icons, on Large windows.
                     ExpandedRail(host, nav.tab, onTab = { nav.select(it) }, onOpen = actions.open, onProfile = { profiles = true })
                 } else if (wide) {
                     // Board 29: an 80 dp rail with labels under the icons from 600 dp.
@@ -266,7 +277,21 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                         // The mini player and, on phones, the navigation bar float over the
                         // page together; pages pad their lists by the pair's height.
                         Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onSizeChanged { miniHeight = it.height }) {
-                            MiniPlayer(host, player, onExpand = { nowPlaying = true }, modifier = Modifier.padding(vertical = Grid.base.dp).let { if (wide) it.navigationBarsPadding() else it }, bar = wide)
+                            MiniPlayer(
+                                host,
+                                player,
+                                onExpand = { nowPlaying = true },
+                                modifier = Modifier
+                                    // Where the bar sits, so Now Playing can morph into it.
+                                    .onGloballyPositioned { c ->
+                                        val b = c.boundsInRoot()
+                                        val inset = with(density) { Grid.base.dp.toPx() }
+                                        miniRect = androidx.compose.ui.geometry.Rect(b.left + inset, b.top + inset, b.right - inset, b.bottom - inset)
+                                    }
+                                    .padding(vertical = Grid.base.dp)
+                                    .let { if (wide) it.navigationBarsPadding() else it },
+                                bar = wide,
+                            )
                             if (!wide) {
                                 // Material 3 Expressive is round: the bar's top corners are 28 dp
                                 // and it runs under the clear gesture area to the screen's edge.
@@ -292,12 +317,47 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                 }
             }
             ContinueBanner(host, continueFrom, onDone = { continueFrom = null })
-            AnimatedVisibility(
-                visible = nowPlaying && player.entry != null,
-                // Up on the expressive spring; down on one smooth curve, from wherever a
-                // swipe left it (NowPlayingScreen carries a swipe down itself).
-                enter = if (still) fadeIn(tween(Timing.reduceMotionCrossfadeMs)) else slideInVertically(androidx.compose.animation.core.spring(dampingRatio = 0.9f, stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow)) { it } + fadeIn(tween(OPEN_FADE_MS)),
-                exit = if (still) fadeOut(tween(Timing.reduceMotionCrossfadeMs)) else slideOutVertically(tween(CLOSE_MS, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it } + fadeOut(tween(CLOSE_MS)),
+            // Board 09 and 42: Now Playing grows out of the mini player and settles back into
+            // it, a container morph: its bounds go between the bar's and the screen's, its
+            // corners round to the bar's 28 dp, and in the last stretch it dissolves into the
+            // real bar beneath. Reduce Motion cross-fades instead.
+            val visible = nowPlaying && player.entry != null
+            val expand = remember { androidx.compose.animation.core.Animatable(if (visible) 1f else 0f) }
+            LaunchedEffect(visible) {
+                val target = if (visible) 1f else 0f
+                when {
+                    still -> expand.animateTo(target, tween(Timing.reduceMotionCrossfadeMs))
+                    visible -> expand.animateTo(target, androidx.compose.animation.core.spring(dampingRatio = OPEN_DAMPING, stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow))
+                    else -> expand.animateTo(target, tween(CLOSE_MS, easing = androidx.compose.animation.core.FastOutSlowInEasing))
+                }
+            }
+            if (visible || expand.value > 0f) Box(
+                Modifier
+                    .fillMaxSize()
+                    .onSizeChanged { screen = it }
+                    .graphicsLayer {
+                        val p = expand.value
+                        if (still) {
+                            alpha = p.coerceIn(0f, 1f)
+                        } else if (screen.width > 0 && screen.height > 0) {
+                            val w = screen.width.toFloat()
+                            val h = screen.height.toFloat()
+                            val mini = miniRect ?: androidx.compose.ui.geometry.Rect(0f, h * 0.86f, w, h * 0.94f)
+                            val sx = mix(mini.width / w, 1f, p)
+                            val sy = mix(mini.height / h, 1f, p)
+                            transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0f)
+                            scaleX = sx
+                            scaleY = sy
+                            translationX = mix(mini.left, 0f, p)
+                            translationY = mix(mini.top, 0f, p)
+                            // The radius is set before scaling: divide by the scale so it lands
+                            // at the bar's 28 dp.
+                            val r = MINI_RADIUS_DP.dp.toPx() * (1f - p).coerceIn(0f, 1f) / sy.coerceAtLeast(0.01f)
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(r)
+                            clip = true
+                            alpha = (p / MORPH_FADE_UNTIL).coerceIn(0f, 1f)
+                        }
+                    },
             ) {
                 NowPlayingScreen(
                     host,
@@ -427,6 +487,7 @@ private const val OFFLINE_DELAY_MS = 2_000L
 
 // Board 29's panes.
 private const val LIST_PANE_DP = 340
+private const val LABELLED_RAIL_FROM_DP = 1200
 private const val PANE_GAP_DP = 12
 private const val PANE_RADIUS_DP = 28
 private val EXPANDED_RAIL_DP = Breakpoints.expandedRailWidth
@@ -434,3 +495,8 @@ private val EXPANDED_RAIL_DP = Breakpoints.expandedRailWidth
 private const val OPEN_FADE_MS = 200
 private const val CLOSE_MS = 280
 private const val NAV_RADIUS_DP = 28
+
+private fun mix(start: Float, stop: Float, fraction: Float): Float = start + (stop - start) * fraction
+private const val MINI_RADIUS_DP = 28
+private const val MORPH_FADE_UNTIL = 0.3f
+private const val OPEN_DAMPING = 0.85f
