@@ -543,7 +543,8 @@ private fun AppearancePage(host: CoreHost, onBack: () -> Unit, contentPadding: P
                     }
                 }
             }
-        }        item { Body("Reduce motion and larger text follow the system settings.") }
+        }
+        item { Body("Reduce motion and larger text follow the system settings.") }
     }
 }
 
