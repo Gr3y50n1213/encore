@@ -65,7 +65,7 @@ import uk.gcartee.encore.tokens.EncoreTokens.Grid
 /** Board 14. [onSwitched] resets the app to Home; [onAddAccount] opens the sign-in flow. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun ProfileSheet(host: CoreHost, playing: Boolean, onDismiss: () -> Unit, onSwitched: () -> Unit, onAddAccount: () -> Unit) {
+fun ProfileSheet(host: CoreHost, playing: Boolean, onDismiss: () -> Unit, onSwitched: () -> Unit, onAddAccount: () -> Unit, showSettings: Boolean = true) {
     val type = LocalEncoreType.current
     val haptics = rememberHaptics()
     val actions = LocalAppActions.current
@@ -208,7 +208,8 @@ fun ProfileSheet(host: CoreHost, playing: Boolean, onDismiss: () -> Unit, onSwit
             }
             // Where board 14 has "Manage profiles": a tonal pill to Settings (board 17), the
             // phone's way in to every setting and the profile page.
-            FilledTonalButton(
+            // Not when the sheet was opened from Settings itself.
+            if (showSettings) FilledTonalButton(
                 onClick = { onDismiss(); actions.open(uk.gcartee.encore.app.ui.nav.Route.Settings()) },
                 modifier = Modifier.padding(start = (Grid.base * 3).dp, top = (Grid.base * 2).dp).height(48.dp),
             ) {

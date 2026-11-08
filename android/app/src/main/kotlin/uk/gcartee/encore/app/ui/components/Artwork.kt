@@ -99,7 +99,7 @@ object ArtworkCache {
                 ?: return@withContext null
             fetch(request.url, request.headers.associate { it.name to it.value })?.also { file.writeBytes(it) }
         } ?: return@withContext null
-        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap() ?: return@withContext null
+        val bitmap = decodeUpright(bytes, 1)?.asImageBitmap() ?: return@withContext null
         memory.put(key, bitmap)
         bitmap
     }
@@ -119,10 +119,33 @@ object ArtworkCache {
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
         var sample = 1
         while (opts.outWidth / (sample * 2) >= px && opts.outHeight / (sample * 2) >= px) sample *= 2
-        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })?.asImageBitmap()
-            ?: return@withContext null
+        val bitmap = decodeUpright(bytes, sample)?.asImageBitmap() ?: return@withContext null
         memory.put(key, bitmap)
         bitmap
+    }
+
+    /**
+     * Decodes an image the way it is meant to be seen: a phone photo used as a profile
+     * picture often stores its turn in EXIF, which the decoder ignores (it came out a
+     * quarter turn off).
+     */
+    private fun decodeUpright(bytes: ByteArray, sample: Int): android.graphics.Bitmap? {
+        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample }) ?: return null
+        val orientation = runCatching {
+            android.media.ExifInterface(java.io.ByteArrayInputStream(bytes)).getAttributeInt(android.media.ExifInterface.TAG_ORIENTATION, android.media.ExifInterface.ORIENTATION_NORMAL)
+        }.getOrDefault(android.media.ExifInterface.ORIENTATION_NORMAL)
+        val m = android.graphics.Matrix()
+        when (orientation) {
+            android.media.ExifInterface.ORIENTATION_ROTATE_90 -> m.postRotate(90f)
+            android.media.ExifInterface.ORIENTATION_ROTATE_180 -> m.postRotate(180f)
+            android.media.ExifInterface.ORIENTATION_ROTATE_270 -> m.postRotate(270f)
+            android.media.ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> m.postScale(-1f, 1f)
+            android.media.ExifInterface.ORIENTATION_FLIP_VERTICAL -> m.postScale(1f, -1f)
+            android.media.ExifInterface.ORIENTATION_TRANSPOSE -> { m.postRotate(90f); m.postScale(-1f, 1f) }
+            android.media.ExifInterface.ORIENTATION_TRANSVERSE -> { m.postRotate(270f); m.postScale(-1f, 1f) }
+            else -> return bitmap
+        }
+        return android.graphics.Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, m, true)
     }
 
     private fun fetch(url: String, headers: Map<String, String>): ByteArray? = runCatching {

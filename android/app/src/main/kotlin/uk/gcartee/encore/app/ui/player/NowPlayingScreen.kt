@@ -49,6 +49,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -245,13 +247,13 @@ fun NowPlayingScreen(
                             if (!liked) toggleLike(true) else haptics.perform(Haptic.Confirm)
                             heart = true
                         }, onMenu = { menu = true }, onEnd = { endOfQueue = it })
-                        PlayerPanel.Lyrics -> LyricsPanel(host, song, position, content, onSeek = { PlaybackHub.seekAndPlay(context, it) }, modifier = Modifier.fillMaxSize())
+                        PlayerPanel.Lyrics -> LyricsPanel(host, song, position, content, onSeek = { PlaybackHub.seekAndPlay(context, it) }, modifier = Modifier.fillMaxSize().fadingEdges())
                         PlayerPanel.Queue -> QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize().fadingEdges(), onColour = colours.base)
                     }
                 }
                 Box { SongMenu(song, expanded = menu, onDismiss = { menu = false }, place = MenuPlace(chosenBy = entry.chosenBy)) }
             }
-            val controls: @Composable (Boolean) -> Unit = { compact ->
+            val controls: @Composable (Boolean, TransportSize) -> Unit = { compact, transport ->
                 Column {
                     if (!compact) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
@@ -339,7 +341,7 @@ fun NowPlayingScreen(
                             onScan = { forward, active -> if (active) PlaybackHub.startScan(context, forward) else PlaybackHub.stopScan(context) },
                             container = content,
                             onContainer = colours.base,
-                            size = if (compact) TransportSize.Medium else TransportSize.Large,
+                            size = transport,
                         )
                     }
                     Spacer(Modifier.height((Grid.base * 3).dp))
@@ -384,9 +386,16 @@ fun NowPlayingScreen(
                 }
             }
             if (landscape) {
+                // A short window (a phone on its side) takes the medium transport, and the
+                // side column scrolls rather than cutting anything off.
+                val short = maxHeight < LANDSCAPE_TALL_DP.dp
                 Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy((Grid.base * 3).dp)) {
                     artArea(Modifier.weight(1f).fillMaxSize())
-                    Box(Modifier.weight(1f).fillMaxSize(), contentAlignment = Alignment.Center) { controls(false) }
+                    Box(Modifier.weight(1f).fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Box(Modifier.verticalScroll(rememberScrollState())) {
+                            controls(false, if (short) TransportSize.Medium else TransportSize.Large)
+                        }
+                    }
                 }
             } else if (panel != PlayerPanel.Artwork) {
                 // Board 10, item 1: art and title stay pinned so the song is always known; a
@@ -415,10 +424,10 @@ fun NowPlayingScreen(
                         else -> QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize(), onColour = colours.base)
                     }
                 }
-                controls(true)
+                controls(true, TransportSize.Medium)
             } else {
                 artArea(Modifier.weight(1f).fillMaxWidth())
-                controls(false)
+                controls(false, TransportSize.Large)
             }
         }
     }
@@ -441,25 +450,29 @@ private fun ArtworkArea(
     val haptics = rememberHaptics()
     val still = reduceMotion()
     val scale by animateFloatAsState(if (state.isPlaying || still) 1f else PAUSED_SCALE, androidx.compose.animation.core.spring(dampingRatio = ART_DAMPING, stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow), label = "art")
-    val wide = LocalConfiguration.current.screenWidthDp
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        // As big as the smaller side of the space (landscape is height-bound), never more
+        // than the board's 420 dp, so it never runs under the header or off the screen.
+        val side = minOf(maxWidth, maxHeight, ART_MAX_DP.dp)
         SkipSwipe(
             host,
             current = state.entry,
             onNext = { PlaybackHub.swipeNext(context) },
             onPrevious = { PlaybackHub.swipePrevious(context) },
             onEndOfQueue = onEnd,
-            modifier = Modifier.widthIn(max = ART_MAX_DP.dp).fillMaxWidth(),
+            modifier = Modifier.size(side),
         ) { entry, slot ->
             val id = entry?.song?.id ?: return@SkipSwipe
             Box(
                 Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f)
+                    .size(side)
                     .graphicsLayer {
                         val s = if (slot == Slot.Current) scale else 1f
                         scaleX = s
                         scaleY = s
+                        // Clipped here too, so a swipe's scale and fade keep the corners.
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(ART_RADIUS_DP.dp)
+                        clip = true
                     }
                     .combinedClickable(
                         // The owner: a tap on the cover plays or pauses, like the button; the
@@ -477,7 +490,7 @@ private fun ArtworkArea(
                         onLongClickLabel = "More options",
                     ),
             ) {
-                Artwork(ArtworkOf.SONG, id, (if (wide > 600) ART_MAX_DP else wide).dp, Modifier.fillMaxSize(), cornerRadius = ART_RADIUS_DP.dp)
+                Artwork(ArtworkOf.SONG, id, side, Modifier.fillMaxSize(), cornerRadius = ART_RADIUS_DP.dp)
             }
         }
         androidx.compose.animation.AnimatedVisibility(heart, enter = scaleIn(spring()) + fadeIn(), exit = scaleOut() + fadeOut()) {
@@ -518,6 +531,7 @@ private fun MoreButton(open: Boolean, content: Color, onOpen: () -> Unit) {
     ) { Icon(Icons.more(), contentDescription = "More") }
 }
 private const val ART_MAX_DP = 420
+private const val LANDSCAPE_TALL_DP = 520
 private const val ART_RADIUS_DP = 28
 private const val COLLAPSE_FRACTION = 0.3f
 private const val MARQUEE_DELAY_MS = 1_500

@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Only the window before Compose draws; every colour on screen comes from the
-         token constants (EncoreTheme). Edge to edge is set in MainActivity. -->
-    <style name="Theme.Encore" parent="android:Theme.Material.Light.NoActionBar" />
+         token constants (EncoreTheme). Edge to edge is set in MainActivity. The system bars
+         are clear in every orientation, with no contrast scrim over the gesture area (One
+         UI drew a grey band in landscape), and the app draws into the cutout's short edges;
+         each screen pads for the insets itself. -->
+    <style name="Theme.Encore" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:enforceNavigationBarContrast" tools:targetApi="29">false</item>
+        <item name="android:enforceStatusBarContrast" tools:targetApi="29">false</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
 </resources>

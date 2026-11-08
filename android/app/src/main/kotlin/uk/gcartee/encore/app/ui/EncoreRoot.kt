@@ -309,7 +309,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                 )
             }
         }
-        if (profiles) ProfileSheet(host, playing = player.isPlaying, onDismiss = { profiles = false }, onSwitched = { nav.reset(); switches++ }, onAddAccount = { addingAccount = true })
+        if (profiles) ProfileSheet(host, playing = player.isPlaying, onDismiss = { profiles = false }, onSwitched = { nav.reset(); switches++ }, onAddAccount = { addingAccount = true }, showSettings = nav.top !is Route.Settings)
         if (output) OutputSheet(host, playingHere = player.isPlaying, onDismiss = { output = false })
     }
 }

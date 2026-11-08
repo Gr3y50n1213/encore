@@ -49,6 +49,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.draw.clip
@@ -98,6 +100,8 @@ import uk.gcartee.encore.tokens.EncoreTokens.Grid
 private const val OUTER = 24
 private const val INNER = 6
 private const val ROW_ONE_LINE_DP = 56
+private const val SWATCHES_PER_ROW = 4
+private const val SWATCH_DP = 48
 private const val LONG_TITLE = 16
 private const val LONG_TITLE_SP = 28
 private const val ROW_TWO_LINE_DP = 72
@@ -414,9 +418,9 @@ fun <T> Choices(options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Un
 fun AdventurousChoice(level: Adventurousness, onChange: (Adventurousness) -> Unit) {
     RadioRows(
         listOf(
-            Triple(Adventurousness.FAMILIAR, "Familiar", "About 1 in 20 picks will be new to you"),
-            Triple(Adventurousness.BALANCED, "Balanced", "About 1 in 10 picks will be new to you"),
-            Triple(Adventurousness.ADVENTUROUS, "Adventurous", "About 1 in 5 picks will be new to you"),
+            Triple(Adventurousness.FAMILIAR, "Familiar", "1 in 20 picks are new to you"),
+            Triple(Adventurousness.BALANCED, "Balanced", "1 in 10 picks are new to you"),
+            Triple(Adventurousness.ADVENTUROUS, "Adventurous", "1 in 5 picks are new to you"),
         ),
         level,
         onChange,
@@ -455,11 +459,9 @@ private fun SuggestionsPage(host: CoreHost, onBack: () -> Unit, contentPadding: 
     var confirmReset by remember { mutableStateOf(false) }
     Page("Mixes and suggestions", onBack, contentPadding) {
         item { Label("How adventurous") }
-        item {
-            Box(Modifier.padding(horizontal = (Grid.base * 2).dp)) {
-                AdventurousChoice(level) { l -> runCatching { host.core.setAdventurousness(l) }.onSuccess { level = l } }
-            }
-        }
+        // The rows bring their own margins, so they line up with the groups below.
+        item { AdventurousChoice(level) { l -> runCatching { host.core.setAdventurousness(l) }.onSuccess { level = l } } }
+        item { Spacer(Modifier.height(Grid.base.dp)) }
         group("Not interested", notInterested.map { item ->
             Row0(item.label, null, { Icons.block() }, trailing = {
                 TextButton(onClick = { runCatching { host.core.removeNotInterested(item) }.onSuccess { version++ } }) { Text("Remove") }
@@ -495,28 +497,53 @@ private fun AppearancePage(host: CoreHost, onBack: () -> Unit, contentPadding: P
         item { uk.gcartee.encore.app.ui.library.ChoiceGroup(ThemeMode.entries.map { it to it.label }, choice.mode, { Appearance.set(context, choice.copy(mode = it)) }, modifier = Modifier.padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp)) }
         item { Label("Accent color") }
         item {
+            // A compact grid, four to a row, in one tonal card: each swatch shows the
+            // accent's primary, secondary and tertiary tones; the chosen one turns into a
+            // squircle with a check.
             val options = ACCENTS + if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) listOf(WALLPAPER) else emptyList()
-            LazyRow(contentPadding = PaddingValues(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp), horizontalArrangement = Arrangement.spacedBy((Grid.base * 2).dp)) {
-                items(options) { name ->
-                    val colour = remember(name) { accentScheme(context, name, dark = false).primary }
-                    val selected = name == choice.accent
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable {
-                        haptics.perform(Haptic.Tick)
-                        Appearance.set(context, choice.copy(accent = name))
-                    }.semantics { stateDescription = if (selected) "Selected" else "" }) {
-                        Box(
-                            Modifier
-                                .size(48.dp)
-                                .background(colour, if (selected) RoundedCornerShape(16.dp) else CircleShape)
-                                .let { if (selected) it.border(3.dp, MaterialTheme.colorScheme.onSurface, RoundedCornerShape(16.dp)) else it },
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(name, style = rowValue().copy(fontSize = 13.sp), maxLines = 1)
+            val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+            Surface(shape = RoundedCornerShape(OUTER.dp), color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth().padding(horizontal = (Grid.base * 2).dp)) {
+                Column(Modifier.padding(vertical = (Grid.base * 2).dp), verticalArrangement = Arrangement.spacedBy((Grid.base * 2).dp)) {
+                    options.chunked(SWATCHES_PER_ROW).forEach { row ->
+                        Row(Modifier.fillMaxWidth()) {
+                            row.forEach { name ->
+                                val scheme = remember(name, dark) { accentScheme(context, name, dark) }
+                                val selected = name == choice.accent
+                                val corner by androidx.compose.animation.core.animateDpAsState(if (selected) 16.dp else SWATCH_DP.dp / 2, androidx.compose.animation.core.spring(dampingRatio = 0.6f), label = "swatch")
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .clickable {
+                                            haptics.perform(Haptic.Tick)
+                                            Appearance.set(context, choice.copy(accent = name))
+                                        }
+                                        .padding(vertical = 6.dp)
+                                        .semantics {
+                                            contentDescription = name
+                                            stateDescription = if (selected) "Selected" else ""
+                                            role = Role.RadioButton
+                                        },
+                                ) {
+                                    Box(Modifier.size(SWATCH_DP.dp).clip(RoundedCornerShape(corner)), contentAlignment = Alignment.Center) {
+                                        androidx.compose.foundation.Canvas(Modifier.matchParentSize()) {
+                                            drawRect(scheme.primary, size = androidx.compose.ui.geometry.Size(size.width, size.height / 2))
+                                            drawRect(scheme.secondaryContainer, topLeft = androidx.compose.ui.geometry.Offset(0f, size.height / 2), size = androidx.compose.ui.geometry.Size(size.width / 2, size.height / 2))
+                                            drawRect(scheme.tertiary, topLeft = androidx.compose.ui.geometry.Offset(size.width / 2, size.height / 2), size = androidx.compose.ui.geometry.Size(size.width / 2, size.height / 2))
+                                        }
+                                        if (selected) Icon(Icons.check(), contentDescription = null, tint = scheme.onPrimary, modifier = Modifier.size(22.dp))
+                                    }
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(name, style = rowValue().copy(fontSize = 13.sp), color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                                }
+                            }
+                            repeat(SWATCHES_PER_ROW - row.size) { Spacer(Modifier.weight(1f)) }
+                        }
                     }
                 }
             }
-        }
-        item { Body("Reduce motion and larger text follow the system settings.") }
+        }        item { Body("Reduce motion and larger text follow the system settings.") }
     }
 }
 

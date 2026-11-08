@@ -301,8 +301,9 @@ private fun greeting(): String = when (java.time.LocalTime.now().hour) {
 }
 
 /**
- * The album played last, big: its cover full bleed under a soft dark gradient, the title
- * in white and a white Play that plays the album. The card opens the album.
+ * The album played last, big: the whole square cover beside its name, on the album's own
+ * colour (board 04's palette, leading tone fading to the dark base), with Play. The card
+ * opens the album; nothing is cropped.
  */
 @Composable
 private fun JumpBackIn(song: Song) {
@@ -310,6 +311,7 @@ private fun JumpBackIn(song: Song) {
     val type = LocalEncoreType.current
     val haptics = rememberHaptics()
     val albumId = song.albumId ?: return
+    val tint = uk.gcartee.encore.app.ui.library.rememberAlbumTint(actions.host, albumId)
     val press = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     val pressed by press.collectIsPressedAsState()
     val scale by androidx.compose.animation.core.animateFloatAsState(if (pressed) PRESSED_SCALE else 1f, androidx.compose.animation.core.spring(dampingRatio = 0.6f), label = "press")
@@ -317,37 +319,42 @@ private fun JumpBackIn(song: Song) {
         onClick = { actions.open(Route.Album(albumId)) },
         interactionSource = press,
         shape = androidx.compose.foundation.shape.RoundedCornerShape(HERO_RADIUS_DP.dp),
+        color = tint.field,
         modifier = Modifier
             .padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp)
             .fillMaxWidth()
-            .height(HERO_HEIGHT_DP.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
             },
     ) {
-        Box {
-            Artwork(uk.gcartee.encore.core.ArtworkOf.ALBUM, albumId, HERO_ART_DP.dp, Modifier.fillMaxSize(), cornerRadius = 0.dp, fill = true)
-            Box(Modifier.matchParentSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(0f to Color.Transparent, 0.35f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.78f))))
-            Column(Modifier.align(Alignment.BottomStart).padding(start = (Grid.base * 2.5f).dp, bottom = (Grid.base * 2.5f).dp, end = HERO_TEXT_END_DP.dp)) {
-                Text("Jump back in", style = type.buttonLabelSelected, color = Color.White.copy(alpha = 0.85f))
+        Row(
+            Modifier
+                .background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(tint.top, tint.field)))
+                .padding(HERO_INSET_DP.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Artwork(uk.gcartee.encore.core.ArtworkOf.ALBUM, albumId, HERO_ART_DP.dp, Modifier.size(HERO_ART_DP.dp), cornerRadius = (HERO_RADIUS_DP - HERO_INSET_DP).dp)
+            Spacer(Modifier.width((Grid.base * 2).dp))
+            Column(Modifier.weight(1f)) {
+                Text("Jump back in", style = type.buttonLabelSelected, color = tint.secondary)
                 Spacer(Modifier.height(4.dp))
-                Text(song.albumTitle ?: song.title, style = type.collectionTitle.copy(fontSize = 24.sp, lineHeight = 28.sp), color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(song.albumArtist.ifBlank { song.artist }, style = type.body.copy(fontSize = 15.sp), color = Color.White.copy(alpha = 0.85f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(song.albumTitle ?: song.title, style = type.collectionTitle.copy(fontSize = 22.sp, lineHeight = 26.sp), color = tint.content, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(song.albumArtist.ifBlank { song.artist }, style = type.body.copy(fontSize = 15.sp), color = tint.secondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.height((Grid.base * 1.5f).dp))
+                FilledIconButton(
+                    onClick = {
+                        haptics.perform(Haptic.Soft)
+                        val ids = runCatching { actions.host.core.album(albumId).songs.map { it.id } }.getOrDefault(emptyList())
+                        if (ids.isNotEmpty()) actions.play(ids, 0, StartedFrom.ALBUM, albumId.toString(), song.albumTitle)
+                    },
+                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = tint.content, contentColor = tint.field),
+                    modifier = Modifier.size(HERO_PLAY_DP.dp),
+                ) { Icon(Icons.play(), contentDescription = "Play ${song.albumTitle ?: song.title}", modifier = Modifier.size(26.dp)) }
             }
-            FilledIconButton(
-                onClick = {
-                    haptics.perform(Haptic.Soft)
-                    val ids = runCatching { actions.host.core.album(albumId).songs.map { it.id } }.getOrDefault(emptyList())
-                    if (ids.isNotEmpty()) actions.play(ids, 0, StartedFrom.ALBUM, albumId.toString(), song.albumTitle)
-                },
-                colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color.White, contentColor = Color.Black),
-                modifier = Modifier.align(Alignment.BottomEnd).padding((Grid.base * 2).dp).size(HERO_PLAY_DP.dp),
-            ) { Icon(Icons.play(), contentDescription = "Play ${song.albumTitle ?: song.title}", modifier = Modifier.size(28.dp)) }
         }
     }
 }
-
 /** Recent albums as quick tiles, two to a row: the cover at the start, the name beside it. */
 @Composable
 private fun QuickPicks(songs: List<Song>) {
@@ -597,11 +604,10 @@ private const val LARGE_TILE_DP = 160
 private const val QUICK_PICKS = 6
 private const val QUICK_HEIGHT_DP = 60
 private const val QUICK_RADIUS_DP = 16
-private const val HERO_HEIGHT_DP = 220
 private const val HERO_RADIUS_DP = 28
-private const val HERO_ART_DP = 420
-private const val HERO_PLAY_DP = 56
-private const val HERO_TEXT_END_DP = 96
+private const val HERO_ART_DP = 132
+private const val HERO_INSET_DP = 12
+private const val HERO_PLAY_DP = 52
 private const val PRESSED_SCALE = 0.98f
 private const val NOTICE_ORB_DP = 72
 private const val SMALL_TILE_DP = 96

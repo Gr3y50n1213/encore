@@ -132,7 +132,13 @@ fun EncoreTheme(dark: Boolean? = null, content: @Composable () -> Unit) {
         motionScheme = MotionScheme.expressive(),
         typography = materialTypography(type),
     ) {
-        CompositionLocalProvider(LocalEncoreType provides type, content = content)
+        // Text and icons outside a Surface take the scheme's on-surface colour, never the
+        // default black (dark mode showed black titles on Settings and Appearance).
+        CompositionLocalProvider(
+            LocalEncoreType provides type,
+            androidx.compose.material3.LocalContentColor provides scheme.onSurface,
+            content = content,
+        )
     }
 }
 

@@ -3,8 +3,8 @@ package uk.gcartee.encore.app
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.activity.SystemBarStyle
+import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import uk.gcartee.encore.app.core.CoreHost
 import uk.gcartee.encore.app.playback.PlaybackHub
@@ -22,7 +22,7 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.isNavigationBarContrastEnforced = false
+        clearSystemBars()
         host = CoreHost.get(this)
         // Later launches go straight to the library (board 22, "First launch only").
         if (!host.profileOpen.value) host.openLastProfile()
@@ -31,6 +31,19 @@ class MainActivity : ComponentActivity() {
                 EncoreRoot(host)
             }
         }
+    }
+
+    /** Again after a rotation (this activity handles it itself): no scrim, clear bars. */
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        clearSystemBars()
+    }
+
+    @Suppress("DEPRECATION")
+    private fun clearSystemBars() {
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) window.navigationBarDividerColor = android.graphics.Color.TRANSPARENT
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.isNavigationBarContrastEnforced = false
     }
 
     override fun onStart() {

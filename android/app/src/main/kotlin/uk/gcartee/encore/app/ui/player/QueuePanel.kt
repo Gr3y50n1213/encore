@@ -35,6 +35,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.mutableIntStateOf
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.layout.onSizeChanged
@@ -97,18 +98,22 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
     }
 
     var adventurous by remember { mutableStateOf(false) }
-    val upNextDrag = remember { Reorder() }
-    val autoDrag = remember { Reorder() }
+    val drag = remember { Reorder() }
     // The queue came back changed: show it, not the order held since the drop.
-    LaunchedEffect(q.upNext) { upNextDrag.holding = false }
-    LaunchedEffect(q.autoplay) { autoDrag.holding = false }
-    LaunchedEffect(upNextDrag.holding, autoDrag.holding) {
-        if (upNextDrag.holding || autoDrag.holding) {
+    LaunchedEffect(q.upNext, q.autoplay) { drag.holding = false }
+    LaunchedEffect(drag.holding) {
+        if (drag.holding) {
             delay(HOLD_TIMEOUT_MS)
-            upNextDrag.holding = false
-            autoDrag.holding = false
+            drag.holding = false
         }
     }
+    // Up Next and Autoplay are one list while a row is held, split at [Reorder.boundary].
+    val live = q.upNext + q.autoplay
+    val shown = drag.shown(live)
+    val boundary = if (drag.dragging != null || drag.holding) drag.boundary else q.upNext.size
+    val upShown = shown.take(boundary)
+    val autoShown = shown.drop(boundary)
+    val autoUids = remember(q.autoplay) { q.autoplay.map { it.uid }.toSet() }
     LazyColumn(modifier, contentPadding = PaddingValues(bottom = (Grid.base * 2).dp)) {
         item {
             // Item 1: the title, then Shuffle, Repeat and Autoplay as tonal toggles whose
@@ -176,12 +181,13 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
                 if (q.upNext.isNotEmpty()) TextButton(onClick = { confirmClear = true }) { Text("Clear", style = type.caption, color = colour.copy(alpha = 0.72f)) }
             }
         }
-        if (q.upNext.isEmpty()) item {
+        if (upShown.isEmpty() && drag.dragging == null) item {
             Text("Nothing queued. Autoplay continues with songs you'll like.", style = type.body, color = colour.copy(alpha = 0.72f), modifier = Modifier.padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp))
         }
-        reorderable(upNextDrag.shown(q.upNext), host, colour, isAutoplay = false, ::edit, upNextDrag)
-        item {
-            Row(Modifier.fillMaxWidth().padding(start = (Grid.base * 2).dp, end = Grid.base.dp, top = (Grid.base * 2).dp), verticalAlignment = Alignment.CenterVertically) {
+        reorderable(upShown, shown, host, colour, autoUids, ::edit, drag)
+        item(key = "autoplay-heading") {
+            // Measured: a pick dragged up past this heading joins Up Next.
+            Row(Modifier.fillMaxWidth().onSizeChanged { drag.headerH = it.height.toFloat() }.padding(start = (Grid.base * 2).dp, end = Grid.base.dp, top = (Grid.base * 2).dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("Autoplay", style = type.caption, color = colour.copy(alpha = 0.72f), modifier = Modifier.weight(1f))
                 // Item 1, HOLD on Autoplay: the Familiar to Adventurous slider, here as a link.
                 TextButton(onClick = { adventurous = true }) { Text("Familiar to adventurous", style = type.caption, color = colour.copy(alpha = 0.72f)) }
@@ -193,10 +199,10 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
             }
             // The core fills Autoplay when a song starts with fewer than five upcoming
             // (CORE-API, smart picks), so a long Up Next is no reason to show a spinner.
-            q.autoplay.isEmpty() && q.upNext.size >= AUTOPLAY_FILLS_BELOW -> item {
+            autoShown.isEmpty() && q.autoplay.isEmpty() && q.upNext.size >= AUTOPLAY_FILLS_BELOW -> item {
                 Text("Autoplay picks songs as Up Next runs low.", style = type.body, color = colour.copy(alpha = 0.72f), modifier = Modifier.padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp))
             }
-            q.autoplay.isEmpty() -> item {
+            autoShown.isEmpty() && q.autoplay.isEmpty() -> item {
                 // States: refilling shows the expressive loading indicator, not a sentence alone.
                 Row(Modifier.padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
                     androidx.compose.material3.LoadingIndicator(Modifier.size(32.dp), color = colour.copy(alpha = 0.72f))
@@ -204,7 +210,7 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
                     Text("Picking songs you'll like…", style = type.body, color = colour.copy(alpha = 0.72f))
                 }
             }
-            else -> reorderable(autoDrag.shown(q.autoplay), host, colour, isAutoplay = true, ::edit, autoDrag)
+            else -> reorderable(autoShown, shown, host, colour, autoUids, ::edit, drag)
         }
     }
 
@@ -261,16 +267,24 @@ private fun StateToggle(on: Boolean, state: String, colour: Color, onColour: Col
 }
 
 /**
- * A drag in progress within one section of the queue. While a row is held, [order] is
- * the section as it now stands; the core is told once, on release, and the new order
- * stays on screen until the queue comes back changed, so nothing flicks back.
+ * A drag in progress across Up Next and Autoplay, held as one list split at [boundary].
+ * The core takes an Autoplay song into Up Next ("Moving an Autoplay song puts it in Up
+ * Next", CORE-API) but has no way to make an Up Next song an Autoplay pick or to reorder
+ * the picks. So: Up Next rows swap freely and stop above the Autoplay heading; a pick only
+ * moves once dragged up past the heading, where it joins Up Next, and dragged back down
+ * it returns to its place. The core is told once, on release, and the new order stays on
+ * screen until the queue comes back changed, so nothing flicks back.
  */
 private class Reorder {
     var dragging by mutableStateOf<Long?>(null)
     var holding by mutableStateOf(false)
     var offset by mutableFloatStateOf(0f)
     var order by mutableStateOf<List<QueueEntry>>(emptyList())
+    var boundary by mutableIntStateOf(0)
+    var headerH = 0f
     var startIndex = -1
+    var fromAutoplay = false
+    var autoplayIndex = 0
 
     fun shown(live: List<QueueEntry>): List<QueueEntry> = if (dragging != null || holding) order else live
 }
@@ -280,27 +294,30 @@ private class Reorder {
  * GESTURE_END on drop; the row body never drags). As the row passes half of a neighbour
  * they swap places with a tick, and the others slide out of the way on a spring. Swipe
  * right is Play Next, left past 60 % is Remove (Undo for 5 s); on Autoplay rows left is
- * "Not this", a strong dislike, and a dragged Autoplay row moves into Up Next.
+ * "Not this", a strong dislike.
  */
 private fun LazyListScope.reorderable(
     entries: List<QueueEntry>,
+    all: List<QueueEntry>,
     host: CoreHost,
     colour: Color,
-    isAutoplay: Boolean,
+    autoUids: Set<Long>,
     edit: (String?, Boolean, () -> QueueState) -> Unit,
     drag: Reorder,
 ) {
-    itemsIndexed(entries, key = { _, e -> (if (isAutoplay) "a" else "u") + e.uid }) { index, e ->
+    itemsIndexed(entries, key = { _, e -> "q" + e.uid }) { index, e ->
         val haptics = rememberHaptics()
         var rowH by remember { mutableFloatStateOf(1f) }
-        // The drag handler outlives recompositions; it must see the section as it is now.
-        val section by androidx.compose.runtime.rememberUpdatedState(entries)
+        // The drag handler outlives recompositions; it must see the queue as it is now.
+        val everything by androidx.compose.runtime.rememberUpdatedState(all)
+        val picks by androidx.compose.runtime.rememberUpdatedState(autoUids)
+        val isPick = e.uid in autoUids
         val held = drag.dragging == e.uid
         val lift by animateFloatAsState(if (held) 1f else 0f, tween(LIFT_MS), label = "lift")
         val removeIcon = Icons.remove()
         val blockIcon = Icons.block()
         val nextIcon = Icons.playNext()
-        val toStart = if (isAutoplay) {
+        val toStart = if (isPick) {
             SwipeAction("Not this", destructive = true, icon = { blockIcon }) {
                 edit("Removed. You'll hear less like this", false) {
                     runCatching { host.core.notInterestedSong(e.song.id, NotInterestedReason.NOT_MY_TASTE) }
@@ -357,23 +374,25 @@ private fun LazyListScope.reorderable(
                         detectDragGestures(
                             onDragStart = {
                                 haptics.perform(Haptic.DragStart)
-                                drag.order = section
-                                drag.startIndex = section.indexOfFirst { it.uid == e.uid }
+                                val list = everything
+                                val firstPick = list.indexOfFirst { it.uid in picks }.let { if (it < 0) list.size else it }
+                                drag.order = list
+                                drag.boundary = firstPick
+                                drag.startIndex = list.indexOfFirst { it.uid == e.uid }
+                                drag.fromAutoplay = e.uid in picks
+                                drag.autoplayIndex = (drag.startIndex - firstPick).coerceAtLeast(0)
                                 drag.offset = 0f
                                 drag.dragging = e.uid
                             },
                             onDragEnd = {
                                 val final = drag.order.indexOfFirst { it.uid == e.uid }
-                                val moved = final >= 0 && final != drag.startIndex
+                                val inUpNext = final in 0 until drag.boundary
+                                val moved = if (drag.fromAutoplay) inUpNext else final >= 0 && final != drag.startIndex
                                 haptics.perform(Haptic.ScrubEnd)
                                 drag.holding = moved
                                 drag.dragging = null
                                 drag.offset = 0f
-                                if (moved) {
-                                    // Reordering an autoplay row moves it into Up Next.
-                                    val to = if (isAutoplay) AUTOPLAY_TO_UP_NEXT else final
-                                    edit(null, true) { host.core.moveInQueue(e.uid, to.toUInt()) }
-                                }
+                                if (moved) edit(null, true) { host.core.moveInQueue(e.uid, final.toUInt()) }
                             },
                             onDragCancel = {
                                 drag.dragging = null
@@ -384,24 +403,59 @@ private fun LazyListScope.reorderable(
                             change.consume()
                             drag.offset += amount.y
                             val list = drag.order.toMutableList()
+                            var b = drag.boundary
                             var i = list.indexOfFirst { it.uid == e.uid }
                             if (i < 0) return@detectDragGestures
-                            var swapped = false
-                            while (drag.offset > rowH / 2 && i < list.lastIndex) {
-                                java.util.Collections.swap(list, i, i + 1)
-                                i++
-                                drag.offset -= rowH
-                                swapped = true
+                            val item = list[i]
+                            var stepped = false
+                            while (true) {
+                                if (i < b) {
+                                    when {
+                                        drag.offset < -rowH / 2 && i > 0 -> {
+                                            java.util.Collections.swap(list, i, i - 1)
+                                            i--
+                                            drag.offset += rowH
+                                        }
+                                        drag.offset > rowH / 2 && i < b - 1 -> {
+                                            java.util.Collections.swap(list, i, i + 1)
+                                            i++
+                                            drag.offset -= rowH
+                                        }
+                                        // A pick taken into Up Next goes back to its place.
+                                        drag.fromAutoplay && i == b - 1 && drag.offset > drag.headerH / 2 + drag.autoplayIndex * rowH -> {
+                                            list.removeAt(i)
+                                            b--
+                                            val slot = (b + drag.autoplayIndex).coerceAtMost(list.size)
+                                            list.add(slot, item)
+                                            i = slot
+                                            drag.offset -= drag.headerH + drag.autoplayIndex * rowH
+                                        }
+                                        else -> break
+                                    }
+                                } else {
+                                    // A pick moves only by joining Up Next, past the heading.
+                                    val k = i - b
+                                    if (drag.offset < -(drag.headerH / 2 + k * rowH)) {
+                                        list.removeAt(i)
+                                        list.add(b, item)
+                                        drag.offset += drag.headerH + k * rowH
+                                        i = b
+                                        b++
+                                    } else {
+                                        break
+                                    }
+                                }
+                                stepped = true
                             }
-                            while (drag.offset < -rowH / 2 && i > 0) {
-                                java.util.Collections.swap(list, i, i - 1)
-                                i--
-                                drag.offset += rowH
-                                swapped = true
-                            }
-                            if (swapped) {
+                            // An Up Next row stops above the heading; a pick does not wander
+                            // among the other picks.
+                            if (i == b - 1 && !drag.fromAutoplay) drag.offset = drag.offset.coerceAtMost(rowH / 2)
+                            if (i >= b) drag.offset = drag.offset.coerceAtMost(rowH / 2)
+                            if (i == 0) drag.offset = drag.offset.coerceAtLeast(-rowH / 2)
+                            if (stepped) {
                                 haptics.perform(Haptic.Tick)
                                 drag.order = list
+                                drag.boundary = b
                             }
                         }
                     },
@@ -417,5 +471,4 @@ private const val LIFT_MS = 150
 private const val LIFT_SCALE = 0.02f
 private const val HELD_ALPHA = 0.14f
 private const val HELD_RADIUS_DP = 16
-private const val AUTOPLAY_TO_UP_NEXT = 10_000
 private const val HOLD_TIMEOUT_MS = 2_000L
