@@ -216,7 +216,8 @@ fun LibraryScreen(host: CoreHost, onOpen: (Route) -> Unit, playingSongId: Long?,
             val offset = headerState.heightOffset.roundToInt()
             layout(header.width, (header.height + offset).coerceAtLeast(0)) { header.place(0, offset) }
         }
-        SyncRow(sync)        PullToRefreshBox(isRefreshing = sync.running, onRefresh = { host.sync.syncNow() }, modifier = Modifier.weight(1f)) {
+        SyncRow(sync)
+        PullToRefreshBox(isRefreshing = sync.running, onRefresh = { host.sync.syncNow() }, modifier = Modifier.weight(1f)) {
             when (shelf) {
                 Shelf.Albums -> AlbumsList(host, sort.album ?: AlbumSort.RECENTLY_ADDED, grid, sync.generation, onOpen, contentPadding)
                 Shelf.Songs -> SongsList(host, sort.song ?: SongSort.RECENTLY_ADDED, sync.generation, playingSongId, contentPadding)

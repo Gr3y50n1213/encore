@@ -128,7 +128,8 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
             onSelect = { scope = it },
             enabled = { it != "Downloaded" },
             modifier = Modifier.padding(horizontal = (Grid.base * 2).dp).padding(bottom = Grid.base.dp),
-        )        val results = shown
+        )
+        val results = shown
         val listState = rememberLazyListState()
         LaunchedEffect(listState) {
             // SWIPE down on results dismisses the keyboard.
