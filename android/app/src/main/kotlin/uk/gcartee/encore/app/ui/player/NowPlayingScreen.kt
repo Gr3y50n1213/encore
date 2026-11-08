@@ -49,6 +49,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.graphics.Color
@@ -103,6 +105,10 @@ fun NowPlayingScreen(
     onCollapse: () -> Unit,
     onOpen: (Route) -> Unit,
     onOutput: () -> Unit,
+    // Where the artwork is on screen, for the morph into the mini player (EncoreRoot).
+    onArtBounds: (androidx.compose.ui.geometry.Rect) -> Unit = {},
+    // The scrub bar is held: the swipe down to collapse (EncoreRoot) must not start.
+    onScrubHeld: (Boolean) -> Unit = {},
 ) {
     val entry = state.entry ?: return
     val song = entry.song
@@ -126,7 +132,6 @@ fun NowPlayingScreen(
     var moreMenu by remember { mutableStateOf(false) }
     var heart by remember { mutableStateOf(false) }
     var endOfQueue by remember { mutableStateOf(false) }
-    val drag = remember { Animatable(0f) }
     val playingFrom by host.playingFrom.collectAsState()
     val privateOn by host.privateListening.collectAsState()
     val remoteChanges by host.remoteChanges.collectAsState()
@@ -147,53 +152,9 @@ fun NowPlayingScreen(
         }
     }
 
-    var fullHeight by remember { mutableStateOf(1f) }
+    // Item 1: the swipe down is EncoreRoot's: it drives the morph into the mini player.
     BoxWithConstraints(
-        Modifier
-            .fillMaxSize()
-            .graphicsLayer {
-                // Item 1: the screen follows the finger down, shrinking a little, rounding
-                // its corners and dimming, so it reads as settling into the mini player.
-                translationY = drag.value
-                val p = (drag.value / fullHeight).coerceIn(0f, 1f)
-                val s = 1f - COLLAPSE_SHRINK * p
-                scaleX = s
-                scaleY = s
-                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f)
-                shape = androidx.compose.foundation.shape.RoundedCornerShape((COLLAPSE_RADIUS_DP * p).dp)
-                clip = p > 0f
-                alpha = 1f - COLLAPSE_FADE * p
-            }
-            .pointerInput(scrubHeld) {
-                if (scrubHeld) return@pointerInput
-                val height = size.height.toFloat()
-                fullHeight = height
-                val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
-                val flick = COLLAPSE_FLICK_DP.dp.toPx()
-                detectVerticalDragGestures(
-                    onDragStart = { tracker.resetTracking() },
-                    onDragEnd = {
-                        val velocity = tracker.calculateVelocity().y
-                        scope.launch {
-                            if (drag.value > height * COLLAPSE_FRACTION || velocity > flick) {
-                                // Hand over to the morph into the mini player (EncoreRoot) at
-                                // once; the finger's offset eases out as the morph shrinks, so
-                                // nothing jumps.
-                                onCollapse()
-                                drag.animateTo(0f, androidx.compose.animation.core.spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow), initialVelocity = velocity.coerceAtLeast(0f))
-                            } else {
-                                drag.animateTo(0f, androidx.compose.animation.core.spring(dampingRatio = 0.8f, stiffness = androidx.compose.animation.core.Spring.StiffnessMedium), initialVelocity = velocity)
-                            }
-                        }
-                    },
-                    onDragCancel = { scope.launch { drag.animateTo(0f) } },
-                ) { change, amount ->
-                    if (drag.value + amount < 0f) return@detectVerticalDragGestures
-                    change.consume()
-                    tracker.addPosition(change.uptimeMillis, androidx.compose.ui.geometry.Offset(0f, drag.value + amount))
-                    scope.launch { drag.snapTo(drag.value + amount) }
-                }
-            },
+        Modifier.fillMaxSize(),
     ) {
         // Landscape (a turned phone, a tablet): artwork left, the rest right.
         val landscape = maxWidth > maxHeight
@@ -249,7 +210,7 @@ fun NowPlayingScreen(
                     modifier = m,
                 ) { p ->
                     when (p) {
-                        PlayerPanel.Artwork -> ArtworkArea(host, state, liked, heart, endOfQueue, onLike = {
+                        PlayerPanel.Artwork -> ArtworkArea(host, state, liked, heart, endOfQueue, onArtBounds = onArtBounds, onLike = {
                             // Double tap likes with a heart pop.
                             if (!liked) toggleLike(true) else haptics.perform(Haptic.Confirm)
                             heart = true
@@ -335,7 +296,7 @@ fun NowPlayingScreen(
                         colour = content,
                         onSeek = { PlaybackHub.seekTo(context, it) },
                         onScrub = { scrubbing = it },
-                        onHeld = { scrubHeld = it },
+                        onHeld = { scrubHeld = it; onScrubHeld(it) },
                         buffering = state.buffering,
                     )
                     var remaining by rememberSaveable { mutableStateOf(false) }
@@ -423,7 +384,7 @@ fun NowPlayingScreen(
                         Modifier.weight(1f).clickable(onClickLabel = "Show artwork") { panel = PlayerPanel.Artwork },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Artwork(ArtworkOf.SONG, song.id, COMPACT_ART_DP.dp, Modifier.size(COMPACT_ART_DP.dp), cornerRadius = 12.dp)
+                        Artwork(ArtworkOf.SONG, song.id, COMPACT_ART_DP.dp, Modifier.size(COMPACT_ART_DP.dp).onGloballyPositioned { onArtBounds(it.boundsInRoot()) }, cornerRadius = 12.dp)
                         Spacer(Modifier.size((Grid.base * 1.5f).dp))
                         Column {
                             Text(song.title, style = type.songRowTitle.copy(fontSize = type.nowPlayingSubtitle.fontSize), color = content, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -463,6 +424,7 @@ private fun ArtworkArea(
     onLike: () -> Unit,
     onMenu: () -> Unit,
     onEnd: (Boolean) -> Unit,
+    onArtBounds: (androidx.compose.ui.geometry.Rect) -> Unit = {},
 ) {
     val context = LocalContext.current
     val haptics = rememberHaptics()
@@ -484,6 +446,7 @@ private fun ArtworkArea(
             Box(
                 Modifier
                     .size(side)
+                    .let { m -> if (slot == Slot.Current) m.onGloballyPositioned { onArtBounds(it.boundsInRoot()) } else m }
                     .graphicsLayer {
                         val s = if (slot == Slot.Current) scale else 1f
                         scaleX = s
@@ -518,10 +481,6 @@ private fun ArtworkArea(
 }
 
 private const val PAUSED_SCALE = 0.88f
-private const val COLLAPSE_SHRINK = 0.1f
-private const val COLLAPSE_RADIUS_DP = 36
-private const val COLLAPSE_FADE = 0.35f
-private const val COLLAPSE_FLICK_DP = 900
 private const val ART_DAMPING = 0.7f
 private const val COMPACT_ART_DP = 52
 
@@ -552,6 +511,5 @@ private const val ART_MAX_DP = 420
 private const val LANDSCAPE_TALL_DP = 520
 private const val DENSE_TITLE_SP = 22
 private const val ART_RADIUS_DP = 28
-private const val COLLAPSE_FRACTION = 0.3f
 private const val MARQUEE_DELAY_MS = 1_500
 private const val HEART_MS = 700L

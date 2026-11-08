@@ -50,6 +50,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import uk.gcartee.encore.app.ui.player.MINI_ART_RADIUS_DP
+import kotlinx.coroutines.launch
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInRoot
@@ -152,8 +156,17 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     val player by PlaybackHub.state.collectAsState(PlayerState())
     var nowPlaying by rememberSaveable { mutableStateOf(false) }
     // Where the mini player is and how big the screen is, for the morph between them.
-    var miniRect by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+    var miniBar by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+    var miniArt by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+    var nowArt by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
     var screen by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
+    // 1 is Now Playing open, 0 is closed into the bar; a swipe down drives it directly.
+    val expand = remember { androidx.compose.animation.core.Animatable(0f) }
+    // The bar's bounce once it has taken Now Playing in.
+    val pulse = remember { androidx.compose.animation.core.Animatable(0f) }
+    var releasing by remember { mutableStateOf(false) }
+    var scrubHeld by remember { mutableStateOf(false) }
+    val morphScope = rememberCoroutineScope()
     val density = LocalDensity.current
     var profiles by remember { mutableStateOf(false) }
     var output by remember { mutableStateOf(false) }
@@ -282,15 +295,18 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                                 player,
                                 onExpand = { nowPlaying = true },
                                 modifier = Modifier
-                                    // Where the bar sits, so Now Playing can morph into it.
-                                    .onGloballyPositioned { c ->
-                                        val b = c.boundsInRoot()
-                                        val inset = with(density) { Grid.base.dp.toPx() }
-                                        miniRect = androidx.compose.ui.geometry.Rect(b.left + inset, b.top + inset, b.right - inset, b.bottom - inset)
+                                    .onGloballyPositioned { miniBar = it.boundsInRoot() }
+                                    // The bar takes Now Playing in: it swells a little as the
+                                    // artwork arrives and settles with a small bounce after.
+                                    .graphicsLayer {
+                                        val s = 1f + barSwell(expand.value, nowPlaying || expand.value > 0f, pulse.value)
+                                        scaleX = s
+                                        scaleY = s
                                     }
                                     .padding(vertical = Grid.base.dp)
                                     .let { if (wide) it.navigationBarsPadding() else it },
                                 bar = wide,
+                                onArtBounds = { if (expand.value == 0f && pulse.value == 0f) miniArt = it },
                             )
                             if (!wide) {
                                 // Material 3 Expressive is round: the bar's top corners are 28 dp
@@ -317,44 +333,110 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                 }
             }
             ContinueBanner(host, continueFrom, onDone = { continueFrom = null })
-            // Board 09 and 42: Now Playing grows out of the mini player and settles back into
-            // it, a container morph: its bounds go between the bar's and the screen's, its
-            // corners round to the bar's 28 dp, and in the last stretch it dissolves into the
-            // real bar beneath. Reduce Motion cross-fades instead.
+            // Board 09 and 42, as the owner asked: one movement, not a shrink then a fade. A
+            // swipe down drives it directly: the screen closes in around the artwork, which
+            // shrinks and travels into the mini player's own cover; the page behind comes up
+            // from under a dimming scrim; the bar swells as it arrives and, once it has taken
+            // it in, settles with a small bounce. Opening runs the same path backwards. Reduce
+            // Motion cross-fades.
             val visible = nowPlaying && player.entry != null
-            val expand = remember { androidx.compose.animation.core.Animatable(if (visible) 1f else 0f) }
+            val shown = visible || expand.value > 0f
+            var everShown by remember { mutableStateOf(false) }
+            LaunchedEffect(shown) {
+                if (shown) {
+                    everShown = true
+                } else if (everShown && !still) {
+                    pulse.snapTo(MINI_SWELL)
+                    pulse.animateTo(0f, androidx.compose.animation.core.spring(dampingRatio = PULSE_DAMPING, stiffness = androidx.compose.animation.core.Spring.StiffnessMedium))
+                }
+            }
             LaunchedEffect(visible) {
+                if (!visible && releasing) return@LaunchedEffect
                 val target = if (visible) 1f else 0f
                 when {
                     still -> expand.animateTo(target, tween(Timing.reduceMotionCrossfadeMs))
                     visible -> expand.animateTo(target, androidx.compose.animation.core.spring(dampingRatio = OPEN_DAMPING, stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow))
-                    else -> expand.animateTo(target, tween(CLOSE_MS, easing = androidx.compose.animation.core.FastOutSlowInEasing))
+                    else -> expand.animateTo(target, androidx.compose.animation.core.spring(dampingRatio = 1f, stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow))
                 }
             }
-            if (visible || expand.value > 0f) Box(
+            fun travel(): Float {
+                val h = screen.height.toFloat().coerceAtLeast(1f)
+                val from = nowArt
+                val to = miniArt
+                return if (from != null && to != null) (to.center.y - from.center.y).coerceAtLeast(h * MIN_TRAVEL) else h * DEFAULT_TRAVEL
+            }
+            fun release(velocity: Float) {
+                val perSecond = -velocity / travel()
+                val flick = with(density) { FLICK_DP.dp.toPx() }
+                if (expand.value < COMMIT_BELOW || velocity > flick) {
+                    releasing = true
+                    nowPlaying = false
+                    morphScope.launch {
+                        expand.animateTo(0f, androidx.compose.animation.core.spring(dampingRatio = 1f, stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow), initialVelocity = perSecond)
+                        releasing = false
+                    }
+                } else {
+                    morphScope.launch { expand.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.8f, stiffness = androidx.compose.animation.core.Spring.StiffnessMedium), initialVelocity = perSecond) }
+                }
+            }
+            if (shown && !still) {
+                // The page behind, dimmed while Now Playing covers it, clears as it goes.
+                Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = SCRIM * expand.value.coerceIn(0f, 1f))))
+            }
+            if (shown) Box(
                 Modifier
                     .fillMaxSize()
                     .onSizeChanged { screen = it }
+                    // Outside the layer below, so the finger is read in screen terms however
+                    // small the screen has become.
+                    .pointerInput(scrubHeld) {
+                        if (scrubHeld) return@pointerInput
+                        val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
+                        detectVerticalDragGestures(
+                            onDragStart = { tracker.resetTracking() },
+                            onDragEnd = { release(tracker.calculateVelocity().y) },
+                            onDragCancel = { release(0f) },
+                        ) { change, amount ->
+                            val next = (expand.value - amount / travel()).coerceIn(0f, 1f)
+                            if (next == expand.value) return@detectVerticalDragGestures
+                            change.consume()
+                            tracker.addPosition(change.uptimeMillis, change.position)
+                            morphScope.launch { expand.snapTo(next) }
+                        }
+                    }
                     .graphicsLayer {
                         val p = expand.value
                         if (still) {
                             alpha = p.coerceIn(0f, 1f)
                         } else if (screen.width > 0 && screen.height > 0) {
+                            val g = p.coerceIn(0f, 1f)
                             val w = screen.width.toFloat()
                             val h = screen.height.toFloat()
-                            val mini = miniRect ?: androidx.compose.ui.geometry.Rect(0f, h * 0.86f, w, h * 0.94f)
-                            val sx = mix(mini.width / w, 1f, p)
-                            val sy = mix(mini.height / h, 1f, p)
+                            val art = nowArt ?: androidx.compose.ui.geometry.Rect(w * 0.06f, h * 0.14f, w * 0.94f, h * 0.14f + w * 0.88f)
+                            val grow = barSwell(p, true, 0f)
+                            val bar = miniBar
+                            val thumb0 = miniArt ?: androidx.compose.ui.geometry.Rect(w * 0.05f, h * 0.86f, w * 0.05f + 48.dp.toPx(), h * 0.86f + 48.dp.toPx())
+                            // Where the cover is right now, the bar's swell included.
+                            val thumb = if (bar != null) thumb0.scaledAround(bar.center, 1f + grow) else thumb0
+                            val k = thumb.width / art.width.coerceAtLeast(1f)
+                            val s = mix(k, 1f, g)
                             transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0f)
-                            scaleX = sx
-                            scaleY = sy
-                            translationX = mix(mini.left, 0f, p)
-                            translationY = mix(mini.top, 0f, p)
-                            // The radius is set before scaling: divide by the scale so it lands
-                            // at the bar's 28 dp.
-                            val r = MINI_RADIUS_DP.dp.toPx() * (1f - p).coerceIn(0f, 1f) / sy.coerceAtLeast(0.01f)
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(r)
-                            clip = true
+                            scaleX = s
+                            scaleY = s
+                            translationX = mix(thumb.left - art.left * k, 0f, g)
+                            translationY = mix(thumb.top - art.top * k, 0f, g)
+                            if (g < 0.999f) {
+                                // The visible part closes in from the whole screen to the art,
+                                // its corners from a card's to the bar cover's, in the layer's
+                                // own coordinates (divided by the scale to land right).
+                                val region = androidx.compose.ui.geometry.Rect(
+                                    mix(art.left, 0f, g), mix(art.top, 0f, g), mix(art.right, w, g), mix(art.bottom, h, g),
+                                )
+                                val r = mix(MINI_ART_RADIUS_DP.dp.toPx() / k.coerceAtLeast(0.01f), CARD_RADIUS_DP.dp.toPx() / s, g)
+                                shape = RegionShape(region, r)
+                                clip = true
+                            }
+                            // The last moment hands over to the bar's own cover beneath.
                             alpha = (p / MORPH_FADE_UNTIL).coerceIn(0f, 1f)
                         }
                     },
@@ -368,6 +450,8 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                         nav.push(route)
                     },
                     onOutput = { output = true },
+                    onArtBounds = { if (expand.value >= 0.999f) nowArt = it },
+                    onScrubHeld = { scrubHeld = it },
                 )
             }
         }
@@ -497,6 +581,27 @@ private const val CLOSE_MS = 280
 private const val NAV_RADIUS_DP = 28
 
 private fun mix(start: Float, stop: Float, fraction: Float): Float = start + (stop - start) * fraction
-private const val MINI_RADIUS_DP = 28
-private const val MORPH_FADE_UNTIL = 0.3f
 private const val OPEN_DAMPING = 0.85f
+private const val MORPH_FADE_UNTIL = 0.06f
+private const val CARD_RADIUS_DP = 32
+private const val SCRIM = 0.32f
+private const val MINI_SWELL = 0.05f
+private const val ABSORB_FROM = 0.35f
+private const val PULSE_DAMPING = 0.4f
+private const val COMMIT_BELOW = 0.82f
+private const val FLICK_DP = 900
+private const val MIN_TRAVEL = 0.3f
+private const val DEFAULT_TRAVEL = 0.6f
+
+/** How much the bar has swollen: as Now Playing nears it, then the bounce after. */
+private fun barSwell(p: Float, morphing: Boolean, pulse: Float): Float =
+    if (morphing) MINI_SWELL * ((ABSORB_FROM - p) / ABSORB_FROM).coerceIn(0f, 1f) else pulse
+
+private fun androidx.compose.ui.geometry.Rect.scaledAround(c: androidx.compose.ui.geometry.Offset, s: Float) =
+    androidx.compose.ui.geometry.Rect(c.x + (left - c.x) * s, c.y + (top - c.y) * s, c.x + (right - c.x) * s, c.y + (bottom - c.y) * s)
+
+/** A rounded rectangle at [region] within the layer: the part of Now Playing still seen. */
+private class RegionShape(val region: androidx.compose.ui.geometry.Rect, val radius: Float) : androidx.compose.ui.graphics.Shape {
+    override fun createOutline(size: androidx.compose.ui.geometry.Size, layoutDirection: androidx.compose.ui.unit.LayoutDirection, density: androidx.compose.ui.unit.Density): androidx.compose.ui.graphics.Outline =
+        androidx.compose.ui.graphics.Outline.Rounded(androidx.compose.ui.geometry.RoundRect(region, androidx.compose.ui.geometry.CornerRadius(radius)))
+}

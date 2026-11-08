@@ -149,7 +149,9 @@ private fun Header(
     val type = LocalEncoreType.current
     val haptics = rememberHaptics()
     Column(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = (Grid.base * 2).dp)) {
-        Row(Modifier.fillMaxWidth().padding(vertical = Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
+        // The same 16 dp above the buttons as beside them, so they sit square in a pane's
+        // rounded corner on tablets and below the status bar on phones.
+        Row(Modifier.fillMaxWidth().padding(top = (Grid.base * 2).dp, bottom = Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
             // Item 1: tonal rounded-square buttons over the tinted page, rounding when pressed.
             PageButton(tint, onBack) { Icon(Icons.back(), contentDescription = "Back") }
             Spacer(Modifier.weight(1f))
@@ -618,7 +620,8 @@ private const val BUTTON_DP = 56
 private const val ARTIST_SONGS = 200
 private const val ROW_TILE_DP = TILE_ART_DP * 3 / 4
 private const val PAGE_BUTTON_DP = 48
-private const val PAGE_BUTTON_RADIUS_DP = 14
+// Concentric with a 28 dp pane corner 16 dp away: 28 - 16.
+private const val PAGE_BUTTON_RADIUS_DP = 12
 private const val PLAY_WEIGHT = 1.3f
 private const val ICON_WEIGHT = 0.5f
 

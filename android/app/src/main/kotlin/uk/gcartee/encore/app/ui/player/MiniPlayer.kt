@@ -22,6 +22,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -50,7 +52,7 @@ import uk.gcartee.encore.tokens.EncoreTokens.Radius
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun MiniPlayer(host: CoreHost, state: PlayerState, onExpand: () -> Unit, modifier: Modifier = Modifier, bar: Boolean = false) {
+fun MiniPlayer(host: CoreHost, state: PlayerState, onExpand: () -> Unit, modifier: Modifier = Modifier, bar: Boolean = false, onArtBounds: (androidx.compose.ui.geometry.Rect) -> Unit = {}) {
     val entry = state.entry ?: return
     val context = LocalContext.current
     val type = LocalEncoreType.current
@@ -103,7 +105,14 @@ fun MiniPlayer(host: CoreHost, state: PlayerState, onExpand: () -> Unit, modifie
                 ) {
                     // Concentric with the container: its radius less the 8 dp gap, so the cover's
                     // corners follow the pill's curve instead of poking into it.
-                    Artwork(ArtworkOf.SONG, song.id, ART_DP.dp, Modifier.size(ART_DP.dp), cornerRadius = (Radius.androidCard - Grid.base).dp)
+                    Artwork(
+                        ArtworkOf.SONG,
+                        song.id,
+                        ART_DP.dp,
+                        // Where the cover sits: Now Playing's artwork lands here (EncoreRoot).
+                        Modifier.size(ART_DP.dp).let { m -> if (slot == Slot.Current) m.onGloballyPositioned { onArtBounds(it.boundsInRoot()) } else m },
+                        cornerRadius = (Radius.androidCard - Grid.base).dp,
+                    )
                     Spacer(Modifier.width((Grid.base * 1.5f).dp))
                     Column(Modifier.weight(1f)) {
                         Text(song.title, style = type.songRowTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -141,3 +150,6 @@ fun MiniPlayer(host: CoreHost, state: PlayerState, onExpand: () -> Unit, modifie
 
 private const val ART_DP = 48
 private const val MINI_TINT = 0.14f
+
+/** The mini player cover's corner radius, which the morph lands on. */
+val MINI_ART_RADIUS_DP = Radius.androidCard - Grid.base

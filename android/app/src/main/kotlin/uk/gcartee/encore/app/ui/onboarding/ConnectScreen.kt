@@ -228,7 +228,7 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     FilledTonalIconButton(
                         onClick = onBack,
-                        shapes = androidx.compose.material3.IconButtonDefaults.shapes(RoundedCornerShape(14.dp), RoundedCornerShape(50)),
+                        shapes = androidx.compose.material3.IconButtonDefaults.shapes(RoundedCornerShape(12.dp), RoundedCornerShape(50)),
                         modifier = Modifier.size((TouchTarget.android).dp),
                     ) { Icon(Icons.back(), contentDescription = "Back") }
                     Spacer(Modifier.weight(1f))

@@ -231,7 +231,7 @@ private fun Page(title: String, onBack: (() -> Unit)?, contentPadding: PaddingVa
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding() + (Grid.base * 3).dp)) {
         item {
             Column(Modifier.statusBarsPadding().padding(horizontal = (Grid.base * 2).dp)) {
-                Row(Modifier.fillMaxWidth().padding(vertical = Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().padding(top = (Grid.base * 2).dp, bottom = Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (onBack != null) FilledTonalIconButton(
                         onClick = onBack,
                         shapes = androidx.compose.material3.IconButtonDefaults.shapes(RoundedCornerShape(BACK_RADIUS_DP.dp), RoundedCornerShape(50)),
@@ -286,7 +286,7 @@ fun CheckSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     )
 }
 
-private const val BACK_RADIUS_DP = 14
+private const val BACK_RADIUS_DP = 12
 
 /** The licences page on its own (Welcome's Open-source licenses link). */
 @Composable
