@@ -62,14 +62,16 @@ import uk.gcartee.encore.core.RepeatMode
 import uk.gcartee.encore.tokens.EncoreTokens.AndroidToggleShape
 import uk.gcartee.encore.tokens.EncoreTokens.Grid
 
-/** Board 11, drawn in place of the artwork on Now Playing (item 8). */
+/**
+ * Board 11's queue, drawn in place on Now Playing (board 09, item 8) straight on the
+ * album's field, as Lyrics is and as board 29 draws Up next: the field's text colour for
+ * words, tonal tints of it for containers. [onColour] is the field's base, the glyph on a
+ * toggle that is on.
+ */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Modifier = Modifier, accent: Color? = null) {
-    // On the light sheet the highlights are the theme's tonal container (board 11); over the
-    // album's field (landscape) they are the field's own colour, faintly.
-    val highlight = accent ?: colour.copy(alpha = 0.10f)
-    val checked = accent ?: colour.copy(alpha = 0.22f)
+fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Modifier = Modifier, onColour: Color = Color.Black) {
+    val highlight = colour.copy(alpha = HIGHLIGHT_ALPHA)
     val queue by host.queue.collectAsState()
     val q = queue ?: return
     val type = LocalEncoreType.current
@@ -91,11 +93,11 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
             // shape tells the state (section 22).
             Row(Modifier.fillMaxWidth().padding(start = (Grid.base * 2).dp, end = Grid.base.dp, top = (Grid.base * 2).dp, bottom = Grid.base.dp), horizontalArrangement = Arrangement.spacedBy(Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("Queue", style = type.sheetTitle, color = colour, modifier = Modifier.weight(1f))
-                StateToggle(q.shuffle, if (q.shuffle) "Shuffle on" else "Shuffle off", colour, checked, onToggle = { on ->
+                StateToggle(q.shuffle, if (q.shuffle) "Shuffle on" else "Shuffle off", colour, onColour, onToggle = { on ->
                     haptics.perform(if (on) Haptic.ToggleOn else Haptic.ToggleOff)
                     edit(null) { host.core.setShuffle(on) }
                 }) { Icon(Icons.shuffle(), contentDescription = "Shuffle") }
-                StateToggle(q.repeat != RepeatMode.OFF, "Repeat ${q.repeat.name.lowercase()}", colour, checked, onToggle = {
+                StateToggle(q.repeat != RepeatMode.OFF, "Repeat ${q.repeat.name.lowercase()}", colour, onColour, onToggle = {
                     val next = when (q.repeat) {
                         RepeatMode.OFF -> RepeatMode.ALL
                         RepeatMode.ALL -> RepeatMode.ONE
@@ -104,10 +106,10 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
                     haptics.perform(if (next == RepeatMode.OFF) Haptic.ToggleOff else Haptic.ToggleOn)
                     edit(null) { host.core.setRepeat(next) }
                 }) { Icon(if (q.repeat == RepeatMode.ONE) Icons.repeatOne() else Icons.repeat(), contentDescription = "Repeat") }
-                StateToggle(q.autoplayEnabled, if (q.autoplayEnabled) "Autoplay on" else "Autoplay off", colour, checked, onToggle = { on ->
+                StateToggle(q.autoplayEnabled, if (q.autoplayEnabled) "Autoplay on" else "Autoplay off", colour, onColour, onToggle = { on ->
                     haptics.perform(if (on) Haptic.ToggleOn else Haptic.ToggleOff)
                     edit(null) { host.core.setAutoplay(on) }
-                }) { Icon(Icons.radio(), contentDescription = "Autoplay") }
+                }) { Icon(Icons.autoplay(), contentDescription = "Autoplay") }
             }
         }
         // Item 2: History, collapsed by default, newest at the bottom.
@@ -202,7 +204,7 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
 /** A round toggle that turns into a rounded square when on (section 22). */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun StateToggle(on: Boolean, state: String, colour: Color, checked: Color, onToggle: (Boolean) -> Unit, icon: @Composable () -> Unit) {
+private fun StateToggle(on: Boolean, state: String, colour: Color, onColour: Color, onToggle: (Boolean) -> Unit, icon: @Composable () -> Unit) {
     val h = AndroidToggleShape.Sizes.Compact.height
     IconToggleButton(
         checked = on,
@@ -213,10 +215,11 @@ private fun StateToggle(on: Boolean, state: String, colour: Color, checked: Colo
             checkedShape = RoundedCornerShape(AndroidToggleShape.Sizes.Compact.checkedRadius.dp),
         ),
         colors = IconButtonDefaults.iconToggleButtonColors(
-            containerColor = colour.copy(alpha = 0.08f),
+            // Board 35: off is round and tonal; on is squarer and filled, like Like.
+            containerColor = colour.copy(alpha = TONAL_ALPHA),
             contentColor = colour,
-            checkedContainerColor = checked,
-            checkedContentColor = colour,
+            checkedContainerColor = colour,
+            checkedContentColor = onColour,
         ),
         modifier = Modifier.size(AndroidToggleShape.Sizes.Compact.touchTarget.dp).semantics { stateDescription = state },
     ) { icon() }
@@ -309,3 +312,6 @@ private fun LazyListScope.reorderable(
         }
     }
 }
+
+private const val HIGHLIGHT_ALPHA = 0.14f
+private const val TONAL_ALPHA = 0.16f

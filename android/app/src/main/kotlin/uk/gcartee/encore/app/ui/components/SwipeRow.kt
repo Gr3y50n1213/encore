@@ -21,6 +21,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
@@ -131,8 +133,23 @@ fun SwipeRow(
         shown?.let { a ->
             val bg = if (a.destructive) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer
             val fg = if (a.destructive) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSecondaryContainer
+            // Only the strip the row has slid away from shows the action, as a rounded
+            // container, so rows over an album's gradient need no solid backing.
+            val radius = SWIPE_RADIUS_DP.dp
             Row(
-                Modifier.matchParentSize().background(if (armed) bg else bg.copy(alpha = 0.6f)).padding(horizontal = (Grid.base * 3).dp),
+                Modifier
+                    .matchParentSize()
+                    .drawWithContent {
+                        val o = offset.value
+                        val left = if (o > 0f) 0f else size.width + o
+                        val right = if (o > 0f) o else size.width
+                        val r = radius.toPx()
+                        clipPath(androidx.compose.ui.graphics.Path().apply {
+                            addRoundRect(androidx.compose.ui.geometry.RoundRect(left, 0f, right, size.height, androidx.compose.ui.geometry.CornerRadius(r)))
+                        }) { this@drawWithContent.drawContent() }
+                    }
+                    .background(if (armed) bg else bg.copy(alpha = 0.6f))
+                    .padding(horizontal = (Grid.base * 3).dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = if (offset.value > 0f) androidx.compose.foundation.layout.Arrangement.Start else androidx.compose.foundation.layout.Arrangement.End,
             ) {
@@ -146,3 +163,5 @@ fun SwipeRow(
         }
     }
 }
+
+private const val SWIPE_RADIUS_DP = 16

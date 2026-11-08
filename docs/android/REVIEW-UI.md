@@ -52,6 +52,7 @@ Also brought in line: the mini player (board 42: a filled accent play button and
 | --- | --- | --- |
 | How adventurous | Board 17 says "a 3-step slider"; board 38 draws a segmented choice | Board 38, the page's own board |
 | Filter chips | Board 35: 12 dp corner, a check when selected, unselected outlined; renders 06 and 07: tonal fill, no check | 12 dp, tonal fill (renders) and the check (board 35) |
+| The queue on a phone | Board 09, item 8: Lyrics, Output and Queue "toggle each view in place"; board 29 draws Up next on the album field; board 11's render draws a light sheet | On the field, like Lyrics (the owner disliked the light card that mixed the two): the field's text colour, tonal toggles that fill and square up when on, a tonal highlight on the playing row, edges that fade into the field; Autoplay uses the Material Symbols "autoplay" icon, not a radio |
 | Where Settings opens on a phone | Spec 17: "Settings sits in the Library tab on phones"; render 06 shows no entry; board 14's sheet has none | The avatar (Home, Library, Search) opens the profile sheet, which has a Settings row |
 
 ## Not built yet, and why

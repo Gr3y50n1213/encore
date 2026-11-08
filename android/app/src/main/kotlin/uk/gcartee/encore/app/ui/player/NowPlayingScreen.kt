@@ -66,6 +66,7 @@ import uk.gcartee.encore.app.playback.PlayerState
 import uk.gcartee.encore.app.ui.components.Artwork
 import uk.gcartee.encore.app.ui.components.Haptic
 import uk.gcartee.encore.app.ui.components.Icons
+import uk.gcartee.encore.app.ui.components.fadingEdges
 import uk.gcartee.encore.app.ui.components.LocalAppActions
 import uk.gcartee.encore.app.ui.components.MenuPlace
 import uk.gcartee.encore.app.ui.components.SongMenu
@@ -223,7 +224,7 @@ fun NowPlayingScreen(
                             heart = true
                         }, onMenu = { menu = true }, onEnd = { endOfQueue = it })
                         PlayerPanel.Lyrics -> LyricsPanel(host, song, scrubbing ?: state.positionMs, content, onSeek = { PlaybackHub.seekTo(context, it) }, modifier = Modifier.fillMaxSize())
-                        PlayerPanel.Queue -> QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize())
+                        PlayerPanel.Queue -> QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize().fadingEdges(), onColour = colours.base)
                     }
                 }
                 Box { SongMenu(song, expanded = menu, onDismiss = { menu = false }, place = MenuPlace(chosenBy = entry.chosenBy)) }
@@ -386,19 +387,11 @@ fun NowPlayingScreen(
                         SongMenu(song, expanded = moreMenu, onDismiss = { moreMenu = false }, place = MenuPlace(chosenBy = entry.chosenBy))
                     }
                 }
-                Box(Modifier.weight(1f).fillMaxWidth()) {
+                // Lyrics and the Queue sit straight on the field, fading at their edges.
+                Box(Modifier.weight(1f).fillMaxWidth().fadingEdges()) {
                     when (panel) {
                         PlayerPanel.Lyrics -> LyricsPanel(host, song, scrubbing ?: state.positionMs, content, onSeek = { PlaybackHub.seekTo(context, it) }, modifier = Modifier.fillMaxSize())
-                        else -> {
-                            // Board 11: the queue is a light sheet, drawn in the theme's colours.
-                            androidx.compose.material3.Surface(
-                                shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
-                                color = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerLow,
-                                modifier = Modifier.fillMaxSize().padding(vertical = Grid.base.dp),
-                            ) {
-                                QueuePanel(host, androidx.compose.material3.MaterialTheme.colorScheme.onSurface, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize(), accent = androidx.compose.material3.MaterialTheme.colorScheme.secondaryContainer)
-                            }
-                        }
+                        else -> QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize(), onColour = colours.base)
                     }
                 }
                 controls(true)

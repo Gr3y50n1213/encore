@@ -283,7 +283,7 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
                     place = MenuPlace(onAlbum = album.id),
                     contentColor = tint.content,
                     secondaryColor = tint.secondary,
-                    rowColor = tint.field,
+                    rowColor = Color.Transparent,
                 )
                 HorizontalDivider(Modifier.padding(horizontal = (Grid.base * 2).dp), color = tint.content.copy(alpha = 0.12f))
             }
@@ -375,7 +375,7 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
                         place = MenuPlace(extra = listOf(MenuExtra("Remove from this playlist", destructive = true) { remove.perform() })),
                         contentColor = tint.content,
                         secondaryColor = tint.secondary,
-                        rowColor = tint.field,
+                        rowColor = Color.Transparent,
                         toStart = remove,
                     )
                 }
@@ -524,7 +524,7 @@ fun MixScreen(host: CoreHost, mixId: String, playingSongId: Long?, onBack: () ->
                     place = MenuPlace(chosenBy = ChosenBy.APP, extra = listOf(MenuExtra("Not in this mix", destructive = true) { notInMix.perform() })),
                     contentColor = field.text,
                     secondaryColor = field.secondary,
-                    rowColor = field.base,
+                    rowColor = Color.Transparent,
                     toStart = notInMix,
                 )
             }
