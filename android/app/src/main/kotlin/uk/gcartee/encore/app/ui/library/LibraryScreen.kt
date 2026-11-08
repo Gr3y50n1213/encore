@@ -150,7 +150,8 @@ fun LibraryScreen(host: CoreHost, onOpen: (Route) -> Unit, playingSongId: Long?,
                             prefs.shelf = s
                         },
                         modifier = Modifier.padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp),
-                    )                    Row(
+                    )
+                    Row(
                         Modifier.fillMaxWidth().padding(start = Grid.base.dp, end = (Grid.base * 2).dp, bottom = Grid.base.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {

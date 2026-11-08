@@ -54,6 +54,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.ui.graphics.graphicsLayer
 import uk.gcartee.encore.core.SongSort
 import androidx.compose.ui.draw.clip
