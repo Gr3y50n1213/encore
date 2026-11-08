@@ -4,6 +4,8 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.tappableElement
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.Color
@@ -49,7 +51,7 @@ fun SystemBarIconsFor(background: Color) {
 fun NavigationBarForNavigationMode() {
     val view = LocalView.current
     val density = androidx.compose.ui.platform.LocalDensity.current
-    val tappable = androidx.compose.foundation.layout.WindowInsets.tappableElement
+    val tappable = WindowInsets.tappableElement
     val buttons = tappable.getBottom(density) > 0 ||
         tappable.getLeft(density, androidx.compose.ui.unit.LayoutDirection.Ltr) > 0 ||
         tappable.getRight(density, androidx.compose.ui.unit.LayoutDirection.Ltr) > 0

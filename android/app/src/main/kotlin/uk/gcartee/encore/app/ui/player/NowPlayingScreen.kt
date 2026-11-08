@@ -195,6 +195,8 @@ fun NowPlayingScreen(
     ) {
         // Landscape (a turned phone, a tablet): artwork left, the rest right.
         val landscape = maxWidth > maxHeight
+        // Read here, in the BoxWithConstraints scope itself.
+        val shortWindow = maxHeight < LANDSCAPE_TALL_DP.dp
         AlbumField(colours, Modifier.fillMaxSize())
         Column(Modifier.fillMaxSize().safeDrawingPadding().padding(horizontal = (Grid.base * 3).dp)) {
             // Item 1: collapse, "Playing from", More.
@@ -388,7 +390,7 @@ fun NowPlayingScreen(
             if (landscape) {
                 // A short window (a phone on its side) takes the medium transport, and the
                 // side column scrolls rather than cutting anything off.
-                val short = maxHeight < LANDSCAPE_TALL_DP.dp
+                val short = shortWindow
                 Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy((Grid.base * 3).dp)) {
                     artArea(Modifier.weight(1f).fillMaxSize())
                     Box(Modifier.weight(1f).fillMaxSize(), contentAlignment = Alignment.Center) {
