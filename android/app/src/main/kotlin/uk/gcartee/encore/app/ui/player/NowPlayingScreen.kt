@@ -49,6 +49,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.foundation.verticalScroll
@@ -105,8 +106,9 @@ fun NowPlayingScreen(
     onCollapse: () -> Unit,
     onOpen: (Route) -> Unit,
     onOutput: () -> Unit,
-    // Where the artwork is on screen, for the morph into the mini player (EncoreRoot).
-    onArtBounds: (androidx.compose.ui.geometry.Rect) -> Unit = {},
+    // Where the artwork is on screen, for the morph into the mini player (EncoreRoot), and
+    // whether it is the big cover (which shrinks while paused) or the small one over a panel.
+    onArtBounds: (androidx.compose.ui.geometry.Rect, Boolean) -> Unit = { _, _ -> },
     // The scrub bar is held: the swipe down to collapse (EncoreRoot) must not start.
     onScrubHeld: (Boolean) -> Unit = {},
 ) {
@@ -152,6 +154,29 @@ fun NowPlayingScreen(
         }
     }
 
+    // Item 4: More's menu, the same wherever its button is (top bar, a panel's song row, a
+    // turned phone's controls): the song's actions plus Private listening.
+    val moreSheet: @Composable () -> Unit = {
+        SongMenu(
+            song,
+            expanded = moreMenu,
+            onDismiss = { moreMenu = false },
+            place = MenuPlace(
+                chosenBy = entry.chosenBy,
+                extra = listOf(
+                    uk.gcartee.encore.app.ui.components.MenuExtra(if (privateOn) "Turn off Private listening" else "Private listening", destructive = false) {
+                        val on = !privateOn
+                        runCatching { host.core.setListeningMode(if (on) ListeningMode.PRIVATE else ListeningMode.NORMAL) }
+                            .onSuccess {
+                                host.privateListening.value = on
+                                actions.toaster.show(if (on) "Private listening is on. Nothing is recorded." else "Private listening is off")
+                            }
+                    },
+                ),
+            ),
+        )
+    }
+
     // Item 1: the swipe down is EncoreRoot's: it drives the morph into the mini player.
     BoxWithConstraints(
         Modifier.fillMaxSize(),
@@ -182,24 +207,7 @@ fun NowPlayingScreen(
                 Box {
                     MoreButton(moreMenu, content) { moreMenu = true }
                     // Item 4: the artwork's menu plus Private listening (Sleep Timer is Phase 9).
-                    SongMenu(
-                        song,
-                        expanded = moreMenu,
-                        onDismiss = { moreMenu = false },
-                        place = MenuPlace(
-                            chosenBy = entry.chosenBy,
-                            extra = listOf(
-                                uk.gcartee.encore.app.ui.components.MenuExtra(if (privateOn) "Turn off Private listening" else "Private listening", destructive = false) {
-                                    val on = !privateOn
-                                    runCatching { host.core.setListeningMode(if (on) ListeningMode.PRIVATE else ListeningMode.NORMAL) }
-                                        .onSuccess {
-                                            host.privateListening.value = on
-                                            actions.toaster.show(if (on) "Private listening is on. Nothing is recorded." else "Private listening is off")
-                                        }
-                                },
-                            ),
-                        ),
-                    )
+                    moreSheet()
                 }
             }
             val artArea: @Composable (Modifier) -> Unit = { m ->
@@ -210,7 +218,7 @@ fun NowPlayingScreen(
                     modifier = m,
                 ) { p ->
                     when (p) {
-                        PlayerPanel.Artwork -> ArtworkArea(host, state, liked, heart, endOfQueue, onArtBounds = onArtBounds, onLike = {
+                        PlayerPanel.Artwork -> ArtworkArea(host, state, liked, heart, endOfQueue, onArtBounds = { onArtBounds(it, true) }, onLike = {
                             // Double tap likes with a heart pop.
                             if (!liked) toggleLike(true) else haptics.perform(Haptic.Confirm)
                             heart = true
@@ -233,7 +241,7 @@ fun NowPlayingScreen(
                             Spacer(Modifier.weight(1f))
                             Box {
                                 MoreButton(moreMenu, content) { moreMenu = true }
-                                SongMenu(song, expanded = moreMenu, onDismiss = { moreMenu = false }, place = MenuPlace(chosenBy = entry.chosenBy))
+                                moreSheet()
                             }
                         }
                     }
@@ -384,7 +392,7 @@ fun NowPlayingScreen(
                         Modifier.weight(1f).clickable(onClickLabel = "Show artwork") { panel = PlayerPanel.Artwork },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Artwork(ArtworkOf.SONG, song.id, COMPACT_ART_DP.dp, Modifier.size(COMPACT_ART_DP.dp).onGloballyPositioned { onArtBounds(it.boundsInRoot()) }, cornerRadius = 12.dp)
+                        Artwork(ArtworkOf.SONG, song.id, COMPACT_ART_DP.dp, Modifier.size(COMPACT_ART_DP.dp).onGloballyPositioned { onArtBounds(it.boundsInRoot(), false) }, cornerRadius = 12.dp)
                         Spacer(Modifier.size((Grid.base * 1.5f).dp))
                         Column {
                             Text(song.title, style = type.songRowTitle.copy(fontSize = type.nowPlayingSubtitle.fontSize), color = content, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -393,7 +401,7 @@ fun NowPlayingScreen(
                     }
                     Box {
                         MoreButton(moreMenu, content) { moreMenu = true }
-                        SongMenu(song, expanded = moreMenu, onDismiss = { moreMenu = false }, place = MenuPlace(chosenBy = entry.chosenBy))
+                        moreSheet()
                     }
                 }
                 // Lyrics and the Queue sit straight on the field, fading at their edges.
@@ -507,6 +515,7 @@ private fun MoreButton(open: Boolean, content: Color, onOpen: () -> Unit) {
             checkedContainerColor = content.copy(alpha = 0.30f),
             checkedContentColor = content,
         ),
+        modifier = Modifier.testTag("now-playing-more"),
     ) { Icon(Icons.more(), contentDescription = "More") }
 }
 private const val ART_MAX_DP = 420

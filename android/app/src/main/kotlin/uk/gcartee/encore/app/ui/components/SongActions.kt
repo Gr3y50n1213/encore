@@ -158,11 +158,25 @@ class AppActions(
         if (id != null) open(Route.Artist(id)) else toaster.show("$name isn't in your library")
     }
 
+    /**
+     * Section 21: a radio from a song. The owner (8 November 2026) found it did nothing:
+     * with the queue's Autoplay off a radio has nowhere to go, so starting one turns it on;
+     * from the song already playing it carries on where it is instead of starting again;
+     * the player follows the core even when the picks fail; and a toast says what happened.
+     */
     fun startRadio(song: Song) {
-        runCatching { core.startRadio(uk.gcartee.encore.core.RadioSeed.SONG, song.id) }
-            .onSuccess {
-                host.playingFrom.value = "${song.title} radio"
-                PlaybackHub.playCurrent(context)
+        val before = runCatching { core.queue() }.getOrNull()
+        val same = before?.current?.song?.id == song.id
+        if (before != null && !before.autoplayEnabled) runCatching { core.setAutoplay(true) }
+        val result = runCatching { core.startRadio(uk.gcartee.encore.core.RadioSeed.SONG, song.id) }
+        val now = runCatching { core.queue().current?.uid }.getOrNull()
+        if (now != null && now != before?.current?.uid) {
+            host.playingFrom.value = "${song.title} radio"
+            if (same) PlaybackHub.continueCurrent(context) else PlaybackHub.playCurrent(context)
+        }
+        result
+            .onSuccess { q ->
+                toaster.show(if (q.autoplay.isEmpty()) "Started ${song.title} radio. More picks come as you listen" else "Started ${song.title} radio")
             }
             .onFailure { toaster.show(it.userMessage()) }
     }

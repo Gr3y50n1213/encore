@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -104,6 +105,7 @@ import uk.gcartee.encore.core.EventKind
 import uk.gcartee.encore.core.OutputDevice
 import uk.gcartee.encore.tokens.EncoreTokens.Breakpoints
 import uk.gcartee.encore.tokens.EncoreTokens.Grid
+import uk.gcartee.encore.tokens.EncoreTokens.Radius
 import uk.gcartee.encore.tokens.EncoreTokens.Motion.Timing
 
 /** First launch: Welcome, then Connect; later launches go straight to the library. */
@@ -159,7 +161,12 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     // Where the mini player is and how big the screen is, for the morph between them.
     var miniBar by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
     var miniArt by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
-    var nowArt by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+    // Where Now Playing's artwork is: the big cover, or the small one over Lyrics and the
+    // Queue. The big one is kept for the next opening, which always starts on it.
+    var nowArt by remember { mutableStateOf<ArtSpot?>(null) }
+    var bigArt by remember { mutableStateOf<ArtSpot?>(null) }
+    // The mini player and navigation bar's height: pages pad by it, toasts sit above it.
+    var miniHeight by remember { mutableIntStateOf(0) }
     var screen by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
     // 1 is Now Playing open, 0 is closed into the bar; a swipe down drives it directly.
     val expand = remember { androidx.compose.animation.core.Animatable(0f) }
@@ -248,7 +255,6 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                     if (offline) OfflineBanner()
                     // Board 08: the page runs behind the mini player, which floats over it, so a
                     // tinted album page reaches the bar. Pages pad their lists by its height.
-                    var miniHeight by remember { mutableIntStateOf(0) }
                     Box(Modifier.weight(1f)) {
                         val inner = PaddingValues(bottom = with(LocalDensity.current) { miniHeight.toDp() })
                         val top = nav.top
@@ -307,7 +313,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                                     .padding(vertical = Grid.base.dp)
                                     .let { if (wide) it.navigationBarsPadding() else it },
                                 bar = wide,
-                                onArtBounds = { if (expand.value == 0f && pulse.value == 0f) miniArt = it },
+                                onArtBounds = { if (expand.value == 0f && pulse.value == 0f && it.usable()) miniArt = it },
                             )
                             if (!wide) {
                                 // Material 3 Expressive is round: the bar's top corners are 28 dp
@@ -328,8 +334,6 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                                 }
                             }
                         }
-                        // Toasts sit above the mini player and never cover controls (board 20).
-                        SnackbarHost(toaster.host, Modifier.align(Alignment.BottomCenter).padding(bottom = inner.calculateBottomPadding() + Grid.base.dp).semantics { liveRegion = LiveRegionMode.Polite })
                     }
                 }
             }
@@ -346,7 +350,14 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
             LaunchedEffect(shown) {
                 if (shown) {
                     everShown = true
-                } else if (everShown && !still) {
+                    // Opened again mid-bounce: the bar settles at once rather than staying swollen.
+                    pulse.snapTo(0f)
+                } else {
+                    // Closed: the next opening starts from the big cover, whatever panel
+                    // was showing when it closed.
+                    nowArt = bigArt
+                }
+                if (!shown && everShown && !still) {
                     // A soft gulp once the artwork is in: up a little, then floating back.
                     pulse.animateTo(MINI_SWELL, tween(PULSE_UP_MS, easing = androidx.compose.animation.core.FastOutSlowInEasing))
                     pulse.animateTo(0f, androidx.compose.animation.core.spring(dampingRatio = PULSE_DAMPING, stiffness = androidx.compose.animation.core.Spring.StiffnessLow))
@@ -363,7 +374,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
             }
             fun travel(): Float {
                 val h = screen.height.toFloat().coerceAtLeast(1f)
-                val from = nowArt
+                val from = nowArt?.rect
                 val to = miniArt
                 return if (from != null && to != null) (to.center.y - from.center.y).coerceAtLeast(h * MIN_TRAVEL) else h * DEFAULT_TRAVEL
             }
@@ -374,8 +385,13 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                     releasing = true
                     nowPlaying = false
                     morphScope.launch {
-                        expand.animateTo(0f, androidx.compose.animation.core.spring(dampingRatio = 1f, stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow), initialVelocity = perSecond)
-                        releasing = false
+                        // Finally: a tap on the bar mid-close cancels this, and a flag left
+                        // set would stop the next close.
+                        try {
+                            expand.animateTo(0f, androidx.compose.animation.core.spring(dampingRatio = 1f, stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow), initialVelocity = perSecond)
+                        } finally {
+                            releasing = false
+                        }
                     }
                 } else {
                     morphScope.launch { expand.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.8f, stiffness = androidx.compose.animation.core.Spring.StiffnessMedium), initialVelocity = perSecond) }
@@ -414,16 +430,22 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                             val g = p.coerceIn(0f, 1f)
                             val w = screen.width.toFloat()
                             val h = screen.height.toFloat()
-                            val laid = nowArt ?: androidx.compose.ui.geometry.Rect(w * 0.06f, h * 0.14f, w * 0.94f, h * 0.14f + w * 0.88f)
-                            // The artwork as drawn: it sits at 88 % while paused.
-                            val art = laid.scaledAround(laid.center, if (player.isPlaying) 1f else ART_PAUSED_SCALE)
+                            val spot = nowArt
+                            val laid = spot?.rect ?: androidx.compose.ui.geometry.Rect(w * 0.06f, h * 0.14f, w * 0.94f, h * 0.14f + w * 0.88f)
+                            // The artwork as drawn: the big cover sits at 88 % while paused.
+                            val art = if (spot?.shrinks != false && !player.isPlaying) laid.scaledAround(laid.center, ART_PAUSED_SCALE) else laid
                             val thumb = miniArt ?: androidx.compose.ui.geometry.Rect(w * 0.05f, h * 0.86f, w * 0.05f + 48.dp.toPx(), h * 0.86f + 48.dp.toPx())
-                            val k = (thumb.width / art.width.coerceAtLeast(1f)).coerceIn(0.01f, 1f)
-                            // A zoom, not a slide: the size changes geometrically, and the
-                            // position follows the size, so the art is centred on the cover by
-                            // the time it is the cover's size.
-                            val s = Math.pow(k.toDouble(), (1f - g).toDouble()).toFloat()
-                            val u = ((s - k) / (1f - k)).coerceIn(0f, 1f)
+                            val ratio = thumb.width / art.width
+                            val k = if (ratio.isFinite() && ratio > 0f) ratio else 1f
+                            // A zoom when the artwork is much bigger than the cover: the size
+                            // changes geometrically and the position follows it, so the art is
+                            // centred on the cover by the time it is the cover's size. Between
+                            // two covers of about one size (Lyrics, the Queue), a straight move.
+                            // The owner (8 November 2026): the zoom's formula divided by zero
+                            // there, and Now Playing stayed invisible behind its grey scrim.
+                            val zoom = k < ZOOM_BELOW
+                            val s = if (zoom) Math.pow(k.toDouble(), (1f - g).toDouble()).toFloat() else mix(k, 1f, g)
+                            val u = if (zoom) ((s - k) / (1f - k)).coerceIn(0f, 1f) else g
                             val cx = mix(thumb.center.x, art.center.x, u)
                             val cy = mix(thumb.center.y, art.center.y, u)
                             transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0f)
@@ -456,8 +478,34 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                         nav.push(route)
                     },
                     onOutput = { output = true },
-                    onArtBounds = { if (expand.value >= 0.999f) nowArt = it },
+                    onArtBounds = { rect, shrinks ->
+                        if (expand.value >= 0.999f && rect.usable()) {
+                            val spot = ArtSpot(rect, shrinks)
+                            nowArt = spot
+                            if (shrinks) bigArt = spot
+                        }
+                    },
                     onScrubHeld = { scrubHeld = it },
+                )
+            }
+            // Toasts above everything, so one from Now Playing is seen there too: over the
+            // page they sit above the mini player; over Now Playing, under its top bar. They
+            // never cover controls (board 20) and take the app's own colours.
+            SnackbarHost(
+                toaster.host,
+                Modifier
+                    .align(if (visible) Alignment.TopCenter else Alignment.BottomCenter)
+                    .let { if (visible) it.statusBarsPadding().padding(top = TOAST_UNDER_TOP_BAR_DP.dp) else it.padding(bottom = with(density) { miniHeight.toDp() } + Grid.base.dp) }
+                    .widthIn(max = TOAST_MAX_DP.dp)
+                    .semantics { liveRegion = LiveRegionMode.Polite },
+            ) { data ->
+                androidx.compose.material3.Snackbar(
+                    data,
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(Radius.androidCard.dp),
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    actionColor = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = (Grid.base * 2).dp),
                 )
             }
         }
@@ -589,6 +637,10 @@ private const val NAV_RADIUS_DP = 28
 private fun mix(start: Float, stop: Float, fraction: Float): Float = start + (stop - start) * fraction
 private const val OPEN_DAMPING = 0.85f
 private const val MORPH_FADE_UNTIL = 0.04f
+/** Below this cover-to-artwork ratio the morph zooms; above it, it moves. */
+private const val ZOOM_BELOW = 0.8f
+private const val TOAST_UNDER_TOP_BAR_DP = 64
+private const val TOAST_MAX_DP = 560
 private const val CARD_RADIUS_DP = 32
 private const val SCRIM = 0.32f
 private const val MINI_SWELL = 0.04f
@@ -608,3 +660,10 @@ private class RegionShape(val region: androidx.compose.ui.geometry.Rect, val rad
     override fun createOutline(size: androidx.compose.ui.geometry.Size, layoutDirection: androidx.compose.ui.unit.LayoutDirection, density: androidx.compose.ui.unit.Density): androidx.compose.ui.graphics.Outline =
         androidx.compose.ui.graphics.Outline.Rounded(androidx.compose.ui.geometry.RoundRect(region, androidx.compose.ui.geometry.CornerRadius(radius)))
 }
+
+/** Now Playing's artwork on screen; [shrinks]: the big cover, drawn at 88 % while paused. */
+private class ArtSpot(val rect: androidx.compose.ui.geometry.Rect, val shrinks: Boolean)
+
+/** A rect worth morphing to: finite, and not empty. */
+private fun androidx.compose.ui.geometry.Rect.usable(): Boolean =
+    left.isFinite() && top.isFinite() && right.isFinite() && bottom.isFinite() && width > 1f && height > 1f

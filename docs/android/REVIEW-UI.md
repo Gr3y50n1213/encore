@@ -71,14 +71,16 @@ Decisions the owner made after using the app with their own library, which overr
 | The bottom bar is sharp; the gesture area is grey | 28 dp top corners, floating with the mini player; the system scrim is off | Board 05's flat bar |
 | Settings is hard to read | 16 sp rows, icons in tonal circles, left-aligned section labels in the accent, long choices as radio rows with a line each | Boards 17 to 19, 38 (centred grey uppercase labels, segmented choices) |
 | "I already have a profile" is greyed out | It signs in, which is how an existing profile comes back | Board 22 |
-
+| Start radio "doesn't do anything" (8 November) | Its toast was drawn under Now Playing, Autoplay off left the radio nowhere to go, and the song playing started again. Radio now turns Autoplay on, carries on the song playing, and its toast shows over Now Playing | Section 21 |
+| Toasts don't match the app | Rounded like the mini player, in the app's tonal colours, and above Now Playing when it is open (under its top bar, never over controls) | Board 20 (the default dark snackbar) |
+| The licences page printed the raw lists | About card (version, source, licence), what the app is built on counted by licence with filter chips and search, families that open, each licence's text a tap away | Board 17 |
 ## Not built yet, and why
 
 - Downloads, the Download buttons and offline-only browsing (Phase 8); Android Auto (8); the sleep timer, widgets, Quick Settings tile and Live Updates (9); the year recap (11).
 - Search's Downloaded scope (shown, disabled until Phase 8) and Browse by mood: moods come from audio analysis (Phase 10).
 - The demo library (bundled tracks), multi-select, drag and drop onto playlists on tablets (board 43), the Large supporting pane, fold postures (tabletop and book), and the "Playing on ..." remote-control capsule.
 - Settings with no core behind them yet: crossfade, normalisation, equaliser, lyrics options, Hide explicit.
-- From the second review: the album tile's long-press menu and the list-mode fast scroll handle (board 06, items 4 and 6), the row lift and dim behind the song menu (board 13, item 1), the Not interested sheet with scope and reason (board 38), "Lyrics and artwork" sources on the Servers page (board 18, item 4, no core yet), the tablet album detail as a grouped track list (board 29, item 3).
+- From the second review: the list-mode fast scroll handle (board 06, item 6), the row lift and dim behind the song menu (board 13, item 1), the Not interested sheet with scope and reason (board 38), "Lyrics and artwork" sources on the Servers page (board 18, item 4, no core yet), the tablet album detail as a grouped track list (board 29, item 3).
 - Screenshot tests for every control state, and comparing each screen with its board at the same size: next, on the emulators.
 
 ## What the owner should try on a phone

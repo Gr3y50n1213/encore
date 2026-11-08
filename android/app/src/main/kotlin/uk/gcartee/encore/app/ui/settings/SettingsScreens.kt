@@ -97,8 +97,8 @@ import uk.gcartee.encore.core.coreVersion
 import uk.gcartee.encore.tokens.EncoreTokens.Grid
 
 /** Board 17, Layout: separated rows, 24 dp outer and 6 dp inner corners. */
-private const val OUTER = 24
-private const val INNER = 6
+internal const val OUTER = 24
+internal const val INNER = 6
 private const val ROW_ONE_LINE_DP = 56
 private const val SWATCHES_PER_ROW = 4
 private const val SWATCH_DP = 48
@@ -110,14 +110,14 @@ private const val RIGHT_MAX_DP = 140
 
 /** Settings type: 16 sp row titles and 14 sp values, so every line reads at arm's length. */
 @Composable
-private fun rowTitle() = LocalEncoreType.current.listRowTitle.copy(fontSize = 16.sp, lineHeight = 22.sp)
+internal fun rowTitle() = LocalEncoreType.current.listRowTitle.copy(fontSize = 16.sp, lineHeight = 22.sp)
 
 @Composable
-private fun rowValue() = LocalEncoreType.current.body.copy(fontSize = 14.sp, lineHeight = 20.sp)
+internal fun rowValue() = LocalEncoreType.current.body.copy(fontSize = 14.sp, lineHeight = 20.sp)
 
 /** A paragraph on a settings page: 15 sp, comfortable line height, page margins. */
 @Composable
-private fun Body(text: String, modifier: Modifier = Modifier) {
+internal fun Body(text: String, modifier: Modifier = Modifier) {
     Text(
         text,
         style = LocalEncoreType.current.body.copy(fontSize = 15.sp, lineHeight = 22.sp),
@@ -226,7 +226,7 @@ fun LazyListScope.group(title: String?, rows: List<Row0>) {
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun Page(title: String, onBack: (() -> Unit)?, contentPadding: PaddingValues, action: Pair<String, () -> Unit>? = null, subtitle: String? = null, content: LazyListScope.() -> Unit) {
+internal fun Page(title: String, onBack: (() -> Unit)?, contentPadding: PaddingValues, action: Pair<String, () -> Unit>? = null, subtitle: String? = null, content: LazyListScope.() -> Unit) {
     val type = LocalEncoreType.current
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding() + (Grid.base * 3).dp)) {
         item {
@@ -259,7 +259,7 @@ private fun Page(title: String, onBack: (() -> Unit)?, contentPadding: PaddingVa
 
 /** Boards 18 and 38: a group's label, small, uppercase and quiet, centered over its rows. */
 @Composable
-private fun SectionLabel(text: String) {
+internal fun SectionLabel(text: String) {
     Text(
         text,
         style = LocalEncoreType.current.sectionHeader.copy(fontSize = 15.sp, lineHeight = 20.sp),
@@ -385,7 +385,7 @@ private fun SettingsHome(host: CoreHost, onBack: () -> Unit, onProfiles: () -> U
     }
 }
 
-private fun versionName(context: Context): String =
+internal fun versionName(context: Context): String =
     runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty()
 
 /** A connected group of choices (selected fully round, the others squared toward their neighbours). */
@@ -728,27 +728,6 @@ private fun PrivacyPage(host: CoreHost, onBack: () -> Unit, contentPadding: Padd
             },
             confirmButton = { TextButton(onClick = { deleting = false }) { Text("Cancel") } },
         )
-    }
-}
-
-@Composable
-private fun LicencesPage(onBack: () -> Unit, contentPadding: PaddingValues) {
-    val context = LocalContext.current
-    val text = remember { runCatching { context.assets.open("licenses/THIRD_PARTY_LICENSES.md").bufferedReader().readText() }.getOrDefault("") }
-    val inter = remember { runCatching { context.assets.open("licenses/Inter-OFL.txt").bufferedReader().readText() }.getOrDefault("") }
-    Page("About and licenses", onBack, contentPadding) {
-        group(null, listOf(
-            Row0(appName(), "Version ${versionName(context)} · core ${coreVersion()}", { Icons.info() }),
-            Row0("Source code", "github.com/Gr3y50n1213/encore · MPL-2.0", { Icons.share() }),
-        ))
-        item {
-            Text(
-                text.ifBlank { "The license list ships with release builds." } + "\n\n" + inter,
-                style = LocalEncoreType.current.body.copy(fontSize = 13.sp, lineHeight = 19.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding((Grid.base * 3).dp),
-            )
-        }
     }
 }
 

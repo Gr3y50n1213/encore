@@ -1,6 +1,7 @@
 package uk.gcartee.encore.app
 
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
@@ -109,6 +110,20 @@ class SignInAndBrowseTest {
         Espresso.pressBack()
         rule.waitUntilDoesNotExist(hasText("Familiar to adventurous"), TIMEOUT)
 
+        // The owner (8 November 2026): closed from the queue while paused, Now Playing came
+        // back as a grey scrim with nothing on it. It must open again and show.
+        rule.onNodeWithContentDescription("${current.title}, ${current.artist}").performClick()
+        rule.waitUntilAtLeastOneExists(hasContentDescription("Close Now Playing"), TIMEOUT)
+        rule.onNodeWithText("Lyrics").assertIsDisplayed()
+        // Start radio from More: the queue follows, and the toast is seen over Now Playing.
+        rule.onNodeWithTag("now-playing-more").performClick()
+        rule.waitUntilAtLeastOneExists(hasText("Start radio"), TIMEOUT)
+        rule.onNodeWithText("Start radio").performScrollTo().performClick()
+        step("the radio started", TIMEOUT) { host.playingFrom.value == "${current.title} radio" }
+        rule.waitUntilAtLeastOneExists(hasText("Started", substring = true), TIMEOUT)
+        shot("06b-radio")
+        Espresso.pressBack()
+        rule.waitUntilDoesNotExist(hasContentDescription("Close Now Playing"), TIMEOUT)
         // A playlist page lists its songs (the owner found it broken on 7 November 2026).
         val playlist = host.core.playlists(0u, 50u).firstOrNull { it.songCount > 0u }
         if (playlist != null) {

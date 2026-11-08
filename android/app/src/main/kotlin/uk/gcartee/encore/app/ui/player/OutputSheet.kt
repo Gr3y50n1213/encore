@@ -155,7 +155,7 @@ fun OutputSheet(host: CoreHost, playingHere: Boolean, onDismiss: () -> Unit) {
                             )
                         }
                         if (moving == dev.deviceId) CircularProgressIndicator(Modifier.width(24.dp))
-                        DropdownMenu(menu, onDismissRequest = { menu = false }) {
+                        DropdownMenu(menu, onDismissRequest = { menu = false }, shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp), containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) {
                             DropdownMenuItem(text = { Text("Control only") }, onClick = {
                                 menu = false
                                 runCatching { host.core.controlOnly(dev.deviceId) }.onSuccess { actions.toaster.show("Controlling ${dev.name}") }

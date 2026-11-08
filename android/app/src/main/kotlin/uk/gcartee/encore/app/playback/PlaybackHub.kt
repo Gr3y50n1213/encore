@@ -61,6 +61,8 @@ object PlaybackHub {
     }
 
     fun playCurrent(context: Context) = withPlayback(context) { it.playCurrent() }
+    /** The queue now starts on the song already playing (a radio from it): carry on. */
+    fun continueCurrent(context: Context) = withPlayback(context) { it.continueCurrent() }
     fun togglePlay(context: Context) = withPlayback(context) { it.togglePlay() }
     fun next(context: Context) = withPlayback(context) { it.next(SkipOrigin.BUTTON) }
     fun previous(context: Context) = withPlayback(context) { it.previous(SkipOrigin.BUTTON) }

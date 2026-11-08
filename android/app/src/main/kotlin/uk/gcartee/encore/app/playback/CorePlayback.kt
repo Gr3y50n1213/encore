@@ -98,6 +98,24 @@ class CorePlayback(
     // --- Actions from the app's own buttons (origin Button) and the media session. ---
 
     /** After `play(...)` or `jump_to`: start the queue's current song now. */
+    /**
+     * The queue was replaced by one that starts on the song already playing (a radio from
+     * it): the new entry takes over at the current position instead of starting again.
+     */
+    fun continueCurrent() {
+        val current = runCatching { core.queue().current }.getOrNull() ?: return
+        if (currentUid() == current.uid) {
+            if (!exo.playWhenReady) exo.play()
+            return
+        }
+        val at = exo.currentPosition.coerceAtLeast(0)
+        val item = mediaItem(current) ?: return
+        exo.setMediaItem(item, at)
+        exo.prepare()
+        exo.playWhenReady = true
+        clock.reset()
+        publish(current)
+    }
     fun playCurrent() {
         val current = core.queue().current ?: return
         if (currentUid() == current.uid) {

@@ -168,7 +168,7 @@ fun LibraryScreen(host: CoreHost, onOpen: (Route) -> Unit, playingSongId: Long?,
                                     Spacer(Modifier.size(4.dp))
                                     Icon(Icons.expandMore(), contentDescription = "Sort", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
                                 }
-                                DropdownMenu(expanded = sortOpen, onDismissRequest = { sortOpen = false }) {
+                                DropdownMenu(expanded = sortOpen, onDismissRequest = { sortOpen = false }, shape = androidx.compose.foundation.shape.RoundedCornerShape(MENU_RADIUS_DP.dp), containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) {
                                     SortChoice.entries.filter { if (shelf == Shelf.Songs) it.song != null else it.album != null }.forEach { choice ->
                                         DropdownMenuItem(
                                             text = { Text(choice.label, style = if (choice == sort) type.buttonLabelSelected else type.buttonLabel) },
@@ -515,3 +515,6 @@ private fun AlbumSheet(host: CoreHost, album: uk.gcartee.encore.core.AlbumSummar
         ),
     )
 }
+
+/** Menus round like the app's cards and sheets (Material 3 Expressive). */
+private const val MENU_RADIUS_DP = 16
