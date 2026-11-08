@@ -53,10 +53,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.text
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
@@ -181,7 +183,11 @@ private fun SectionLabel(text: String) {
         style = LocalEncoreType.current.caption.copy(letterSpacing = 1.sp),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-        modifier = Modifier.fillMaxWidth().padding(top = (Grid.base * 3).dp, bottom = Grid.base.dp).semantics { heading() },
+        // Drawn in capitals, read as written: screen readers get the normal-case words.
+        modifier = Modifier.fillMaxWidth().padding(top = (Grid.base * 3).dp, bottom = Grid.base.dp).clearAndSetSemantics {
+            heading()
+            this.text = androidx.compose.ui.text.AnnotatedString(text)
+        },
     )
 }
 
