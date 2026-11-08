@@ -101,6 +101,18 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  void  dismissContinue({required String deviceId });
 
 
+ DownloadedItem  download({required DownloadTarget target });
+
+
+ DownloadMarks  downloadMarks();
+
+
+ DownloadSettings  downloadSettings();
+
+
+ DownloadsOverview  downloadsOverview();
+
+
  DropPreview  dropPreview({required DropTarget target , required Int64List songIds });
 
 
@@ -202,6 +214,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  OutputDevices  outputDevices();
 
 
+ void  pauseDownload({required DownloadTarget target , required bool paused });
+
+
  int  pendingEdits();
 
 
@@ -274,6 +289,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  QueueState  refreshAutoplay();
 
 
+ int  refreshSmartDownloads();
+
+
  Future<Home>  regenerateMixes();
 
 
@@ -281,6 +299,12 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
 
 
  Future<RemoteQueue>  remoteQueue({required String deviceId });
+
+
+ int  removeAllDownloads();
+
+
+ void  removeDownload({required DownloadTarget target });
 
 
  EditResult  removeFromPlaylist({required PlatformInt64 playlistId , required List<int> positions });
@@ -304,6 +328,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  void  removeServer({required PlatformInt64 sourceId });
 
 
+ int  removeUnplayedDownloads();
+
+
  Future<void>  renameDevice({required String deviceId , required String name });
 
 
@@ -325,13 +352,22 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  Future<void>  restoreProfile({required String profileId , required String fromPath });
 
 
+ int  retryFailedDownloads();
+
+
  Future<void>  revokeDevice({required String deviceId });
+
+
+ Future<DownloadRun>  runDownloads({required Network network , required BigInt freeBytes });
 
 
  EditResult  saveMixAsPlaylist({required String mixId });
 
 
  SearchResults  search({required String query });
+
+
+ SearchResults  searchDownloaded({required String query });
 
 
  Future<SentEdits>  sendEdits();
@@ -344,6 +380,12 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
 
 
  QueueState  setAutoplay({required bool enabled });
+
+
+ void  setConnectivity({required bool online , required Network network , required List<String> cachedKeys });
+
+
+ void  setDownloadSettings({required DownloadSettings settings });
 
 
  void  setListeningMode({required ListeningMode mode });
@@ -392,6 +434,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
 
 
  QueueState  startRadio({required RadioSeed seed , required PlatformInt64 id });
+
+
+ void  stopDownloads();
 
 
 /// Close the events stream (it reports done). Cancelling a subscription alone
@@ -733,15 +778,16 @@ final OutputDevices? outputDevices;
 final OutputDevice? device;
 final HandoffInfo? handoff;
 final RemoteCommand? remoteCommand;
+final DownloadProgress? download;
 
-                const CoreEvent({required this.kind ,this.queue ,this.nowPlaying ,this.preload ,this.syncSourceId ,required this.syncDone ,required this.syncTotal ,this.syncStatus ,this.remoteChange ,this.credential ,this.outputDevices ,this.device ,this.handoff ,this.remoteCommand ,});
+                const CoreEvent({required this.kind ,this.queue ,this.nowPlaying ,this.preload ,this.syncSourceId ,required this.syncDone ,required this.syncTotal ,this.syncStatus ,this.remoteChange ,this.credential ,this.outputDevices ,this.device ,this.handoff ,this.remoteCommand ,this.download ,});
 
 
 
 
 
         @override
-        int get hashCode => kind.hashCode^queue.hashCode^nowPlaying.hashCode^preload.hashCode^syncSourceId.hashCode^syncDone.hashCode^syncTotal.hashCode^syncStatus.hashCode^remoteChange.hashCode^credential.hashCode^outputDevices.hashCode^device.hashCode^handoff.hashCode^remoteCommand.hashCode;
+        int get hashCode => kind.hashCode^queue.hashCode^nowPlaying.hashCode^preload.hashCode^syncSourceId.hashCode^syncDone.hashCode^syncTotal.hashCode^syncStatus.hashCode^remoteChange.hashCode^credential.hashCode^outputDevices.hashCode^device.hashCode^handoff.hashCode^remoteCommand.hashCode^download.hashCode;
 
 
 
@@ -750,7 +796,7 @@ final RemoteCommand? remoteCommand;
             identical(this, other) ||
             other is CoreEvent &&
                 runtimeType == other.runtimeType
-                && kind == other.kind&& queue == other.queue&& nowPlaying == other.nowPlaying&& preload == other.preload&& syncSourceId == other.syncSourceId&& syncDone == other.syncDone&& syncTotal == other.syncTotal&& syncStatus == other.syncStatus&& remoteChange == other.remoteChange&& credential == other.credential&& outputDevices == other.outputDevices&& device == other.device&& handoff == other.handoff&& remoteCommand == other.remoteCommand;
+                && kind == other.kind&& queue == other.queue&& nowPlaying == other.nowPlaying&& preload == other.preload&& syncSourceId == other.syncSourceId&& syncDone == other.syncDone&& syncTotal == other.syncTotal&& syncStatus == other.syncStatus&& remoteChange == other.remoteChange&& credential == other.credential&& outputDevices == other.outputDevices&& device == other.device&& handoff == other.handoff&& remoteCommand == other.remoteCommand&& download == other.download;
 
             }
 
@@ -786,6 +832,245 @@ offline,
                     ;
                     
                 }
+
+enum DownloadKind {
+                    song,
+album,
+playlist,
+mix,
+likedSongs,
+smart,
+                    ;
+                    
+                }
+
+class DownloadMarks  {
+                final Int64List savedSongIds;
+final Int64List pendingSongIds;
+final Int64List failedSongIds;
+final Int64List playableOfflineSongIds;
+final List<DownloadedItem> items;
+final bool online;
+final PlatformInt64? activeSongId;
+
+                const DownloadMarks({required this.savedSongIds ,required this.pendingSongIds ,required this.failedSongIds ,required this.playableOfflineSongIds ,required this.items ,required this.online ,this.activeSongId ,});
+
+
+
+
+
+        @override
+        int get hashCode => savedSongIds.hashCode^pendingSongIds.hashCode^failedSongIds.hashCode^playableOfflineSongIds.hashCode^items.hashCode^online.hashCode^activeSongId.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is DownloadMarks &&
+                runtimeType == other.runtimeType
+                && savedSongIds == other.savedSongIds&& pendingSongIds == other.pendingSongIds&& failedSongIds == other.failedSongIds&& playableOfflineSongIds == other.playableOfflineSongIds&& items == other.items&& online == other.online&& activeSongId == other.activeSongId;
+
+            }
+
+class DownloadProgress  {
+                final String itemTitle;
+final int itemSaved;
+final int itemTotal;
+final PlatformInt64 songId;
+final String songTitle;
+final int songsDone;
+final int songsTotal;
+final BigInt bytesDone;
+final BigInt? bytesTotal;
+
+                const DownloadProgress({required this.itemTitle ,required this.itemSaved ,required this.itemTotal ,required this.songId ,required this.songTitle ,required this.songsDone ,required this.songsTotal ,required this.bytesDone ,this.bytesTotal ,});
+
+
+
+
+
+        @override
+        int get hashCode => itemTitle.hashCode^itemSaved.hashCode^itemTotal.hashCode^songId.hashCode^songTitle.hashCode^songsDone.hashCode^songsTotal.hashCode^bytesDone.hashCode^bytesTotal.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is DownloadProgress &&
+                runtimeType == other.runtimeType
+                && itemTitle == other.itemTitle&& itemSaved == other.itemSaved&& itemTotal == other.itemTotal&& songId == other.songId&& songTitle == other.songTitle&& songsDone == other.songsDone&& songsTotal == other.songsTotal&& bytesDone == other.bytesDone&& bytesTotal == other.bytesTotal;
+
+            }
+
+class DownloadRun  {
+                final int saved;
+final int failed;
+final int remaining;
+final DownloadStop stop;
+
+                const DownloadRun({required this.saved ,required this.failed ,required this.remaining ,required this.stop ,});
+
+
+
+
+
+        @override
+        int get hashCode => saved.hashCode^failed.hashCode^remaining.hashCode^stop.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is DownloadRun &&
+                runtimeType == other.runtimeType
+                && saved == other.saved&& failed == other.failed&& remaining == other.remaining&& stop == other.stop;
+
+            }
+
+class DownloadSettings  {
+                final StreamQuality quality;
+final bool wifiOnly;
+final BigInt? limitBytes;
+final bool removeUnplayed;
+final bool likedSongs;
+final bool smartDownloads;
+final BigInt cacheLimitBytes;
+
+                const DownloadSettings({required this.quality ,required this.wifiOnly ,this.limitBytes ,required this.removeUnplayed ,required this.likedSongs ,required this.smartDownloads ,required this.cacheLimitBytes ,});
+
+
+
+
+
+        @override
+        int get hashCode => quality.hashCode^wifiOnly.hashCode^limitBytes.hashCode^removeUnplayed.hashCode^likedSongs.hashCode^smartDownloads.hashCode^cacheLimitBytes.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is DownloadSettings &&
+                runtimeType == other.runtimeType
+                && quality == other.quality&& wifiOnly == other.wifiOnly&& limitBytes == other.limitBytes&& removeUnplayed == other.removeUnplayed&& likedSongs == other.likedSongs&& smartDownloads == other.smartDownloads&& cacheLimitBytes == other.cacheLimitBytes;
+
+            }
+
+enum DownloadState {
+                    waiting,
+downloading,
+saved,
+paused,
+failed,
+                    ;
+                    
+                }
+
+enum DownloadStop {
+                    done,
+stopped,
+alreadyRunning,
+waitingForWifi,
+offline,
+serverUnreachable,
+signInNeeded,
+storageLimit,
+lowSpace,
+noProfile,
+                    ;
+                    
+                }
+
+class DownloadTarget  {
+                final DownloadKind kind;
+final PlatformInt64 id;
+final String? mixId;
+
+                const DownloadTarget({required this.kind ,required this.id ,this.mixId ,});
+
+
+
+
+
+        @override
+        int get hashCode => kind.hashCode^id.hashCode^mixId.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is DownloadTarget &&
+                runtimeType == other.runtimeType
+                && kind == other.kind&& id == other.id&& mixId == other.mixId;
+
+            }
+
+class DownloadedItem  {
+                final DownloadTarget target;
+final String title;
+final String subtitle;
+final DownloadState state;
+final int saved;
+final int total;
+final int failed;
+final BigInt bytes;
+final bool auto;
+final PlatformInt64 addedUtcMs;
+final String? error;
+
+                const DownloadedItem({required this.target ,required this.title ,required this.subtitle ,required this.state ,required this.saved ,required this.total ,required this.failed ,required this.bytes ,required this.auto ,required this.addedUtcMs ,this.error ,});
+
+
+
+
+
+        @override
+        int get hashCode => target.hashCode^title.hashCode^subtitle.hashCode^state.hashCode^saved.hashCode^total.hashCode^failed.hashCode^bytes.hashCode^auto.hashCode^addedUtcMs.hashCode^error.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is DownloadedItem &&
+                runtimeType == other.runtimeType
+                && target == other.target&& title == other.title&& subtitle == other.subtitle&& state == other.state&& saved == other.saved&& total == other.total&& failed == other.failed&& bytes == other.bytes&& auto == other.auto&& addedUtcMs == other.addedUtcMs&& error == other.error;
+
+            }
+
+class DownloadsOverview  {
+                final BigInt usedBytes;
+final int songCount;
+final List<DownloadedItem> items;
+final int queued;
+final int failed;
+final DownloadProgress? active;
+final DownloadStop? stop;
+final DownloadSettings settings;
+
+                const DownloadsOverview({required this.usedBytes ,required this.songCount ,required this.items ,required this.queued ,required this.failed ,this.active ,this.stop ,required this.settings ,});
+
+
+
+
+
+        @override
+        int get hashCode => usedBytes.hashCode^songCount.hashCode^items.hashCode^queued.hashCode^failed.hashCode^active.hashCode^stop.hashCode^settings.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is DownloadsOverview &&
+                runtimeType == other.runtimeType
+                && usedBytes == other.usedBytes&& songCount == other.songCount&& items == other.items&& queued == other.queued&& failed == other.failed&& active == other.active&& stop == other.stop&& settings == other.settings;
+
+            }
 
 class DropPreview  {
                 final int count;
@@ -933,6 +1218,8 @@ handoffConfirmed,
 handoffFailed,
 remoteCommand,
 remoteState,
+downloadsChanged,
+downloadProgress,
                     ;
                     
                 }
@@ -2319,15 +2606,17 @@ final String url;
 final String urlWithApiKey;
 final List<HttpHeader> headers;
 final bool mayTranscode;
+final bool local;
+final String cacheKey;
 
-                const StreamInfo({required this.songId ,required this.url ,required this.urlWithApiKey ,required this.headers ,required this.mayTranscode ,});
+                const StreamInfo({required this.songId ,required this.url ,required this.urlWithApiKey ,required this.headers ,required this.mayTranscode ,required this.local ,required this.cacheKey ,});
 
 
 
 
 
         @override
-        int get hashCode => songId.hashCode^url.hashCode^urlWithApiKey.hashCode^headers.hashCode^mayTranscode.hashCode;
+        int get hashCode => songId.hashCode^url.hashCode^urlWithApiKey.hashCode^headers.hashCode^mayTranscode.hashCode^local.hashCode^cacheKey.hashCode;
 
 
 
@@ -2336,7 +2625,7 @@ final bool mayTranscode;
             identical(this, other) ||
             other is StreamInfo &&
                 runtimeType == other.runtimeType
-                && songId == other.songId&& url == other.url&& urlWithApiKey == other.urlWithApiKey&& headers == other.headers&& mayTranscode == other.mayTranscode;
+                && songId == other.songId&& url == other.url&& urlWithApiKey == other.urlWithApiKey&& headers == other.headers&& mayTranscode == other.mayTranscode&& local == other.local&& cacheKey == other.cacheKey;
 
             }
 

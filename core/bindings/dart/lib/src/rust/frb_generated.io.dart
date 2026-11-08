@@ -68,6 +68,14 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected CoreConfig dco_decode_box_autoadd_core_config(dynamic raw);
 
+@protected DownloadProgress dco_decode_box_autoadd_download_progress(dynamic raw);
+
+@protected DownloadSettings dco_decode_box_autoadd_download_settings(dynamic raw);
+
+@protected DownloadStop dco_decode_box_autoadd_download_stop(dynamic raw);
+
+@protected DownloadTarget dco_decode_box_autoadd_download_target(dynamic raw);
+
 @protected DropRefusal dco_decode_box_autoadd_drop_refusal(dynamic raw);
 
 @protected DropTarget dco_decode_box_autoadd_drop_target(dynamic raw);
@@ -120,6 +128,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected int dco_decode_box_autoadd_u_32(dynamic raw);
 
+@protected BigInt dco_decode_box_autoadd_u_64(dynamic raw);
+
 @protected ChosenBy dco_decode_chosen_by(dynamic raw);
 
 @protected CompanionDevice dco_decode_companion_device(dynamic raw);
@@ -131,6 +141,26 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected CredentialKey dco_decode_credential_key(dynamic raw);
 
 @protected DeviceState dco_decode_device_state(dynamic raw);
+
+@protected DownloadKind dco_decode_download_kind(dynamic raw);
+
+@protected DownloadMarks dco_decode_download_marks(dynamic raw);
+
+@protected DownloadProgress dco_decode_download_progress(dynamic raw);
+
+@protected DownloadRun dco_decode_download_run(dynamic raw);
+
+@protected DownloadSettings dco_decode_download_settings(dynamic raw);
+
+@protected DownloadState dco_decode_download_state(dynamic raw);
+
+@protected DownloadStop dco_decode_download_stop(dynamic raw);
+
+@protected DownloadTarget dco_decode_download_target(dynamic raw);
+
+@protected DownloadedItem dco_decode_downloaded_item(dynamic raw);
+
+@protected DownloadsOverview dco_decode_downloads_overview(dynamic raw);
 
 @protected DropPreview dco_decode_drop_preview(dynamic raw);
 
@@ -179,6 +209,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected List<CompanionDevice> dco_decode_list_companion_device(dynamic raw);
 
 @protected List<CredentialKey> dco_decode_list_credential_key(dynamic raw);
+
+@protected List<DownloadedItem> dco_decode_list_downloaded_item(dynamic raw);
 
 @protected List<GenreSummary> dco_decode_list_genre_summary(dynamic raw);
 
@@ -282,6 +314,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected ArtworkPalette? dco_decode_opt_box_autoadd_artwork_palette(dynamic raw);
 
+@protected DownloadProgress? dco_decode_opt_box_autoadd_download_progress(dynamic raw);
+
+@protected DownloadStop? dco_decode_opt_box_autoadd_download_stop(dynamic raw);
+
 @protected DropRefusal? dco_decode_opt_box_autoadd_drop_refusal(dynamic raw);
 
 @protected double? dco_decode_opt_box_autoadd_f_64(dynamic raw);
@@ -329,6 +365,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected int? dco_decode_opt_box_autoadd_u_16(dynamic raw);
 
 @protected int? dco_decode_opt_box_autoadd_u_32(dynamic raw);
+
+@protected BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw);
 
 @protected OutputDevice dco_decode_output_device(dynamic raw);
 
@@ -482,6 +520,14 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected CoreConfig sse_decode_box_autoadd_core_config(SseDeserializer deserializer);
 
+@protected DownloadProgress sse_decode_box_autoadd_download_progress(SseDeserializer deserializer);
+
+@protected DownloadSettings sse_decode_box_autoadd_download_settings(SseDeserializer deserializer);
+
+@protected DownloadStop sse_decode_box_autoadd_download_stop(SseDeserializer deserializer);
+
+@protected DownloadTarget sse_decode_box_autoadd_download_target(SseDeserializer deserializer);
+
 @protected DropRefusal sse_decode_box_autoadd_drop_refusal(SseDeserializer deserializer);
 
 @protected DropTarget sse_decode_box_autoadd_drop_target(SseDeserializer deserializer);
@@ -534,6 +580,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected int sse_decode_box_autoadd_u_32(SseDeserializer deserializer);
 
+@protected BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer);
+
 @protected ChosenBy sse_decode_chosen_by(SseDeserializer deserializer);
 
 @protected CompanionDevice sse_decode_companion_device(SseDeserializer deserializer);
@@ -545,6 +593,26 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected CredentialKey sse_decode_credential_key(SseDeserializer deserializer);
 
 @protected DeviceState sse_decode_device_state(SseDeserializer deserializer);
+
+@protected DownloadKind sse_decode_download_kind(SseDeserializer deserializer);
+
+@protected DownloadMarks sse_decode_download_marks(SseDeserializer deserializer);
+
+@protected DownloadProgress sse_decode_download_progress(SseDeserializer deserializer);
+
+@protected DownloadRun sse_decode_download_run(SseDeserializer deserializer);
+
+@protected DownloadSettings sse_decode_download_settings(SseDeserializer deserializer);
+
+@protected DownloadState sse_decode_download_state(SseDeserializer deserializer);
+
+@protected DownloadStop sse_decode_download_stop(SseDeserializer deserializer);
+
+@protected DownloadTarget sse_decode_download_target(SseDeserializer deserializer);
+
+@protected DownloadedItem sse_decode_downloaded_item(SseDeserializer deserializer);
+
+@protected DownloadsOverview sse_decode_downloads_overview(SseDeserializer deserializer);
 
 @protected DropPreview sse_decode_drop_preview(SseDeserializer deserializer);
 
@@ -593,6 +661,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected List<CompanionDevice> sse_decode_list_companion_device(SseDeserializer deserializer);
 
 @protected List<CredentialKey> sse_decode_list_credential_key(SseDeserializer deserializer);
+
+@protected List<DownloadedItem> sse_decode_list_downloaded_item(SseDeserializer deserializer);
 
 @protected List<GenreSummary> sse_decode_list_genre_summary(SseDeserializer deserializer);
 
@@ -696,6 +766,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected ArtworkPalette? sse_decode_opt_box_autoadd_artwork_palette(SseDeserializer deserializer);
 
+@protected DownloadProgress? sse_decode_opt_box_autoadd_download_progress(SseDeserializer deserializer);
+
+@protected DownloadStop? sse_decode_opt_box_autoadd_download_stop(SseDeserializer deserializer);
+
 @protected DropRefusal? sse_decode_opt_box_autoadd_drop_refusal(SseDeserializer deserializer);
 
 @protected double? sse_decode_opt_box_autoadd_f_64(SseDeserializer deserializer);
@@ -743,6 +817,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected int? sse_decode_opt_box_autoadd_u_16(SseDeserializer deserializer);
 
 @protected int? sse_decode_opt_box_autoadd_u_32(SseDeserializer deserializer);
+
+@protected BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer);
 
 @protected OutputDevice sse_decode_output_device(SseDeserializer deserializer);
 
@@ -896,6 +972,14 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_box_autoadd_core_config(CoreConfig self, SseSerializer serializer);
 
+@protected void sse_encode_box_autoadd_download_progress(DownloadProgress self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_download_settings(DownloadSettings self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_download_stop(DownloadStop self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_download_target(DownloadTarget self, SseSerializer serializer);
+
 @protected void sse_encode_box_autoadd_drop_refusal(DropRefusal self, SseSerializer serializer);
 
 @protected void sse_encode_box_autoadd_drop_target(DropTarget self, SseSerializer serializer);
@@ -948,6 +1032,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_box_autoadd_u_32(int self, SseSerializer serializer);
 
+@protected void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer);
+
 @protected void sse_encode_chosen_by(ChosenBy self, SseSerializer serializer);
 
 @protected void sse_encode_companion_device(CompanionDevice self, SseSerializer serializer);
@@ -959,6 +1045,26 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_credential_key(CredentialKey self, SseSerializer serializer);
 
 @protected void sse_encode_device_state(DeviceState self, SseSerializer serializer);
+
+@protected void sse_encode_download_kind(DownloadKind self, SseSerializer serializer);
+
+@protected void sse_encode_download_marks(DownloadMarks self, SseSerializer serializer);
+
+@protected void sse_encode_download_progress(DownloadProgress self, SseSerializer serializer);
+
+@protected void sse_encode_download_run(DownloadRun self, SseSerializer serializer);
+
+@protected void sse_encode_download_settings(DownloadSettings self, SseSerializer serializer);
+
+@protected void sse_encode_download_state(DownloadState self, SseSerializer serializer);
+
+@protected void sse_encode_download_stop(DownloadStop self, SseSerializer serializer);
+
+@protected void sse_encode_download_target(DownloadTarget self, SseSerializer serializer);
+
+@protected void sse_encode_downloaded_item(DownloadedItem self, SseSerializer serializer);
+
+@protected void sse_encode_downloads_overview(DownloadsOverview self, SseSerializer serializer);
 
 @protected void sse_encode_drop_preview(DropPreview self, SseSerializer serializer);
 
@@ -1007,6 +1113,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_list_companion_device(List<CompanionDevice> self, SseSerializer serializer);
 
 @protected void sse_encode_list_credential_key(List<CredentialKey> self, SseSerializer serializer);
+
+@protected void sse_encode_list_downloaded_item(List<DownloadedItem> self, SseSerializer serializer);
 
 @protected void sse_encode_list_genre_summary(List<GenreSummary> self, SseSerializer serializer);
 
@@ -1110,6 +1218,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_opt_box_autoadd_artwork_palette(ArtworkPalette? self, SseSerializer serializer);
 
+@protected void sse_encode_opt_box_autoadd_download_progress(DownloadProgress? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_download_stop(DownloadStop? self, SseSerializer serializer);
+
 @protected void sse_encode_opt_box_autoadd_drop_refusal(DropRefusal? self, SseSerializer serializer);
 
 @protected void sse_encode_opt_box_autoadd_f_64(double? self, SseSerializer serializer);
@@ -1157,6 +1269,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_opt_box_autoadd_u_16(int? self, SseSerializer serializer);
 
 @protected void sse_encode_opt_box_autoadd_u_32(int? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer);
 
 @protected void sse_encode_output_device(OutputDevice self, SseSerializer serializer);
 
