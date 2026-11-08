@@ -97,7 +97,7 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
         androidx.compose.material3.TextField(
             value = query,
             onValueChange = { query = it },
-            placeholder = { Text("Songs, albums, artists, lyrics") },
+            placeholder = { Text("Songs, albums, artists, lyrics", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
             leadingIcon = { Icon(Icons.search(), contentDescription = null) },
             trailingIcon = {
                 if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.close(), contentDescription = "Clear") }
@@ -161,6 +161,10 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
         }
         when {
             query.isBlank() -> LazyColumn(freeze, state = listState, contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding())) {
+                // Board 20, item 2: an empty screen says what will appear, in one sentence.
+                if (recents.isEmpty()) item {
+                    uk.gcartee.encore.app.ui.library.EmptyState("Search your library", "Songs, albums, artists and lyrics. What you search for stays on this phone and shows here.")
+                }
                 if (recents.isNotEmpty()) {
                     item {
                         androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {

@@ -161,6 +161,11 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
             !q.autoplayEnabled -> item {
                 Text("Autoplay is off", style = type.body, color = colour.copy(alpha = 0.72f), modifier = Modifier.padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp))
             }
+            // The core fills Autoplay when a song starts with fewer than five upcoming
+            // (CORE-API, smart picks), so a long Up Next is no reason to show a spinner.
+            q.autoplay.isEmpty() && q.upNext.size >= AUTOPLAY_FILLS_BELOW -> item {
+                Text("Autoplay picks songs as Up Next runs low.", style = type.body, color = colour.copy(alpha = 0.72f), modifier = Modifier.padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp))
+            }
             q.autoplay.isEmpty() -> item {
                 // States: refilling shows the expressive loading indicator, not a sentence alone.
                 Row(Modifier.padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -315,3 +320,4 @@ private fun LazyListScope.reorderable(
 
 private const val HIGHLIGHT_ALPHA = 0.14f
 private const val TONAL_ALPHA = 0.16f
+private const val AUTOPLAY_FILLS_BELOW = 5

@@ -101,6 +101,8 @@ fun SongRow(
                 Text(subtitle, style = type.body, color = secondaryColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
+        // A long title ends in its ellipsis with room to spare, never against the time.
+        Spacer(Modifier.width(Grid.base.dp))
         if (showArtwork && playing) {
             LevelBars(contentColor)
             Spacer(Modifier.width(Grid.base.dp))

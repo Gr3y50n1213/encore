@@ -166,7 +166,7 @@ fun SongMenu(song: Song, expanded: Boolean, onDismiss: () -> Unit, place: MenuPl
         expanded = expanded,
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(MENU_RADIUS_DP.dp),
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {
         MenuItem("Play next") { onDismiss(); actions.playNext(listOf(song)) }
         MenuItem("Add to queue") { onDismiss(); actions.addToQueue(listOf(song)) }

@@ -35,6 +35,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -102,7 +103,7 @@ fun ProfileSheet(host: CoreHost, playing: Boolean, onDismiss: () -> Unit, onSwit
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.navigationBarsPadding().padding(bottom = (Grid.base * 2).dp)) {
-            Text("Profiles", style = type.sheetTitle, modifier = Modifier.padding(horizontal = (Grid.base * 3).dp, vertical = Grid.base.dp))
+            Text("Who's listening?", style = type.sheetTitle, modifier = Modifier.padding(horizontal = (Grid.base * 3).dp, vertical = Grid.base.dp))
             if (guest != null) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = (Grid.base * 3).dp, vertical = Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("Guest, nothing is saved", style = type.listRowTitle, modifier = Modifier.weight(1f))
@@ -121,8 +122,12 @@ fun ProfileSheet(host: CoreHost, playing: Boolean, onDismiss: () -> Unit, onSwit
                         Modifier
                             .fillMaxWidth()
                             .heightIn(min = 64.dp)
+                            // Board 14: the active profile sits in a tonal highlight.
+                            .padding(horizontal = Grid.base.dp)
+                            .clip(androidx.compose.foundation.shape.RoundedCornerShape(ACTIVE_RADIUS_DP.dp))
+                            .background(if (p.active) MaterialTheme.colorScheme.secondaryContainer else androidx.compose.ui.graphics.Color.Transparent)
                             .combinedClickable(onClick = { pick(p) }, onLongClick = { haptics.perform(Haptic.LongPress); menu = true })
-                            .padding(horizontal = (Grid.base * 3).dp)
+                            .padding(horizontal = (Grid.base * 2).dp)
                             .semantics { stateDescription = if (p.active) "Current profile" else if (p.needsSignIn) "Sign in again" else "" },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -132,7 +137,8 @@ fun ProfileSheet(host: CoreHost, playing: Boolean, onDismiss: () -> Unit, onSwit
                         Spacer(Modifier.width((Grid.base * 2).dp))
                         Column(Modifier.weight(1f)) {
                             Text(p.displayName, style = type.listRowTitle)
-                            if (p.needsSignIn) Text("Sign in again", style = type.caption, color = MaterialTheme.colorScheme.error)
+                            if (p.needsSignIn) Text("Session ended. Sign in again", style = type.caption, color = MaterialTheme.colorScheme.error)
+                            else if (p.active) Text("Active", style = type.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         if (p.locked) Icon(Icons.lock(), contentDescription = "Locked")
                         if (p.active) Icon(Icons.check(), contentDescription = null)
@@ -250,3 +256,5 @@ fun ProfileSheet(host: CoreHost, playing: Boolean, onDismiss: () -> Unit, onSwit
         )
     }
 }
+
+private const val ACTIVE_RADIUS_DP = 20

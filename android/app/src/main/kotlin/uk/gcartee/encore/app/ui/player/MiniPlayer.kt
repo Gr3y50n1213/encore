@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -58,8 +59,10 @@ fun MiniPlayer(host: CoreHost, state: PlayerState, onExpand: () -> Unit, modifie
     val field = rememberFieldColours(host, entry.song.albumId)
     val container = androidx.compose.ui.graphics.lerp(MaterialTheme.colorScheme.secondaryContainer, field.stops.first(), MINI_TINT)
     // Board 42: Next is a tonal button, round on the side its arrow points to.
+    // Light: the white of board 42. Dark: the raised tonal surface, never near-black.
+    val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
     val tonal = IconButtonDefaults.filledTonalIconButtonColors(
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+        containerColor = if (dark) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerLowest,
         contentColor = MaterialTheme.colorScheme.onSurface,
     )
     Surface(

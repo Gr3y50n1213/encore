@@ -27,6 +27,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import kotlinx.coroutines.flow.first
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
@@ -101,16 +103,30 @@ private fun Lines(host: CoreHost, lyrics: SongLyrics, positionMs: Long, colour: 
     var lastTouchEnd by remember { mutableLongStateOf(0L) }
     var back by remember { mutableStateOf<Long?>(null) }
 
-    // Swiping by hand pauses auto-scroll until 3 s after release (item 8).
+    // Swiping by hand pauses auto-scroll until 3 s after release (item 8). Only a finger
+    // counts: the list's own animated scrolls must not pause it, or it falls behind.
+    var dragging by remember { mutableStateOf(false) }
     LaunchedEffect(list) {
-        snapshotFlow { list.isScrollInProgress }.collect { scrolling -> if (!scrolling) lastTouchEnd = System.currentTimeMillis() }
+        list.interactionSource.interactions.collect { i ->
+            when (i) {
+                is DragInteraction.Start -> dragging = true
+                is DragInteraction.Stop, is DragInteraction.Cancel -> {
+                    dragging = false
+                    lastTouchEnd = System.currentTimeMillis()
+                }
+            }
+        }
     }
+    var placed by remember { mutableStateOf(false) }
     LaunchedEffect(current) {
-        if (current < 0 || list.isScrollInProgress) return@LaunchedEffect
-        if (System.currentTimeMillis() - lastTouchEnd < Timing.lyricAutoScrollResumeMs && lastTouchEnd != 0L) return@LaunchedEffect
-        // The active line sits about 30 % from the top.
-        val offset = -(list.layoutInfo.viewportSize.height * 0.3f).toInt()
-        if (still) list.scrollToItem(current, offset) else list.animateScrollToItem(current, offset)
+        if (current < 0 || dragging) return@LaunchedEffect
+        if (lastTouchEnd != 0L && System.currentTimeMillis() - lastTouchEnd < Timing.lyricAutoScrollResumeMs) return@LaunchedEffect
+        // Item 3: the active line sits about 30 % from the top of what is visible. The
+        // list's top padding counts, and the first placement waits for the list's size.
+        val height = snapshotFlow { list.layoutInfo.viewportSize.height }.first { it > 0 }
+        val offset = list.layoutInfo.beforeContentPadding - (height * ACTIVE_LINE_FROM_TOP).toInt()
+        if (still || !placed) list.scrollToItem(current, offset) else list.animateScrollToItem(current, offset)
+        placed = true
     }
     LaunchedEffect(back) {
         if (back != null) {
@@ -233,3 +249,5 @@ private const val PAST_ALPHA = 0.4f
 private const val UPCOMING_ALPHA = 0.55f
 private const val PAST_BLUR_DP = 1.2f
 private const val BACK_PILL_MS = 4_000L
+
+private const val ACTIVE_LINE_FROM_TOP = 0.3f
