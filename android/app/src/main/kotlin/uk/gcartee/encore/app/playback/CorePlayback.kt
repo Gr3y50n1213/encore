@@ -116,6 +116,19 @@ class CorePlayback(
         clock.reset()
         publish(current)
     }
+    /**
+     * A car or another controller handed the session a list (Phase 8): the core has
+     * the queue already. Load its current song if it isn't loaded, otherwise carry on
+     * where it is (Bluetooth's or the car's Play after a reconnect never restarts it).
+     */
+    fun loadCurrent() {
+        val current = runCatching { core.queue().current }.getOrNull() ?: return
+        if (currentUid() == current.uid) {
+            if (!exo.playWhenReady) exo.play()
+        } else {
+            load(current, play = true)
+        }
+    }
     fun playCurrent() {
         val current = core.queue().current ?: return
         if (currentUid() == current.uid) {
@@ -447,6 +460,8 @@ class CorePlayback(
         return MediaItem.Builder()
             .setMediaId("$UID_PREFIX${entry.uid}")
             .setUri(info.url)
+            // The rolling cache's name for it (no token); a downloaded file isn't cached.
+            .apply { if (!info.local) setCustomCacheKey(info.cacheKey) }
             .setMediaMetadata(
                 MediaMetadata.Builder()
                     .setTitle(song.title)

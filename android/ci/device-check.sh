@@ -45,8 +45,9 @@ adb install -r -t "$debug"
 adb install -r -t "$tests"
 runner=uk.gcartee.encore.debug.test/androidx.test.runner.AndroidJUnitRunner
 signin=uk.gcartee.encore.app.SignInAndBrowseTest
-# First on a fresh install (no profile yet), everything but the sign-in test.
-adb shell am instrument -w -r -e notClass "$signin" "$runner" | tee "$out/instrument.txt"
+offline=uk.gcartee.encore.app.OfflineAndCarTest
+# First on a fresh install (no profile yet), everything but the two replay tests.
+adb shell am instrument -w -r -e notClass "$signin,$offline" "$runner" | tee "$out/instrument.txt"
 grep -q '^OK (' "$out/instrument.txt" || { echo "instrumented tests failed" >&2; exit 1; }
 
 echo "== 1b. Sign in to the Jellyfin replay, browse, play"
@@ -60,6 +61,11 @@ replay="$(cat "$out/replay-url.txt")"
 port="${replay##*:}"
 adb reverse "tcp:$port" "tcp:$port"
 adb shell am instrument -w -r -e class "$signin" -e replayUrl "$replay" "$runner" | tee "$out/instrument-signin.txt"
+echo "== 1c. Phase 8: download an album, play it with no network, browse it as a car"
+# Signed in by 1b; the replay serves made-up audio. The test turns the network back on.
+adb shell am instrument -w -r -e class "$offline" -e replayUrl "$replay" "$runner" | tee "$out/instrument-offline.txt"
+adb shell svc wifi enable || true
+adb shell svc data enable || true
 adb reverse --remove "tcp:$port" || true
 kill "$replay_pid" || true
 # The screens the test photographed, for the review.
@@ -69,6 +75,7 @@ for f in $(adb shell 'ls /data/local/tmp/encore-shot-*.png 2>/dev/null' | tr -d 
 done
 adb shell 'rm -f /data/local/tmp/encore-shot-*.png' || true
 grep -q '^OK (1 test)' "$out/instrument-signin.txt" || { echo "the sign-in test failed" >&2; exit 1; }
+grep -q '^OK (1 test)' "$out/instrument-offline.txt" || { echo "the offline and car test failed" >&2; exit 1; }
 # The release build below must start fresh again, on Welcome.
 adb uninstall uk.gcartee.encore.debug > /dev/null || true
 

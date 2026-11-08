@@ -48,6 +48,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.ui.semantics.heading
 import androidx.compose.foundation.clickable
 import uk.gcartee.encore.app.ui.components.LIST_ART_RADIUS_DP
 import uk.gcartee.encore.app.ui.components.LIST_ART_DP
@@ -84,7 +87,7 @@ import uk.gcartee.encore.core.SongSort
 import uk.gcartee.encore.core.StartedFrom
 import uk.gcartee.encore.tokens.EncoreTokens.Grid
 
-enum class Shelf(val label: String) { Albums("Albums"), Playlists("Playlists"), Artists("Artists"), Songs("Songs") }
+enum class Shelf(val label: String) { Albums("Albums"), Playlists("Playlists"), Artists("Artists"), Songs("Songs"), Downloaded("Downloaded") }
 
 /** Board 06's sort menu, limited to the orders the core offers today. */
 private enum class SortChoice(val label: String, val album: AlbumSort?, val song: SongSort?) {
@@ -228,6 +231,10 @@ fun LibraryScreen(host: CoreHost, onOpen: (Route) -> Unit, playingSongId: Long?,
                 Shelf.Songs -> SongsList(host, sort.song ?: SongSort.RECENTLY_ADDED, sync.generation, playingSongId, contentPadding)
                 Shelf.Artists -> ArtistsList(host, sync.generation, onOpen, contentPadding)
                 Shelf.Playlists -> PlaylistsList(host, sync.generation, onOpen, contentPadding)
+                Shelf.Downloaded -> DownloadedList(host, onOpen, playingSongId, contentPadding) {
+                    shelf = Shelf.Albums
+                    prefs.shelf = Shelf.Albums
+                }
             }
         }
     }
@@ -403,6 +410,9 @@ private const val ARTIST_ART_DP = 112
 private const val ARTIST_PRESS_RADIUS_DP = 20
 private const val GROUP_SIDE_DP = 8
 private const val GROUP_WEIGHT_BASE = 3f
+/** A label's width per character at its size, in em (Inter, medium and semibold). */
+private const val CHAR_EM = 0.6f
+private const val GROUP_SLACK_DP = 6
 private const val VIEW_TOGGLE_DP = 40
 private const val VIEW_TOGGLE_W_DP = 52
 
@@ -444,7 +454,19 @@ internal fun ChipLabel(label: String, on: Boolean) {
 internal fun <T> ChoiceGroup(options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit, modifier: Modifier = Modifier, enabled: (T) -> Boolean = { true }) {
     val type = LocalEncoreType.current
     val haptics = rememberHaptics()
-    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)) {
+    val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
+    androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxWidth()) {
+    // The words never cut: when they don't fit the width (five chips, a large text
+    // size), the group scrolls sideways at their natural widths instead of squeezing.
+    val needed = options.sumOf { it.second.length } * GROUP_TEXT_SP * CHAR_EM * fontScale +
+        options.size * (2 * GROUP_SIDE_DP + GROUP_SLACK_DP)
+    val scrolls = needed > maxWidth.value
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .let { if (scrolls) it.horizontalScroll(androidx.compose.foundation.rememberScrollState()) else it },
+        horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+    ) {
         options.forEachIndexed { i, (value, label) ->
             val on = value == selected
             ToggleButton(
@@ -464,8 +486,8 @@ internal fun <T> ChoiceGroup(options: List<Pair<T, String>>, selected: T, onSele
                 colors = tonalToggle(),
                 // Labels never cut: each button is as wide as its word wants, with slim sides,
                 // so large text sizes still fit four in a row.
-                contentPadding = PaddingValues(horizontal = GROUP_SIDE_DP.dp),
-                modifier = Modifier.weight(label.length + GROUP_WEIGHT_BASE).semantics {
+                contentPadding = PaddingValues(horizontal = if (scrolls) (GROUP_SIDE_DP * 2).dp else GROUP_SIDE_DP.dp),
+                modifier = Modifier.let { if (scrolls) it else it.weight(label.length + GROUP_WEIGHT_BASE) }.semantics {
                     role = Role.Tab
                     this.selected = on
                 },
@@ -473,6 +495,7 @@ internal fun <T> ChoiceGroup(options: List<Pair<T, String>>, selected: T, onSele
                 Text(label, style = type.sectionHeader.copy(fontSize = GROUP_TEXT_SP.sp, fontWeight = if (on) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Medium), maxLines = 1, softWrap = false)
             }
         }
+    }
     }
 }
 
@@ -487,6 +510,8 @@ private fun AlbumSheet(host: CoreHost, album: uk.gcartee.encore.core.AlbumSummar
     val queue = Icons.queue()
     val artist = Icons.artist()
     val download = Icons.download()
+    val downloads = uk.gcartee.encore.app.ui.components.LocalDownloads.current
+    val kept = downloads.album(album.id)
     uk.gcartee.encore.app.ui.components.ActionSheet(
         onDismiss = onDismiss,
         header = {
@@ -510,7 +535,15 @@ private fun AlbumSheet(host: CoreHost, album: uk.gcartee.encore.core.AlbumSummar
         groups = listOf(
             listOf(
                 uk.gcartee.encore.app.ui.components.SheetAction("Go to artist", artist) { songs().firstOrNull()?.let(actions::goToArtist) },
-                uk.gcartee.encore.app.ui.components.SheetAction("Download", download) { actions.toaster.show(DOWNLOADS_LATER) },
+                if (kept == null) {
+                    uk.gcartee.encore.app.ui.components.SheetAction("Download", download, reason = if (downloads.online) null else "Download when you're back online") {
+                        actions.download(uk.gcartee.encore.app.core.albumTarget(album.id), album.title)
+                    }
+                } else {
+                    uk.gcartee.encore.app.ui.components.SheetAction("Remove download", Icons.delete()) {
+                        actions.removeDownload(uk.gcartee.encore.app.core.albumTarget(album.id), album.title)
+                    }
+                },
             ),
         ),
     )
@@ -518,3 +551,111 @@ private fun AlbumSheet(host: CoreHost, album: uk.gcartee.encore.core.AlbumSummar
 
 /** Menus round like the app's cards and sheets (Material 3 Expressive). */
 private const val MENU_RADIUS_DP = 16
+
+/**
+ * Library's Downloaded chip (board 06): every downloaded album, playlist and mix
+ * with its badge and "7 of 12 saved", then the songs kept on their own. Offline it is
+ * the library. A tap opens it; a long press offers Remove download (board 03's sheet).
+ */
+@Composable
+private fun DownloadedList(host: CoreHost, onOpen: (Route) -> Unit, playingSongId: Long?, padding: PaddingValues, onBrowse: () -> Unit) {
+    val type = LocalEncoreType.current
+    val actions = uk.gcartee.encore.app.ui.components.LocalAppActions.current
+    val view = uk.gcartee.encore.app.ui.components.LocalDownloads.current
+    val collections = view.items
+        .filter { it.target.kind != uk.gcartee.encore.core.DownloadKind.SONG }
+        .sortedByDescending { it.addedUtcMs }
+    val songIds = view.items.filter { it.target.kind == uk.gcartee.encore.core.DownloadKind.SONG }.map { it.target.id }
+    val songs = remember(songIds) { songIds.mapNotNull { id -> runCatching { host.core.song(id) }.getOrNull() } }
+    var removing by remember { mutableStateOf<uk.gcartee.encore.core.DownloadedItem?>(null) }
+    if (collections.isEmpty() && songs.isEmpty()) {
+        // Board 20, item 2: one sentence and one action.
+        Column(
+            Modifier.fillMaxSize().padding((Grid.base * 4).dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            androidx.compose.material3.Surface(
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(EMPTY_RADIUS_DP.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(Modifier.padding((Grid.base * 2).dp)) {
+                    Icon(Icons.download(), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.size(Grid.base.dp))
+                    Text("Nothing downloaded yet", style = type.sectionHeader.copy(fontSize = CHIP_TEXT_SP.sp), color = MaterialTheme.colorScheme.onSurface)
+                    Spacer(Modifier.size(4.dp))
+                    Text("Download an album or playlist to play it without a connection.", style = type.body, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.size((Grid.base * 1.5f).dp))
+                    androidx.compose.material3.FilledTonalButton(onClick = onBrowse) { Text("Browse albums") }
+                }
+            }
+        }
+        return
+    }
+    LazyColumn(contentPadding = PaddingValues(bottom = padding.calculateBottomPadding() + Grid.base.dp)) {
+        items(collections, key = { "${it.target.kind}-${it.target.id}-${it.target.mixId}" }) { item ->
+            val target = item.target
+            val line = uk.gcartee.encore.app.ui.components.downloadLine(item)
+                ?: listOf(item.subtitle.ifBlank { null }, if (item.total == 1u) "1 song" else "${item.total} songs").filterNotNull().joinToString(" · ")
+            ListRow(
+                item.title,
+                line,
+                onClick = {
+                        when (target.kind) {
+                            uk.gcartee.encore.core.DownloadKind.ALBUM -> onOpen(Route.Album(target.id))
+                            uk.gcartee.encore.core.DownloadKind.PLAYLIST -> onOpen(Route.Playlist(target.id))
+                            uk.gcartee.encore.core.DownloadKind.MIX -> target.mixId?.let { onOpen(Route.Mix(it)) }
+                            uk.gcartee.encore.core.DownloadKind.LIKED_SONGS -> {
+                                val ids = runCatching { host.core.likedSongs(0u, 5000u).map { it.id } }.getOrDefault(emptyList()).filter(view::canPlay)
+                                if (ids.isNotEmpty()) actions.play(ids, 0, uk.gcartee.encore.core.StartedFrom.PLAYLIST, null, item.title)
+                            }
+                            else -> onOpen(Route.Settings("downloads"))
+                        }
+                },
+                onLongClick = { if (!item.auto) removing = item },
+            ) {
+                Box {
+                    DownloadedArt(item)
+                    uk.gcartee.encore.app.ui.components.DownloadBadge(item, Modifier.align(Alignment.BottomEnd).padding(2.dp))
+                }
+            }
+        }
+        if (songs.isNotEmpty()) {
+            item {
+                Text("Songs", style = type.groupLabel, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = (Grid.base * 3).dp, top = (Grid.base * 2).dp, bottom = 4.dp).semantics { heading() })
+            }
+            val ids = songs.map { it.id }
+            itemsIndexed(songs, key = { _, s -> "song-${s.id}" }) { i, s ->
+                uk.gcartee.encore.app.ui.components.SongItem(
+                    s,
+                    playing = s.id == playingSongId,
+                    onClick = { actions.play(ids, i, uk.gcartee.encore.core.StartedFrom.SONGS, null, "Downloads") },
+                )
+            }
+        }
+    }
+    removing?.let { item ->
+        uk.gcartee.encore.app.ui.components.ConfirmRemoveDownload(item.title, onConfirm = { actions.removeDownload(item.target, item.title) }, onDismiss = { removing = null })
+    }
+}
+
+/** A downloaded item's picture: the cover, the mix's mosaic, or a tonal mark. */
+@Composable
+private fun DownloadedArt(item: uk.gcartee.encore.core.DownloadedItem) {
+    val art = Modifier.size(LIST_ART_DP.dp)
+    when (item.target.kind) {
+        uk.gcartee.encore.core.DownloadKind.ALBUM -> uk.gcartee.encore.app.ui.components.Artwork(uk.gcartee.encore.core.ArtworkOf.ALBUM, item.target.id, LIST_ART_DP.dp, art, cornerRadius = LIST_ART_RADIUS_DP.dp)
+        uk.gcartee.encore.core.DownloadKind.PLAYLIST -> uk.gcartee.encore.app.ui.components.Artwork(uk.gcartee.encore.core.ArtworkOf.PLAYLIST, item.target.id, LIST_ART_DP.dp, art, cornerRadius = LIST_ART_RADIUS_DP.dp)
+        else -> {
+            val icon = when (item.target.kind) {
+                uk.gcartee.encore.core.DownloadKind.LIKED_SONGS -> Icons.favorite(true)
+                uk.gcartee.encore.core.DownloadKind.SMART -> Icons.spark()
+                else -> Icons.mixes()
+            }
+            Box(art.clip(androidx.compose.foundation.shape.RoundedCornerShape(LIST_ART_RADIUS_DP.dp)).background(MaterialTheme.colorScheme.secondaryContainer), contentAlignment = Alignment.Center) {
+                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+            }
+        }
+    }
+}

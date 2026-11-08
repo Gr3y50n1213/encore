@@ -24,6 +24,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,6 +41,8 @@ class GroupButton(
     val description: String? = null,
     val weight: Float = 1f,
     val enabled: Boolean = true,
+    /** Drawn instead of [icon] (the Download button's ring); given the content colour. */
+    val custom: (@Composable (Color) -> Unit)? = null,
     val onClick: () -> Unit,
 )
 
@@ -83,9 +87,13 @@ fun ConnectedButtons(buttons: List<GroupButton>, height: Dp, modifier: Modifier 
                 // An icon-only end button (Download, Pin) is narrow; its icon needs the room.
                 contentPadding = if (b.label == null) androidx.compose.foundation.layout.PaddingValues(0.dp) else androidx.compose.foundation.layout.PaddingValues(horizontal = LABEL_PAD_DP.dp),
                 interactionSource = sources[i],
-                modifier = Modifier.weight(weight).height(height),
+                modifier = Modifier
+                    .weight(weight)
+                    .height(height)
+                    .let { m -> if (b.custom != null && b.description != null) m.semantics { contentDescription = b.description } else m },
             ) {
-                b.icon?.let {
+                b.custom?.invoke(b.content)
+                if (b.custom == null) b.icon?.let {
                     Icon(it, contentDescription = b.description, modifier = Modifier.size(22.dp))
                     if (b.label != null) Spacer(Modifier.size(8.dp))
                 }

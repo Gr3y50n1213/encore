@@ -208,6 +208,38 @@ private fun iconButton(tint: PageTint, icon: androidx.compose.ui.graphics.painte
     else -> GroupButton(null, tint.content.copy(alpha = 0.16f), tint.content, icon = icon, description = description, weight = ICON_WEIGHT, onClick = onClick)
 }
 
+/**
+ * Board 08's Download, the group's icon end: an arrow, a wavy ring that fills as songs
+ * arrive (tap pauses), a filled check when saved (tap asks to remove), or the error
+ * mark (tap retries). Filled like Pin once everything is here.
+ */
+@Composable
+private fun downloadButton(tint: PageTint, item: uk.gcartee.encore.core.DownloadedItem?, onClick: () -> Unit): GroupButton {
+    val saved = item?.state == uk.gcartee.encore.core.DownloadState.SAVED
+    val (container, content) = when {
+        saved && tint.themed -> MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.onPrimary
+        saved -> tint.content to tint.field
+        tint.themed -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+        else -> tint.content.copy(alpha = 0.16f) to tint.content
+    }
+    return GroupButton(
+        null,
+        container,
+        content,
+        description = uk.gcartee.encore.app.ui.components.downloadLabel(item),
+        weight = ICON_WEIGHT,
+        custom = { c -> uk.gcartee.encore.app.ui.components.DownloadGlyph(item, c) },
+        onClick = onClick,
+    )
+}
+
+/** Board 08's quiet line under the header: "7 of 12 saved". */
+@Composable
+private fun DownloadLine(item: uk.gcartee.encore.core.DownloadedItem?, tint: PageTint) {
+    val line = uk.gcartee.encore.app.ui.components.downloadLine(item) ?: return
+    Text(line, style = LocalEncoreType.current.caption, color = tint.secondary, modifier = Modifier.padding(horizontal = (Grid.base * 2).dp, vertical = 4.dp))
+}
+
 /** The head of an album's or mix's action sheet: its cover, title and one line. */
 @Composable
 private fun SheetHeader(title: String, line: String?, cover: @Composable () -> Unit) {
@@ -249,6 +281,9 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
     val ids = remember(detail) { detail.songs.map { it.id } }
     val multiDisc = remember(detail) { detail.songs.mapNotNull { it.discNumber }.distinct().size > 1 }
     SystemBarIconsFor(tint.top)
+    val download = uk.gcartee.encore.app.ui.components.LocalDownloads.current.album(album.id)
+    val target = uk.gcartee.encore.app.core.albumTarget(album.id)
+    var confirmRemove by remember { mutableStateOf(false) }
     val more = remember(album.id) {
         runCatching { host.core.search(album.artist).albums.filter { it.artist == album.artist && it.id != album.id }.take(12) }.getOrDefault(emptyList())
     }
@@ -265,7 +300,7 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
                     onPlay = { actions.play(ids, 0, StartedFrom.ALBUM, album.id.toString(), album.title) },
                     onShuffle = { actions.play(ids, ids.indices.random(), StartedFrom.ALBUM, album.id.toString(), album.title, shuffle = true) },
                     onSubtitle = { detail.songs.firstOrNull()?.let(actions::goToArtist) },
-                    third = iconButton(tint, Icons.download(), "Download") { actions.toaster.show(DOWNLOADS_LATER) },
+                    third = downloadButton(tint, download) { actions.tapDownload(target, album.title, download) { confirmRemove = true } },
                     trailing = {
                         var open by remember { mutableStateOf(false) }
                         Box {
@@ -274,7 +309,7 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
                             if (open) {
                                 val next = Icons.playNext()
                                 val queue = Icons.queue()
-                                val download = Icons.download()
+                                val downloadIcon = if (download == null) Icons.download() else Icons.delete()
                                 val artistIcon = Icons.artist()
                                 uk.gcartee.encore.app.ui.components.ActionSheet(
                                     onDismiss = { open = false },
@@ -282,7 +317,10 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
                                     quick = listOf(
                                         uk.gcartee.encore.app.ui.components.SheetAction("Play next", next) { actions.playNext(detail.songs) },
                                         uk.gcartee.encore.app.ui.components.SheetAction("Add to queue", queue) { actions.addToQueue(detail.songs) },
-                                        uk.gcartee.encore.app.ui.components.SheetAction("Download", download) { actions.toaster.show(DOWNLOADS_LATER) },
+                                        // Board 13: Download becomes Remove download once kept.
+                                        uk.gcartee.encore.app.ui.components.SheetAction(if (download == null) "Download" else "Remove download", downloadIcon) {
+                                            if (download == null) actions.download(target, album.title) else confirmRemove = true
+                                        },
                                     ),
                                     groups = listOf(listOf(uk.gcartee.encore.app.ui.components.SheetAction("Go to artist", artistIcon) { detail.songs.firstOrNull()?.let(actions::goToArtist) })),
                                 )
@@ -292,10 +330,11 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
                 ) {
                     Artwork(ArtworkOf.ALBUM, album.id, COVER_DP.dp, Modifier.fillMaxWidth(), cornerRadius = COVER_RADIUS_DP.dp)
                 }
-                // States: a partial album.
+                // States: a partial album; partly downloaded ("7 of 12 saved").
                 if (detail.songs.size.toUInt() < album.songCount) {
                     Text("${detail.songs.size} of ${album.songCount} songs in your library", style = type.caption, color = tint.secondary, modifier = Modifier.padding(horizontal = (Grid.base * 2).dp))
                 }
+                DownloadLine(download, tint)
             }
             itemsIndexed(detail.songs, key = { _, s -> s.id }) { i, song ->
                 val disc = song.discNumber
@@ -334,6 +373,9 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
             }
         }
     }
+    if (confirmRemove) {
+        uk.gcartee.encore.app.ui.components.ConfirmRemoveDownload(album.title, onConfirm = { actions.removeDownload(target, album.title) }, onDismiss = { confirmRemove = false })
+    }
 }
 
 /** A playlist. A song that left the library stays listed, dimmed (board 20, item 5). */
@@ -357,6 +399,9 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
     val ids = remember(playable) { playable.map { it.id } }
     val name = detail.playlist.name
     val removeIcon = Icons.remove()
+    val download = uk.gcartee.encore.app.ui.components.LocalDownloads.current.playlist(playlistId)
+    val target = uk.gcartee.encore.app.core.playlistTarget(playlistId)
+    var confirmRemove by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().background(tint.brush)) {
         LazyColumn(contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding() + (Grid.base * 2).dp)) {
             item {
@@ -368,7 +413,7 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
                     onBack,
                     onPlay = if (ids.isEmpty()) null else ({ actions.play(ids, 0, StartedFrom.PLAYLIST, playlistId.toString(), name) }),
                     onShuffle = if (ids.isEmpty()) null else ({ actions.play(ids, ids.indices.random(), StartedFrom.PLAYLIST, playlistId.toString(), name, shuffle = true) }),
-                    third = iconButton(tint, Icons.download(), "Download") { actions.toaster.show(DOWNLOADS_LATER) },
+                    third = downloadButton(tint, download) { actions.tapDownload(target, name, download) { confirmRemove = true } },
                 ) {
                     // The server's playlist image, over a mosaic of its first songs for playlists without one.
                     Box {
@@ -376,6 +421,7 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
                         Artwork(ArtworkOf.PLAYLIST, playlistId, COVER_DP.dp, Modifier.fillMaxWidth(), cornerRadius = COVER_RADIUS_DP.dp, placeholder = false)
                     }
                 }
+                DownloadLine(download, tint)
             }
             if (detail.entries.isEmpty()) item { EmptyState("This playlist is empty", "Add songs from their menu, Add to Playlist.") }
             itemsIndexed(detail.entries, key = { i, e -> "${e.position}-$i" }) { _, entry ->
@@ -409,6 +455,9 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
                 }
             }
         }
+    }
+    if (confirmRemove) {
+        uk.gcartee.encore.app.ui.components.ConfirmRemoveDownload(name, onConfirm = { actions.removeDownload(target, name) }, onDismiss = { confirmRemove = false })
     }
 }
 
@@ -488,6 +537,9 @@ fun MixScreen(host: CoreHost, mixId: String, playingSongId: Long?, onBack: () ->
     val ids = remember(page) { page.songs.map { it.song.id } }
     var pinned by remember(summary.pinned) { mutableStateOf(summary.pinned) }
     val notIcon = Icons.block()
+    val download = uk.gcartee.encore.app.ui.components.LocalDownloads.current.mix(mixId)
+    val target = uk.gcartee.encore.app.core.mixTarget(mixId)
+    var confirmRemove by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().background(field.base)) {
         uk.gcartee.encore.app.ui.player.AlbumField(field, Modifier.matchParentSize())
         LazyColumn(contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding() + (Grid.base * 2).dp)) {
@@ -515,15 +567,27 @@ fun MixScreen(host: CoreHost, mixId: String, playingSongId: Long?, onBack: () ->
                             if (open) {
                                 val save = Icons.playlistAdd()
                                 val hide = Icons.block()
+                                val downloadIcon = if (download == null) Icons.download() else Icons.delete()
                                 uk.gcartee.encore.app.ui.components.ActionSheet(
                                     onDismiss = { open = false },
                                     header = { SheetHeader(summary.title, summary.subtitle) { Box(Modifier.size(56.dp).clip(uk.gcartee.encore.app.ui.home.shapeFor(mixId))) { MosaicFill(summary.coverSongIds, Modifier.fillMaxSize()) } } },
                                     groups = listOf(
-                                        listOf(uk.gcartee.encore.app.ui.components.SheetAction("Save as playlist", save) {
-                                            runCatching { host.core.saveMixAsPlaylist(mixId) }
-                                                .onSuccess { actions.toaster.show("Saved as a playlist") }
-                                                .onFailure { actions.toaster.show(it.userMessage()) }
-                                        }),
+                                        listOf(
+                                            // A downloaded mix is pinned, so it keeps its songs (CORE-API).
+                                            uk.gcartee.encore.app.ui.components.SheetAction(if (download == null) "Download" else "Remove download", downloadIcon) {
+                                                if (download == null) {
+                                                    actions.download(target, summary.title)
+                                                    pinned = true
+                                                } else {
+                                                    confirmRemove = true
+                                                }
+                                            },
+                                            uk.gcartee.encore.app.ui.components.SheetAction("Save as playlist", save) {
+                                                runCatching { host.core.saveMixAsPlaylist(mixId) }
+                                                    .onSuccess { actions.toaster.show("Saved as a playlist") }
+                                                    .onFailure { actions.toaster.show(it.userMessage()) }
+                                            },
+                                        ),
                                         listOf(uk.gcartee.encore.app.ui.components.SheetAction("Hide this mix", hide, destructive = true) {
                                             runCatching { host.core.hideMix(mixId) }.onSuccess { onBack(); actions.toaster.show("Hidden from today's mixes") }
                                         }),
@@ -538,6 +602,11 @@ fun MixScreen(host: CoreHost, mixId: String, playingSongId: Long?, onBack: () ->
                     Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(shape).background(tint.content.copy(alpha = 0.22f)).padding(MIX_RING_DP.dp).clip(shape)) {
                         MosaicFill(summary.coverSongIds, Modifier.fillMaxSize())
                     }
+                }
+                DownloadLine(download, tint)
+                if (!uk.gcartee.encore.app.ui.components.LocalDownloads.current.online) {
+                    // Board 37: offline, a mix plays only what is downloaded.
+                    Text("Only downloaded songs", style = LocalEncoreType.current.caption, color = tint.secondary, modifier = Modifier.padding(horizontal = (Grid.base * 2).dp, vertical = 4.dp))
                 }
             }
             items(page.songs, key = { it.song.id }) { ms ->
@@ -563,6 +632,9 @@ fun MixScreen(host: CoreHost, mixId: String, playingSongId: Long?, onBack: () ->
                 )
             }
         }
+    }
+    if (confirmRemove) {
+        uk.gcartee.encore.app.ui.components.ConfirmRemoveDownload(summary.title, onConfirm = { actions.removeDownload(target, summary.title) }, onDismiss = { confirmRemove = false })
     }
 }
 
@@ -629,5 +701,4 @@ private const val ICON_WEIGHT = 0.5f
  * Downloads and offline play are Phase 8 and the core has no download calls yet
  * (CORE-API "Not available yet"), so the button is drawn as the boards show it and says so.
  */
-const val DOWNLOADS_LATER = "Downloads aren't ready yet. They come with offline listening."
 private const val MIX_RING_DP = 8

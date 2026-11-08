@@ -198,6 +198,10 @@ fun NowPlayingScreen(
                     colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = content.copy(alpha = 0.16f), contentColor = content),
                 ) { Icon(Icons.collapse(), contentDescription = "Close Now Playing") }
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    // Phase 8: offline, a small chip says why other songs are passed over.
+                    if (!uk.gcartee.encore.app.ui.components.LocalDownloads.current.online) {
+                        uk.gcartee.encore.app.ui.components.OfflineChip(content, Modifier.padding(bottom = 2.dp))
+                    }
                     if (privateOn) Text("Private listening", style = type.caption, color = content.copy(alpha = 0.8f))
                     playingFrom?.let {
                         Text("Playing from", style = type.caption, color = content.copy(alpha = 0.72f))

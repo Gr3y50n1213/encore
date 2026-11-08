@@ -71,9 +71,15 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
     var touching by remember { mutableStateOf(false) }
     var pending by remember { mutableStateOf<SearchResults?>(null) }
 
-    LaunchedEffect(query) {
+    // Board 07: the Downloaded scope searches what plays without a connection.
+    val downloads = uk.gcartee.encore.app.ui.components.LocalDownloads.current
+    LaunchedEffect(query, scope, downloads.saved.size) {
         val q = query.trim()
-        val r = if (q.isEmpty()) null else runCatching { host.core.search(q) }.getOrNull()
+        val r = when {
+            q.isEmpty() -> null
+            scope == "Downloaded" -> runCatching { host.core.searchDownloaded(q) }.getOrNull()
+            else -> runCatching { host.core.search(q) }.getOrNull()
+        }
         if (touching) pending = r else shown = r
     }
     LaunchedEffect(Unit) {
@@ -124,12 +130,10 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
             modifier = Modifier.fillMaxWidth().padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp),
         )
         // Item 1: Android's scopes, as the same connected group as Library's shelves.
-        // Downloaded searches downloads, which come in Phase 8.
         uk.gcartee.encore.app.ui.library.ChoiceGroup(
             options = listOf("All" to "All", "Library" to "Library", "Downloaded" to "Downloaded"),
             selected = scope,
             onSelect = { scope = it },
-            enabled = { it != "Downloaded" },
             modifier = Modifier.padding(horizontal = (Grid.base * 2).dp).padding(bottom = Grid.base.dp),
         )
         val results = shown
@@ -176,7 +180,24 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
                 item { SectionTitle("Browse") }
                 item { BrowseTiles(host, onLibrary) }
             }
-            results == null || isEmpty(results) -> EmptyState("Nothing matches “${query.trim()}”", "Check the spelling, or try fewer words.")
+            results == null || isEmpty(results) -> if (scope == "Downloaded") {
+                // Board 20, item 6: offer every source when only downloads were searched.
+                Column(Modifier.fillMaxWidth().padding((Grid.base * 4).dp)) {
+                    androidx.compose.material3.Surface(
+                        color = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(NO_MATCH_RADIUS_DP.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(Modifier.padding((Grid.base * 2).dp)) {
+                            Text("Nothing downloaded matches “${query.trim()}”", style = type.sectionHeader, color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface)
+                            Text("Downloads are only part of your library.", style = type.body, color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp, bottom = (Grid.base * 1.5f).dp))
+                            androidx.compose.material3.FilledTonalButton(onClick = { scope = "All" }) { Text("Search all") }
+                        }
+                    }
+                }
+            } else {
+                EmptyState("Nothing matches “${query.trim()}”", "Check the spelling, or try fewer words.")
+            }
             else -> LazyColumn(freeze, state = listState, contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding())) {
                 results.top?.let { top ->
                     item { SectionTitle("Top result") }
@@ -278,3 +299,5 @@ private const val LEAF_SMALL_DP = 8
 private const val TILE_HEIGHT_DP = 84
 private const val SHUFFLE_ALL_SONGS = 300
 private const val SEARCH_AVATAR_DP = 40
+
+private const val NO_MATCH_RADIUS_DP = 24

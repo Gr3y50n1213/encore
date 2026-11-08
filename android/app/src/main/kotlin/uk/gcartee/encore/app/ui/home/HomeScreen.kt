@@ -312,6 +312,8 @@ private fun JumpBackIn(song: Song) {
     val haptics = rememberHaptics()
     val albumId = song.albumId ?: return
     val tint = uk.gcartee.encore.app.ui.library.rememberAlbumTint(actions.host, albumId)
+    val downloads = uk.gcartee.encore.app.ui.components.LocalDownloads.current
+    val dim = !downloads.online && downloads.album(albumId) == null && !downloads.canPlay(song.id)
     val press = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     val pressed by press.collectIsPressedAsState()
     val scale by androidx.compose.animation.core.animateFloatAsState(if (pressed) PRESSED_SCALE else 1f, androidx.compose.animation.core.spring(dampingRatio = 0.6f), label = "press")
@@ -326,6 +328,7 @@ private fun JumpBackIn(song: Song) {
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
+                alpha = if (dim) uk.gcartee.encore.app.ui.components.OFFLINE_DIM else 1f
             },
     ) {
         Row(
@@ -394,8 +397,12 @@ private fun QuickPicks(songs: List<Song>) {
 fun MixTile(m: MixSummary, wide: Boolean, onOpen: () -> Unit, modifier: Modifier = Modifier) {
     val type = LocalEncoreType.current
     val w = if (wide) (TILE_ART_DP * 1.25f) else TILE_ART_DP * 0.9f
+    // Board 05: offline, what isn't downloaded dims (it still opens: a mix plays the
+    // songs of it that are downloaded).
+    val downloads = uk.gcartee.encore.app.ui.components.LocalDownloads.current
+    val dim = !downloads.online && downloads.mix(m.mixId) == null
     // 2xTAP does nothing, so nobody likes a playlist by accident.
-    Column(modifier.width(w.dp).combinedClickable(onClick = onOpen)) {
+    Column(modifier.width(w.dp).graphicsLayer { alpha = if (dim) uk.gcartee.encore.app.ui.components.OFFLINE_DIM else 1f }.combinedClickable(onClick = onOpen)) {
         // Board 23: the mix's own Material shape with a tonal ring, the mosaic inside it.
         val shape = shapeFor(m.mixId)
         val ring = if (Math.floorMod(m.mixId.hashCode(), 2) == 0) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.tertiaryContainer
@@ -440,8 +447,10 @@ private fun SongAlbumTile(song: Song, tileDp: Int, onOpen: () -> Unit) {
     val haptics = rememberHaptics()
     val actions = LocalAppActions.current
     var menu by remember { mutableStateOf(false) }
+    val downloads = uk.gcartee.encore.app.ui.components.LocalDownloads.current
+    val dim = !downloads.online && (song.albumId?.let(downloads::album) == null) && !downloads.canPlay(song.id)
     Box {
-        Column(Modifier.width(tileDp.dp).combinedClickable(onClick = onOpen, onLongClick = { haptics.perform(Haptic.LongPress); menu = true })) {
+        Column(Modifier.width(tileDp.dp).graphicsLayer { alpha = if (dim) uk.gcartee.encore.app.ui.components.OFFLINE_DIM else 1f }.combinedClickable(onClick = onOpen, onLongClick = { haptics.perform(Haptic.LongPress); menu = true })) {
             Artwork(uk.gcartee.encore.core.ArtworkOf.SONG, song.id, tileDp.dp, Modifier.fillMaxWidth(), cornerRadius = (tileDp / 7).dp)
             Spacer(Modifier.height(6.dp))
             Text(song.albumTitle ?: song.title, style = type.tileTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -519,8 +528,11 @@ fun MixesScreen(host: CoreHost, data: HomeData, onProfile: () -> Unit, contentPa
                     PageTitleRow("Mixes", host, onProfile)
                     // Item 1: when and where they were made.
                     val count = shelf.mixes.size
+                    val online = uk.gcartee.encore.app.ui.components.LocalDownloads.current.online
                     Text(
-                        "${if (count == 1) "One new mix" else "$count new mixes"} today, made on ${if (shelf.fromCompanion) "your server" else "this device"}",
+                        "${if (count == 1) "One new mix" else "$count new mixes"} today, made on ${if (shelf.fromCompanion) "your server" else "this device"}" +
+                            // Board 37: offline, a mix plays only its downloaded songs.
+                            if (online) "" else " · Only downloaded songs",
                         style = type.caption,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = (Grid.base * 2).dp, end = (Grid.base * 2).dp, top = Grid.base.dp),

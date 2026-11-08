@@ -90,18 +90,28 @@ object ArtworkCache {
     suspend fun load(context: Context, of: ArtworkOf, id: Long, px: Int): ImageBitmap? = withContext(Dispatchers.IO) {
         val key = key(context, of, id, px)
         memory.get(key)?.let { return@withContext it }
-        val dir = File(context.cacheDir, "artwork").apply { mkdirs() }
-        val file = File(dir, hash(key))
-        val bytes = if (file.isFile) {
-            file.readBytes()
-        } else {
-            val request = runCatching { CoreHost.get(context).core.artwork(of, id, px.toUInt()) }.getOrNull()
-                ?: return@withContext null
-            fetch(request.url, request.headers.associate { it.name to it.value })?.also { file.writeBytes(it) }
-        } ?: return@withContext null
+        val bytes = file(context, of, id, px)?.readBytes() ?: return@withContext null
         val bitmap = decodeUpright(bytes, 1)?.asImageBitmap() ?: return@withContext null
         memory.put(key, bitmap)
         bitmap
+    }
+
+    /**
+     * The image as a file: a downloaded album's kept cover (the core gives a
+     * `file://`, so covers show offline, Phase 8), else the disk cache, fetched once.
+     * Blocking: call it off the main thread.
+     */
+    fun file(context: Context, of: ArtworkOf, id: Long, px: Int): File? {
+        val request = runCatching { CoreHost.get(context).core.artwork(of, id, px.toUInt()) }.getOrNull()
+        if (request != null && request.url.startsWith("file:")) {
+            return runCatching { File(java.net.URI(request.url)) }.getOrNull()?.takeIf { it.isFile }
+        }
+        val dir = File(context.cacheDir, "artwork").apply { mkdirs() }
+        val file = File(dir, hash(key(context, of, id, px)))
+        if (file.isFile) return file
+        request ?: return null
+        val bytes = fetch(request.url, request.headers.associate { it.name to it.value }) ?: return null
+        return runCatching { file.writeBytes(bytes); file }.getOrNull()
     }
 
     /**

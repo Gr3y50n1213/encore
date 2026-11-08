@@ -44,6 +44,18 @@ class CoreHost private constructor(val context: Context) {
     /** The library mirror's sync (sync_library), shared by every screen. */
     val sync: LibrarySync by lazy { LibrarySync(this) }
 
+    /** Downloads' badges and offline dimming (Phase 8). */
+    val downloads: Downloads by lazy { Downloads(this) }
+
+    /** The network, settled, for the core and the offline banner (Phase 8). */
+    val connectivity: Connectivity by lazy { Connectivity(context, this) }
+
+    /** Board 25: ask for notifications in context, once, before the first download. */
+    val notificationPrimer = MutableStateFlow(false)
+
+    /** A screen another part of the app asked for (the download notification). */
+    val openRequest = MutableStateFlow<String?>(null)
+
     private val _events = MutableSharedFlow<CoreEvent>(extraBufferCapacity = 256)
     val events: SharedFlow<CoreEvent> = _events.asSharedFlow()
 
@@ -76,6 +88,8 @@ class CoreHost private constructor(val context: Context) {
                 if (event.kind == EventKind.CREDENTIAL_CHANGED) event.credential?.let(::storeCredential)
                 if (event.kind == EventKind.QUEUE_CHANGED) event.queue?.let { _queue.value = it }
                 if (event.kind == EventKind.REMOTE_CHANGE) remoteChanges.value++
+                if (event.kind == EventKind.DOWNLOADS_CHANGED) downloads.refresh()
+                if (event.kind == EventKind.DOWNLOAD_PROGRESS) event.download?.let(downloads::progressed)
                 _events.tryEmit(event)
             }
         })
@@ -120,6 +134,22 @@ class CoreHost private constructor(val context: Context) {
         )
         refreshQueue()
         _profileOpen.value = true
+        afterProfileChange()
+    }
+
+    /**
+     * Phase 8, after any profile opens: its cached songs and downloads, its rolling
+     * cache size, and the downloads it was waiting on.
+     */
+    private fun afterProfileChange() {
+        connectivity.start()
+        connectivity.report()
+        downloads.reset()
+        runCatching { core.downloadSettings() }.onSuccess {
+            uk.gcartee.encore.app.playback.RollingCache.setLimit(context, it.cacheLimitBytes.toLong())
+        }
+        runCatching { core.removeUnplayedDownloads() }
+        uk.gcartee.encore.app.downloads.DownloadScheduler.resume(context)
     }
 
     /** Board 14: after a switch, the other profile's queue and settings load. */
@@ -129,13 +159,22 @@ class CoreHost private constructor(val context: Context) {
         playingFrom.value = null
         privateListening.value = false
         core.setPlaybackCapabilities(listOf("flac", "mp3", "m4a", "aac", "ogg", "opus", "wav"), TranscodeCodec.AAC)
+        afterProfileChange()
     }
 
     /** Signed out of every source, or the profile removed: back to Welcome. */
     fun profileClosed() {
         _queue.value = null
         _profileOpen.value = false
+        downloads.reset()
     }
+
+    /**
+     * Opens the last profile when something other than the app's screen started the
+     * process (Android Auto, a download job). False when there is none, or it is
+     * locked (it opens only from the app).
+     */
+    fun ensureProfile(): Boolean = profileOpen.value || openLastProfile()
 
     private fun storeCredential(credential: SourceToken) {
         val profileId = core.currentProfile() ?: return

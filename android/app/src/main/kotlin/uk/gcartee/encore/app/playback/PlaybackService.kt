@@ -13,10 +13,12 @@ import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.DataSourceBitmapLoader
 import androidx.media3.datasource.ResolvingDataSource
+import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.common.MediaItem
+import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
-import androidx.media3.session.MediaSessionService
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -28,15 +30,16 @@ import uk.gcartee.encore.core.SkipOrigin
 import uk.gcartee.encore.core.appName
 
 /**
- * Background playback (plan section 8): a Media3 session service of type mediaPlayback.
- * The session gives the notification, the lock screen player, headset and Bluetooth
- * buttons and Android Auto later; every Next and Previous from them goes through the core
- * with its origin, exactly like the app's own buttons (board 42, rule 15).
+ * Background playback (plan section 8): a Media3 library session service of type
+ * mediaPlayback. The session gives the notification, the lock screen player, headset
+ * and Bluetooth buttons, and Android Auto's browse lists and voice (Phase 8,
+ * AutoLibrary); every Next and Previous from them goes through the core with its
+ * origin, exactly like the app's own buttons (board 42, rule 15).
  */
 @OptIn(UnstableApi::class)
-class PlaybackService : MediaSessionService() {
+class PlaybackService : MediaLibraryService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-    private var session: MediaSession? = null
+    private var session: MediaLibrarySession? = null
     private var playback: CorePlayback? = null
     /** Request headers by URL: stream and artwork URLs need the server's auth header. */
     private val headers = ConcurrentHashMap<String, Map<String, String>>()
@@ -45,6 +48,8 @@ class PlaybackService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
         val host = CoreHost.get(this)
+        // Started by the car or Bluetooth with the app closed: the last profile.
+        host.ensureProfile()
         val dataSource = dataSourceFactory()
         val exo = ExoPlayer.Builder(this)
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSource))
@@ -81,9 +86,18 @@ class PlaybackService : MediaSessionService() {
             override fun seekToPrevious() = core.previous(origin())
             override fun seekToPreviousMediaItem() = core.previous(origin())
             override fun play() = core.play()
+
+            // A car or another controller chose something: AutoLibrary has already
+            // built the queue in the core; load its current song (never the list).
+            override fun setMediaItems(mediaItems: MutableList<MediaItem>) = core.loadCurrent()
+            override fun setMediaItems(mediaItems: MutableList<MediaItem>, resetPosition: Boolean) = core.loadCurrent()
+            override fun setMediaItems(mediaItems: MutableList<MediaItem>, startIndex: Int, startPositionMs: Long) = core.loadCurrent()
+            override fun setMediaItem(mediaItem: MediaItem) = core.loadCurrent()
+            override fun setMediaItem(mediaItem: MediaItem, resetPosition: Boolean) = core.loadCurrent()
+            override fun setMediaItem(mediaItem: MediaItem, startPositionMs: Long) = core.loadCurrent()
         }
 
-        session = MediaSession.Builder(this, sessionPlayer)
+        session = MediaLibrarySession.Builder(this, sessionPlayer, AutoLibrary(this, host, scope) { playback })
             .setSessionActivity(
                 PendingIntent.getActivity(
                     this,
@@ -92,7 +106,7 @@ class PlaybackService : MediaSessionService() {
                     PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
                 ),
             )
-            .setBitmapLoader(DataSourceBitmapLoader.Builder(this).setDataSourceFactory(dataSource).build())
+            .setBitmapLoader(DataSourceBitmapLoader.Builder(this).setDataSourceFactory(dataSourceFactory(cached = false)).build())
             .build()
     }
 
@@ -108,7 +122,7 @@ class PlaybackService : MediaSessionService() {
         }
     }
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         // Swiped away from Recents while paused: nothing should keep running.
@@ -128,16 +142,33 @@ class PlaybackService : MediaSessionService() {
         super.onDestroy()
     }
 
-    private fun dataSourceFactory(): DataSource.Factory {
+    /**
+     * Streams go through the rolling cache (Phase 8), keyed by the core's
+     * `cache_key`; a downloaded song is a `file://` and goes straight to the file.
+     * [cached] false is for artwork, which the image loaders keep themselves.
+     */
+    private fun dataSourceFactory(cached: Boolean = true): DataSource.Factory {
         val http = DefaultHttpDataSource.Factory()
             .setUserAgent("${appName()} Android")
             .setAllowCrossProtocolRedirects(false)
-        return ResolvingDataSource.Factory(DefaultDataSource.Factory(this, http)) { spec ->
+        val limit = runCatching { CoreHost.get(this).core.downloadSettings().cacheLimitBytes.toLong() }
+            .getOrDefault(DEFAULT_CACHE_BYTES)
+        val network: DataSource.Factory = if (cached && limit > 0) {
+            RollingCache.setLimit(this, limit)
+            CacheDataSource.Factory()
+                .setCache(RollingCache.get(this))
+                .setUpstreamDataSourceFactory(http)
+                .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+        } else {
+            http
+        }
+        return ResolvingDataSource.Factory(DefaultDataSource.Factory(this, network)) { spec ->
             headers[spec.uri.toString()]?.let(spec::withAdditionalHeaders) ?: spec
         }
     }
 
     private companion object {
+        const val DEFAULT_CACHE_BYTES = 1_000_000_000L
         val TRANSPORT = setOf(
             Player.COMMAND_SEEK_TO_NEXT,
             Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,

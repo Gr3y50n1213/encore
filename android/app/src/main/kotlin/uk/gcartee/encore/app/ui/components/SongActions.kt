@@ -108,14 +108,35 @@ class AppActions(
 ) {
     private val core get() = host.core
 
+    /** Board 35: a blocked action's haptic (EncoreRoot sets it); the toast says why. */
+    var onRefused: () -> Unit = {}
+
+    private fun refuse(e: Throwable) {
+        if (e is uk.gcartee.encore.core.EncoreException.NotAllowed) onRefused()
+        toaster.show(e.userMessage())
+    }
+
     /** Board 08, item 4 and board 15, item 3: replaces the queue; Undo for 5 s if music was playing. */
     fun play(ids: List<Long>, index: Int, from: StartedFrom, contextId: String?, label: String?, shuffle: Boolean = false) {
         if (ids.isEmpty()) return
         val hadQueue = host.queue.value?.current != null
+        // Offline, Play on an album, playlist or mix starts from its first song that can
+        // play; with none, the tap is refused with the reason (board 06, item 5).
+        var start = index.coerceIn(0, ids.lastIndex)
+        val view = host.downloads.view.value
+        if (!view.canPlay(ids[start])) {
+            val playable = ids.indices.filter { view.canPlay(ids[it]) }
+            if (playable.isEmpty()) {
+                onRefused()
+                toaster.show(NOT_DOWNLOADED)
+                return
+            }
+            start = if (shuffle) playable.random() else playable.first()
+        }
         runCatching {
-            core.play(ids, index.coerceIn(0, ids.lastIndex).toUInt(), from, contextId)
+            core.play(ids, start.toUInt(), from, contextId)
             core.setShuffle(shuffle)
-        }.onFailure { toaster.show(it.userMessage()); return }
+        }.onFailure { refuse(it); return }
         host.playingFrom.value = label
         PlaybackHub.playCurrent(context)
         if (hadQueue) toaster.show("Replaced queue") { runCatching { core.undoQueue() }; PlaybackHub.playCurrent(context) }
@@ -128,7 +149,84 @@ class AppActions(
     private fun queueEdit(message: String, edit: () -> Unit) {
         runCatching(edit)
             .onSuccess { toaster.show(message) { runCatching { core.undoQueue() } } }
-            .onFailure { toaster.show(it.userMessage()) }
+            .onFailure(::refuse)
+    }
+
+    // --- Downloads (Phase 8). ---
+
+    /**
+     * Keep it on the device (board 13, item 3): the core queues its songs and the job
+     * fetches them; the first time, board 25's primer asks about notifications.
+     */
+    fun download(target: uk.gcartee.encore.core.DownloadTarget, title: String) {
+        runCatching { core.download(target) }
+            .onSuccess {
+                uk.gcartee.encore.app.downloads.DownloadScheduler.start(context, byUser = true)
+                host.downloads.refreshNow()
+                val view = host.downloads.view.value
+                val wifiOnly = runCatching { core.downloadSettings().wifiOnly }.getOrDefault(true)
+                toaster.show(
+                    when {
+                        !view.online -> "$title downloads when you're back online"
+                        wifiOnly && host.network() == uk.gcartee.encore.core.Network.CELLULAR -> "$title downloads on Wi-Fi"
+                        else -> "Downloading $title"
+                    },
+                )
+                askForNotificationsOnce()
+            }
+            .onFailure(::refuse)
+    }
+
+    /** Board 13: Remove download (after the confirm sheet where the caller asks). */
+    fun removeDownload(target: uk.gcartee.encore.core.DownloadTarget, title: String) {
+        runCatching { core.removeDownload(target) }
+            .onSuccess {
+                host.downloads.refreshNow()
+                toaster.show("Removed $title from downloads")
+            }
+            .onFailure(::refuse)
+    }
+
+    /** Board 06, item 5: the ring pauses, the warning dot retries. */
+    fun pauseDownload(target: uk.gcartee.encore.core.DownloadTarget, paused: Boolean) {
+        runCatching { core.pauseDownload(target, paused) }
+            .onSuccess {
+                if (!paused) uk.gcartee.encore.app.downloads.DownloadScheduler.start(context, byUser = true)
+                host.downloads.refreshNow()
+            }
+            .onFailure(::refuse)
+    }
+
+    fun retryDownloads() {
+        runCatching { core.retryFailedDownloads() }
+            .onSuccess {
+                uk.gcartee.encore.app.downloads.DownloadScheduler.start(context, byUser = true)
+                host.downloads.refreshNow()
+            }
+            .onFailure(::refuse)
+    }
+
+    /** One tap on the Download button, whatever its state. */
+    fun tapDownload(target: uk.gcartee.encore.core.DownloadTarget, title: String, item: uk.gcartee.encore.core.DownloadedItem?, confirmRemove: () -> Unit) {
+        when (item?.state) {
+            null -> download(target, title)
+            uk.gcartee.encore.core.DownloadState.SAVED -> confirmRemove()
+            uk.gcartee.encore.core.DownloadState.FAILED -> retryDownloads()
+            uk.gcartee.encore.core.DownloadState.PAUSED -> pauseDownload(target, paused = false)
+            else -> pauseDownload(target, paused = true)
+        }
+    }
+
+    /** Board 25: notifications are asked for once, in context, after the primer. */
+    private fun askForNotificationsOnce() {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) return
+        val granted = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (granted) return
+        val prefs = context.getSharedPreferences("notifications", Context.MODE_PRIVATE)
+        if (prefs.getBoolean("primer-shown", false)) return
+        prefs.edit().putBoolean("primer-shown", true).apply()
+        host.notificationPrimer.value = true
     }
 
     fun isLiked(song: Song): Boolean = runCatching { core.areLiked(listOf(song.id)).first() }.getOrDefault(false)
@@ -219,6 +317,12 @@ fun SongMenu(song: Song, expanded: Boolean, onDismiss: () -> Unit, place: MenuPl
         val block = Icons.block()
         val remove = Icons.remove()
         val extras = place.extra.map { e -> Triple(e, e.icon?.invoke(), e.destructive) }
+        // Board 13, item 3: Download becomes Remove download once the song is kept;
+        // offline it dims with the reason.
+        val downloads = LocalDownloads.current
+        val saved = song.id in downloads.saved || song.id in downloads.pending
+        val downloadIcon = if (saved) Icons.delete() else Icons.download()
+        val target = uk.gcartee.encore.app.core.songTarget(song.id)
         ActionSheet(
             onDismiss = onDismiss,
             header = {
@@ -237,7 +341,12 @@ fun SongMenu(song: Song, expanded: Boolean, onDismiss: () -> Unit, place: MenuPl
             ),
             groups = listOf(
                 listOfNotNull(
-                    SheetAction("Start radio", radio) { actions.startRadio(song) },
+                    if (saved) {
+                        SheetAction("Remove download", downloadIcon) { actions.removeDownload(target, song.title) }
+                    } else {
+                        SheetAction("Download", downloadIcon, reason = if (downloads.online) null else "Download when you're back online") { actions.download(target, song.title) }
+                    },
+                    SheetAction("Start radio", radio, reason = if (downloads.canPlay(song.id)) null else NOT_DOWNLOADED) { actions.startRadio(song) },
                     if (song.albumId != null && song.albumId != place.onAlbum) SheetAction("Go to album", album) { actions.goToAlbum(song) } else null,
                     if (!place.onArtist) SheetAction("Go to artist", artist) { actions.goToArtist(song) } else null,
                     if (place.chosenBy == ChosenBy.APP) SheetAction("Why this song", info) { why = true } else null,

@@ -1,9 +1,5 @@
 package uk.gcartee.encore.app.ui
 
-import android.content.Context
-import android.net.ConnectivityManager
-import android.net.Network
-import android.net.NetworkCapabilities
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -27,6 +23,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.width
+import uk.gcartee.encore.app.MainActivity
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -106,6 +109,7 @@ import uk.gcartee.encore.core.OutputDevice
 import uk.gcartee.encore.tokens.EncoreTokens.Breakpoints
 import uk.gcartee.encore.tokens.EncoreTokens.Grid
 import uk.gcartee.encore.tokens.EncoreTokens.Radius
+import uk.gcartee.encore.tokens.EncoreTokens.Color.Accents.Amber
 import uk.gcartee.encore.tokens.EncoreTokens.Motion.Timing
 
 /** First launch: Welcome, then Connect; later launches go straight to the library. */
@@ -191,9 +195,23 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     // rail beside the list and the page squeezed the page. The labelled rail waits for a
     // Large window (1200 dp, a landscape tablet); below that the 80 dp rail serves.
     val railLabelled = widthDp >= LABELLED_RAIL_FROM_DP
-    val offline = rememberOffline(context)
+    // Phase 8: the settled network (board 20: in after 2 s, out 2 s after it returns)
+    // and what is downloaded, for every screen.
+    val offline by host.connectivity.offline.collectAsState()
+    val downloadView by host.downloads.view.collectAsState()
+    val downloadProgress = host.downloads.progress.collectAsState()
     val actions = remember(nav) {
         AppActions(host, toaster, context, open = { route -> nowPlaying = false; nav.push(route) }, openNowPlaying = { nowPlaying = true }, openProfiles = { profiles = true })
+    }
+    actions.onRefused = { haptics.perform(Haptic.Reject) }
+    // The download notification opens Settings › Downloads.
+    val openRequest by host.openRequest.collectAsState()
+    LaunchedEffect(openRequest) {
+        if (openRequest == MainActivity.OPEN_DOWNLOADS) {
+            nowPlaying = false
+            if (nav.top != Route.Settings("downloads")) nav.push(Route.Settings("downloads"))
+            host.openRequest.value = null
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -218,7 +236,11 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     BackHandler(enabled = nowPlaying) { nowPlaying = false }
     BackHandler(enabled = !nowPlaying && nav.canGoBack) { nav.back() }
 
-    CompositionLocalProvider(LocalAppActions provides actions) {
+    CompositionLocalProvider(
+        LocalAppActions provides actions,
+        uk.gcartee.encore.app.ui.components.LocalDownloads provides downloadView,
+        uk.gcartee.encore.app.ui.components.LocalDownloadProgress provides downloadProgress,
+    ) {
         if (addingAccount) {
             // Board 14, item 4: the onboarding flow; the new profile opens when sign-in succeeds.
             BackHandler { addingAccount = false }
@@ -252,10 +274,16 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                     }
                 }
                 Column(Modifier.weight(1f).fillMaxSize()) {
-                    if (offline) OfflineBanner()
+                    // Board 20, item 1, the owner's "not too intrusive but notable": a slim
+                    // amber pill under the status bar that pushes the page down rather than
+                    // covering it. The page below gives up the status bar's height as the
+                    // pill grows into it, so nothing jumps.
+                    OfflineBanner(offline)
+                    val statusTop = with(LocalDensity.current) { androidx.compose.foundation.layout.WindowInsets.statusBars.getTop(this).toDp() }
+                    val consumed by androidx.compose.animation.core.animateDpAsState(if (offline) statusTop else 0.dp, tween(BANNER_MS), label = "banner")
                     // Board 08: the page runs behind the mini player, which floats over it, so a
                     // tinted album page reaches the bar. Pages pad their lists by its height.
-                    Box(Modifier.weight(1f)) {
+                    Box(Modifier.weight(1f).consumeWindowInsets(PaddingValues(top = consumed))) {
                         val inner = PaddingValues(bottom = with(LocalDensity.current) { miniHeight.toDp() })
                         val top = nav.top
                         AnimatedContent(
@@ -510,6 +538,8 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
             }
         }
         if (profiles) ProfileSheet(host, playing = player.isPlaying, onDismiss = { profiles = false }, onSwitched = { nav.reset(); switches++ }, onAddAccount = { addingAccount = true }, showSettings = nav.top !is Route.Settings)
+        val primer by host.notificationPrimer.collectAsState()
+        if (primer) NotificationPrimer(onDone = { host.notificationPrimer.value = false })
         if (output) OutputSheet(host, playingHere = player.isPlaying, onDismiss = { output = false })
     }
 }
@@ -585,43 +615,86 @@ private fun TabIcon(tab: Tab, selected: Boolean) {
  * Board 20, item 1: offline after 2 s without a network, back 2 s after it returns, so a
  * short drop doesn't flash a banner.
  */
+/**
+ * Board 20, item 1 (States.html: an amber 16 dp banner, "Offline. Showing downloaded
+ * music"): the owner asked for it "not too intrusive but notable". A slim pill in the
+ * Amber accent's container colours, light and dark, under the status bar; it slides
+ * in after 2 s without a network and out 2 s after it returns (Connectivity), and is
+ * announced politely to screen readers.
+ */
 @Composable
-private fun rememberOffline(context: Context): Boolean {
-    var online by remember { mutableStateOf(true) }
-    var shown by remember { mutableStateOf(false) }
-    DisposableEffect(context) {
-        val cm = context.getSystemService(ConnectivityManager::class.java)
-        fun check() = cm?.getNetworkCapabilities(cm.activeNetwork)?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
-        online = check()
-        val callback = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) { online = true }
-            override fun onLost(network: Network) { online = check() }
+private fun OfflineBanner(visible: Boolean) {
+    val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val container = uk.gcartee.encore.app.ui.theme.tokenColor(if (dark) Amber.Dark.primaryContainer else Amber.Light.primaryContainer)
+    val content = uk.gcartee.encore.app.ui.theme.tokenColor(if (dark) Amber.Dark.onPrimaryContainer else Amber.Light.onPrimaryContainer)
+    androidx.compose.animation.AnimatedVisibility(
+        visible,
+        enter = androidx.compose.animation.expandVertically(tween(BANNER_MS)) + fadeIn(tween(BANNER_MS)),
+        exit = androidx.compose.animation.shrinkVertically(tween(BANNER_MS)) + fadeOut(tween(BANNER_MS)),
+    ) {
+        Box(
+            Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = (Grid.base * 2).dp, vertical = 6.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Surface(
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(BANNER_RADIUS_DP.dp),
+                color = container,
+                contentColor = content,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            ) {
+                Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.offline(), contentDescription = null, modifier = Modifier.size(18.dp))
+                    androidx.compose.foundation.layout.Spacer(Modifier.width(8.dp))
+                    Text("Offline · Showing downloaded music", style = LocalEncoreType.current.body.copy(fontSize = 14.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium), maxLines = 1)
+                }
+            }
         }
-        runCatching { cm?.registerDefaultNetworkCallback(callback) }
-        onDispose { runCatching { cm?.unregisterNetworkCallback(callback) } }
     }
-    LaunchedEffect(online) {
-        delay(OFFLINE_DELAY_MS)
-        shown = !online
-    }
-    return shown
 }
 
+/**
+ * Board 25: before Android's own question, say what notifications are for, once, when
+ * the first download starts. Not now asks nothing (the one system prompt is kept for
+ * later); Settings › Downloads then shows a quiet "Turn on".
+ */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun OfflineBanner() {
-    Surface(color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite }) {
-        Row(Modifier.statusBarsPadding().padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.offline(), contentDescription = null)
+private fun NotificationPrimer(onDone: () -> Unit) {
+    val type = LocalEncoreType.current
+    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { onDone() }
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDone, containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
+        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = (Grid.base * 3).dp, vertical = Grid.base.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(
+                Modifier.size(PRIMER_MARK_DP.dp).clip(uk.gcartee.encore.app.ui.home.PolygonShape(androidx.compose.material3.MaterialShapes.Cookie9Sided)).background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) { Icon(Icons.download(), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(28.dp)) }
+            androidx.compose.foundation.layout.Spacer(Modifier.size((Grid.base * 2).dp))
+            Text("Show download progress?", style = type.sheetTitle, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            androidx.compose.foundation.layout.Spacer(Modifier.size(Grid.base.dp))
             Text(
-                "You're offline. Your library still browses, and the current song plays from its buffer.",
-                style = LocalEncoreType.current.body,
-                modifier = Modifier.padding(start = Grid.base.dp),
+                "Allow notifications so downloads can show progress and tell you when they finish. Playback keeps working if you say no.",
+                style = type.body,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             )
+            androidx.compose.foundation.layout.Spacer(Modifier.size((Grid.base * 3).dp))
+            androidx.compose.material3.Button(
+                onClick = {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) launcher.launch(android.Manifest.permission.POST_NOTIFICATIONS) else onDone()
+                },
+                shapes = androidx.compose.material3.ButtonDefaults.shapes(),
+                modifier = Modifier.fillMaxWidth().height(PRIMER_BUTTON_DP.dp),
+            ) { Text("Allow", style = type.sectionHeader) }
+            androidx.compose.material3.TextButton(onClick = onDone, modifier = Modifier.fillMaxWidth().height(PRIMER_BUTTON_DP.dp)) { Text("Not now", style = type.sectionHeader) }
+            androidx.compose.foundation.layout.Spacer(Modifier.size((Grid.base * 2).dp))
         }
     }
 }
 
-private const val OFFLINE_DELAY_MS = 2_000L
+private const val BANNER_MS = 280
+private const val BANNER_RADIUS_DP = 16
+private const val PRIMER_MARK_DP = 64
+private const val PRIMER_BUTTON_DP = 52
 
 // Board 29's panes.
 private const val LIST_PANE_DP = 340

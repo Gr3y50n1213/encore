@@ -73,16 +73,36 @@ fun SongRow(
 ) {
     val type = LocalEncoreType.current
     val haptics = rememberHaptics()
+    // Phase 8 (boards 08, 11, 20): a downloaded song carries a quiet mark; offline, a
+    // song that can't play dims and a tap shakes with the reason instead of playing.
+    val downloads = LocalDownloads.current
+    val playable = downloads.canPlay(song.id)
+    val saved = song.id in downloads.saved
+    val shake = rememberShake()
+    val actions = LocalAppActions.current
     Row(
         Modifier
             .fillMaxWidth()
             .heightIn(min = (TouchTarget.android + Grid.base).dp)
             .combinedClickable(
-                onClick = onClick,
+                onClick = {
+                    if (playable) {
+                        onClick()
+                    } else {
+                        haptics.perform(Haptic.Reject)
+                        shake.go()
+                        actions.toaster.show(NOT_DOWNLOADED)
+                    }
+                },
                 onLongClick = onLongClick?.let { { haptics.perform(Haptic.LongPress); it() } },
                 onLongClickLabel = onLongClick?.let { "More options" },
             )
-            .semantics { if (playing) stateDescription = "Playing" }
+            .semantics {
+                if (playing) stateDescription = "Playing"
+                else if (!playable) stateDescription = "Not downloaded"
+            }
+            .graphicsLayer { alpha = if (playable) 1f else OFFLINE_DIM }
+            .shaking(shake)
             .padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -111,9 +131,16 @@ fun SongRow(
             LevelBars(contentColor)
             Spacer(Modifier.width(Grid.base.dp))
         }
+        if (saved) {
+            SavedMark(secondaryColor)
+            Spacer(Modifier.width(Grid.base.dp))
+        }
         Text(formatDuration(song.durationMs), style = type.rowValue, color = secondaryColor)
     }
 }
+
+/** Board 06, item 5: what a refused tap says offline. */
+const val NOT_DOWNLOADED = "Not downloaded. It plays when you're back online"
 
 /** Three bars that move while a song plays (board 08, item 5). Decorative. */
 @Composable
@@ -141,6 +168,11 @@ fun LevelBars(colour: Color, size: Dp = 16.dp) {
 fun AlbumTile(album: AlbumSummary, onClick: () -> Unit, onLongClick: (() -> Unit)? = null, modifier: Modifier = Modifier, card: Boolean = false) {
     val type = LocalEncoreType.current
     val haptics = rememberHaptics()
+    // Phase 8 (board 06, item 5): the badge, and offline an album with nothing
+    // downloaded dims (it still opens, so songs downloaded on their own can play).
+    val downloads = LocalDownloads.current
+    val download = downloads.album(album.id)
+    val dim = !downloads.online && download == null
     // Board 05: a tile presses to 0.97 on a spring instead of a flat ripple over it.
     val press = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     val pressed = press.collectIsPressedAsState().value
@@ -150,6 +182,7 @@ fun AlbumTile(album: AlbumSummary, onClick: () -> Unit, onLongClick: (() -> Unit
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
+                alpha = if (dim) OFFLINE_DIM else 1f
             }
             .combinedClickable(
                 interactionSource = press,
@@ -166,7 +199,10 @@ fun AlbumTile(album: AlbumSummary, onClick: () -> Unit, onLongClick: (() -> Unit
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
             ) {
                 Column(Modifier.padding(CARD_INSET_DP.dp)) {
-                    Artwork(ArtworkOf.ALBUM, album.id, TILE_ART_DP.dp, Modifier.fillMaxWidth(), cornerRadius = (CARD_RADIUS_DP - CARD_INSET_DP).dp)
+                    androidx.compose.foundation.layout.Box {
+                        Artwork(ArtworkOf.ALBUM, album.id, TILE_ART_DP.dp, Modifier.fillMaxWidth(), cornerRadius = (CARD_RADIUS_DP - CARD_INSET_DP).dp)
+                        DownloadBadge(download, Modifier.align(Alignment.BottomEnd).padding(BADGE_INSET_DP.dp))
+                    }
                     Column(Modifier.padding(start = 6.dp, end = 6.dp, top = 10.dp, bottom = 6.dp)) {
                         Text(album.title, style = type.tileTitle.copy(fontSize = 14.sp, lineHeight = 18.sp), color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(album.artist, style = type.tileSubtitle.copy(fontSize = 13.sp, lineHeight = 17.sp), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -174,7 +210,10 @@ fun AlbumTile(album: AlbumSummary, onClick: () -> Unit, onLongClick: (() -> Unit
                 }
             }
         } else {
-            Artwork(ArtworkOf.ALBUM, album.id, TILE_ART_DP.dp, Modifier.fillMaxWidth(), cornerRadius = TILE_RADIUS_DP.dp)
+            androidx.compose.foundation.layout.Box {
+                Artwork(ArtworkOf.ALBUM, album.id, TILE_ART_DP.dp, Modifier.fillMaxWidth(), cornerRadius = TILE_RADIUS_DP.dp)
+                DownloadBadge(download, Modifier.align(Alignment.BottomEnd).padding(BADGE_INSET_DP.dp))
+            }
             Spacer(Modifier.size(TILE_TEXT_GAP_DP.dp))
             Text(album.title, style = type.tileTitle, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(album.artist, style = type.tileSubtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -184,7 +223,7 @@ fun AlbumTile(album: AlbumSummary, onClick: () -> Unit, onLongClick: (() -> Unit
 
 /** A plain list row: artists, playlists, genres. */
 @Composable
-fun ListRow(title: String, subtitle: String?, onClick: () -> Unit, leading: @Composable (() -> Unit)? = null) {
+fun ListRow(title: String, subtitle: String?, onClick: () -> Unit, onLongClick: (() -> Unit)? = null, leading: @Composable (() -> Unit)? = null) {
     val type = LocalEncoreType.current
     // A rounded press highlight inset from the edges, larger type, room to breathe.
     Row(
@@ -192,7 +231,7 @@ fun ListRow(title: String, subtitle: String?, onClick: () -> Unit, leading: @Com
             .fillMaxWidth()
             .padding(horizontal = Grid.base.dp)
             .clip(androidx.compose.foundation.shape.RoundedCornerShape(LIST_ROW_RADIUS_DP.dp))
-            .combinedClickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .heightIn(min = LIST_ROW_DP.dp)
             .padding(horizontal = Grid.base.dp, vertical = Grid.base.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -214,6 +253,7 @@ const val NUMBER_DP = 28
 const val TILE_ART_DP = 172
 const val TILE_RADIUS_DP = 20
 private const val TILE_PRESSED = 0.97f
+private const val BADGE_INSET_DP = 8
 private const val TILE_TEXT_GAP_DP = 8
 private const val CARD_RADIUS_DP = 24
 private const val CARD_INSET_DP = 8

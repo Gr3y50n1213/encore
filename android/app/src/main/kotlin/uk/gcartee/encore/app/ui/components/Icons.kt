@@ -70,4 +70,12 @@ object Icons {
     @Composable fun phone(): Painter = painterResource(R.drawable.sym_phone_android)
     @Composable fun computer(): Painter = painterResource(R.drawable.sym_computer)
     @Composable fun speaker(): Painter = painterResource(R.drawable.sym_speaker)
+    // Phase 8: downloads and offline.
+    @Composable fun downloadDone(): Painter = painterResource(R.drawable.sym_download_done)
+    @Composable fun saved(): Painter = painterResource(R.drawable.sym_offline_pin_fill)
+    @Composable fun error(): Painter = painterResource(R.drawable.sym_error)
+    @Composable fun downloading(): Painter = painterResource(R.drawable.sym_downloading)
+    @Composable fun notifications(): Painter = painterResource(R.drawable.sym_notifications)
+    @Composable fun storage(): Painter = painterResource(R.drawable.sym_storage)
+    @Composable fun wifi(): Painter = painterResource(R.drawable.sym_wifi)
 }

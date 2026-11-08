@@ -26,6 +26,7 @@ class MainActivity : ComponentActivity() {
         host = CoreHost.get(this)
         // Later launches go straight to the library (board 22, "First launch only").
         if (!host.profileOpen.value) host.openLastProfile()
+        if (intent?.getStringExtra(EXTRA_OPEN) == OPEN_DOWNLOADS) host.openRequest.value = OPEN_DOWNLOADS
         setContent {
             EncoreTheme {
                 EncoreRoot(host)
@@ -48,6 +49,18 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         if (host.profileOpen.value) PlaybackHub.connect(this)
+    }
+
+    /** The download notification opens Settings › Downloads. */
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.getStringExtra(EXTRA_OPEN) == OPEN_DOWNLOADS) host.openRequest.value = OPEN_DOWNLOADS
+    }
+
+    companion object {
+        const val EXTRA_OPEN = "uk.gcartee.encore.app.OPEN"
+        const val OPEN_DOWNLOADS = "downloads"
     }
 
     override fun onStop() {

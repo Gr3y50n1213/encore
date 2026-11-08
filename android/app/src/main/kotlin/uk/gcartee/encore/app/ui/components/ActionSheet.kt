@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -39,8 +40,11 @@ import kotlinx.coroutines.launch
 import uk.gcartee.encore.app.ui.theme.LocalEncoreType
 import uk.gcartee.encore.tokens.EncoreTokens.Grid
 
-/** One action in an [ActionSheet]. */
-class SheetAction(val label: String, val icon: Painter? = null, val destructive: Boolean = false, val onClick: () -> Unit)
+/**
+ * One action in an [ActionSheet]. [reason] set: it can't be done now (board 13,
+ * "Offline: Download and Share dim with a reason"); it dims, and a tap says why.
+ */
+class SheetAction(val label: String, val icon: Painter? = null, val destructive: Boolean = false, val reason: String? = null, val onClick: () -> Unit)
 
 /**
  * The app's one menu for a song, album or mix (boards 13 and 24, Material 3 Expressive):
@@ -61,7 +65,13 @@ fun ActionSheet(
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     val haptics = rememberHaptics()
+    val toaster = LocalAppActions.current.toaster
     fun run(a: SheetAction) {
+        a.reason?.let {
+            haptics.perform(Haptic.Reject)
+            toaster.show(it)
+            return
+        }
         haptics.perform(Haptic.Soft)
         scope.launch { sheet.hide() }.invokeOnCompletion {
             onDismiss()
@@ -113,7 +123,7 @@ private fun QuickTile(a: SheetAction, first: Boolean, last: Boolean, modifier: M
         shape = RoundedCornerShape(topStart = start, bottomStart = start, topEnd = end, bottomEnd = end),
         color = MaterialTheme.colorScheme.secondaryContainer,
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-        modifier = modifier.heightIn(min = QUICK_HEIGHT_DP.dp),
+        modifier = modifier.heightIn(min = QUICK_HEIGHT_DP.dp).graphicsLayer { alpha = if (a.reason != null) OFFLINE_DIM else 1f },
     ) {
         Column(Modifier.padding(vertical = (Grid.base * 1.5f).dp, horizontal = Grid.base.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             a.icon?.let { Icon(it, contentDescription = null, modifier = Modifier.size(24.dp)) }
@@ -130,7 +140,7 @@ private fun SheetRow(a: SheetAction, top: Int, bottom: Int, onClick: () -> Unit)
         onClick = onClick,
         shape = RoundedCornerShape(topStart = top.dp, topEnd = top.dp, bottomStart = bottom.dp, bottomEnd = bottom.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.fillMaxWidth().heightIn(min = ROW_HEIGHT_DP.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = ROW_HEIGHT_DP.dp).graphicsLayer { alpha = if (a.reason != null) OFFLINE_DIM else 1f },
     ) {
         Row(Modifier.padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
             a.icon?.let {

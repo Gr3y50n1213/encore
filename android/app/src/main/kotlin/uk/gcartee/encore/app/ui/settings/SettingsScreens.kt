@@ -302,6 +302,7 @@ fun SettingsScreen(host: CoreHost, page: String, onBack: () -> Unit, onProfiles:
         "servers" -> ServersPage(host, onBack, onAddServer, contentPadding)
         "privacy" -> PrivacyPage(host, onBack, contentPadding)
         "licences" -> LicencesPage(onBack, contentPadding)
+        "downloads" -> DownloadsPage(host, onBack, contentPadding)
         else -> SettingsHome(host, onBack, onProfiles, contentPadding)
     }
 }
@@ -316,10 +317,14 @@ private fun SettingsHome(host: CoreHost, onBack: () -> Unit, onProfiles: () -> U
     val appearance by Appearance.choice.collectAsState()
     var hapticsOn by remember { mutableStateOf(uk.gcartee.encore.app.ui.components.HapticSetting.enabled) }
     val server = remember { runCatching { host.core.servers().firstOrNull()?.name }.getOrNull() }
+    val downloads = uk.gcartee.encore.app.ui.components.LocalDownloads.current
+    val used = remember(downloads) { runCatching { host.core.downloadsOverview().usedBytes.toLong() }.getOrDefault(0L) }
     // Board 17's groups, rows without icons, a chevron where a page opens.
     val groups = listOf(
         listOf(
             Row0("Playback and quality") { actions.open(Route.Settings("playback")) },
+            // Board 17: "Downloads 12.4 GB".
+            Row0("Downloads", right = if (used > 0) formatBytes(used) else null) { actions.open(Route.Settings("downloads")) },
             Row0("Mixes and suggestions") { actions.open(Route.Settings("suggestions")) },
         ),
         listOf(

@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Permissions: the plan's section 19 list. INTERNET, ACCESS_NETWORK_STATE (Wi-Fi or
-     cellular stream quality), WAKE_LOCK (streaming with the screen off) and
+     cellular stream quality, offline), WAKE_LOCK (streaming with the screen off) and
      FOREGROUND_SERVICE are install-time permissions Android grants without asking;
-     FOREGROUND_SERVICE_MEDIA_PLAYBACK is the plan's own entry. None is asked at launch. -->
+     FOREGROUND_SERVICE_MEDIA_PLAYBACK is the plan's own entry. Phase 8 adds
+     RUN_USER_INITIATED_JOBS (install-time, approved by the owner on 8 November 2026)
+     for downloads the person starts, and POST_NOTIFICATIONS, optional, asked in
+     context after the board 25 primer when the first download starts. None is asked
+     at launch. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
@@ -10,6 +14,8 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.RUN_USER_INITIATED_JOBS" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".EncoreApp"
@@ -47,13 +53,40 @@
                 android:resource="@xml/export_paths" />
         </provider>
 
+        <!-- Phase 8: downloads run as jobs (docs/adr/android-0002). -->
+        <service
+            android:name=".downloads.DownloadJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <receiver
+            android:name=".downloads.DownloadActionReceiver"
+            android:exported="false" />
+
         <service
             android:name=".playback.PlaybackService"
             android:exported="true"
             android:foregroundServiceType="mediaPlayback">
+            <!-- Phase 8: the library session Android Auto browses (and the legacy name
+                 it still looks for). -->
             <intent-filter>
+                <action android:name="androidx.media3.session.MediaLibraryService" />
+                <action android:name="android.media.browse.MediaBrowserService" />
                 <action android:name="androidx.media3.session.MediaSessionService" />
             </intent-filter>
         </service>
+
+        <!-- Covers for Android Auto's lists: not exported; each address is granted to
+             the one controller that asked (playback/ArtworkProvider.kt). -->
+        <provider
+            android:name=".playback.ArtworkProvider"
+            android:authorities="${applicationId}.artwork"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+
+        <!-- Android Auto: a media app (res/xml/automotive_app_desc.xml). -->
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
     </application>
 </manifest>
