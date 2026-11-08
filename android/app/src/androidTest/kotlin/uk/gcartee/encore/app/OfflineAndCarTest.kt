@@ -4,6 +4,7 @@ import android.app.UiAutomation
 import android.content.ComponentName
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -101,7 +102,13 @@ class OfflineAndCarTest {
         rule.waitUntilAtLeastOneExists(hasText("Using", substring = true), TIMEOUT)
         shot("14-settings-downloads")
         automation.setRotation(UiAutomation.ROTATION_FREEZE_90)
-        rule.waitForIdle()
+        step("the window turned to landscape", TIMEOUT) {
+            rule.activity.resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        }
+        // Board 26: layout follows the window's width. A phone on its side is past 600 dp,
+        // so the navigation moves to a rail beside the page instead of a bar under it.
+        rule.waitUntilAtLeastOneExists(hasTestTag("nav-rail"), TIMEOUT)
+        rule.waitUntilDoesNotExist(hasTestTag("nav-bar"), TIMEOUT)
         shot("15-settings-downloads-landscape")
         automation.setRotation(UiAutomation.ROTATION_FREEZE_0)
         automation.setRotation(UiAutomation.ROTATION_UNFREEZE)

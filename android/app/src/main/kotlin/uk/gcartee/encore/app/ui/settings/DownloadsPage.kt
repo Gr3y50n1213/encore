@@ -313,7 +313,7 @@ private fun StorageCard(context: Context, downloads: Long) {
                         .fillMaxWidth()
                         .height(BAR_DP.dp)
                         .clip(RoundedCornerShape(50))
-                        .semantics { contentDescription = "Downloads ${formatBytes(downloads)}, cache ${formatBytes(cache)}, free ${formatBytes(free)}" },
+                        .semantics { contentDescription = "Downloads ${formatBytes(downloads)}, cache ${formatBytes(cache)}, other ${formatBytes(other)}, free ${formatBytes(free)}" },
                     horizontalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     fun w(n: Long) = (n.toFloat() / total).coerceAtLeast(if (n > 0) MIN_SLICE else 0f)
@@ -323,9 +323,16 @@ private fun StorageCard(context: Context, downloads: Long) {
                     if (free > 0) Box(Modifier.weight(w(free)).height(BAR_DP.dp).background(scheme.surfaceContainerHighest))
                 }
                 Spacer(Modifier.height((Grid.base * 1.5f).dp))
-                Row(horizontalArrangement = Arrangement.spacedBy((Grid.base * 2).dp)) {
+                // Every part of the bar is named (the system and other apps are "Other"); the
+                // legend wraps at large text sizes rather than squeezing.
+                @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+                androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy((Grid.base * 2).dp),
+                    verticalArrangement = Arrangement.spacedBy(Grid.base.dp),
+                ) {
                     Legend(scheme.primary, "Downloads", formatBytes(downloads))
                     Legend(scheme.tertiary, "Cache", formatBytes(cache))
+                    if (other > 0) Legend(scheme.outlineVariant, "Other", formatBytes(other))
                     Legend(scheme.surfaceContainerHighest, "Free", formatBytes(free))
                 }
             }

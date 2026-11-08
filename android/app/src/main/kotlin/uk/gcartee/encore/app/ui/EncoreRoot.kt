@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.platform.testTag
 import uk.gcartee.encore.app.ui.components.topBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.width
@@ -269,7 +270,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                     ExpandedRail(host, nav.tab, onTab = { nav.select(it) }, onOpen = actions.open, onProfile = { profiles = true })
                 } else if (wide) {
                     // Board 29: an 80 dp rail with labels under the icons from 600 dp.
-                    NavigationRail(Modifier.statusBarsPadding()) {
+                    NavigationRail(Modifier.statusBarsPadding().testTag("nav-rail")) {
                         Tab.entries.forEach { tab ->
                             val selected = nav.tab == tab
                             NavigationRailItem(
@@ -304,7 +305,9 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                                     }
                                     androidx.compose.foundation.layout.Spacer(Modifier.width(PANE_GAP_DP.dp))
                                     Surface(shape = androidx.compose.foundation.shape.RoundedCornerShape(PANE_RADIUS_DP.dp), modifier = Modifier.weight(1f).fillMaxSize()) {
-                                        Page(route, host, playingSongId, nav::back, inner, onProfiles = { profiles = true }, onAddServer = { addingAccount = true })
+                                        CompositionLocalProvider(uk.gcartee.encore.app.ui.components.LocalInPane provides true) {
+                                            Page(route, host, playingSongId, nav::back, inner, onProfiles = { profiles = true }, onAddServer = { addingAccount = true })
+                                        }
                                     }
                                 }
                                 return@AnimatedContent
@@ -349,7 +352,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                                 // and it runs under the clear gesture area to the screen's edge.
                                 NavigationBar(
                                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                    modifier = Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(topStart = NAV_RADIUS_DP.dp, topEnd = NAV_RADIUS_DP.dp)),
+                                    modifier = Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(topStart = NAV_RADIUS_DP.dp, topEnd = NAV_RADIUS_DP.dp)).testTag("nav-bar"),
                                 ) {
                                     Tab.entries.forEach { tab ->
                                         val selected = nav.tab == tab
@@ -572,7 +575,7 @@ private fun ExpandedRail(host: CoreHost, tab: Tab, onTab: (Tab) -> Unit, onOpen:
     val playlists = remember { runCatching { host.core.playlists(0u, 8u) }.getOrDefault(emptyList()) }
     val profile = remember { runCatching { host.core.profiles().firstOrNull { it.active } }.getOrNull() }
     androidx.compose.material3.PermanentDrawerSheet(
-        Modifier.width(EXPANDED_RAIL_DP.dp).statusBarsPadding(),
+        Modifier.width(EXPANDED_RAIL_DP.dp).statusBarsPadding().testTag("nav-rail"),
         drawerContainerColor = MaterialTheme.colorScheme.surface,
     ) {
         androidx.compose.foundation.lazy.LazyColumn(Modifier.weight(1f).padding(horizontal = 12.dp)) {

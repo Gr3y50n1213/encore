@@ -19,6 +19,9 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
+/** A page drawn in a pane beside others (tablets, board 29): it isn't under the status bar. */
+val LocalInPane = compositionLocalOf { false }
+
 /** Room a floating banner takes under the status bar (the offline pill, board 20). */
 val LocalTopBanner = compositionLocalOf { 0.dp }
 
@@ -43,6 +46,9 @@ private fun Context.activity(): Activity? = when (this) {
  */
 @Composable
 fun SystemBarIconsFor(background: Color) {
+    // In a pane the status bar sits over the app's plain surface, whatever the page draws:
+    // light icons there were white on white (seen on the tablet).
+    if (LocalInPane.current) return
     val view = LocalView.current
     val themeDark = isSystemInDarkTheme()
     val lightIcons = background.luminance() < 0.5f
