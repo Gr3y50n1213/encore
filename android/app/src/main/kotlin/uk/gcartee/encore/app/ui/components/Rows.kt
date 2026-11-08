@@ -22,6 +22,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.ui.geometry.CornerRadius
@@ -136,7 +138,7 @@ fun LevelBars(colour: Color, size: Dp = 16.dp) {
 
 /** An album tile in a grid or a row (boards 05 and 06). */
 @Composable
-fun AlbumTile(album: AlbumSummary, onClick: () -> Unit, onLongClick: (() -> Unit)? = null, modifier: Modifier = Modifier) {
+fun AlbumTile(album: AlbumSummary, onClick: () -> Unit, onLongClick: (() -> Unit)? = null, modifier: Modifier = Modifier, card: Boolean = false) {
     val type = LocalEncoreType.current
     val haptics = rememberHaptics()
     // Board 05: a tile presses to 0.97 on a spring instead of a flat ripple over it.
@@ -156,10 +158,27 @@ fun AlbumTile(album: AlbumSummary, onClick: () -> Unit, onLongClick: (() -> Unit
                 onLongClick = onLongClick?.let { { haptics.perform(Haptic.LongPress); it() } },
             ),
     ) {
-        Artwork(ArtworkOf.ALBUM, album.id, TILE_ART_DP.dp, Modifier.fillMaxWidth(), cornerRadius = TILE_RADIUS_DP.dp)
-        Spacer(Modifier.size(TILE_TEXT_GAP_DP.dp))
-        Text(album.title, style = type.tileTitle, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(album.artist, style = type.tileSubtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        if (card) {
+            // The Library grid: a tonal card, the cover inset with concentric corners and
+            // the words inside it, so each album reads as one object.
+            androidx.compose.material3.Surface(
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(CARD_RADIUS_DP.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+            ) {
+                Column(Modifier.padding(CARD_INSET_DP.dp)) {
+                    Artwork(ArtworkOf.ALBUM, album.id, TILE_ART_DP.dp, Modifier.fillMaxWidth(), cornerRadius = (CARD_RADIUS_DP - CARD_INSET_DP).dp)
+                    Column(Modifier.padding(start = 6.dp, end = 6.dp, top = 10.dp, bottom = 6.dp)) {
+                        Text(album.title, style = type.tileTitle.copy(fontSize = 14.sp, lineHeight = 18.sp), color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(album.artist, style = type.tileSubtitle.copy(fontSize = 13.sp, lineHeight = 17.sp), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+        } else {
+            Artwork(ArtworkOf.ALBUM, album.id, TILE_ART_DP.dp, Modifier.fillMaxWidth(), cornerRadius = TILE_RADIUS_DP.dp)
+            Spacer(Modifier.size(TILE_TEXT_GAP_DP.dp))
+            Text(album.title, style = type.tileTitle, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(album.artist, style = type.tileSubtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
     }
 }
 
@@ -167,12 +186,15 @@ fun AlbumTile(album: AlbumSummary, onClick: () -> Unit, onLongClick: (() -> Unit
 @Composable
 fun ListRow(title: String, subtitle: String?, onClick: () -> Unit, leading: @Composable (() -> Unit)? = null) {
     val type = LocalEncoreType.current
+    // A rounded press highlight inset from the edges, larger type, room to breathe.
     Row(
         Modifier
             .fillMaxWidth()
-            .heightIn(min = (TouchTarget.android + Grid.base).dp)
+            .padding(horizontal = Grid.base.dp)
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(LIST_ROW_RADIUS_DP.dp))
             .combinedClickable(onClick = onClick)
-            .padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp),
+            .heightIn(min = LIST_ROW_DP.dp)
+            .padding(horizontal = Grid.base.dp, vertical = Grid.base.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         leading?.let {
@@ -180,8 +202,8 @@ fun ListRow(title: String, subtitle: String?, onClick: () -> Unit, leading: @Com
             Spacer(Modifier.width((Grid.base * 2).dp))
         }
         Column(Modifier.weight(1f)) {
-            Text(title, style = type.listRowTitle, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            subtitle?.let { Text(it, style = type.body, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
+            Text(title, style = type.listRowTitle.copy(fontSize = 16.sp, lineHeight = 22.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium), color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            subtitle?.let { Text(it, style = type.body.copy(fontSize = 14.sp, lineHeight = 20.sp), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         }
     }
 }
@@ -193,3 +215,10 @@ const val TILE_ART_DP = 172
 const val TILE_RADIUS_DP = 20
 private const val TILE_PRESSED = 0.97f
 private const val TILE_TEXT_GAP_DP = 8
+private const val CARD_RADIUS_DP = 24
+private const val CARD_INSET_DP = 8
+private const val LIST_ROW_DP = 72
+private const val LIST_ROW_RADIUS_DP = 16
+/** List rows' art: 56 dp, 12 dp corners (a circle for artists). */
+const val LIST_ART_DP = 56
+const val LIST_ART_RADIUS_DP = 12

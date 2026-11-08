@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
@@ -46,6 +47,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.clickable
+import uk.gcartee.encore.app.ui.components.LIST_ART_RADIUS_DP
+import uk.gcartee.encore.app.ui.components.LIST_ART_DP
 import kotlin.math.roundToInt
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.draw.clipToBounds
@@ -267,11 +272,11 @@ private fun AlbumsList(host: CoreHost, sort: AlbumSort, grid: Boolean, generatio
             columns = GridCells.Adaptive(TILE_MIN_DP.dp),
             state = state,
             contentPadding = PaddingValues(start = (Grid.base * 2).dp, end = (Grid.base * 2).dp, top = Grid.base.dp, bottom = padding.calculateBottomPadding() + (Grid.base * 2).dp),
-            horizontalArrangement = Arrangement.spacedBy((Grid.base * 2).dp),
-            verticalArrangement = Arrangement.spacedBy((Grid.base * 3).dp),
+            horizontalArrangement = Arrangement.spacedBy((Grid.base * 1.5f).dp),
+            verticalArrangement = Arrangement.spacedBy((Grid.base * 1.5f).dp),
         ) {
             itemsIndexed(pager.items, key = { _, a -> a.id }) { _, album ->
-                AlbumTile(album, onClick = { onOpen(Route.Album(album.id)) })
+                AlbumTile(album, onClick = { onOpen(Route.Album(album.id)) }, card = true)
             }
         }
     } else {
@@ -280,7 +285,7 @@ private fun AlbumsList(host: CoreHost, sort: AlbumSort, grid: Boolean, generatio
         LazyColumn(state = state, contentPadding = PaddingValues(bottom = padding.calculateBottomPadding())) {
             items(pager.items, key = { it.id }) { album ->
                 ListRow(album.title, album.artist, onClick = { onOpen(Route.Album(album.id)) }) {
-                    uk.gcartee.encore.app.ui.components.Artwork(uk.gcartee.encore.core.ArtworkOf.ALBUM, album.id, 48.dp, Modifier.size(48.dp))
+                    uk.gcartee.encore.app.ui.components.Artwork(uk.gcartee.encore.core.ArtworkOf.ALBUM, album.id, LIST_ART_DP.dp, Modifier.size(LIST_ART_DP.dp), cornerRadius = LIST_ART_RADIUS_DP.dp)
                 }
             }
         }
@@ -309,18 +314,35 @@ private fun SongsList(host: CoreHost, sort: SongSort, generation: Int, playingSo
 
 @Composable
 private fun ArtistsList(host: CoreHost, generation: Int, onOpen: (Route) -> Unit, padding: PaddingValues) {
+    val type = LocalEncoreType.current
     val pager = rememberPager(generation) { o, l -> host.core.artists(o.toUInt(), l.toUInt()) }
     if (pager.items.isEmpty()) {
         EmptyState("Nothing here yet", "Artists appear once your library has synced.")
         return
     }
-    val state = rememberLazyListState()
+    // Artists as round portraits in a grid, the name under each.
+    val state = rememberLazyGridState()
     LoadMore(state, pager)
-    LazyColumn(state = state, contentPadding = PaddingValues(bottom = padding.calculateBottomPadding())) {
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(ARTIST_MIN_DP.dp),
+        state = state,
+        contentPadding = PaddingValues(start = (Grid.base * 2).dp, end = (Grid.base * 2).dp, top = Grid.base.dp, bottom = padding.calculateBottomPadding() + (Grid.base * 2).dp),
+        horizontalArrangement = Arrangement.spacedBy((Grid.base * 1.5f).dp),
+        verticalArrangement = Arrangement.spacedBy((Grid.base * 2.5f).dp),
+    ) {
         items(pager.items, key = { it.id }) { artist ->
             val n = artist.albumCount.toInt()
-            ListRow(artist.name, if (n == 1) "1 album" else "$n albums", onClick = { onOpen(Route.Artist(artist.id)) }) {
-                uk.gcartee.encore.app.ui.components.Artwork(uk.gcartee.encore.core.ArtworkOf.ARTIST, artist.id, 48.dp, Modifier.size(48.dp), cornerRadius = 24.dp)
+            Column(
+                Modifier
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(ARTIST_PRESS_RADIUS_DP.dp))
+                    .clickable { onOpen(Route.Artist(artist.id)) }
+                    .padding(6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                uk.gcartee.encore.app.ui.components.Artwork(uk.gcartee.encore.core.ArtworkOf.ARTIST, artist.id, ARTIST_ART_DP.dp, Modifier.fillMaxWidth().clip(androidx.compose.foundation.shape.CircleShape), cornerRadius = (ARTIST_ART_DP / 2).dp)
+                Spacer(Modifier.size(Grid.base.dp))
+                Text(artist.name, style = type.tileTitle.copy(fontSize = 14.sp, lineHeight = 18.sp), maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                Text(if (n == 1) "1 album" else "$n albums", style = type.caption.copy(fontSize = 12.sp), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
         }
     }
@@ -339,7 +361,7 @@ private fun PlaylistsList(host: CoreHost, generation: Int, onOpen: (Route) -> Un
         items(pager.items, key = { it.id }) { p ->
             val n = p.songCount.toInt()
             ListRow(p.name, if (n == 1) "1 song" else "$n songs", onClick = { onOpen(Route.Playlist(p.id)) }) {
-                uk.gcartee.encore.app.ui.components.Artwork(uk.gcartee.encore.core.ArtworkOf.PLAYLIST, p.id, 48.dp, Modifier.size(48.dp))
+                uk.gcartee.encore.app.ui.components.Artwork(uk.gcartee.encore.core.ArtworkOf.PLAYLIST, p.id, LIST_ART_DP.dp, Modifier.size(LIST_ART_DP.dp), cornerRadius = LIST_ART_RADIUS_DP.dp)
             }
         }
     }
@@ -373,6 +395,9 @@ private const val EMPTY_RADIUS_DP = 24
 
 private const val TILE_MIN_DP = 150
 private const val GROUP_TEXT_SP = 14
+private const val ARTIST_MIN_DP = 104
+private const val ARTIST_ART_DP = 112
+private const val ARTIST_PRESS_RADIUS_DP = 20
 private const val GROUP_SIDE_DP = 8
 private const val GROUP_WEIGHT_BASE = 3f
 private const val VIEW_TOGGLE_DP = 40

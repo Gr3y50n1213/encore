@@ -55,6 +55,23 @@ Also brought in line: the mini player (board 42: a filled accent play button and
 | The queue on a phone | Board 09, item 8: Lyrics, Output and Queue "toggle each view in place"; board 29 draws Up next on the album field; board 11's render draws a light sheet | On the field, like Lyrics (the owner disliked the light card that mixed the two): the field's text colour, tonal toggles that fill and square up when on, a tonal highlight on the playing row, edges that fade into the field; Autoplay uses the Material Symbols "autoplay" icon, not a radio |
 | Where Settings opens on a phone | Spec 17: "Settings sits in the Library tab on phones"; render 06 shows no entry; board 14's sheet has none | The avatar (Home, Library, Search) opens the profile sheet, which has a Settings row |
 
+## The owner's third round on the phone (7 November 2026)
+
+Decisions the owner made after using the app with their own library, which override the boards where they differ:
+
+| Owner's request | What the app does | Board it changes |
+| --- | --- | --- |
+| The long-press and three-dot menus "do not fit the theme" | One action sheet for songs, albums and mixes: the item and Like at the top, connected quick tiles (Play next, Add to queue, Add to playlist), then rounded tonal groups, Not interested apart in red | Board 13's popup that scales from the row |
+| More should turn into a squircle | Round at rest, squeezes when pressed, a squircle while its sheet is open | Board 35's toggle rule applied to More |
+| A tap on the cover plays or pauses | Tap toggles playback; 2xTAP likes, HOLD opens the sheet | Board 09, item 2 had no single tap |
+| The wave should come from the playing point and move smoothly | The app draws the wave: pinned to the centre line at the handle, travelling away from it, slower; the position runs on frame time | Board 09, item 5 (the library's wavy indicator) |
+| Rows should move out of the way while dragging | Live reorder with a tick per swap; saved on release | Board 11, item 4 |
+| Home "doesn't call people to use it" | A greeting, a Jump back in card, quick tiles, then Made for you and larger shelves | Board 05 |
+| Mixes while learning should feel like it is working | A morphing Material shape with sparkles, the plays on a progress line, Play something | Boards 15 and 23 |
+| The bottom bar is sharp; the gesture area is grey | 28 dp top corners, floating with the mini player; the system scrim is off | Board 05's flat bar |
+| Settings is hard to read | 16 sp rows, icons in tonal circles, left-aligned section labels in the accent, long choices as radio rows with a line each | Boards 17 to 19, 38 (centred grey uppercase labels, segmented choices) |
+| "I already have a profile" is greyed out | It signs in, which is how an existing profile comes back | Board 22 |
+
 ## Not built yet, and why
 
 - Downloads, the Download buttons and offline-only browsing (Phase 8); Android Auto (8); the sleep timer, widgets, Quick Settings tile and Live Updates (9); the year recap (11).

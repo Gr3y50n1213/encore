@@ -38,6 +38,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
@@ -84,6 +86,7 @@ fun WelcomeScreen(onGetStarted: () -> Unit, onExistingProfile: (() -> Unit)?) {
     val still = reduceMotion()
     // Item 3, GUARD: Get started ignores taps for 300 ms after the screen appears.
     var armed by remember { mutableStateOf(false) }
+    var info by remember { mutableStateOf<Info?>(null) }
     LaunchedEffect(Unit) {
         delay(GUARD_MS)
         armed = true
@@ -150,6 +153,7 @@ fun WelcomeScreen(onGetStarted: () -> Unit, onExistingProfile: (() -> Unit)?) {
                 modifier = Modifier.fillMaxWidth().height(BUTTON_DP.dp),
             ) { Text("Get started", style = type.sectionHeader) }
             Spacer(Modifier.height(Grid.base.dp))
+            // Signing in to your media server is how an existing profile comes back.
             FilledTonalButton(
                 onClick = { onExistingProfile?.invoke() },
                 enabled = onExistingProfile != null,
@@ -162,15 +166,41 @@ fun WelcomeScreen(onGetStarted: () -> Unit, onExistingProfile: (() -> Unit)?) {
                 modifier = Modifier.fillMaxWidth().height(BUTTON_DP.dp),
             ) { Text("I already have a profile", style = type.sectionHeader) }
             Spacer(Modifier.height(Grid.base.dp))
-            // Item 5: the policy links. TODO(owner): the privacy policy page does not exist
-            // yet (docs/DECISIONS.md section 4); both stay disabled until it does.
+            // Item 5: the policy links, readable on the dark field and always working. The
+            // hosted policy page does not exist yet (docs/DECISIONS.md section 4), so Privacy
+            // policy says in plain words what the app does with data.
             Row(Modifier.align(Alignment.CenterHorizontally), horizontalArrangement = Arrangement.Center) {
-                TextButton(onClick = {}, enabled = false) { Text("Privacy policy", style = type.caption) }
-                TextButton(onClick = {}, enabled = false) { Text("Open-source licenses", style = type.caption) }
+                TextButton(onClick = { info = Info.Privacy }) { Text("Privacy policy", style = type.buttonLabelSelected, color = Color.White.copy(alpha = LINK_ALPHA)) }
+                TextButton(onClick = { info = Info.Licences }) { Text("Open-source licenses", style = type.buttonLabelSelected, color = Color.White.copy(alpha = LINK_ALPHA)) }
             }
         }
     }
+    when (info) {
+        Info.Privacy -> androidx.compose.material3.AlertDialog(
+            onDismissRequest = { info = null },
+            title = { Text("Privacy") },
+            text = {
+                Text(
+                    "Your listening is used on this phone first. Nothing is sent anywhere except the servers you add: your media server, and your own companion server if you connect one. There is no account with the app's maker, no ads and no analytics. You can export or delete everything in Settings, Privacy and data.",
+                    style = type.body.copy(fontSize = 15.sp, lineHeight = 21.sp),
+                )
+            },
+            confirmButton = { TextButton(onClick = { info = null }) { Text("Close") } },
+        )
+        Info.Licences -> androidx.compose.ui.window.Dialog(
+            onDismissRequest = { info = null },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            androidx.compose.material3.Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+                uk.gcartee.encore.app.ui.settings.LicencesScreen(onBack = { info = null })
+            }
+        }
+        null -> Unit
+    }
 }
+
+private enum class Info { Privacy, Licences }
+private const val LINK_ALPHA = 0.9f
 
 /** The cookie shape, turning slowly and morphing to sunny and back every 8 s (item 1). */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)

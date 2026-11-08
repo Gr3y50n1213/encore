@@ -49,6 +49,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
@@ -94,6 +97,67 @@ import uk.gcartee.encore.tokens.EncoreTokens.Grid
 /** Board 17, Layout: separated rows, 24 dp outer and 6 dp inner corners. */
 private const val OUTER = 24
 private const val INNER = 6
+private const val ROW_ONE_LINE_DP = 56
+private const val LONG_TITLE = 16
+private const val LONG_TITLE_SP = 28
+private const val ROW_TWO_LINE_DP = 72
+private const val ICON_CIRCLE_DP = 40
+private const val RIGHT_MAX_DP = 140
+
+/** Settings type: 16 sp row titles and 14 sp values, so every line reads at arm's length. */
+@Composable
+private fun rowTitle() = LocalEncoreType.current.listRowTitle.copy(fontSize = 16.sp, lineHeight = 22.sp)
+
+@Composable
+private fun rowValue() = LocalEncoreType.current.body.copy(fontSize = 14.sp, lineHeight = 20.sp)
+
+/** A paragraph on a settings page: 15 sp, comfortable line height, page margins. */
+@Composable
+private fun Body(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text,
+        style = LocalEncoreType.current.body.copy(fontSize = 15.sp, lineHeight = 22.sp),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier.padding(horizontal = (Grid.base * 3).dp, vertical = Grid.base.dp),
+    )
+}
+
+/**
+ * A one-of choice with room for words: tonal rows with a line each and a radio button,
+ * the chosen row filled. Nothing is cut off at large text sizes, unlike a segmented row.
+ */
+@Composable
+fun <T> RadioRows(options: List<Triple<T, String, String?>>, selected: T, onSelect: (T) -> Unit, modifier: Modifier = Modifier) {
+    val haptics = rememberHaptics()
+    Column(modifier.padding(horizontal = (Grid.base * 2).dp).selectableGroup(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        options.forEachIndexed { i, (value, label, line) ->
+            val on = value == selected
+            val top = if (i == 0) OUTER else INNER
+            val bottom = if (i == options.lastIndex) OUTER else INNER
+            Surface(
+                selected = on,
+                onClick = {
+                    if (!on) {
+                        haptics.perform(Haptic.Tick)
+                        onSelect(value)
+                    }
+                },
+                shape = RoundedCornerShape(top.dp, top.dp, bottom.dp, bottom.dp),
+                color = if (on) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer,
+                modifier = Modifier.fillMaxWidth().semantics { role = Role.RadioButton },
+            ) {
+                Row(Modifier.heightIn(min = ROW_ONE_LINE_DP.dp).padding(horizontal = (Grid.base * 2).dp, vertical = (Grid.base * 1.5f).dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(label, style = rowTitle(), color = if (on) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface)
+                        line?.let { Text(it, style = rowValue(), color = if (on) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp)) }
+                    }
+                    Spacer(Modifier.width(Grid.base.dp))
+                    androidx.compose.material3.RadioButton(selected = on, onClick = null)
+                }
+            }
+        }
+    }
+}
 
 /** A settings row; a trailing lambda is its tap action. */
 class Row0(val title: String, val value: String? = null, val icon: (@Composable () -> Painter)? = null, val destructive: Boolean = false, val right: String? = null, val dot: Color? = null, val valueColor: Color? = null, val trailing: (@Composable () -> Unit)? = null, val onClick: (() -> Unit)? = null)
@@ -106,21 +170,29 @@ fun LazyListScope.group(title: String?, rows: List<Row0>) {
         val top = if (i == 0) OUTER else INNER
         val bottom = if (i == rows.lastIndex) OUTER else INNER
         val type = LocalEncoreType.current
+        val shape = RoundedCornerShape(top.dp, top.dp, bottom.dp, bottom.dp)
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainer,
-            shape = RoundedCornerShape(top.dp, top.dp, bottom.dp, bottom.dp),
+            shape = shape,
             modifier = Modifier.fillMaxWidth().padding(horizontal = (Grid.base * 2).dp, vertical = 1.dp),
         ) {
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 56.dp)
+                    .heightIn(min = if (r.value != null) ROW_TWO_LINE_DP.dp else ROW_ONE_LINE_DP.dp)
+                    .clip(shape)
                     .let { m -> if (r.onClick != null) m.clickable(onClick = r.onClick) else m }
-                    .padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp),
+                    .padding(horizontal = (Grid.base * 2).dp, vertical = (Grid.base * 1.5f).dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 r.icon?.let {
-                    Icon(it(), contentDescription = null, tint = if (r.destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
+                    // The icon in a tonal circle, as the profile sheet draws its rows.
+                    Box(
+                        Modifier.size(ICON_CIRCLE_DP.dp).background(if (r.destructive) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceContainerHighest, CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(it(), contentDescription = null, tint = if (r.destructive) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                    }
                     Spacer(Modifier.width((Grid.base * 2).dp))
                 }
                 // Board 18, item 2: a colored dot for health, before the name.
@@ -129,11 +201,12 @@ fun LazyListScope.group(title: String?, rows: List<Row0>) {
                     Spacer(Modifier.width((Grid.base * 2).dp))
                 }
                 Column(Modifier.weight(1f)) {
-                    Text(r.title, style = type.listRowTitle, color = if (r.destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
-                    r.value?.let { Text(it, style = type.body, color = r.valueColor ?: MaterialTheme.colorScheme.onSurfaceVariant) }
+                    Text(r.title, style = rowTitle(), color = if (r.destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
+                    r.value?.let { Text(it, style = rowValue(), color = r.valueColor ?: MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp)) }
                 }
                 // Board 17: a value on the right, then the chevron for rows that open a page.
-                r.right?.let { Text(it, style = type.body, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(end = Grid.base.dp)) }
+                // It keeps to one line and never squeezes the title off the row.
+                r.right?.let { Text(it, style = rowValue(), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.padding(start = Grid.base.dp, end = Grid.base.dp).widthIn(max = RIGHT_MAX_DP.dp)) }
                 when {
                     r.trailing != null -> r.trailing.invoke()
                     r.onClick != null && !r.destructive -> Icon(Icons.chevron(), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -149,7 +222,7 @@ fun LazyListScope.group(title: String?, rows: List<Row0>) {
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun Page(title: String, onBack: (() -> Unit)?, contentPadding: PaddingValues, action: Pair<String, () -> Unit>? = null, content: LazyListScope.() -> Unit) {
+private fun Page(title: String, onBack: (() -> Unit)?, contentPadding: PaddingValues, action: Pair<String, () -> Unit>? = null, subtitle: String? = null, content: LazyListScope.() -> Unit) {
     val type = LocalEncoreType.current
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding() + (Grid.base * 3).dp)) {
         item {
@@ -168,7 +241,12 @@ private fun Page(title: String, onBack: (() -> Unit)?, contentPadding: PaddingVa
                     }
                 }
                 // Android: a large top app bar title.
-                Text(title, style = type.pageTitle, modifier = Modifier.padding(vertical = Grid.base.dp).semantics { heading() })
+                Text(
+                    title,
+                    style = if (title.length > LONG_TITLE) type.pageTitle.copy(fontSize = LONG_TITLE_SP.sp, lineHeight = (LONG_TITLE_SP + 6).sp) else type.pageTitle,
+                    modifier = Modifier.padding(top = Grid.base.dp, bottom = if (subtitle == null) Grid.base.dp else 0.dp).semantics { heading() },
+                )
+                subtitle?.let { Text(it, style = rowValue(), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = Grid.base.dp)) }
             }
         }
         content()
@@ -179,12 +257,11 @@ private fun Page(title: String, onBack: (() -> Unit)?, contentPadding: PaddingVa
 @Composable
 private fun SectionLabel(text: String) {
     Text(
-        text.uppercase(),
-        style = LocalEncoreType.current.caption.copy(letterSpacing = 1.sp),
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        text,
+        style = LocalEncoreType.current.sectionHeader.copy(fontSize = 15.sp, lineHeight = 20.sp),
+        color = MaterialTheme.colorScheme.primary,
         // Drawn in capitals, read as written: screen readers get the normal-case words.
-        modifier = Modifier.fillMaxWidth().padding(top = (Grid.base * 3).dp, bottom = Grid.base.dp).clearAndSetSemantics {
+        modifier = Modifier.fillMaxWidth().padding(start = (Grid.base * 3).dp, end = (Grid.base * 3).dp, top = (Grid.base * 3).dp, bottom = Grid.base.dp).clearAndSetSemantics {
             heading()
             this.text = androidx.compose.ui.text.AnnotatedString(text)
         },
@@ -206,6 +283,10 @@ fun CheckSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
 }
 
 private const val BACK_RADIUS_DP = 14
+
+/** The licences page on its own (Welcome's Open-source licenses link). */
+@Composable
+fun LicencesScreen(onBack: () -> Unit) = LicencesPage(onBack, PaddingValues())
 
 /** Settings and its pages; [page] is the route's page name. */
 @Composable
@@ -331,29 +412,15 @@ fun <T> Choices(options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Un
  */
 @Composable
 fun AdventurousChoice(level: Adventurousness, onChange: (Adventurousness) -> Unit) {
-    val haptics = rememberHaptics()
-    val steps = listOf(Adventurousness.FAMILIAR to "Familiar", Adventurousness.BALANCED to "Balanced", Adventurousness.ADVENTUROUS to "Adventurous")
-    Column {
-        androidx.compose.material3.SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-            steps.forEachIndexed { i, (value, label) ->
-                SegmentedButton(
-                    selected = value == level,
-                    onClick = { if (value != level) { haptics.perform(Haptic.Tick); onChange(value) } },
-                    shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(i, steps.size),
-                ) { Text(label, maxLines = 1) }
-            }
-        }
-        Text(
-            when (level) {
-                Adventurousness.FAMILIAR -> "About 1 in 20 picks will be new to you."
-                Adventurousness.BALANCED -> "About 1 in 10 picks will be new to you."
-                Adventurousness.ADVENTUROUS -> "About 1 in 5 picks will be new to you."
-            },
-            style = LocalEncoreType.current.body,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = Grid.base.dp),
-        )
-    }
+    RadioRows(
+        listOf(
+            Triple(Adventurousness.FAMILIAR, "Familiar", "About 1 in 20 picks will be new to you"),
+            Triple(Adventurousness.BALANCED, "Balanced", "About 1 in 10 picks will be new to you"),
+            Triple(Adventurousness.ADVENTUROUS, "Adventurous", "About 1 in 5 picks will be new to you"),
+        ),
+        level,
+        onChange,
+    )
 }
 
 @Composable
@@ -361,22 +428,20 @@ private fun Label(text: String) = SectionLabel(text)
 
 @Composable
 private fun PlaybackPage(host: CoreHost, onBack: () -> Unit, contentPadding: PaddingValues) {
-    val qualities = listOf(StreamQuality.ORIGINAL to "Original", StreamQuality.HIGH to "High", StreamQuality.NORMAL to "Normal", StreamQuality.DATA_SAVER to "Data saver")
+    val qualities = listOf(
+        Triple(StreamQuality.ORIGINAL, "Original", "The file as it is, gapless included"),
+        Triple(StreamQuality.HIGH, "High", "320 kbps"),
+        Triple(StreamQuality.NORMAL, "Normal", "160 kbps"),
+        Triple(StreamQuality.DATA_SAVER, "Data saver", "96 kbps"),
+    )
     var wifi by remember { mutableStateOf(runCatching { host.core.streamQuality(Network.WIFI) }.getOrDefault(StreamQuality.ORIGINAL)) }
     var cell by remember { mutableStateOf(runCatching { host.core.streamQuality(Network.CELLULAR) }.getOrDefault(StreamQuality.HIGH)) }
     Page("Playback and quality", onBack, contentPadding) {
         item { Label("Streaming on Wi-Fi") }
-        item { Choices(qualities, wifi) { q -> runCatching { host.core.setStreamQuality(Network.WIFI, q) }.onSuccess { wifi = q } } }
+        item { RadioRows(qualities, wifi, { q -> runCatching { host.core.setStreamQuality(Network.WIFI, q) }.onSuccess { wifi = q } }) }
         item { Label("Streaming on cellular") }
-        item { Choices(qualities, cell) { q -> runCatching { host.core.setStreamQuality(Network.CELLULAR, q) }.onSuccess { cell = q } } }
-        item {
-            Text(
-                "Original keeps the file as it is, gapless information included. High is 320 kbps, Normal 160, Data saver 96. It applies from the next song.",
-                style = LocalEncoreType.current.body,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = (Grid.base * 3).dp, vertical = Grid.base.dp),
-            )
-        }
+        item { RadioRows(qualities, cell, { q -> runCatching { host.core.setStreamQuality(Network.CELLULAR, q) }.onSuccess { cell = q } }) }
+        item { Body("A change applies from the next song.") }
     }
 }
 
@@ -427,7 +492,7 @@ private fun AppearancePage(host: CoreHost, onBack: () -> Unit, contentPadding: P
     val haptics = rememberHaptics()
     Page("Appearance", onBack, contentPadding) {
         item { Label("Theme") }
-        item { Choices(ThemeMode.entries.map { it to it.label }, choice.mode) { Appearance.set(context, choice.copy(mode = it)) } }
+        item { uk.gcartee.encore.app.ui.library.ChoiceGroup(ThemeMode.entries.map { it to it.label }, choice.mode, { Appearance.set(context, choice.copy(mode = it)) }, modifier = Modifier.padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp)) }
         item { Label("Accent color") }
         item {
             val options = ACCENTS + if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) listOf(WALLPAPER) else emptyList()
@@ -446,19 +511,12 @@ private fun AppearancePage(host: CoreHost, onBack: () -> Unit, contentPadding: P
                                 .let { if (selected) it.border(3.dp, MaterialTheme.colorScheme.onSurface, RoundedCornerShape(16.dp)) else it },
                         )
                         Spacer(Modifier.height(4.dp))
-                        Text(name, style = LocalEncoreType.current.caption)
+                        Text(name, style = rowValue().copy(fontSize = 13.sp), maxLines = 1)
                     }
                 }
             }
         }
-        item {
-            Text(
-                "Reduce motion and larger text follow the system settings.",
-                style = LocalEncoreType.current.body,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = (Grid.base * 3).dp, vertical = Grid.base.dp),
-            )
-        }
+        item { Body("Reduce motion and larger text follow the system settings.") }
     }
 }
 
@@ -498,11 +556,19 @@ private fun ServersPage(host: CoreHost, onBack: () -> Unit, onAddServer: () -> U
         if (st == null || st.state == SyncState.NOT_CONNECTED) {
             item { Label("Companion server") }
             item {
-                Column(Modifier.padding(horizontal = (Grid.base * 2).dp)) {
-                    Text("Optional. It syncs history, likes and playlists between your devices and makes handoff possible. Without it everything works on this phone alone.", style = LocalEncoreType.current.body, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(Grid.base.dp))
-                    OutlinedTextField(companion, { companion = it }, placeholder = { Text("encore:8097") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    TextButton(enabled = companion.isNotBlank(), onClick = {
+                Column {
+                    Body("Optional. It syncs history, likes and playlists between your devices and makes handoff possible. Without it everything works on this phone alone.")
+                    OutlinedTextField(
+                        companion,
+                        { companion = it },
+                        label = { Text("Companion server address") },
+                        placeholder = { Text("encore:8097") },
+                        leadingIcon = { Icon(Icons.devices(), contentDescription = null) },
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = (Grid.base * 2).dp),
+                    )
+                    androidx.compose.material3.FilledTonalButton(modifier = Modifier.align(Alignment.End).padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp), enabled = companion.isNotBlank(), onClick = {
                         scope.launch {
                             runCatching { host.core.connectCompanion(companion.trim()) }
                                 .onSuccess { status = it; version++; actions.toaster.show("Connected. Sync runs by itself.") }
@@ -550,14 +616,10 @@ private fun PrivacyPage(host: CoreHost, onBack: () -> Unit, contentPadding: Padd
         return
     }
     val addresses = remember { runCatching { host.core.servers().map { it.baseUrl } + listOfNotNull(host.core.syncStatus().serverUrl) }.getOrDefault(emptyList()) }
-    Page("Privacy and data · ${profile?.displayName.orEmpty()}", onBack, contentPadding) {
+    Page("Privacy and data", onBack, contentPadding, subtitle = profile?.displayName?.let { "For $it" }) {
         item {
             // Item 1: the promise, matching what the app does.
-            Text(
-                "There is no account with the app's makers. This app only talks to the servers you added, and nothing about your listening leaves them.",
-                style = LocalEncoreType.current.body,
-                modifier = Modifier.padding(horizontal = (Grid.base * 3).dp),
-            )
+            Body("There is no account with the app's makers. This app only talks to the servers you added, and nothing about your listening leaves them.")
         }
         group("Learning", listOf(Row0("Learn from my listening", "Off stops all recommendation learning and hides Mixes", trailing = {
             CheckSwitch(learning, onCheckedChange = { on ->
@@ -649,12 +711,13 @@ private fun LicencesPage(onBack: () -> Unit, contentPadding: PaddingValues) {
     Page("About and licenses", onBack, contentPadding) {
         group(null, listOf(
             Row0(appName(), "Version ${versionName(context)} · core ${coreVersion()}", { Icons.info() }),
-            Row0("Source code", "github.com/Gr3y50n1213/encore · MPL-2.0", { Icons.chevron() }),
+            Row0("Source code", "github.com/Gr3y50n1213/encore · MPL-2.0", { Icons.share() }),
         ))
         item {
             Text(
                 text.ifBlank { "The license list ships with release builds." } + "\n\n" + inter,
-                style = LocalEncoreType.current.caption,
+                style = LocalEncoreType.current.body.copy(fontSize = 13.sp, lineHeight = 19.sp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding((Grid.base * 3).dp),
             )
         }

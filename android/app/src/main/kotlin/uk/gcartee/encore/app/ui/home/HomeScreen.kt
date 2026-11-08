@@ -149,7 +149,8 @@ fun HomeScreen(host: CoreHost, data: HomeData, onProfile: () -> Unit, reselect: 
         // Whole screen: pull down refreshes the library (and Home after it).
         PullToRefreshBox(isRefreshing = sync.running, onRefresh = { host.sync.syncNow() }) {
             LazyColumn(state = list, contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding() + (Grid.base * 2).dp)) {
-                item { PageTitleRow("Home", host, onProfile) }
+                // A greeting for the time of day, the way a listening app says hello.
+                item { PageTitleRow(greeting(), host, onProfile) }
                 item { SyncRow(sync) }
                 if (home == null) {
                     item {
@@ -160,13 +161,18 @@ fun HomeScreen(host: CoreHost, data: HomeData, onProfile: () -> Unit, reselect: 
                     }
                     return@LazyColumn
                 }
+                // The last album played, big, with Play; then more of what was played
+                // lately as quick tiles, two to a row.
+                val recent = (home.recentlyPlayed + home.recentlyAdded + home.mostPlayed).filter { it.albumId != null }.distinctBy { it.albumId }
+                recent.firstOrNull()?.let { s -> item { JumpBackIn(s) } }
+                val picks = recent.drop(1).take(QUICK_PICKS)
+                if (picks.size >= 2) item { QuickPicks(picks) }
                 // Item 2: Made for you, with every shelf state (CORE-API "Mix states").
                 item { SectionTitle("Made for you") }
                 item { MadeForYou(home, data, onOpenMix = { actions.open(Route.Mix(it)) }, onRefresh = { scope.launch { data.load(regenerate = true) } }) }
                 // Items 3 and 4: tiles open, never play; Rediscover holds Not interested.
-                // Board 05: Recently played is a row of small tiles, Rediscover larger.
-                shelf("Recently played", home.recentlyPlayed, tileDp = SMALL_TILE_DP)
-                shelf("Rediscover", home.rediscover)
+                shelf("Recently played", home.recentlyPlayed)
+                shelf("Rediscover", home.rediscover, tileDp = LARGE_TILE_DP)
                 shelf("Deep cuts", home.deepCuts)
                 shelf("Recently added", home.recentlyAdded)
                 shelf("Most played", home.mostPlayed)
@@ -226,7 +232,7 @@ private fun MadeForYou(home: Home, data: HomeData, onOpenMix: (String) -> Unit, 
     val shelf = home.madeForYou
     when (shelf.state) {
         MixState.NOT_ENOUGH_PLAYS -> if (shelf.mixes.isEmpty()) {
-            Notice("Encore is still learning", "${shelf.playsSoFar} of ${shelf.playsNeeded} plays. Mixes appear as you listen.")
+            Notice("Encore is learning your taste", "${shelf.playsSoFar} of ${shelf.playsNeeded} plays. Mixes appear as you listen.", learning = true)
             return
         }
         MixState.LEARNING_OFF -> {
@@ -269,13 +275,109 @@ private fun MadeForYou(home: Home, data: HomeData, onOpenMix: (String) -> Unit, 
 }
 
 @Composable
-private fun Notice(title: String, line: String) {
+private fun Notice(title: String, line: String, learning: Boolean = false) {
     val type = LocalEncoreType.current
     Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = (Grid.base * 2).dp)) {
-        Column(Modifier.padding((Grid.base * 2).dp)) {
-            Text(title, style = type.sectionHeader)
-            Spacer(Modifier.height(4.dp))
-            Text(line, style = type.body, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(Modifier.padding((Grid.base * 2).dp), verticalAlignment = Alignment.CenterVertically) {
+            if (learning) {
+                LearningOrb(Modifier.size(NOTICE_ORB_DP.dp))
+                Spacer(Modifier.width((Grid.base * 2).dp))
+            }
+            Column(Modifier.weight(1f)) {
+                Text(title, style = type.sectionHeader)
+                Spacer(Modifier.height(4.dp))
+                Text(line, style = type.body.copy(fontSize = 14.sp, lineHeight = 20.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+/** "Good morning" and so on, by the phone's clock. */
+private fun greeting(): String = when (java.time.LocalTime.now().hour) {
+    in 5..11 -> "Good morning"
+    in 12..16 -> "Good afternoon"
+    in 17..21 -> "Good evening"
+    else -> "Good night"
+}
+
+/**
+ * The album played last, big: its cover full bleed under a soft dark gradient, the title
+ * in white and a white Play that plays the album. The card opens the album.
+ */
+@Composable
+private fun JumpBackIn(song: Song) {
+    val actions = LocalAppActions.current
+    val type = LocalEncoreType.current
+    val haptics = rememberHaptics()
+    val albumId = song.albumId ?: return
+    val press = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val pressed by press.collectIsPressedAsState()
+    val scale by androidx.compose.animation.core.animateFloatAsState(if (pressed) PRESSED_SCALE else 1f, androidx.compose.animation.core.spring(dampingRatio = 0.6f), label = "press")
+    Surface(
+        onClick = { actions.open(Route.Album(albumId)) },
+        interactionSource = press,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(HERO_RADIUS_DP.dp),
+        modifier = Modifier
+            .padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp)
+            .fillMaxWidth()
+            .height(HERO_HEIGHT_DP.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            },
+    ) {
+        Box {
+            Artwork(uk.gcartee.encore.core.ArtworkOf.ALBUM, albumId, HERO_ART_DP.dp, Modifier.fillMaxSize(), cornerRadius = 0.dp, fill = true)
+            Box(Modifier.matchParentSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(0f to Color.Transparent, 0.35f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.78f))))
+            Column(Modifier.align(Alignment.BottomStart).padding(start = (Grid.base * 2.5f).dp, bottom = (Grid.base * 2.5f).dp, end = HERO_TEXT_END_DP.dp)) {
+                Text("Jump back in", style = type.buttonLabelSelected, color = Color.White.copy(alpha = 0.85f))
+                Spacer(Modifier.height(4.dp))
+                Text(song.albumTitle ?: song.title, style = type.collectionTitle.copy(fontSize = 24.sp, lineHeight = 28.sp), color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(song.albumArtist.ifBlank { song.artist }, style = type.body.copy(fontSize = 15.sp), color = Color.White.copy(alpha = 0.85f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            FilledIconButton(
+                onClick = {
+                    haptics.perform(Haptic.Soft)
+                    val ids = runCatching { actions.host.core.album(albumId).songs.map { it.id } }.getOrDefault(emptyList())
+                    if (ids.isNotEmpty()) actions.play(ids, 0, StartedFrom.ALBUM, albumId.toString(), song.albumTitle)
+                },
+                colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color.White, contentColor = Color.Black),
+                modifier = Modifier.align(Alignment.BottomEnd).padding((Grid.base * 2).dp).size(HERO_PLAY_DP.dp),
+            ) { Icon(Icons.play(), contentDescription = "Play ${song.albumTitle ?: song.title}", modifier = Modifier.size(28.dp)) }
+        }
+    }
+}
+
+/** Recent albums as quick tiles, two to a row: the cover at the start, the name beside it. */
+@Composable
+private fun QuickPicks(songs: List<Song>) {
+    val actions = LocalAppActions.current
+    val type = LocalEncoreType.current
+    Column(Modifier.padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp), verticalArrangement = Arrangement.spacedBy(Grid.base.dp)) {
+        songs.chunked(2).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(Grid.base.dp)) {
+                row.forEach { s ->
+                    val albumId = s.albumId ?: return@forEach
+                    Surface(
+                        onClick = { actions.open(Route.Album(albumId)) },
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(QUICK_RADIUS_DP.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        modifier = Modifier.weight(1f).height(QUICK_HEIGHT_DP.dp),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Artwork(uk.gcartee.encore.core.ArtworkOf.ALBUM, albumId, QUICK_HEIGHT_DP.dp, Modifier.size(QUICK_HEIGHT_DP.dp), cornerRadius = 0.dp)
+                            Text(
+                                s.albumTitle ?: s.title,
+                                style = type.tileTitle.copy(fontSize = 14.sp, lineHeight = 18.sp),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f).padding(horizontal = (Grid.base * 1.5f).dp),
+                            )
+                        }
+                    }
+                }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
+            }
         }
     }
 }
@@ -490,6 +592,17 @@ private const val CAROUSEL_ITEM_DP = 220
 // Board 05: the large tile is wider than tall (about 220 by 176 dp), its labels below.
 private const val CAROUSEL_HEIGHT_DP = 222
 private const val CAROUSEL_LABEL_INSET_DP = 4
-private const val SHELF_TILE_DP = 120
+private const val SHELF_TILE_DP = 132
+private const val LARGE_TILE_DP = 160
+private const val QUICK_PICKS = 6
+private const val QUICK_HEIGHT_DP = 60
+private const val QUICK_RADIUS_DP = 16
+private const val HERO_HEIGHT_DP = 220
+private const val HERO_RADIUS_DP = 28
+private const val HERO_ART_DP = 420
+private const val HERO_PLAY_DP = 56
+private const val HERO_TEXT_END_DP = 96
+private const val PRESSED_SCALE = 0.98f
+private const val NOTICE_ORB_DP = 72
 private const val SMALL_TILE_DP = 96
 private const val RING_DP = 6

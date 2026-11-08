@@ -129,7 +129,7 @@ private fun Onboarding(host: CoreHost) {
         label = "onboarding",
     ) { s ->
         when (s) {
-            1 -> WelcomeScreen(onGetStarted = { step = 2 }, onExistingProfile = null)
+            1 -> WelcomeScreen(onGetStarted = { step = 2 }, onExistingProfile = { step = 2 })
             else -> ConnectScreen(host, step = 2, steps = 2, onBack = { step = 1 }, onSignedIn = { signed ->
                 host.signedIn(signed)
                 host.sync.syncNow()

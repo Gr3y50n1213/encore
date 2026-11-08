@@ -9,7 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -120,7 +120,7 @@ fun ScrubBar(
         infiniteRepeatable(tween(WAVE_PERIOD_MS, easing = LinearEasing)),
         label = "phase",
     )
-    BoxWithConstraints(
+    Box(
         modifier
             .fillMaxWidth()
             .height(BAR_TOUCH_DP.dp)

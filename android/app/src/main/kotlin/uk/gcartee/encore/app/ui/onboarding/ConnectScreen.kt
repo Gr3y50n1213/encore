@@ -49,6 +49,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.graphicsLayer
@@ -224,52 +228,54 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     FilledTonalIconButton(
                         onClick = onBack,
-                        shape = RoundedCornerShape((Grid.base * 2).dp),
+                        shapes = androidx.compose.material3.IconButtonDefaults.shapes(RoundedCornerShape(14.dp), RoundedCornerShape(50)),
                         modifier = Modifier.size((TouchTarget.android).dp),
                     ) { Icon(Icons.back(), contentDescription = "Back") }
                     Spacer(Modifier.weight(1f))
-                    Text("Step $step of $steps", style = type.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    // Item 1: where you are in setup, as a tonal pill.
+                    Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.secondaryContainer) {
+                        Text("Step $step of $steps", style = type.buttonLabelSelected, color = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+                    }
                 }
                 Spacer(Modifier.height((Grid.base * 3).dp))
-                Text("Connect your server", style = type.onboardingTitle, color = MaterialTheme.colorScheme.onSurface)
+                // A small expressive mark for the step: the server in a cookie shape.
+                Box(
+                    Modifier.size(HERO_DP.dp).clip(uk.gcartee.encore.app.ui.home.PolygonShape(androidx.compose.material3.MaterialShapes.Cookie9Sided)).background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center,
+                ) { Icon(Icons.servers(), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(32.dp)) }
                 Spacer(Modifier.height((Grid.base * 2).dp))
+                Text("Connect your server", style = type.onboardingTitle, color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.height(Grid.base.dp))
                 Text(
                     "Your music stays on your server. This app only plays it.",
-                    style = type.body,
+                    style = type.body.copy(fontSize = 15.sp, lineHeight = 21.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height((Grid.base * 3).dp))
 
                 // Item 2: server type, a connected button group. Only Jellyfin works today.
-                Row(horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)) {
-                    val labels = listOf("Jellyfin", "Plex soon", "Other")
-                    labels.forEachIndexed { i, label ->
-                        ToggleButton(
-                            checked = i == 0,
-                            onCheckedChange = { if (i == 0) haptics.perform(Haptic.Tick) },
-                            enabled = i == 0,
-                            shapes = when (i) {
-                                0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
-                                labels.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
-                                else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
-                            },
-                            modifier = Modifier.weight(1f).semantics { role = Role.RadioButton },
-                        ) { Text(label, style = if (i == 0) type.buttonLabelSelected else type.buttonLabel) }
-                    }
-                }
+                uk.gcartee.encore.app.ui.library.ChoiceGroup(
+                    options = listOf(0 to "Jellyfin", 1 to "Plex (soon)", 2 to "Other"),
+                    selected = 0,
+                    onSelect = { },
+                    enabled = { it == 0 },
+                )
                 Text(
                     "Other servers are added through adapters as they are built.",
                     style = type.caption,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = Grid.base.dp),
+                    modifier = Modifier.padding(top = Grid.base.dp, start = 4.dp),
                 )
-                Spacer(Modifier.height((Grid.base * 2).dp))
+                Spacer(Modifier.height((Grid.base * 3).dp))
 
                 // Item 3: the address and what was found there.
                 OutlinedTextField(
                     value = address,
                     onValueChange = { address = it },
+                    label = { Text("Server address") },
                     placeholder = { Text("https://music.example.home") },
+                    leadingIcon = { Icon(Icons.servers(), contentDescription = null) },
+                    shape = RoundedCornerShape(FIELD_RADIUS_DP.dp),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next, autoCorrectEnabled = false),
                     keyboardActions = KeyboardActions(onNext = { focus.moveFocus(FocusDirection.Down) }),
@@ -300,7 +306,9 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
                     OutlinedTextField(
                         value = username,
                         onValueChange = { username = it },
-                        placeholder = { Text("Username") },
+                        label = { Text("Username") },
+                        leadingIcon = { Icon(Icons.artist(), contentDescription = null) },
+                        shape = RoundedCornerShape(FIELD_RADIUS_DP.dp),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next, autoCorrectEnabled = false),
                         keyboardActions = KeyboardActions(onNext = { focus.moveFocus(FocusDirection.Down) }),
@@ -310,7 +318,9 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
-                        placeholder = { Text("Password") },
+                        label = { Text("Password") },
+                        leadingIcon = { Icon(Icons.lock(), contentDescription = null) },
+                        shape = RoundedCornerShape(FIELD_RADIUS_DP.dp),
                         singleLine = true,
                         visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                         trailingIcon = {
@@ -340,12 +350,13 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
                 Button(
                     onClick = ::signIn,
                     enabled = found != null && username.isNotBlank() && !signingIn && quick == null,
+                    shapes = ButtonDefaults.shapes(),
                     modifier = Modifier.fillMaxWidth().height(BUTTON_DP.dp),
                 ) {
                     if (signingIn) {
-                        CircularProgressIndicator(Modifier.size(SPINNER_DP.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                        androidx.compose.material3.LoadingIndicator(Modifier.size(LOADING_DP.dp), color = MaterialTheme.colorScheme.onPrimary)
                     } else {
-                        Text("Sign in", style = type.sectionHeader)
+                        Text("Sign in", style = type.sectionHeader.copy(fontSize = 16.sp))
                     }
                 }
 
@@ -361,13 +372,21 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
                     FilledTonalButton(
                         onClick = ::startQuickConnect,
                         enabled = found != null && !signingIn,
+                        shapes = ButtonDefaults.shapes(),
                         modifier = Modifier.fillMaxWidth().height(BUTTON_DP.dp).testTag("quick-connect"),
-                    ) { Text("Use Quick Connect", style = type.sectionHeader) }
+                    ) {
+                        Icon(Icons.devices(), contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.size(Grid.base.dp))
+                        Text("Use Quick Connect", style = type.sectionHeader.copy(fontSize = 16.sp))
+                    }
                 } else {
                     val left = ((q.expiresAtMs - now) / 1000).coerceAtLeast(0)
                     Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding((Grid.base * 2).dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(q.code, style = type.displayTitle, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                        Column(Modifier.padding((Grid.base * 3).dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            androidx.compose.material3.LoadingIndicator(Modifier.size(40.dp), color = MaterialTheme.colorScheme.onSecondaryContainer)
+                            Spacer(Modifier.height(Grid.base.dp))
+                            // Spaced so it reads off easily onto the other device.
+                            Text(q.code, style = type.displayTitle.copy(letterSpacing = 6.sp), color = MaterialTheme.colorScheme.onSecondaryContainer)
                             Spacer(Modifier.height(Grid.base.dp))
                             Text(
                                 "Waiting for approval · %d:%02d".format(left / 60, left % 60),
@@ -430,3 +449,6 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
 private const val CHECK_AFTER_MS = 600L
 private const val BUTTON_DP = 56
 private const val SPINNER_DP = 20
+private const val LOADING_DP = 28
+private const val HERO_DP = 72
+private const val FIELD_RADIUS_DP = 16
