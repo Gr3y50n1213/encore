@@ -32,6 +32,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
+import androidx.compose.ui.platform.withInfiniteAnimationFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -62,6 +63,8 @@ import uk.gcartee.encore.tokens.EncoreTokens.Motion
  * The playing position between the player's reports, on frame time, so the bar and the
  * lyrics glide instead of stepping once a second. Each report re-bases it; a report a
  * hair behind what is already shown is ignored rather than pulling the bar backwards.
+ * It runs as an infinite animation, so Compose's InfiniteAnimationPolicy can pause it
+ * (UI tests do: a loop on plain frames never lets the screen go idle while playing).
  */
 @Composable
 fun rememberSmoothPosition(positionMs: Long, playing: Boolean, durationMs: Long): State<Long> {
@@ -74,7 +77,7 @@ fun rememberSmoothPosition(positionMs: Long, playing: Boolean, durationMs: Long)
         val start = withFrameMillis { it }
         val end = if (durationMs > 0) durationMs else Long.MAX_VALUE
         while (true) {
-            withFrameMillis { now -> out.longValue = (base + (now - start)).coerceAtMost(end) }
+            withInfiniteAnimationFrameMillis { now -> out.longValue = (base + (now - start)).coerceAtMost(end) }
         }
     }
     return out

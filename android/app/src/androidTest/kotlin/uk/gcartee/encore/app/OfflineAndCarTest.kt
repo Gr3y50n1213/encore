@@ -66,7 +66,7 @@ class OfflineAndCarTest {
         val songs = host.core.album(album.id).songs
         rule.onNodeWithText("Library").performClick()
         rule.waitUntilAtLeastOneExists(hasText("Downloaded"), TIMEOUT)
-        rule.onAllNodesWithText("Albums").onFirst().performClick()
+        tap("Albums")
         openAlbum(album.title)
         rule.onNodeWithContentDescription("Download").performClick()
         step("every song of the album downloaded (the job ran)", DOWNLOAD_TIMEOUT) {
@@ -78,9 +78,9 @@ class OfflineAndCarTest {
         rule.waitUntilAtLeastOneExists(hasContentDescription("Downloaded. Remove download"), TIMEOUT)
         shot("12-album-downloaded")
 
-        // Library's Downloaded chip lists it.
+        // Library's Downloaded chip lists it (on a phone the chip row scrolls sideways).
         Espresso.pressBack()
-        rule.onNodeWithText("Downloaded").performClick()
+        tap("Downloaded")
         rule.waitUntilAtLeastOneExists(hasText(album.title), TIMEOUT)
         shot("13-library-downloaded")
 
@@ -105,6 +105,12 @@ class OfflineAndCarTest {
             // No network: the banner, the dimming, and the downloaded album still plays.
             shell("svc wifi disable")
             shell("svc data disable")
+            val dropped = runCatching { rule.waitUntil(NETWORK_DROP_MS) { host.connectivity.offline.value } }.isSuccess
+            if (!dropped) {
+                // An emulator on Ethernet keeps its network: the rest is the same from here.
+                android.util.Log.i("OfflineAndCarTest", "the network stayed up; offline simulated")
+                rule.runOnUiThread { host.connectivity.simulatedOffline = true }
+            }
             step("the app says it's offline (board 20: after 2 s)", TIMEOUT) { host.connectivity.offline.value }
             rule.waitUntilAtLeastOneExists(hasText("Offline · Showing downloaded music"), TIMEOUT)
             step("the core knows", TIMEOUT) { !host.core.downloadMarks().online }
@@ -128,6 +134,7 @@ class OfflineAndCarTest {
         } finally {
             shell("svc wifi enable")
             shell("svc data enable")
+            rule.runOnUiThread { host.connectivity.simulatedOffline = null }
         }
         step("back online", TIMEOUT) { !host.connectivity.offline.value }
 
@@ -157,9 +164,16 @@ class OfflineAndCarTest {
         }
     }
 
+    /** Taps a chip or tile that may sit off screen in a row that scrolls. */
+    private fun tap(text: String) {
+        val node = rule.onAllNodesWithText(text).onFirst()
+        runCatching { node.performScrollTo() }
+        node.performClick()
+    }
+
     private fun openAlbum(title: String) {
         rule.waitUntilAtLeastOneExists(hasText(title), TIMEOUT)
-        rule.onAllNodesWithText(title).onFirst().performClick()
+        tap(title)
         rule.waitUntilAtLeastOneExists(hasText("Play"), TIMEOUT)
     }
 
@@ -196,6 +210,7 @@ class OfflineAndCarTest {
         const val TIMEOUT = 20_000L
         const val DOWNLOAD_TIMEOUT = 90_000L
         const val SETTLE_MS = 1_500L
+        const val NETWORK_DROP_MS = 10_000L
     }
 }
 

@@ -22,7 +22,7 @@ test settings:
     recording holds each one at the 64 px the palette samples, and the apps ask for
     the size they draw (fillWidth, fillHeight), so the end-to-end screenshots show
     the covers, scaled.
-  - A song's audio (GET /Audio/<id>/stream or /universal) is a few seconds of
+  - A song's audio (GET /Audio/<id>/stream or /universal) is 30 seconds of
     silence made here, as WAV, with ranges honoured: the recording holds no audio,
     and Phase 8's emulator test downloads songs and plays them offline. No audio is
     committed anywhere.
@@ -42,7 +42,7 @@ from urllib.parse import parse_qsl, urlsplit
 IGNORED_PARAMS = {"limit"}
 AUDIO_PATH = re.compile(r"^/Audio/[^/]+/(stream|universal)$")
 SAMPLE_RATE = 8000
-SECONDS = 4
+SECONDS = 30  # long enough that the playing song doesn't change under a test's checks
 
 
 def silence_wav():

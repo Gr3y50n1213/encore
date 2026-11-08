@@ -34,6 +34,13 @@ class Connectivity(private val context: Context, private val host: CoreHost) {
     private var raw = true
     private var settle: Job? = null
     private var started = false
+    /** Tests only: an emulator reached over Ethernet can't drop its network with `svc`. */
+    @androidx.annotation.VisibleForTesting
+    internal var simulatedOffline: Boolean? = null
+        set(value) {
+            field = value
+            changed()
+        }
 
     fun start() {
         if (started) return
@@ -50,6 +57,7 @@ class Connectivity(private val context: Context, private val host: CoreHost) {
     }
 
     private fun hasNetwork(): Boolean {
+        simulatedOffline?.let { return !it }
         val caps = cm?.getNetworkCapabilities(cm.activeNetwork) ?: return false
         return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
