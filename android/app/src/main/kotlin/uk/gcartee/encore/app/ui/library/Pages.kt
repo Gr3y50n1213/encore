@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import uk.gcartee.encore.app.ui.components.topBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -148,7 +148,7 @@ private fun Header(
 ) {
     val type = LocalEncoreType.current
     val haptics = rememberHaptics()
-    Column(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = (Grid.base * 2).dp)) {
+    Column(Modifier.fillMaxWidth().topBarsPadding().padding(horizontal = (Grid.base * 2).dp)) {
         // The same 16 dp above the buttons as beside them, so they sit square in a pane's
         // rounded corner on tablets and below the status bar on phones.
         Row(Modifier.fillMaxWidth().padding(top = (Grid.base * 2).dp, bottom = Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {

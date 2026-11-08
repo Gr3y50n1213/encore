@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import uk.gcartee.encore.app.ui.components.topBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -50,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.ui.semantics.heading
 import androidx.compose.foundation.clickable
 import uk.gcartee.encore.app.ui.components.LIST_ART_RADIUS_DP
@@ -136,7 +137,7 @@ fun LibraryScreen(host: CoreHost, onOpen: (Route) -> Unit, playingSongId: Long?,
     var headerHeight by remember { mutableIntStateOf(0) }
     LaunchedEffect(headerHeight) { headerState.heightOffsetLimit = -headerHeight.toFloat() }
     val sortable = shelf == Shelf.Albums || shelf == Shelf.Songs
-    Column(Modifier.fillMaxSize().statusBarsPadding().nestedScroll(collapse.nestedScrollConnection)) {
+    Column(Modifier.fillMaxSize().topBarsPadding().nestedScroll(collapse.nestedScrollConnection)) {
         Layout(
             content = {
                 Column(Modifier.onSizeChanged { headerHeight = it.height }) {
@@ -157,7 +158,8 @@ fun LibraryScreen(host: CoreHost, onOpen: (Route) -> Unit, playingSongId: Long?,
                             shelf = s
                             prefs.shelf = s
                         },
-                        modifier = Modifier.padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp),
+                        modifier = Modifier.padding(vertical = Grid.base.dp),
+                        edge = (Grid.base * 2).dp,
                     )
                     Row(
                         Modifier.fillMaxWidth().padding(start = Grid.base.dp, end = (Grid.base * 2).dp, bottom = Grid.base.dp),
@@ -447,11 +449,21 @@ internal fun ChipLabel(label: String, on: Boolean) {
 /**
  * A one-of choice drawn as a connected button group (boards 06 and 24): outer corners
  * round, facing corners 10 dp, the chosen one fully round and filled. Library's shelves
- * and Search's scopes both use it, like the app's other groups.
+ * and Search's scopes both use it, like the app's other groups. [edge] is the page's
+ * side margin: when the group scrolls it sits inside the scrolling row, so the buttons
+ * slide out under the screen's edge rather than being cut at the margin, and the
+ * chosen one is scrolled into view.
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-internal fun <T> ChoiceGroup(options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit, modifier: Modifier = Modifier, enabled: (T) -> Boolean = { true }) {
+internal fun <T> ChoiceGroup(
+    options: List<Pair<T, String>>,
+    selected: T,
+    onSelect: (T) -> Unit,
+    modifier: Modifier = Modifier,
+    edge: androidx.compose.ui.unit.Dp = 0.dp,
+    enabled: (T) -> Boolean = { true },
+) {
     val type = LocalEncoreType.current
     val haptics = rememberHaptics()
     val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
@@ -460,15 +472,18 @@ internal fun <T> ChoiceGroup(options: List<Pair<T, String>>, selected: T, onSele
     // size), the group scrolls sideways at their natural widths instead of squeezing.
     val needed = options.sumOf { it.second.length } * GROUP_TEXT_SP * CHAR_EM * fontScale +
         options.size * (2 * GROUP_SIDE_DP + GROUP_SLACK_DP)
-    val scrolls = needed > maxWidth.value
+    val scrolls = needed > (maxWidth - edge * 2).value
     Row(
         Modifier
             .fillMaxWidth()
-            .let { if (scrolls) it.horizontalScroll(androidx.compose.foundation.rememberScrollState()) else it },
+            .let { if (scrolls) it.horizontalScroll(androidx.compose.foundation.rememberScrollState()) else it }
+            .padding(horizontal = edge),
         horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
     ) {
         options.forEachIndexed { i, (value, label) ->
             val on = value == selected
+            val inView = remember { androidx.compose.foundation.relocation.BringIntoViewRequester() }
+            if (scrolls) LaunchedEffect(on) { if (on) inView.bringIntoView() }
             ToggleButton(
                 checked = on,
                 onCheckedChange = {
@@ -487,7 +502,7 @@ internal fun <T> ChoiceGroup(options: List<Pair<T, String>>, selected: T, onSele
                 // Labels never cut: each button is as wide as its word wants, with slim sides,
                 // so large text sizes still fit four in a row.
                 contentPadding = PaddingValues(horizontal = if (scrolls) (GROUP_SIDE_DP * 2).dp else GROUP_SIDE_DP.dp),
-                modifier = Modifier.let { if (scrolls) it else it.weight(label.length + GROUP_WEIGHT_BASE) }.semantics {
+                modifier = Modifier.let { if (scrolls) it.bringIntoViewRequester(inView) else it.weight(label.length + GROUP_WEIGHT_BASE) }.semantics {
                     role = Role.Tab
                     this.selected = on
                 },

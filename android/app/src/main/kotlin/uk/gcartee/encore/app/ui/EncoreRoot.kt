@@ -21,11 +21,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import uk.gcartee.encore.app.ui.components.topBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.width
 import uk.gcartee.encore.app.MainActivity
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.height
@@ -198,6 +198,13 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     // Phase 8: the settled network (board 20: in after 2 s, out 2 s after it returns)
     // and what is downloaded, for every screen.
     val offline by host.connectivity.offline.collectAsState()
+    // The offline pill floats over the page; pages move their content down by its height.
+    var bannerPx by remember { mutableIntStateOf(0) }
+    val bannerTop by androidx.compose.animation.core.animateDpAsState(
+        if (offline) with(LocalDensity.current) { bannerPx.toDp() } else 0.dp,
+        tween(BANNER_MS),
+        label = "banner",
+    )
     val downloadView by host.downloads.view.collectAsState()
     val downloadProgress = host.downloads.progress.collectAsState()
     val actions = remember(nav) {
@@ -240,6 +247,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
         LocalAppActions provides actions,
         uk.gcartee.encore.app.ui.components.LocalDownloads provides downloadView,
         uk.gcartee.encore.app.ui.components.LocalDownloadProgress provides downloadProgress,
+        uk.gcartee.encore.app.ui.components.LocalTopBanner provides bannerTop,
     ) {
         if (addingAccount) {
             // Board 14, item 4: the onboarding flow; the new profile opens when sign-in succeeds.
@@ -274,16 +282,9 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                     }
                 }
                 Column(Modifier.weight(1f).fillMaxSize()) {
-                    // Board 20, item 1, the owner's "not too intrusive but notable": a slim
-                    // amber pill under the status bar that pushes the page down rather than
-                    // covering it. The page below gives up the status bar's height as the
-                    // pill grows into it, so nothing jumps.
-                    OfflineBanner(offline)
-                    val statusTop = with(LocalDensity.current) { androidx.compose.foundation.layout.WindowInsets.statusBars.getTop(this).toDp() }
-                    val consumed by androidx.compose.animation.core.animateDpAsState(if (offline) statusTop else 0.dp, tween(BANNER_MS), label = "banner")
                     // Board 08: the page runs behind the mini player, which floats over it, so a
                     // tinted album page reaches the bar. Pages pad their lists by its height.
-                    Box(Modifier.weight(1f).consumeWindowInsets(PaddingValues(top = consumed))) {
+                    Box(Modifier.weight(1f)) {
                         val inner = PaddingValues(bottom = with(LocalDensity.current) { miniHeight.toDp() })
                         val top = nav.top
                         AnimatedContent(
@@ -297,7 +298,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                             // Board 29, item 2: on expanded windows Library is a 340 dp list with the
                             // chosen album, artist or playlist open beside it, two panes 12 dp apart.
                             if (expanded && tab == Tab.Library && route != null && route !is Route.Settings) {
-                                Row(Modifier.fillMaxSize().statusBarsPadding().padding(PANE_GAP_DP.dp)) {
+                                Row(Modifier.fillMaxSize().topBarsPadding().padding(PANE_GAP_DP.dp)) {
                                     Surface(shape = androidx.compose.foundation.shape.RoundedCornerShape(PANE_RADIUS_DP.dp), color = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.width(LIST_PANE_DP.dp).fillMaxSize()) {
                                         LibraryScreen(host, actions.open, playingSongId, inner)
                                     }
@@ -362,6 +363,11 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                                 }
                             }
                         }
+                        // Board 20, item 1, the owner's "not too intrusive but notable": a slim
+                        // amber pill that floats under the status bar. The page keeps drawing
+                        // behind it (an album's colour, the status bar's icons) and moves its
+                        // content down by the pill's height (LocalTopBanner), so it covers nothing.
+                        OfflineBanner(offline, Modifier.align(Alignment.TopCenter), onHeight = { bannerPx = it })
                     }
                 }
             }
@@ -623,23 +629,26 @@ private fun TabIcon(tab: Tab, selected: Boolean) {
  * announced politely to screen readers.
  */
 @Composable
-private fun OfflineBanner(visible: Boolean) {
+private fun OfflineBanner(visible: Boolean, modifier: Modifier = Modifier, onHeight: (Int) -> Unit) {
     val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
     val container = uk.gcartee.encore.app.ui.theme.tokenColor(if (dark) Amber.Dark.primaryContainer else Amber.Light.primaryContainer)
     val content = uk.gcartee.encore.app.ui.theme.tokenColor(if (dark) Amber.Dark.onPrimaryContainer else Amber.Light.onPrimaryContainer)
+    Box(modifier.fillMaxWidth().statusBarsPadding(), contentAlignment = Alignment.TopCenter) {
     androidx.compose.animation.AnimatedVisibility(
         visible,
-        enter = androidx.compose.animation.expandVertically(tween(BANNER_MS)) + fadeIn(tween(BANNER_MS)),
-        exit = androidx.compose.animation.shrinkVertically(tween(BANNER_MS)) + fadeOut(tween(BANNER_MS)),
+        enter = androidx.compose.animation.slideInVertically(tween(BANNER_MS)) { -it } + fadeIn(tween(BANNER_MS)),
+        exit = androidx.compose.animation.slideOutVertically(tween(BANNER_MS)) { -it } + fadeOut(tween(BANNER_MS)),
     ) {
         Box(
-            Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = (Grid.base * 2).dp, vertical = 6.dp),
+            Modifier.padding(horizontal = (Grid.base * 2).dp, vertical = 6.dp).onSizeChanged { onHeight(it.height) },
             contentAlignment = Alignment.Center,
         ) {
             Surface(
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(BANNER_RADIUS_DP.dp),
                 color = container,
                 contentColor = content,
+                // A soft lift so it reads over an album's colours as well as a plain page.
+                shadowElevation = BANNER_LIFT_DP.dp,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             ) {
                 Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -649,6 +658,7 @@ private fun OfflineBanner(visible: Boolean) {
                 }
             }
         }
+    }
     }
 }
 
@@ -692,6 +702,7 @@ private fun NotificationPrimer(onDone: () -> Unit) {
 }
 
 private const val BANNER_MS = 280
+private const val BANNER_LIFT_DP = 3
 private const val BANNER_RADIUS_DP = 16
 private const val PRIMER_MARK_DP = 64
 private const val PRIMER_BUTTON_DP = 52

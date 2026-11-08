@@ -8,10 +8,27 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.tappableElement
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+
+/** Room a floating banner takes under the status bar (the offline pill, board 20). */
+val LocalTopBanner = compositionLocalOf { 0.dp }
+
+/**
+ * The status bar's height plus any floating banner: pages pad their tops with this, so
+ * their colours still run edge to edge behind both while their content moves down.
+ */
+fun Modifier.topBarsPadding(): Modifier = composed {
+    statusBarsPadding().padding(top = LocalTopBanner.current)
+}
 
 private fun Context.activity(): Activity? = when (this) {
     is Activity -> this

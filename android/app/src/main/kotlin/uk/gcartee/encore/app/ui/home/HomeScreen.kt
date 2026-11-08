@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import uk.gcartee.encore.app.ui.components.topBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -189,7 +189,7 @@ fun HomeScreen(host: CoreHost, data: HomeData, onProfile: () -> Unit, reselect: 
 fun PageTitleRow(title: String, host: CoreHost, onProfile: () -> Unit, trailing: (@Composable () -> Unit)? = null) {
     val type = LocalEncoreType.current
     Row(
-        Modifier.fillMaxWidth().statusBarsPadding().padding(start = (Grid.base * 2).dp, end = (Grid.base * 2).dp, top = (Grid.base * 2).dp),
+        Modifier.fillMaxWidth().topBarsPadding().padding(start = (Grid.base * 2).dp, end = (Grid.base * 2).dp, top = (Grid.base * 2).dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(title, style = type.pageTitle, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f).semantics { heading() })

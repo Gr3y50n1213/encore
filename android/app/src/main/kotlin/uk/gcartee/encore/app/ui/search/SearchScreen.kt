@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import uk.gcartee.encore.app.ui.components.topBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -98,7 +98,7 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
         onOpen(route)
     }
 
-    Column(Modifier.fillMaxSize().statusBarsPadding()) {
+    Column(Modifier.fillMaxSize().topBarsPadding()) {
         // Item 1: Android docks a filled search bar at the top, the avatar inside it.
         androidx.compose.material3.TextField(
             value = query,
@@ -134,7 +134,8 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
             options = listOf("All" to "All", "Library" to "Library", "Downloaded" to "Downloaded"),
             selected = scope,
             onSelect = { scope = it },
-            modifier = Modifier.padding(horizontal = (Grid.base * 2).dp).padding(bottom = Grid.base.dp),
+            modifier = Modifier.padding(bottom = Grid.base.dp),
+            edge = (Grid.base * 2).dp,
         )
         val results = shown
         val listState = rememberLazyListState()

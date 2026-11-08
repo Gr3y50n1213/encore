@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import uk.gcartee.encore.app.ui.components.topBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -230,7 +230,7 @@ internal fun Page(title: String, onBack: (() -> Unit)?, contentPadding: PaddingV
     val type = LocalEncoreType.current
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding() + (Grid.base * 3).dp)) {
         item {
-            Column(Modifier.statusBarsPadding().padding(horizontal = (Grid.base * 2).dp)) {
+            Column(Modifier.topBarsPadding().padding(horizontal = (Grid.base * 2).dp)) {
                 Row(Modifier.fillMaxWidth().padding(top = (Grid.base * 2).dp, bottom = Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (onBack != null) FilledTonalIconButton(
                         onClick = onBack,
@@ -499,7 +499,7 @@ private fun AppearancePage(host: CoreHost, onBack: () -> Unit, contentPadding: P
     val haptics = rememberHaptics()
     Page("Appearance", onBack, contentPadding) {
         item { Label("Theme") }
-        item { uk.gcartee.encore.app.ui.library.ChoiceGroup(ThemeMode.entries.map { it to it.label }, choice.mode, { Appearance.set(context, choice.copy(mode = it)) }, modifier = Modifier.padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp)) }
+        item { uk.gcartee.encore.app.ui.library.ChoiceGroup(ThemeMode.entries.map { it to it.label }, choice.mode, { Appearance.set(context, choice.copy(mode = it)) }, modifier = Modifier.padding(vertical = Grid.base.dp), edge = (Grid.base * 2).dp) }
         item { Label("Accent color") }
         item {
             // A compact grid, four to a row, in one tonal card: each swatch shows the
