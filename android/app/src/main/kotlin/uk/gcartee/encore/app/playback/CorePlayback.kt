@@ -68,6 +68,8 @@ class CorePlayback(
     private var pendingPlay = false
     private var scanJob: Job? = null
     private var scanFrom = 0L
+    /** The song each loaded item plays, by queue uid (see [adopt]). */
+    private val songOfUid = java.util.concurrent.ConcurrentHashMap<Long, Long>()
 
     private val _state = MutableStateFlow(PlayerState())
     val state: StateFlow<PlayerState> = _state.asStateFlow()
@@ -308,7 +310,7 @@ class CorePlayback(
             if (play && !exo.playWhenReady) exo.play()
             return
         }
-        if (exo.mediaItemCount > 1 && uidAt(1) == entry.uid) {
+        if (exo.mediaItemCount > 1 && (uidAt(1) == entry.uid || adopt(1, entry))) {
             exo.seekToDefaultPosition(1)
             exo.removeMediaItem(0)
             if (play) exo.play()
@@ -328,8 +330,30 @@ class CorePlayback(
     }
 
     private fun preload(entry: QueueEntry) {
+        if (adopt(1, entry)) {
+            while (exo.mediaItemCount > 2) exo.removeMediaItem(exo.mediaItemCount - 1)
+            return
+        }
         while (exo.mediaItemCount > 1) exo.removeMediaItem(exo.mediaItemCount - 1)
         mediaItem(entry)?.let(exo::addMediaItem)
+    }
+
+    /**
+     * The item at [index] already plays [entry]'s song under an older queue uid (Autoplay
+     * refills give its songs new uids): take the new uid and details in place. The address
+     * is the same, so the player keeps what it has loaded. Without this the same song was
+     * fetched again, and on a capped quality that was another transcode on the server
+     * (seen on the owner's Jellyfin, 8 November 2026).
+     */
+    private fun adopt(index: Int, entry: QueueEntry): Boolean {
+        if (index >= exo.mediaItemCount) return false
+        val uid = uidAt(index) ?: return false
+        if (uid == entry.uid) return true
+        if (songOfUid[uid] != entry.song.id) return false
+        val item = mediaItem(entry) ?: return false
+        if (item.localConfiguration?.uri != exo.getMediaItemAt(index).localConfiguration?.uri) return false
+        exo.replaceMediaItem(index, item)
+        return true
     }
 
     /** The queue changed after a preload (a reorder, Play Next): replace the stale one. */
@@ -337,6 +361,7 @@ class CorePlayback(
         if (exo.mediaItemCount < 2) return
         val expected = runCatching { core.nextTarget().song }.getOrNull()
         if (uidAt(1) == expected?.uid) return
+        if (expected != null && adopt(1, expected)) return
         while (exo.mediaItemCount > 1) exo.removeMediaItem(exo.mediaItemCount - 1)
         expected?.let { mediaItem(it)?.let(exo::addMediaItem) }
         publish(state.current)
@@ -387,6 +412,8 @@ class CorePlayback(
         when {
             next == null -> exo.stop()
             next.uid == arrived -> started(next.uid)
+            // The same song under a new uid (Autoplay refilled): keep playing what arrived.
+            adopt(0, next) -> started(next.uid)
             else -> load(next, play = true)
         }
         publish()
@@ -454,6 +481,8 @@ class CorePlayback(
             return null
         }
         headers[info.url] = info.headers.associate { it.name to it.value }
+        if (songOfUid.size > SONGS_REMEMBERED) songOfUid.clear()
+        songOfUid[entry.uid] = entry.song.id
         val art = runCatching { core.artwork(ArtworkOf.SONG, entry.song.id, ARTWORK_PX.toUInt()) }.getOrNull()
         art?.let { headers[it.url] = it.headers.associate { h -> h.name to h.value } }
         val song = entry.song
@@ -499,6 +528,7 @@ class CorePlayback(
         private const val TICK_MS = 1_000L
         private const val ARTWORK_PX = 512
         private const val MAX_ERRORS_IN_A_ROW = 3
+        private const val SONGS_REMEMBERED = 512
         private const val SCAN_STEP_MS = 250L
         private const val SCAN_SPEED = 4
         private const val FADE_MS = 800L
