@@ -259,31 +259,8 @@ class AutoLibrary(
         return true
     }
 
-    /** "Play <name>": the best match, or the queue as it was for a bare "play music". */
-    private fun playSearch(query: String): Boolean {
-        if (query.isBlank()) return runCatching { core.queue().current }.getOrNull() != null
-        val r = runCatching { core.search(query) }.getOrNull() ?: return false
-        val v = view
-        val top = r.top
-        when {
-            top?.album != null && v.albumPlayable(core.album(top.album!!.id).songs.map { it.id }) -> {
-                val songs = core.album(top.album!!.id).songs.map { it.id }.filter(v::canPlay)
-                core.play(songs, 0u, StartedFrom.SEARCH, null)
-            }
-            top?.playlist != null -> {
-                val songs = core.playlist(top.playlist!!.id).entries.mapNotNull { it.song?.id }.filter(v::canPlay)
-                if (songs.isEmpty()) return false
-                core.play(songs, 0u, StartedFrom.SEARCH, null)
-            }
-            else -> {
-                val songs = r.songs.map { it.id }.filter(v::canPlay)
-                if (songs.isEmpty()) return false
-                core.play(songs, 0u, StartedFrom.SEARCH, null)
-            }
-        }
-        host.playingFrom.value = "“$query”"
-        return true
-    }
+    /** "Play <name>" by voice in the car (VoicePlay, shared with the phone's assistant). */
+    private fun playSearch(query: String): Boolean = VoicePlay.queue(host, query)
 
     private fun listIds(list: String): List<Long> = runCatching {
         when {

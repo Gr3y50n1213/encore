@@ -27,6 +27,7 @@ class MainActivity : ComponentActivity() {
         // Later launches go straight to the library (board 22, "First launch only").
         if (!host.profileOpen.value) host.openLastProfile()
         if (intent?.getStringExtra(EXTRA_OPEN) == OPEN_DOWNLOADS) host.openRequest.value = OPEN_DOWNLOADS
+        playFromSearch(intent)
         setContent {
             EncoreTheme {
                 EncoreRoot(host)
@@ -56,6 +57,15 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         if (intent.getStringExtra(EXTRA_OPEN) == OPEN_DOWNLOADS) host.openRequest.value = OPEN_DOWNLOADS
+        playFromSearch(intent)
+    }
+
+    /** "Play <name> on Encore" from the assistant (Phase 8): the core queues it, then it plays. */
+    private fun playFromSearch(intent: android.content.Intent?) {
+        if (intent?.action != android.provider.MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH) return
+        if (!host.profileOpen.value) return
+        val query = intent.getStringExtra(android.app.SearchManager.QUERY)
+        if (uk.gcartee.encore.app.playback.VoicePlay.queue(host, query)) PlaybackHub.loadCurrent(this)
     }
 
     companion object {
