@@ -5,6 +5,7 @@ import android.content.ComponentName
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
@@ -69,6 +70,13 @@ class OfflineAndCarTest {
         tap("Albums")
         openAlbum(album.title)
         rule.onNodeWithContentDescription("Download").performClick()
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            // Board 25: the first download asks, in the app's own words, before Android does.
+            rule.waitUntilAtLeastOneExists(hasText("Show download progress?"), TIMEOUT)
+            shot("11-notification-primer")
+            rule.onNodeWithText("Not now").performClick()
+            rule.waitUntilDoesNotExist(hasText("Show download progress?"), TIMEOUT)
+        }
         step("every song of the album downloaded (the job ran)", DOWNLOAD_TIMEOUT) {
             host.core.downloadMarks().items.any { it.target.id == album.id && it.state == DownloadState.SAVED }
         }
@@ -164,10 +172,16 @@ class OfflineAndCarTest {
         }
     }
 
-    /** Taps a chip or tile that may sit off screen in a row that scrolls. */
+    /**
+     * Taps the copy of [text] that's on screen (a page behind may hold one too), after
+     * scrolling it into view when it sits in a row that scrolls (Library's chips).
+     */
     private fun tap(text: String) {
-        val node = rule.onAllNodesWithText(text).onFirst()
-        runCatching { node.performScrollTo() }
+        val all = rule.onAllNodesWithText(text)
+        val count = all.fetchSemanticsNodes().size
+        val node = (0 until count).map { all[it] }
+            .firstOrNull { n -> runCatching { n.performScrollTo() }; runCatching { n.assertIsDisplayed() }.isSuccess }
+            ?: throw AssertionError("\"$text\" isn't on screen.\n" + rule.onRoot().printToString(maxDepth = 30))
         node.performClick()
     }
 
