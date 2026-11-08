@@ -140,13 +140,14 @@ fun SwipeRow(
                 Modifier
                     .matchParentSize()
                     .drawWithContent {
+                        val row = this
                         val o = offset.value
                         val left = if (o > 0f) 0f else size.width + o
                         val right = if (o > 0f) o else size.width
                         val r = radius.toPx()
                         clipPath(androidx.compose.ui.graphics.Path().apply {
                             addRoundRect(androidx.compose.ui.geometry.RoundRect(left, 0f, right, size.height, androidx.compose.ui.geometry.CornerRadius(r)))
-                        }) { this@drawWithContent.drawContent() }
+                        }) { row.drawContent() }
                     }
                     .background(if (armed) bg else bg.copy(alpha = 0.6f))
                     .padding(horizontal = (Grid.base * 3).dp),
