@@ -45,7 +45,29 @@ pub struct Tokens {
     pub switch_flush: std::time::Duration,
     pub private_ends_after_ms: i64,
     pub confirm_over_songs: u32,
+    pub downloads: Downloads,
 }
+
+/// Downloads and the rolling cache (Phase 8; `downloads` in tokens.json).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Downloads {
+    pub default_quality: String,
+    pub wifi_only_default: bool,
+    pub limit_options_gb: Vec<u64>,
+    pub remove_unplayed_after_days: u32,
+    pub keep_free_bytes: u64,
+    pub max_attempts: u32,
+    pub progress_every_ms: u64,
+    pub cover_size_px: u32,
+    pub estimate_lossless_kbps: u64,
+    pub estimate_lossy_kbps: u64,
+    pub cache_options_bytes: Vec<u64>,
+    pub cache_default_bytes: u64,
+    pub smart_budget_bytes: u64,
+}
+
+const MB: u64 = 1_000_000;
+const GB: u64 = 1_000_000_000;
 
 fn at<'a>(v: &'a Value, path: &str) -> &'a Value {
     let found = path.split('.').fold(v, |cur, key| &cur[key]);
@@ -63,6 +85,18 @@ fn real(v: &Value, path: &str) -> f64 {
     at(v, path)
         .as_f64()
         .unwrap_or_else(|| panic!("{path} is not a number"))
+}
+
+fn list(v: &Value, path: &str) -> Vec<u64> {
+    at(v, path)
+        .as_array()
+        .unwrap_or_else(|| panic!("{path} is not a list"))
+        .iter()
+        .map(|n| {
+            n.as_f64()
+                .unwrap_or_else(|| panic!("{path} holds a non-number")) as u64
+        })
+        .collect()
 }
 
 fn text(v: &Value, path: &str) -> String {
@@ -136,6 +170,26 @@ fn parse() -> Tokens {
         private_ends_after_ms: num(&v, "smartPicks.privateListeningEndsAfterHoursSilent") as i64
             * 3_600_000,
         confirm_over_songs: num(&v, "gestures.dragAndDrop.confirmOverSongs") as u32,
+        downloads: Downloads {
+            default_quality: text(&v, "downloads.defaultQuality"),
+            wifi_only_default: at(&v, "downloads.wifiOnlyDefault")
+                .as_bool()
+                .expect("downloads.wifiOnlyDefault is true or false"),
+            limit_options_gb: list(&v, "downloads.limitOptionsGB"),
+            remove_unplayed_after_days: num(&v, "downloads.removeUnplayedAfterDays") as u32,
+            keep_free_bytes: num(&v, "downloads.keepFreeMB") * MB,
+            max_attempts: num(&v, "downloads.maxAttempts") as u32,
+            progress_every_ms: num(&v, "downloads.progressEveryMs"),
+            cover_size_px: num(&v, "downloads.coverSizePx") as u32,
+            estimate_lossless_kbps: num(&v, "downloads.estimateLosslessKbps"),
+            estimate_lossy_kbps: num(&v, "downloads.estimateLossyKbps"),
+            cache_options_bytes: list(&v, "downloads.cacheOptionsMB")
+                .into_iter()
+                .map(|m| m * MB)
+                .collect(),
+            cache_default_bytes: num(&v, "downloads.cacheDefaultMB") * MB,
+            smart_budget_bytes: num(&v, "smartPicks.mixes.smartDownloadsDefaultBudgetGB") * GB,
+        },
         signal: crate::signal::Rules {
             early_skip_ms: num(&v, "smartPicks.earlySkipBoundarySeconds") * 1000,
             late_skip_percent: num(&v, "smartPicks.lateSkipPercent"),
@@ -169,5 +223,12 @@ mod tests {
             (320, 160, 96)
         );
         assert_eq!(t.search_songs, 20);
+        let d = &t.downloads;
+        assert_eq!(d.default_quality, "original");
+        assert!(d.wifi_only_default);
+        assert_eq!(d.limit_options_gb, [2, 5, 10, 20, 50]);
+        assert_eq!((d.keep_free_bytes, d.max_attempts), (500_000_000, 3));
+        assert_eq!(d.cache_default_bytes, 1_000_000_000);
+        assert_eq!(d.smart_budget_bytes, 2_000_000_000);
     }
 }

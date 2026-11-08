@@ -121,6 +121,15 @@ if let replay = ProcessInfo.processInfo.environment["ENCORE_REPLAY_URL"] {
         try await core.handOffTo(deviceId: "nobody")
         preconditionFailure("handoff needs a companion")
     } catch {}
+    // Phase 8: a downloaded song plays from its file (the replay serves audio).
+    let kept = DownloadTarget(kind: .song, id: all[0].id, mixId: nil)
+    _ = try core.download(target: kept)
+    let run = try await core.runDownloads(network: .wifi, freeBytes: 0)
+    precondition(run.stop == .done && run.saved == 1, "download \(run.stop)")
+    precondition(try core.streamFor(songId: kept.id, network: .wifi).local, "local stream")
+    precondition(try core.downloadMarks().savedSongIds == [kept.id], "download marks")
+    try core.removeDownload(target: kept)
+    precondition(try core.downloadsOverview().usedBytes == 0, "download removed")
     guard let artAlbum = try core.albums(sort: .title, offset: 0, limit: 100).first(where: { $0.hasArtwork }),
           let palette = try await core.albumPalette(albumId: artAlbum.id)
     else { preconditionFailure("no palette") }

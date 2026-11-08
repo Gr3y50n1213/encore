@@ -1565,6 +1565,25 @@ public enum EncoreTokens {
         }
     }
 
+    /// Source: plan section 8 (offline downloads), board 17 item 3, board 20, board 06 item 5, section 21 (Smart downloads)
+    /// Status: Starting values chosen for the plan, not measurements. The owner approved these defaults on 8 November 2026.
+    /// Downloads and the rolling cache. Original keeps the file as it is (lossless, gapless); the others ask the server for a smaller transcode. At the storage limit new songs wait; nothing is deleted. Auto-remove works per album or playlist and is off by default.
+    public enum Downloads {
+        public static let qualities: [String] = ["original", "high", "normal"]
+        public static let defaultQuality: String = "original"
+        public static let wifiOnlyDefault: Bool = true
+        public static let limitOptionsGB: [Int] = [2, 5, 10, 20, 50]
+        public static let removeUnplayedAfterDays: Int = 30
+        public static let keepFreeMB: Int = 500
+        public static let maxAttempts: Int = 3
+        public static let progressEveryMs: Int = 500
+        public static let coverSizePx: Int = 1200
+        public static let estimateLosslessKbps: Int = 1000
+        public static let estimateLossyKbps: Int = 320
+        public static let cacheOptionsMB: [Int] = [0, 500, 1000, 2000, 5000]
+        public static let cacheDefaultMB: Int = 1000
+    }
+
     /// Source: plan sections 5 and 8
     /// Status: Starting values chosen for the plan, not measurements. Tune on real devices and real libraries.
     /// Every play is written the moment it starts and updated while it plays, so history survives a crash.

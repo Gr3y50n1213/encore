@@ -8,6 +8,8 @@ use encore_sources::{FixtureTransport, Transport};
 
 use super::*;
 
+mod downloads;
+
 const RECORDED: &str = include_str!("../../../../../tools/fixtures/jellyfin/recorded.json");
 
 #[derive(Default)]

@@ -12,9 +12,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use encore_sources::http::HttpTransport;
-use encore_sources::jellyfin::{
-    self, DeviceInfo, JellyfinClient, ServerInfo, Session, StreamCodec, StreamRequest,
-};
+use encore_sources::jellyfin::{self, DeviceInfo, JellyfinClient, ServerInfo, Session};
 use encore_sources::{JellyfinSource, MediaSource, Transport};
 use encore_store::{
     CachedLyrics, CachedPalette, NewSource, Page, SearchLimits, SourceRecord, Store,
@@ -158,6 +156,10 @@ struct Inner {
     registry: Mutex<encore_store::Registry>,
     /// Profiles unlocked for their next opening (each unlock is used once).
     unlocked: Mutex<std::collections::HashSet<String>>,
+    /// What the platform last said about the network (Phase 8).
+    connectivity: Mutex<downloads::Connectivity>,
+    /// The download run in progress, if any (Phase 8).
+    transfers: Mutex<downloads::Transfers>,
 }
 
 /// The Encore core. Create one per app.
@@ -589,6 +591,24 @@ async fn send_all(inner: &Inner) -> Result<SentEdits, EncoreError> {
 }
 
 impl EncoreCore {
+    /// Offline, a queued song that can't play is refused like a tap in a list.
+    fn check_uid_playable(&self, uid: i64) -> Result<(), EncoreError> {
+        let p = self.inner.profile()?;
+        let pb = lock(&p.playback)?;
+        let v = pb.queue.view();
+        let track = v
+            .history
+            .iter()
+            .chain(v.up_next)
+            .chain(v.autoplay)
+            .find(|i| i.uid == uid as u64)
+            .map(|i| i.track_id);
+        match track {
+            Some(t) if !pb.queue.can_play(t) => Err(downloads::not_downloaded()),
+            _ => Ok(()),
+        }
+    }
+
     /// Run one library edit with an `Editor`, then send it in the background.
     fn edit(
         &self,
@@ -609,6 +629,10 @@ impl EncoreCore {
             edit_result(f(&mut ed, &store)?, now)
         };
         self.send_soon();
+        // A downloaded playlist or Liked songs follows the edit (Phase 8).
+        let _ = self
+            .inner
+            .reconcile_downloads(&p, Some(&["playlist", "liked"]));
         Ok(result)
     }
 
@@ -628,6 +652,7 @@ impl EncoreCore {
         if ids.is_empty() {
             return Err(edits::EditError::Refused(edits::Refusal::NothingToAdd).into());
         }
+        let ids = self.inner.offline_songs(&p, &ids)?;
         let n = ids.len() as u32;
         let items = Inner::new_items(&ids, StartedFrom::Queue, None);
         self.inner.with_queue(|pb, _| match (target, position) {
@@ -851,6 +876,8 @@ impl EncoreCore {
                 transport_override,
                 registry: Mutex::new(registry),
                 unlocked: Mutex::new(Default::default()),
+                connectivity: Mutex::new(Default::default()),
+                transfers: Mutex::new(Default::default()),
             }),
         }))
     }
@@ -1293,6 +1320,8 @@ impl EncoreCore {
             std::fs::remove_dir_all(&dir).map_err(|e| EncoreError::Storage {
                 reason: format!("couldn't delete this device's copy ({e})"),
             })?;
+            // Files only this profile held go too.
+            let _ = inner.collect_download_garbage();
             sync_loop::credential(&inner, String::new());
             Ok(())
         })
@@ -1520,6 +1549,8 @@ impl EncoreCore {
             if let Some(s) = session {
                 let _ = recs::upload_catalog(&inner, &p, &s).await;
             }
+            // Downloaded albums and playlists follow the library (Phase 8).
+            let _ = inner.reconcile_downloads(&p, None);
             Ok(results)
         })
         .await
@@ -1546,6 +1577,8 @@ impl EncoreCore {
         let p = self.inner.profile()?;
         lock(&p.sources)?.remove(&source_id);
         lock(&p.store)?.remove_source(source_id)?;
+        // Its downloads go with its index (board 18, item 2).
+        self.inner.reconcile_downloads(&p, None)?;
         Ok(())
     }
 
@@ -1794,6 +1827,14 @@ impl EncoreCore {
         context_id: Option<String>,
     ) -> Result<QueueState, EncoreError> {
         self.inner.guest_tick(true)?;
+        // Offline (Phase 8): only what can play joins the queue; a tap on a song
+        // that can't is refused with the reason.
+        let (song_ids, start_index) = match self.inner.profile() {
+            Ok(p) => self
+                .inner
+                .offline_list(&p, &song_ids, start_index as usize)?,
+            Err(_) => (song_ids, start_index),
+        };
         // Anything played by hand ends a radio.
         if let Ok(p) = self.inner.profile() {
             lock(&p.playback)?.radio_seed = None;
@@ -1806,11 +1847,17 @@ impl EncoreCore {
     }
 
     pub fn play_next(&self, song_ids: Vec<i64>) -> Result<QueueState, EncoreError> {
+        let song_ids = self
+            .inner
+            .offline_songs(&*self.inner.profile()?, &song_ids)?;
         let items = Inner::new_items(&song_ids, StartedFrom::Queue, None);
         Ok(self.inner.with_queue(|pb, _| pb.queue.play_next(items))?.1)
     }
 
     pub fn add_to_up_next(&self, song_ids: Vec<i64>) -> Result<QueueState, EncoreError> {
+        let song_ids = self
+            .inner
+            .offline_songs(&*self.inner.profile()?, &song_ids)?;
         let items = Inner::new_items(&song_ids, StartedFrom::Queue, None);
         Ok(self
             .inner
@@ -1939,6 +1986,7 @@ impl EncoreCore {
     }
 
     pub fn jump_to(&self, uid: i64) -> Result<QueueState, EncoreError> {
+        self.check_uid_playable(uid)?;
         Ok(self
             .inner
             .with_queue(|pb, _| pb.queue.jump_to(uid as u64))?
@@ -1946,6 +1994,7 @@ impl EncoreCore {
     }
 
     pub fn replay_from_history(&self, uid: i64) -> Result<QueueState, EncoreError> {
+        self.check_uid_playable(uid)?;
         Ok(self
             .inner
             .with_queue(|pb, _| pb.queue.replay_from_history(uid as u64))?
@@ -2266,6 +2315,10 @@ impl EncoreCore {
             edit_result(applied, now)
         };
         self.send_soon();
+        // A downloaded playlist or Liked songs follows the edit (Phase 8).
+        let _ = self
+            .inner
+            .reconcile_downloads(&p, Some(&["playlist", "liked"]));
         Ok(result)
     }
 
@@ -2387,6 +2440,9 @@ impl EncoreCore {
             self.undo_queue()?;
         }
         self.send_soon();
+        let _ = self
+            .inner
+            .reconcile_downloads(&p, Some(&["playlist", "liked"]));
         Ok(())
     }
 
@@ -2410,33 +2466,25 @@ impl EncoreCore {
         let p = self.inner.profile()?;
         let store = lock(&p.store)?;
         let track = store.track(song_id)?;
+        let quality = self.inner.quality(&store, network)?;
+        let cache_key = self.inner.cache_key(&store, &track, quality);
+        // A downloaded song plays from its file, online or not (Phase 8).
+        if let Some(path) = self.inner.local_file(&store, song_id)? {
+            let url = downloads_file_url(&path);
+            return Ok(StreamInfo {
+                song_id,
+                url_with_api_key: url.clone(),
+                url,
+                headers: Vec::new(),
+                may_transcode: false,
+                local: true,
+                cache_key,
+            });
+        }
         let source = self.inner.source(&p, track.source_id)?;
-        let t = tokens();
-        let quality = match self.inner.quality(&store, network)? {
-            StreamQuality::Original => jellyfin::StreamQuality::Original,
-            StreamQuality::High => jellyfin::StreamQuality::Capped { kbps: t.high_kbps },
-            StreamQuality::Normal => jellyfin::StreamQuality::Capped {
-                kbps: t.normal_kbps,
-            },
-            StreamQuality::DataSaver => jellyfin::StreamQuality::Capped {
-                kbps: t.data_saver_kbps,
-            },
-        };
-        let codec = match store.setting("stream.codec")?.as_deref() {
-            Some("opus") => StreamCodec::Opus,
-            _ => StreamCodec::Aac,
-        };
-        let containers: Vec<String> = match store.setting("stream.containers")? {
-            Some(list) => list.split(',').map(str::to_owned).collect(),
-            None => DEFAULT_CONTAINERS.iter().map(|s| (*s).to_owned()).collect(),
-        };
         let info = source.stream_info(
             &track.source_item_id,
-            &StreamRequest {
-                quality,
-                codec,
-                direct_play_containers: containers,
-            },
+            &self.inner.stream_request(&store, quality)?,
         )?;
         Ok(StreamInfo {
             song_id,
@@ -2448,6 +2496,8 @@ impl EncoreCore {
                 .map(|(name, value)| HttpHeader { name, value })
                 .collect(),
             may_transcode: info.may_transcode,
+            local: false,
+            cache_key,
         })
     }
 
@@ -2505,6 +2555,21 @@ impl EncoreCore {
     ) -> Result<ArtworkRequest, EncoreError> {
         let p = self.inner.profile()?;
         let store = lock(&p.store)?;
+        // A downloaded album shows its kept cover, so covers show offline too
+        // (the platform's loader reads `file://`).
+        let album_id = match of {
+            ArtworkOf::Album => Some(id),
+            ArtworkOf::Song => store.track(id).ok().and_then(|t| t.album_id),
+            _ => None,
+        };
+        if let Some(a) = album_id
+            && let Some(path) = self.inner.local_cover(&store, a)?
+        {
+            return Ok(ArtworkRequest {
+                url: downloads_file_url(&path),
+                headers: Vec::new(),
+            });
+        }
         let (source_id, item) = match of {
             ArtworkOf::Album => {
                 let a = store.album(id)?;
@@ -2703,9 +2768,17 @@ impl EncoreCore {
     }
 }
 
+mod downloads;
 mod live;
 mod profiles;
 mod recs;
 mod sync_loop;
 #[cfg(test)]
 mod tests;
+
+/// A local path as a `file://` address for the player and the image loader.
+fn downloads_file_url(path: &Path) -> String {
+    url::Url::from_file_path(path)
+        .map(|u| u.to_string())
+        .unwrap_or_else(|_| format!("file://{}", path.display()))
+}

@@ -163,7 +163,12 @@ impl Inner {
         if lock(&self.registry)?.state(GUEST_STARTED)?.is_some() {
             return self.end_guest_now();
         }
-        self.restore_queue()
+        let restored = self.restore_queue();
+        // The cached songs the player reported are this profile's now (Phase 8).
+        if let Ok(p) = self.profile() {
+            let _ = self.connectivity_for_profile(&p);
+        }
+        restored
     }
 
     /// Before a profile closes: keep its queue (not Guest's).
@@ -423,6 +428,8 @@ impl EncoreCore {
             std::fs::remove_dir_all(&dir).map_err(|e| EncoreError::Storage {
                 reason: format!("couldn't remove the profile from this device ({e})"),
             })?;
+            // Files only this profile held go too (board 14: lists are per profile).
+            let _ = self.inner.collect_download_garbage();
         }
         let reg = lock(&self.inner.registry)?;
         reg.remove(&profile_id)?;

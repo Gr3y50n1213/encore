@@ -1300,6 +1300,95 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     func unlike(songIds: [Int64]) throws  -> EditResult
     
     /**
+     * Keep a song, album, playlist or mix on this device (board 13, item 3;
+     * board 08). Its songs wait for `run_downloads`. Liked songs and Smart
+     * downloads are turned on in `set_download_settings`.
+     */
+    func download(target: DownloadTarget) throws  -> DownloadedItem
+    
+    /**
+     * Badges, rings and what dims offline, for every list (cheap).
+     */
+    func downloadMarks() throws  -> DownloadMarks
+    
+    func downloadSettings() throws  -> DownloadSettings
+    
+    /**
+     * The Downloads page (board 17, item 3).
+     */
+    func downloadsOverview() throws  -> DownloadsOverview
+    
+    /**
+     * Pause or resume one item's downloads (board 06, item 5: tap the ring).
+     */
+    func pauseDownload(target: DownloadTarget, paused: Bool) throws 
+    
+    /**
+     * Smart downloads' nightly pick (section 21): call before `run_downloads`
+     * from the nightly job. Returns how many songs it holds.
+     */
+    func refreshSmartDownloads() throws  -> UInt32
+    
+    /**
+     * Board 03: "clear downloads" (after a confirm sheet). Returns how many
+     * collections went.
+     */
+    func removeAllDownloads() throws  -> UInt32
+    
+    /**
+     * Stop keeping it (board 13: Remove download). A song that is also part of a
+     * downloaded album or playlist stays, and the reason says which.
+     */
+    func removeDownload(target: DownloadTarget) throws 
+    
+    /**
+     * "Remove downloads not played for 30 days" (board 17, item 3), per album,
+     * playlist, mix or song, never Liked songs or Smart downloads. Call it at
+     * launch and from the jobs; it does nothing when the setting is off.
+     */
+    func removeUnplayedDownloads() throws  -> UInt32
+    
+    /**
+     * Try every failed song again (board 06, item 5: tap the warning dot).
+     */
+    func retryFailedDownloads() throws  -> UInt32
+    
+    /**
+     * Fetch what waits, one song at a time, until done or blocked (Wi-Fi only,
+     * the limit, low space, offline, sign-in). `free_bytes` is the free space on
+     * the device now (0 if unknown); `network` is the current one. Call it from
+     * the platform's background job; `stop_downloads` ends it, keeping what was
+     * fetched. Async.
+     */
+    func runDownloads(network: Network, freeBytes: UInt64) async throws  -> DownloadRun
+    
+    /**
+     * Board 07's Downloaded scope: the same search over what can play offline.
+     */
+    func searchDownloaded(query: String) throws  -> SearchResults
+    
+    /**
+     * What the network is now (call on every change, and at start). Offline,
+     * only saved songs and the player's fully cached ones (`cached_keys`, the
+     * `StreamInfo.cache_key`s it holds whole) can play: the queue passes over the
+     * rest and taps on them are refused. Works with no profile open.
+     */
+    func setConnectivity(online: Bool, network: Network, cachedKeys: [String]) throws 
+    
+    /**
+     * Change the Downloads settings (changes apply at once, board 17). Liked
+     * songs and Smart downloads add or remove their collections; a new quality
+     * applies to songs downloaded from now on.
+     */
+    func setDownloadSettings(settings: DownloadSettings) throws 
+    
+    /**
+     * End the run in progress after the chunk it is writing (the job was
+     * stopped). The part fetched so far is kept and resumed next time.
+     */
+    func stopDownloads() 
+    
+    /**
      * "Control only" (board 12, Hold menu) or the "Playing on…" capsule: send
      * `RemoteState` whenever that device changes.
      */
@@ -2929,6 +3018,211 @@ open func unlike(songIds: [Int64])throws  -> EditResult  {
 }
     
     /**
+     * Keep a song, album, playlist or mix on this device (board 13, item 3;
+     * board 08). Its songs wait for `run_downloads`. Liked songs and Smart
+     * downloads are turned on in `set_download_settings`.
+     */
+open func download(target: DownloadTarget)throws  -> DownloadedItem  {
+    return try  FfiConverterTypeDownloadedItem_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_download(
+            self.uniffiCloneHandle(),
+        FfiConverterTypeDownloadTarget_lower(target),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Badges, rings and what dims offline, for every list (cheap).
+     */
+open func downloadMarks()throws  -> DownloadMarks  {
+    return try  FfiConverterTypeDownloadMarks_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_download_marks(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+open func downloadSettings()throws  -> DownloadSettings  {
+    return try  FfiConverterTypeDownloadSettings_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_download_settings(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * The Downloads page (board 17, item 3).
+     */
+open func downloadsOverview()throws  -> DownloadsOverview  {
+    return try  FfiConverterTypeDownloadsOverview_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_downloads_overview(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Pause or resume one item's downloads (board 06, item 5: tap the ring).
+     */
+open func pauseDownload(target: DownloadTarget, paused: Bool)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_pause_download(
+            self.uniffiCloneHandle(),
+        FfiConverterTypeDownloadTarget_lower(target),
+        FfiConverterBool.lower(paused),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * Smart downloads' nightly pick (section 21): call before `run_downloads`
+     * from the nightly job. Returns how many songs it holds.
+     */
+open func refreshSmartDownloads()throws  -> UInt32  {
+    return try  FfiConverterUInt32.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_refresh_smart_downloads(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Board 03: "clear downloads" (after a confirm sheet). Returns how many
+     * collections went.
+     */
+open func removeAllDownloads()throws  -> UInt32  {
+    return try  FfiConverterUInt32.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_remove_all_downloads(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Stop keeping it (board 13: Remove download). A song that is also part of a
+     * downloaded album or playlist stays, and the reason says which.
+     */
+open func removeDownload(target: DownloadTarget)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_remove_download(
+            self.uniffiCloneHandle(),
+        FfiConverterTypeDownloadTarget_lower(target),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * "Remove downloads not played for 30 days" (board 17, item 3), per album,
+     * playlist, mix or song, never Liked songs or Smart downloads. Call it at
+     * launch and from the jobs; it does nothing when the setting is off.
+     */
+open func removeUnplayedDownloads()throws  -> UInt32  {
+    return try  FfiConverterUInt32.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_remove_unplayed_downloads(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Try every failed song again (board 06, item 5: tap the warning dot).
+     */
+open func retryFailedDownloads()throws  -> UInt32  {
+    return try  FfiConverterUInt32.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_retry_failed_downloads(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Fetch what waits, one song at a time, until done or blocked (Wi-Fi only,
+     * the limit, low space, offline, sign-in). `free_bytes` is the free space on
+     * the device now (0 if unknown); `network` is the current one. Call it from
+     * the platform's background job; `stop_downloads` ends it, keeping what was
+     * fetched. Async.
+     */
+open func runDownloads(network: Network, freeBytes: UInt64)async throws  -> DownloadRun  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_run_downloads(
+                        self.uniffiCloneHandle(),FfiConverterTypeNetwork_lower(network),FfiConverterUInt64.lower(freeBytes)
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_rust_buffer,
+            completeFunc: ffi_encore_core_rust_future_complete_rust_buffer,
+            freeFunc: ffi_encore_core_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterTypeDownloadRun_lift,
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
+}
+    
+    /**
+     * Board 07's Downloaded scope: the same search over what can play offline.
+     */
+open func searchDownloaded(query: String)throws  -> SearchResults  {
+    return try  FfiConverterTypeSearchResults_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_search_downloaded(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(query),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * What the network is now (call on every change, and at start). Offline,
+     * only saved songs and the player's fully cached ones (`cached_keys`, the
+     * `StreamInfo.cache_key`s it holds whole) can play: the queue passes over the
+     * rest and taps on them are refused. Works with no profile open.
+     */
+open func setConnectivity(online: Bool, network: Network, cachedKeys: [String])throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_set_connectivity(
+            self.uniffiCloneHandle(),
+        FfiConverterBool.lower(online),
+        FfiConverterTypeNetwork_lower(network),
+        FfiConverterSequenceString.lower(cachedKeys),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * Change the Downloads settings (changes apply at once, board 17). Liked
+     * songs and Smart downloads add or remove their collections; a new quality
+     * applies to songs downloaded from now on.
+     */
+open func setDownloadSettings(settings: DownloadSettings)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_set_download_settings(
+            self.uniffiCloneHandle(),
+        FfiConverterTypeDownloadSettings_lower(settings),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * End the run in progress after the chunk it is writing (the job was
+     * stopped). The part fetched so far is kept and resumed next time.
+     */
+open func stopDownloads()  {try! rustCall() {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_stop_downloads(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+}
+}
+    
+    /**
      * "Control only" (board 12, Hold menu) or the "Playing on…" capsule: send
      * `RemoteState` whenever that device changes.
      */
@@ -4258,10 +4552,11 @@ public struct CoreEvent: Equatable, Hashable {
     public var device: OutputDevice?
     public var handoff: HandoffInfo?
     public var remoteCommand: RemoteCommand?
+    public var download: DownloadProgress?
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(kind: EventKind, queue: QueueState?, nowPlaying: QueueEntry?, preload: QueueEntry?, syncSourceId: Int64?, syncDone: Int64, syncTotal: Int64, syncStatus: SyncStatus?, remoteChange: RemoteChange?, credential: SourceToken?, outputDevices: OutputDevices?, device: OutputDevice?, handoff: HandoffInfo?, remoteCommand: RemoteCommand?) {
+    public init(kind: EventKind, queue: QueueState?, nowPlaying: QueueEntry?, preload: QueueEntry?, syncSourceId: Int64?, syncDone: Int64, syncTotal: Int64, syncStatus: SyncStatus?, remoteChange: RemoteChange?, credential: SourceToken?, outputDevices: OutputDevices?, device: OutputDevice?, handoff: HandoffInfo?, remoteCommand: RemoteCommand?, download: DownloadProgress?) {
         self.kind = kind
         self.queue = queue
         self.nowPlaying = nowPlaying
@@ -4276,6 +4571,7 @@ public struct CoreEvent: Equatable, Hashable {
         self.device = device
         self.handoff = handoff
         self.remoteCommand = remoteCommand
+        self.download = download
     }
 
     
@@ -4307,7 +4603,8 @@ public struct FfiConverterTypeCoreEvent: FfiConverterRustBuffer {
                 outputDevices: FfiConverterOptionTypeOutputDevices.read(from: &buf), 
                 device: FfiConverterOptionTypeOutputDevice.read(from: &buf), 
                 handoff: FfiConverterOptionTypeHandoffInfo.read(from: &buf), 
-                remoteCommand: FfiConverterOptionTypeRemoteCommand.read(from: &buf)
+                remoteCommand: FfiConverterOptionTypeRemoteCommand.read(from: &buf), 
+                download: FfiConverterOptionTypeDownloadProgress.read(from: &buf)
         )
     }
 
@@ -4326,6 +4623,7 @@ public struct FfiConverterTypeCoreEvent: FfiConverterRustBuffer {
         FfiConverterOptionTypeOutputDevice.write(value.device, into: &buf)
         FfiConverterOptionTypeHandoffInfo.write(value.handoff, into: &buf)
         FfiConverterOptionTypeRemoteCommand.write(value.remoteCommand, into: &buf)
+        FfiConverterOptionTypeDownloadProgress.write(value.download, into: &buf)
     }
 }
 
@@ -4396,6 +4694,673 @@ public func FfiConverterTypeCredentialKey_lift(_ buf: RustBuffer) throws -> Cred
 #endif
 public func FfiConverterTypeCredentialKey_lower(_ value: CredentialKey) -> RustBuffer {
     return FfiConverterTypeCredentialKey.lower(value)
+}
+
+
+/**
+ * Everything the lists need to draw badges and dim what can't play offline,
+ * in one cheap call (`download_marks`).
+ */
+public struct DownloadMarks: Equatable, Hashable {
+    public var savedSongIds: [Int64]
+    /**
+     * Wanted and not saved yet (paused ones included).
+     */
+    public var pendingSongIds: [Int64]
+    public var failedSongIds: [Int64]
+    /**
+     * What plays with no connection: saved songs plus the ones the player has
+     * fully cached (`set_connectivity`). Offline, everything else dims.
+     */
+    public var playableOfflineSongIds: [Int64]
+    public var items: [DownloadedItem]
+    /**
+     * The connectivity the platform last reported.
+     */
+    public var online: Bool
+    /**
+     * The song being fetched right now, if any.
+     */
+    public var activeSongId: Int64?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(savedSongIds: [Int64], 
+        /**
+         * Wanted and not saved yet (paused ones included).
+         */pendingSongIds: [Int64], failedSongIds: [Int64], 
+        /**
+         * What plays with no connection: saved songs plus the ones the player has
+         * fully cached (`set_connectivity`). Offline, everything else dims.
+         */playableOfflineSongIds: [Int64], items: [DownloadedItem], 
+        /**
+         * The connectivity the platform last reported.
+         */online: Bool, 
+        /**
+         * The song being fetched right now, if any.
+         */activeSongId: Int64?) {
+        self.savedSongIds = savedSongIds
+        self.pendingSongIds = pendingSongIds
+        self.failedSongIds = failedSongIds
+        self.playableOfflineSongIds = playableOfflineSongIds
+        self.items = items
+        self.online = online
+        self.activeSongId = activeSongId
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension DownloadMarks: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeDownloadMarks: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> DownloadMarks {
+        return
+            try DownloadMarks(
+                savedSongIds: FfiConverterSequenceInt64.read(from: &buf), 
+                pendingSongIds: FfiConverterSequenceInt64.read(from: &buf), 
+                failedSongIds: FfiConverterSequenceInt64.read(from: &buf), 
+                playableOfflineSongIds: FfiConverterSequenceInt64.read(from: &buf), 
+                items: FfiConverterSequenceTypeDownloadedItem.read(from: &buf), 
+                online: FfiConverterBool.read(from: &buf), 
+                activeSongId: FfiConverterOptionInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: DownloadMarks, into buf: inout [UInt8]) {
+        FfiConverterSequenceInt64.write(value.savedSongIds, into: &buf)
+        FfiConverterSequenceInt64.write(value.pendingSongIds, into: &buf)
+        FfiConverterSequenceInt64.write(value.failedSongIds, into: &buf)
+        FfiConverterSequenceInt64.write(value.playableOfflineSongIds, into: &buf)
+        FfiConverterSequenceTypeDownloadedItem.write(value.items, into: &buf)
+        FfiConverterBool.write(value.online, into: &buf)
+        FfiConverterOptionInt64.write(value.activeSongId, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDownloadMarks_lift(_ buf: RustBuffer) throws -> DownloadMarks {
+    return try FfiConverterTypeDownloadMarks.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDownloadMarks_lower(_ value: DownloadMarks) -> RustBuffer {
+    return FfiConverterTypeDownloadMarks.lower(value)
+}
+
+
+/**
+ * The transfer under way, for the progress notification ("Downloading Road
+ * trip, 15 of 24 songs", boards 32 and 34) and the Downloads page.
+ */
+public struct DownloadProgress: Equatable, Hashable {
+    /**
+     * The album, playlist or mix being fetched (the song's own title for a song).
+     */
+    public var itemTitle: String
+    /**
+     * That item's songs on the device so far, and its songs in all ("15 of 24").
+     */
+    public var itemSaved: UInt32
+    public var itemTotal: UInt32
+    public var songId: Int64
+    public var songTitle: String
+    /**
+     * Songs saved in this run, and the run's songs in all.
+     */
+    public var songsDone: UInt32
+    public var songsTotal: UInt32
+    public var bytesDone: UInt64
+    public var bytesTotal: UInt64?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * The album, playlist or mix being fetched (the song's own title for a song).
+         */itemTitle: String, 
+        /**
+         * That item's songs on the device so far, and its songs in all ("15 of 24").
+         */itemSaved: UInt32, itemTotal: UInt32, songId: Int64, songTitle: String, 
+        /**
+         * Songs saved in this run, and the run's songs in all.
+         */songsDone: UInt32, songsTotal: UInt32, bytesDone: UInt64, bytesTotal: UInt64?) {
+        self.itemTitle = itemTitle
+        self.itemSaved = itemSaved
+        self.itemTotal = itemTotal
+        self.songId = songId
+        self.songTitle = songTitle
+        self.songsDone = songsDone
+        self.songsTotal = songsTotal
+        self.bytesDone = bytesDone
+        self.bytesTotal = bytesTotal
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension DownloadProgress: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeDownloadProgress: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> DownloadProgress {
+        return
+            try DownloadProgress(
+                itemTitle: FfiConverterString.read(from: &buf), 
+                itemSaved: FfiConverterUInt32.read(from: &buf), 
+                itemTotal: FfiConverterUInt32.read(from: &buf), 
+                songId: FfiConverterInt64.read(from: &buf), 
+                songTitle: FfiConverterString.read(from: &buf), 
+                songsDone: FfiConverterUInt32.read(from: &buf), 
+                songsTotal: FfiConverterUInt32.read(from: &buf), 
+                bytesDone: FfiConverterUInt64.read(from: &buf), 
+                bytesTotal: FfiConverterOptionUInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: DownloadProgress, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.itemTitle, into: &buf)
+        FfiConverterUInt32.write(value.itemSaved, into: &buf)
+        FfiConverterUInt32.write(value.itemTotal, into: &buf)
+        FfiConverterInt64.write(value.songId, into: &buf)
+        FfiConverterString.write(value.songTitle, into: &buf)
+        FfiConverterUInt32.write(value.songsDone, into: &buf)
+        FfiConverterUInt32.write(value.songsTotal, into: &buf)
+        FfiConverterUInt64.write(value.bytesDone, into: &buf)
+        FfiConverterOptionUInt64.write(value.bytesTotal, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDownloadProgress_lift(_ buf: RustBuffer) throws -> DownloadProgress {
+    return try FfiConverterTypeDownloadProgress.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDownloadProgress_lower(_ value: DownloadProgress) -> RustBuffer {
+    return FfiConverterTypeDownloadProgress.lower(value)
+}
+
+
+/**
+ * What one `run_downloads` did.
+ */
+public struct DownloadRun: Equatable, Hashable {
+    public var saved: UInt32
+    public var failed: UInt32
+    /**
+     * Still to fetch.
+     */
+    public var remaining: UInt32
+    public var stop: DownloadStop
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(saved: UInt32, failed: UInt32, 
+        /**
+         * Still to fetch.
+         */remaining: UInt32, stop: DownloadStop) {
+        self.saved = saved
+        self.failed = failed
+        self.remaining = remaining
+        self.stop = stop
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension DownloadRun: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeDownloadRun: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> DownloadRun {
+        return
+            try DownloadRun(
+                saved: FfiConverterUInt32.read(from: &buf), 
+                failed: FfiConverterUInt32.read(from: &buf), 
+                remaining: FfiConverterUInt32.read(from: &buf), 
+                stop: FfiConverterTypeDownloadStop.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: DownloadRun, into buf: inout [UInt8]) {
+        FfiConverterUInt32.write(value.saved, into: &buf)
+        FfiConverterUInt32.write(value.failed, into: &buf)
+        FfiConverterUInt32.write(value.remaining, into: &buf)
+        FfiConverterTypeDownloadStop.write(value.stop, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDownloadRun_lift(_ buf: RustBuffer) throws -> DownloadRun {
+    return try FfiConverterTypeDownloadRun.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDownloadRun_lower(_ value: DownloadRun) -> RustBuffer {
+    return FfiConverterTypeDownloadRun.lower(value)
+}
+
+
+/**
+ * The Downloads settings (board 17, item 3).
+ */
+public struct DownloadSettings: Equatable, Hashable {
+    /**
+     * Original, High or Normal (Data saver is for streams only).
+     */
+    public var quality: StreamQuality
+    public var wifiOnly: Bool
+    /**
+     * None: no limit. At the limit new songs wait; nothing is deleted.
+     */
+    public var limitBytes: UInt64?
+    /**
+     * Remove an album or playlist not played for `downloads.removeUnplayedAfterDays`.
+     */
+    public var removeUnplayed: Bool
+    /**
+     * Keep Liked songs downloaded.
+     */
+    public var likedSongs: Bool
+    /**
+     * Smart downloads (section 21): pinned mixes inside the budget, nightly on
+     * Wi-Fi while charging.
+     */
+    public var smartDownloads: Bool
+    /**
+     * The player's rolling cache of streamed songs; 0 turns it off.
+     */
+    public var cacheLimitBytes: UInt64
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * Original, High or Normal (Data saver is for streams only).
+         */quality: StreamQuality, wifiOnly: Bool, 
+        /**
+         * None: no limit. At the limit new songs wait; nothing is deleted.
+         */limitBytes: UInt64?, 
+        /**
+         * Remove an album or playlist not played for `downloads.removeUnplayedAfterDays`.
+         */removeUnplayed: Bool, 
+        /**
+         * Keep Liked songs downloaded.
+         */likedSongs: Bool, 
+        /**
+         * Smart downloads (section 21): pinned mixes inside the budget, nightly on
+         * Wi-Fi while charging.
+         */smartDownloads: Bool, 
+        /**
+         * The player's rolling cache of streamed songs; 0 turns it off.
+         */cacheLimitBytes: UInt64) {
+        self.quality = quality
+        self.wifiOnly = wifiOnly
+        self.limitBytes = limitBytes
+        self.removeUnplayed = removeUnplayed
+        self.likedSongs = likedSongs
+        self.smartDownloads = smartDownloads
+        self.cacheLimitBytes = cacheLimitBytes
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension DownloadSettings: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeDownloadSettings: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> DownloadSettings {
+        return
+            try DownloadSettings(
+                quality: FfiConverterTypeStreamQuality.read(from: &buf), 
+                wifiOnly: FfiConverterBool.read(from: &buf), 
+                limitBytes: FfiConverterOptionUInt64.read(from: &buf), 
+                removeUnplayed: FfiConverterBool.read(from: &buf), 
+                likedSongs: FfiConverterBool.read(from: &buf), 
+                smartDownloads: FfiConverterBool.read(from: &buf), 
+                cacheLimitBytes: FfiConverterUInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: DownloadSettings, into buf: inout [UInt8]) {
+        FfiConverterTypeStreamQuality.write(value.quality, into: &buf)
+        FfiConverterBool.write(value.wifiOnly, into: &buf)
+        FfiConverterOptionUInt64.write(value.limitBytes, into: &buf)
+        FfiConverterBool.write(value.removeUnplayed, into: &buf)
+        FfiConverterBool.write(value.likedSongs, into: &buf)
+        FfiConverterBool.write(value.smartDownloads, into: &buf)
+        FfiConverterUInt64.write(value.cacheLimitBytes, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDownloadSettings_lift(_ buf: RustBuffer) throws -> DownloadSettings {
+    return try FfiConverterTypeDownloadSettings.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDownloadSettings_lower(_ value: DownloadSettings) -> RustBuffer {
+    return FfiConverterTypeDownloadSettings.lower(value)
+}
+
+
+/**
+ * A thing to download or remove: `id` is the song's, album's or playlist's ID;
+ * a mix is named by `mix_id`. Liked songs and Smart downloads need neither (0).
+ */
+public struct DownloadTarget: Equatable, Hashable {
+    public var kind: DownloadKind
+    public var id: Int64
+    public var mixId: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(kind: DownloadKind, id: Int64, mixId: String?) {
+        self.kind = kind
+        self.id = id
+        self.mixId = mixId
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension DownloadTarget: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeDownloadTarget: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> DownloadTarget {
+        return
+            try DownloadTarget(
+                kind: FfiConverterTypeDownloadKind.read(from: &buf), 
+                id: FfiConverterInt64.read(from: &buf), 
+                mixId: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: DownloadTarget, into buf: inout [UInt8]) {
+        FfiConverterTypeDownloadKind.write(value.kind, into: &buf)
+        FfiConverterInt64.write(value.id, into: &buf)
+        FfiConverterOptionString.write(value.mixId, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDownloadTarget_lift(_ buf: RustBuffer) throws -> DownloadTarget {
+    return try FfiConverterTypeDownloadTarget.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDownloadTarget_lower(_ value: DownloadTarget) -> RustBuffer {
+    return FfiConverterTypeDownloadTarget.lower(value)
+}
+
+
+/**
+ * One downloaded album, playlist, mix or song (the Library's Downloaded chip,
+ * the Downloads page's list).
+ */
+public struct DownloadedItem: Equatable, Hashable {
+    public var target: DownloadTarget
+    public var title: String
+    /**
+     * The artist for an album or song, empty otherwise.
+     */
+    public var subtitle: String
+    public var state: DownloadState
+    /**
+     * "7 of 12 saved" (board 08).
+     */
+    public var saved: UInt32
+    public var total: UInt32
+    public var failed: UInt32
+    public var bytes: UInt64
+    /**
+     * Kept by the app (Liked songs, Smart downloads).
+     */
+    public var auto: Bool
+    public var addedUtcMs: Int64
+    /**
+     * Why the last failure happened, when some failed.
+     */
+    public var error: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(target: DownloadTarget, title: String, 
+        /**
+         * The artist for an album or song, empty otherwise.
+         */subtitle: String, state: DownloadState, 
+        /**
+         * "7 of 12 saved" (board 08).
+         */saved: UInt32, total: UInt32, failed: UInt32, bytes: UInt64, 
+        /**
+         * Kept by the app (Liked songs, Smart downloads).
+         */auto: Bool, addedUtcMs: Int64, 
+        /**
+         * Why the last failure happened, when some failed.
+         */error: String?) {
+        self.target = target
+        self.title = title
+        self.subtitle = subtitle
+        self.state = state
+        self.saved = saved
+        self.total = total
+        self.failed = failed
+        self.bytes = bytes
+        self.auto = auto
+        self.addedUtcMs = addedUtcMs
+        self.error = error
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension DownloadedItem: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeDownloadedItem: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> DownloadedItem {
+        return
+            try DownloadedItem(
+                target: FfiConverterTypeDownloadTarget.read(from: &buf), 
+                title: FfiConverterString.read(from: &buf), 
+                subtitle: FfiConverterString.read(from: &buf), 
+                state: FfiConverterTypeDownloadState.read(from: &buf), 
+                saved: FfiConverterUInt32.read(from: &buf), 
+                total: FfiConverterUInt32.read(from: &buf), 
+                failed: FfiConverterUInt32.read(from: &buf), 
+                bytes: FfiConverterUInt64.read(from: &buf), 
+                auto: FfiConverterBool.read(from: &buf), 
+                addedUtcMs: FfiConverterInt64.read(from: &buf), 
+                error: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: DownloadedItem, into buf: inout [UInt8]) {
+        FfiConverterTypeDownloadTarget.write(value.target, into: &buf)
+        FfiConverterString.write(value.title, into: &buf)
+        FfiConverterString.write(value.subtitle, into: &buf)
+        FfiConverterTypeDownloadState.write(value.state, into: &buf)
+        FfiConverterUInt32.write(value.saved, into: &buf)
+        FfiConverterUInt32.write(value.total, into: &buf)
+        FfiConverterUInt32.write(value.failed, into: &buf)
+        FfiConverterUInt64.write(value.bytes, into: &buf)
+        FfiConverterBool.write(value.auto, into: &buf)
+        FfiConverterInt64.write(value.addedUtcMs, into: &buf)
+        FfiConverterOptionString.write(value.error, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDownloadedItem_lift(_ buf: RustBuffer) throws -> DownloadedItem {
+    return try FfiConverterTypeDownloadedItem.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDownloadedItem_lower(_ value: DownloadedItem) -> RustBuffer {
+    return FfiConverterTypeDownloadedItem.lower(value)
+}
+
+
+/**
+ * The Downloads page (board 17, item 3).
+ */
+public struct DownloadsOverview: Equatable, Hashable {
+    /**
+     * What this profile's downloads take on disk.
+     */
+    public var usedBytes: UInt64
+    public var songCount: UInt32
+    public var items: [DownloadedItem]
+    public var queued: UInt32
+    public var failed: UInt32
+    public var active: DownloadProgress?
+    /**
+     * Why the last run stopped, while songs are still waiting.
+     */
+    public var stop: DownloadStop?
+    public var settings: DownloadSettings
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * What this profile's downloads take on disk.
+         */usedBytes: UInt64, songCount: UInt32, items: [DownloadedItem], queued: UInt32, failed: UInt32, active: DownloadProgress?, 
+        /**
+         * Why the last run stopped, while songs are still waiting.
+         */stop: DownloadStop?, settings: DownloadSettings) {
+        self.usedBytes = usedBytes
+        self.songCount = songCount
+        self.items = items
+        self.queued = queued
+        self.failed = failed
+        self.active = active
+        self.stop = stop
+        self.settings = settings
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension DownloadsOverview: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeDownloadsOverview: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> DownloadsOverview {
+        return
+            try DownloadsOverview(
+                usedBytes: FfiConverterUInt64.read(from: &buf), 
+                songCount: FfiConverterUInt32.read(from: &buf), 
+                items: FfiConverterSequenceTypeDownloadedItem.read(from: &buf), 
+                queued: FfiConverterUInt32.read(from: &buf), 
+                failed: FfiConverterUInt32.read(from: &buf), 
+                active: FfiConverterOptionTypeDownloadProgress.read(from: &buf), 
+                stop: FfiConverterOptionTypeDownloadStop.read(from: &buf), 
+                settings: FfiConverterTypeDownloadSettings.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: DownloadsOverview, into buf: inout [UInt8]) {
+        FfiConverterUInt64.write(value.usedBytes, into: &buf)
+        FfiConverterUInt32.write(value.songCount, into: &buf)
+        FfiConverterSequenceTypeDownloadedItem.write(value.items, into: &buf)
+        FfiConverterUInt32.write(value.queued, into: &buf)
+        FfiConverterUInt32.write(value.failed, into: &buf)
+        FfiConverterOptionTypeDownloadProgress.write(value.active, into: &buf)
+        FfiConverterOptionTypeDownloadStop.write(value.stop, into: &buf)
+        FfiConverterTypeDownloadSettings.write(value.settings, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDownloadsOverview_lift(_ buf: RustBuffer) throws -> DownloadsOverview {
+    return try FfiConverterTypeDownloadsOverview.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDownloadsOverview_lower(_ value: DownloadsOverview) -> RustBuffer {
+    return FfiConverterTypeDownloadsOverview.lower(value)
 }
 
 
@@ -7945,15 +8910,37 @@ public struct StreamInfo: Equatable, Hashable {
     public var urlWithApiKey: String
     public var headers: [HttpHeader]
     public var mayTranscode: Bool
+    /**
+     * The song is downloaded: `url` is a `file://` path on this device, with no
+     * headers (Phase 8).
+     */
+    public var local: Bool
+    /**
+     * A name for the player's rolling cache: the server, the song and the
+     * quality, with no token in it. Report fully cached ones to
+     * `set_connectivity`, so they play offline.
+     */
+    public var cacheKey: String
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(songId: Int64, url: String, urlWithApiKey: String, headers: [HttpHeader], mayTranscode: Bool) {
+    public init(songId: Int64, url: String, urlWithApiKey: String, headers: [HttpHeader], mayTranscode: Bool, 
+        /**
+         * The song is downloaded: `url` is a `file://` path on this device, with no
+         * headers (Phase 8).
+         */local: Bool, 
+        /**
+         * A name for the player's rolling cache: the server, the song and the
+         * quality, with no token in it. Report fully cached ones to
+         * `set_connectivity`, so they play offline.
+         */cacheKey: String) {
         self.songId = songId
         self.url = url
         self.urlWithApiKey = urlWithApiKey
         self.headers = headers
         self.mayTranscode = mayTranscode
+        self.local = local
+        self.cacheKey = cacheKey
     }
 
     
@@ -7976,7 +8963,9 @@ public struct FfiConverterTypeStreamInfo: FfiConverterRustBuffer {
                 url: FfiConverterString.read(from: &buf), 
                 urlWithApiKey: FfiConverterString.read(from: &buf), 
                 headers: FfiConverterSequenceTypeHttpHeader.read(from: &buf), 
-                mayTranscode: FfiConverterBool.read(from: &buf)
+                mayTranscode: FfiConverterBool.read(from: &buf), 
+                local: FfiConverterBool.read(from: &buf), 
+                cacheKey: FfiConverterString.read(from: &buf)
         )
     }
 
@@ -7986,6 +8975,8 @@ public struct FfiConverterTypeStreamInfo: FfiConverterRustBuffer {
         FfiConverterString.write(value.urlWithApiKey, into: &buf)
         FfiConverterSequenceTypeHttpHeader.write(value.headers, into: &buf)
         FfiConverterBool.write(value.mayTranscode, into: &buf)
+        FfiConverterBool.write(value.local, into: &buf)
+        FfiConverterString.write(value.cacheKey, into: &buf)
     }
 }
 
@@ -8729,6 +9720,377 @@ public func FfiConverterTypeDeviceState_lift(_ buf: RustBuffer) throws -> Device
 #endif
 public func FfiConverterTypeDeviceState_lower(_ value: DeviceState) -> RustBuffer {
     return FfiConverterTypeDeviceState.lower(value)
+}
+
+
+
+/**
+ * What can be kept on the device (board 13, item 3; board 17, item 3). Liked
+ * songs and Smart downloads follow their lists by themselves.
+ */
+
+public enum DownloadKind: Equatable, Hashable {
+    
+    case song
+    case album
+    case playlist
+    /**
+     * Follows the mix: when it changes, so do its downloads.
+     */
+    case mix
+    /**
+     * Follows Liked songs (the "Download liked songs" setting).
+     */
+    case likedSongs
+    /**
+     * Smart downloads (section 21): the app's picks from pinned mixes, inside a
+     * budget. Turned on and off in the settings, never downloaded by hand.
+     */
+    case smart
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension DownloadKind: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeDownloadKind: FfiConverterRustBuffer {
+    typealias SwiftType = DownloadKind
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> DownloadKind {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .song
+        
+        case 2: return .album
+        
+        case 3: return .playlist
+        
+        case 4: return .mix
+        
+        case 5: return .likedSongs
+        
+        case 6: return .smart
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: DownloadKind, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .song:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .album:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .playlist:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .mix:
+            writeInt(&buf, Int32(4))
+        
+        
+        case .likedSongs:
+            writeInt(&buf, Int32(5))
+        
+        
+        case .smart:
+            writeInt(&buf, Int32(6))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDownloadKind_lift(_ buf: RustBuffer) throws -> DownloadKind {
+    return try FfiConverterTypeDownloadKind.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDownloadKind_lower(_ value: DownloadKind) -> RustBuffer {
+    return FfiConverterTypeDownloadKind.lower(value)
+}
+
+
+
+/**
+ * Where a downloaded thing stands (board 06, item 5: none, a ring, a badge, a
+ * warning dot).
+ */
+
+public enum DownloadState: Equatable, Hashable {
+    
+    /**
+     * Some songs are still to come; nothing is moving now (`stop` in the
+     * overview says why, for example waiting for Wi-Fi).
+     */
+    case waiting
+    /**
+     * Moving now: a ring.
+     */
+    case downloading
+    /**
+     * Every song is on the device: the badge.
+     */
+    case saved
+    /**
+     * Paused by the person.
+     */
+    case paused
+    /**
+     * Some songs couldn't be fetched after every try: the warning dot. Tap to
+     * retry.
+     */
+    case failed
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension DownloadState: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeDownloadState: FfiConverterRustBuffer {
+    typealias SwiftType = DownloadState
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> DownloadState {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .waiting
+        
+        case 2: return .downloading
+        
+        case 3: return .saved
+        
+        case 4: return .paused
+        
+        case 5: return .failed
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: DownloadState, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .waiting:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .downloading:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .saved:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .paused:
+            writeInt(&buf, Int32(4))
+        
+        
+        case .failed:
+            writeInt(&buf, Int32(5))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDownloadState_lift(_ buf: RustBuffer) throws -> DownloadState {
+    return try FfiConverterTypeDownloadState.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDownloadState_lower(_ value: DownloadState) -> RustBuffer {
+    return FfiConverterTypeDownloadState.lower(value)
+}
+
+
+
+/**
+ * Why `run_downloads` stopped.
+ */
+
+public enum DownloadStop: Equatable, Hashable {
+    
+    /**
+     * Nothing left to fetch.
+     */
+    case done
+    /**
+     * `stop_downloads` was called; it carries on next time where it was.
+     */
+    case stopped
+    /**
+     * Another run is going; this one did nothing.
+     */
+    case alreadyRunning
+    /**
+     * "Download only on Wi-Fi" is on and the network is cellular.
+     */
+    case waitingForWifi
+    /**
+     * The device has no connection.
+     */
+    case offline
+    /**
+     * The media server didn't answer; try later.
+     */
+    case serverUnreachable
+    /**
+     * The media server's sign-in ended; sign in again.
+     */
+    case signInNeeded
+    /**
+     * The storage limit in the settings is reached; nothing is deleted.
+     */
+    case storageLimit
+    /**
+     * The device is nearly full (it keeps `downloads.keepFreeMB` free).
+     */
+    case lowSpace
+    /**
+     * No profile is open (or it is a Guest, which downloads nothing).
+     */
+    case noProfile
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension DownloadStop: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeDownloadStop: FfiConverterRustBuffer {
+    typealias SwiftType = DownloadStop
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> DownloadStop {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .done
+        
+        case 2: return .stopped
+        
+        case 3: return .alreadyRunning
+        
+        case 4: return .waitingForWifi
+        
+        case 5: return .offline
+        
+        case 6: return .serverUnreachable
+        
+        case 7: return .signInNeeded
+        
+        case 8: return .storageLimit
+        
+        case 9: return .lowSpace
+        
+        case 10: return .noProfile
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: DownloadStop, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .done:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .stopped:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .alreadyRunning:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .waitingForWifi:
+            writeInt(&buf, Int32(4))
+        
+        
+        case .offline:
+            writeInt(&buf, Int32(5))
+        
+        
+        case .serverUnreachable:
+            writeInt(&buf, Int32(6))
+        
+        
+        case .signInNeeded:
+            writeInt(&buf, Int32(7))
+        
+        
+        case .storageLimit:
+            writeInt(&buf, Int32(8))
+        
+        
+        case .lowSpace:
+            writeInt(&buf, Int32(9))
+        
+        
+        case .noProfile:
+            writeInt(&buf, Int32(10))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDownloadStop_lift(_ buf: RustBuffer) throws -> DownloadStop {
+    return try FfiConverterTypeDownloadStop.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDownloadStop_lower(_ value: DownloadStop) -> RustBuffer {
+    return FfiConverterTypeDownloadStop.lower(value)
 }
 
 
@@ -9521,6 +10883,16 @@ public enum EventKind: Equatable, Hashable {
      * position, volume): update the "Playing on…" capsule.
      */
     case remoteState
+    /**
+     * What is downloaded changed (a song saved or removed, a collection added,
+     * connectivity changed): read `download_marks` again.
+     */
+    case downloadsChanged
+    /**
+     * `download` is set: the transfer moved on (at most every
+     * `downloads.progressEveryMs`).
+     */
+    case downloadProgress
 
 
 
@@ -9569,6 +10941,10 @@ public struct FfiConverterTypeEventKind: FfiConverterRustBuffer {
         case 13: return .remoteCommand
         
         case 14: return .remoteState
+        
+        case 15: return .downloadsChanged
+        
+        case 16: return .downloadProgress
         
         default: throw UniffiInternalError.unexpectedEnumCase
         }
@@ -9632,6 +11008,14 @@ public struct FfiConverterTypeEventKind: FfiConverterRustBuffer {
         
         case .remoteState:
             writeInt(&buf, Int32(14))
+        
+        
+        case .downloadsChanged:
+            writeInt(&buf, Int32(15))
+        
+        
+        case .downloadProgress:
+            writeInt(&buf, Int32(16))
         
         }
     }
@@ -12065,6 +13449,30 @@ fileprivate struct FfiConverterOptionInt32: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterOptionUInt64: FfiConverterRustBuffer {
+    typealias SwiftType = UInt64?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterUInt64.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterUInt64.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterOptionInt64: FfiConverterRustBuffer {
     typealias SwiftType = Int64?
 
@@ -12201,6 +13609,30 @@ fileprivate struct FfiConverterOptionTypeArtworkPalette: FfiConverterRustBuffer 
         switch try readInt(&buf) as Int8 {
         case 0: return nil
         case 1: return try FfiConverterTypeArtworkPalette.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeDownloadProgress: FfiConverterRustBuffer {
+    typealias SwiftType = DownloadProgress?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeDownloadProgress.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeDownloadProgress.read(from: &buf)
         default: throw UniffiInternalError.unexpectedOptionalTag
         }
     }
@@ -12617,6 +14049,30 @@ fileprivate struct FfiConverterOptionTypeTopResult: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterOptionTypeDownloadStop: FfiConverterRustBuffer {
+    typealias SwiftType = DownloadStop?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeDownloadStop.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeDownloadStop.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterOptionTypeDropRefusal: FfiConverterRustBuffer {
     typealias SwiftType = DropRefusal?
 
@@ -12857,6 +14313,31 @@ fileprivate struct FfiConverterSequenceTypeCredentialKey: FfiConverterRustBuffer
         seq.reserveCapacity(Int(len))
         for _ in 0 ..< len {
             seq.append(try FfiConverterTypeCredentialKey.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeDownloadedItem: FfiConverterRustBuffer {
+    typealias SwiftType = [DownloadedItem]
+
+    public static func write(_ value: [DownloadedItem], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeDownloadedItem.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [DownloadedItem] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [DownloadedItem]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeDownloadedItem.read(from: &buf))
         }
         return seq
     }
@@ -13837,6 +15318,51 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_unlike() != 42881) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_download() != 30141) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_download_marks() != 14595) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_download_settings() != 53498) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_downloads_overview() != 18719) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_pause_download() != 12051) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_refresh_smart_downloads() != 8323) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_remove_all_downloads() != 5281) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_remove_download() != 52628) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_remove_unplayed_downloads() != 58008) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_retry_failed_downloads() != 36084) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_run_downloads() != 64491) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_search_downloaded() != 22053) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_set_connectivity() != 27453) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_set_download_settings() != 11329) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_stop_downloads() != 23165) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_control_only() != 5220) {

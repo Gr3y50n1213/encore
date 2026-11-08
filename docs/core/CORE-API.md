@@ -1,6 +1,6 @@
 # Encore core API (the contract)
 
-**Version 5** (Phase 7, 7 November 2026). Core crate version `0.1.0`.
+**Version 6** (Phase 8, 8 November 2026). Core crate version `0.1.0`.
 
 This file is the only thing the platform tracks may rely on. Every public call, event and type of the core is listed here before a platform uses it. A change that breaks a platform gets a line under "Changes" and a request in `docs/requests/` that says what to change.
 
@@ -16,6 +16,7 @@ This file is the only thing the platform tracks may rely on. Every public call, 
 | 3 | 4 | Added, nothing removed. The companion server (`connect_companion`, `disconnect_companion`, `sync_status`, `sync_now`, `companion_devices`, `revoke_device`, `delete_profile_everywhere`); profiles on one device (`switch_profile`, `unlock_profile`, `set_profile_pin`, `remove_profile_pin`, `biometrics_changed`, `rename_profile`, `reorder_profiles`, `remove_profile_from_device`, `last_active_profile`); Guest (`start_guest`, `end_guest`, `guest_session`). `ProfileSummary` gains `initials`, `avatar_url`, `locked`, `active`, `needs_sign_in`; `CoreEvent` gains `sync_status`, `remote_change`, `credential` and three kinds. `open_profile` refuses a locked profile until `unlock_profile`; a `SourceToken` with `source_id` 0 is the companion's. New `profiles` tokens. A platform that switches over every `EventKind` adds the three new kinds; one that builds `ProfileSummary` or `CoreEvent` itself adds the fields. |
 | 4 | 5 | Added, nothing removed. Smart picks: autoplay fills itself (`refresh_autoplay`, `set_autoplay`), `start_radio`, `smart_shuffle`, `why_this_song`, `more_like_this` / `fewer_like_this`, Not interested (`not_interested_song`, `not_interested_artist`, `remove_not_interested`, `not_interested_list`, `clear_not_interested`), `set_adventurousness` / `adventurousness`, `reset_suggestions`, `clear_listening_history`, `home`, `regenerate_mixes`, `mix`, `pin_mix`, `hide_mix`, `not_in_this_mix`, `save_mix_as_playlist`, `suggestion_stats`; their types. Private listening ends after 2 hours of silence. Queue entries the app chose (Autoplay, Smart shuffle) have `chosen_by` App. A platform that builds `QueueState` itself is unaffected. |
 | 5 | 7 | Added, nothing removed. Handoff and remote control (board 12): `output_devices`, `rename_device`, `hand_off_to`, `handoff_ready`, `handoff_failed`, `pull_from`, `dismiss_continue`, `remote_command`, `remote_queue`, `control_only`, `stop_remote_control`; the player reports `playback_paused`, `playback_resumed`, `set_volume_level`; types `OutputDevices`, `OutputDevice`, `OutputState`, `DeviceState`, `RemoteSong`, `HandoffInfo`, `RemoteCommand` (+ `RemoteCommandKind`), `RemoteQueue`, `RemoteQueueItem`. `CoreEvent` gains `output_devices`, `device`, `handoff`, `remote_command` and seven kinds (`DevicesChanged`, `ContinueAvailable`, `HandoffIncoming`, `HandoffConfirmed`, `HandoffFailed`, `RemoteCommand`, `RemoteState`). A platform that switches over every `EventKind` adds the seven; one that builds `CoreEvent` itself adds the fields. |
+| 6 | 8 | Added, nothing removed. Downloads and offline (boards 06, 08, 11, 13, 17, 20; docs/adr/core-0017): `download`, `remove_download`, `remove_all_downloads`, `pause_download`, `retry_failed_downloads`, `download_marks`, `downloads_overview`, `download_settings` / `set_download_settings`, `run_downloads` (async) / `stop_downloads`, `refresh_smart_downloads`, `remove_unplayed_downloads`, `set_connectivity`, `search_downloaded`; types `DownloadKind`, `DownloadTarget`, `DownloadState`, `DownloadedItem`, `DownloadMarks`, `DownloadStop`, `DownloadRun`, `DownloadProgress`, `DownloadSettings`, `DownloadsOverview`. `StreamInfo` gains `local` and `cache_key`; `CoreEvent` gains `download` and two kinds (`DownloadsChanged`, `DownloadProgress`). Offline, `play`, `play_next`, `add_to_up_next`, `smart_shuffle`, `jump_to` and `replay_from_history` refuse a song that can't play with `NotAllowed` ("Not downloaded…"), and the queue passes over such songs. A platform that builds `StreamInfo` or `CoreEvent` itself adds the fields; one that switches over every `EventKind` adds the two. |
 
 ## How every platform gets the core
 
@@ -300,6 +301,28 @@ Any device signed in to the same profile takes over playback at the exact second
 
 **Privacy.** Devices of another profile never appear. Under Private listening, presence says a device plays but not what, and its queue isn't shared. Guest has no handoff.
 
+### Downloads and offline (plan section 8; boards 06, 08, 11, 13, 17, 20; Phase 8)
+
+The core decides what to keep and fetches it itself, over its own client (pinned self-signed servers work). The platform runs `run_downloads` from its background mechanism and reports the network with `set_connectivity` (docs/adr/core-0017). Files live in `<data_dir>/downloads`: two profiles that download the same song from the same server share one file, but each keeps its own list (board 14).
+
+| Call | Returns | Notes |
+| --- | --- | --- |
+| `download(target)` | `DownloadedItem` | Keep a song, album, playlist or mix (`DownloadTarget { kind, id, mix_id? }`). A downloaded mix is pinned so it keeps its songs. Songs wait for `run_downloads`. Refused for Guest. Records the "downloaded" signal (+1.5, section 21) unless Private, Guest or learning is off. |
+| `remove_download(target)` | – | Board 13: Remove download. A song also kept as part of an album or playlist stays, and `NotAllowed` says which ("It's saved as part of …"). |
+| `remove_all_downloads()` | `u32` | After the confirm sheet (board 03). Every file this profile alone held is deleted. |
+| `pause_download(target, paused)` / `retry_failed_downloads()` | – / `u32` | Board 06, item 5: tap the ring to pause, the warning dot to retry. |
+| `download_marks()` | `DownloadMarks` | Cheap; read on every `DownloadsChanged`. `saved_song_ids`, `pending_song_ids`, `failed_song_ids`, `playable_offline_song_ids` (saved plus fully cached), `items` (every downloaded thing with its `state`: Waiting, Downloading (the ring), Saved (the badge), Paused, Failed (the warning dot); `saved` of `total` for "7 of 12 saved"), `online`, `active_song_id`. |
+| `downloads_overview()` | `DownloadsOverview` | The Downloads page (board 17, item 3): `used_bytes`, `song_count`, `items`, `queued`, `failed`, `active` (the transfer), `stop` (why it waits, while songs wait), `settings`. |
+| `download_settings()` / `set_download_settings(settings)` | `DownloadSettings` / – | `quality` (Original by default, High, Normal), `wifi_only` (on), `limit_bytes` (none; at the limit songs wait, nothing is deleted), `remove_unplayed` (off; per collection), `liked_songs` (off: follows Liked songs), `smart_downloads` (off: pinned mixes inside 2 GB), `cache_limit_bytes` (the player's rolling cache, 1 GB; 0 turns it off). Values in `downloads` tokens. |
+| `run_downloads(network, free_bytes)` async | `DownloadRun` | One song at a time until done or blocked; `stop` says why: Done, Stopped, AlreadyRunning, WaitingForWifi, Offline, ServerUnreachable, SignInNeeded, StorageLimit, LowSpace (it keeps `downloads.keepFreeMB` free; pass the free space, or 0 if unknown), NoProfile. A failing song is tried once per run, three runs in all, then marked failed with the reason. A cut transfer resumes where it stopped. `DownloadProgress` events come at most every 500 ms. |
+| `stop_downloads()` | – | The platform's job was stopped: the run ends after the chunk it is writing; the part is kept and resumed. |
+| `refresh_smart_downloads()` | `u32` | The nightly pick (on Wi-Fi while charging), before `run_downloads`. |
+| `remove_unplayed_downloads()` | `u32` | At launch and from the jobs; nothing when the setting is off. |
+| `set_connectivity(online, network, cached_keys)` | – | On every network change and at start, with no profile needed. `cached_keys`: the `StreamInfo.cache_key`s the player's cache holds whole. Offline, only saved and cached songs play: lists keep only those, a tap on another song is refused with `NotAllowed` ("Not downloaded. It plays when you're back online": shake and REJECT, board 35), the queue passes over the rest (board 11), and Autoplay and radio pick only from them. |
+| `search_downloaded(query)` | `SearchResults` | Board 07's Downloaded scope. |
+
+`stream_for` returns the saved file (`local` true, a `file://` URL, no headers) for a downloaded song, online or not; `cache_key` names the song for the player's rolling cache without any token. `artwork` returns the kept cover (a `file://` URL) for a downloaded album and its songs, so covers show offline, on the lock screen and in the car.
+
 ## Events
 
 `set_listener(listener)` in Swift and Kotlin (implement `CoreListener.on_event`), `events()` in Dart (a `Stream<CoreEvent>`). One listener at a time: setting a new one replaces the old. `clear_listener()` (Swift, Kotlin) and `stopEvents()` (Dart) stop events. In Dart, `stopEvents()` is what ends the stream: cancelling a subscription alone does not, because the core still holds the stream. One `CoreEvent` record; only the fields its `kind` names are set.
@@ -320,6 +343,8 @@ Any device signed in to the same profile takes over playback at the exact second
 | `HandoffFailed` | `handoff` with `reason` | It didn't happen; a sender keeps playing |
 | `RemoteCommand` | `remote_command` | Another device controls this one: do it |
 | `RemoteState` | `device` | The device you control changed |
+| `DownloadsChanged` | – | What is downloaded or playable changed: read `download_marks` again |
+| `DownloadProgress` | `download`: `item_title`, `item_saved`, `item_total`, `song_title`, `songs_done`, `songs_total`, `bytes_done`, `bytes_total?` | The transfer moved on (at most every `downloads.progressEveryMs`): the progress notification and the ring |
 
 ## Types
 
@@ -356,9 +381,10 @@ All are plain records and enums. IDs and times are 64-bit signed integers (milli
 | `ExportSummary` | `plays`, `likes`, `playlists`, `playlist_songs`, `bytes` |
 | `QueueEntry` | `uid`, `song`, `chosen_by` (User, App) |
 | `QueueState` | `history`, `current?`, `up_next`, `autoplay`, `shuffle`, `repeat`, `autoplay_enabled`, `can_undo` |
-| `StreamInfo` | `song_id`, `url`, `url_with_api_key`, `headers: [HttpHeader { name, value }]`, `may_transcode` |
+| `StreamInfo` | `song_id`, `url`, `url_with_api_key`, `headers: [HttpHeader { name, value }]`, `may_transcode`, `local` (a downloaded file), `cache_key` |
+| `DownloadTarget` / `DownloadedItem` / `DownloadMarks` / `DownloadsOverview` / `DownloadSettings` / `DownloadRun` / `DownloadProgress` | see "Downloads and offline" |
 | `ArtworkRequest` | `url`, `headers` |
-| `CoreEvent` | `kind`, `queue?`, `now_playing?`, `preload?`, `sync_source_id?`, `sync_done`, `sync_total`, `sync_status?`, `remote_change?`, `credential?` |
+| `CoreEvent` | `kind`, `queue?`, `now_playing?`, `preload?`, `sync_source_id?`, `sync_done`, `sync_total`, `sync_status?`, `remote_change?`, `credential?`, `output_devices?`, `device?`, `handoff?`, `remote_command?`, `download?` |
 | `SkipTarget` | `song?`, `end_of_queue` |
 | `SongLyrics` / `LyricLine` / `LyricWord` / `LyricBackground` / `LyricGap` / `Singer` | see "Lyrics" |
 | `ArtworkPalette` / `PaletteSwatch` | `scheme`, `base`, `stops`, `text`, `lowest_contrast`, `sampled` / `colour`, `share` |
@@ -535,4 +561,13 @@ Everything below is in API version 5. It is tested in Rust with two real cores, 
 - **Remote control**: the "Playing on…" capsule, transport, scrub, volume and queue edits on the playing device.
 - **The player's part**: `HandoffIncoming` then `handoff_ready`; `RemoteCommand`; `playback_paused`, `playback_resumed`, `set_volume_level`.
 
-Not available yet: shared household devices across profiles (later, the owner's choice), downloads and offline artwork (Phase 8), recaps (Phase 11), finding the companion on the network by itself (mDNS; the address is typed).
+## What the platform tracks can build now (Phase 8)
+
+Everything below is in API version 6. It is tested in Rust on the Jellyfin recording with a stand-in that serves audio, fails, cuts a transfer short and resumes it (`api/core/tests/downloads.rs`); Swift, Kotlin and Dart download a song from the replay in CI and play it from its file.
+
+- **Downloads everywhere**: the Download button on album, playlist and mix pages, Download / Remove download in every menu, the badge, the ring and the warning dot on tiles and rows, "7 of 12 saved".
+- **The Downloads page** and its settings; Library's Downloaded chip; Search's Downloaded scope.
+- **Offline**: the banner ("Offline. Showing downloaded music"), everything that can't play dims and refuses a tap with the reason, the queue passes over it, Autoplay keeps going from downloads.
+- **The platform's part**: a background job that calls `run_downloads` (and `stop_downloads` when stopped), `set_connectivity` on every network change with the player's fully cached keys, and the progress notification from `DownloadProgress`.
+
+Not available yet: shared household devices across profiles (later, the owner's choice), recaps (Phase 11), finding the companion on the network by itself (mDNS; the address is typed).

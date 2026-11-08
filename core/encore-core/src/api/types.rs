@@ -452,6 +452,13 @@ pub struct StreamInfo {
     pub url_with_api_key: String,
     pub headers: Vec<HttpHeader>,
     pub may_transcode: bool,
+    /// The song is downloaded: `url` is a `file://` path on this device, with no
+    /// headers (Phase 8).
+    pub local: bool,
+    /// A name for the player's rolling cache: the server, the song and the
+    /// quality, with no token in it. Report fully cached ones to
+    /// `set_connectivity`, so they play offline.
+    pub cache_key: String,
 }
 
 impl std::fmt::Debug for StreamInfo {
@@ -1095,6 +1102,187 @@ pub enum RadioSeed {
     Artist,
     Playlist,
 }
+// ---------------------------------------------------------------- downloads (Phase 8)
+
+/// What can be kept on the device (board 13, item 3; board 17, item 3). Liked
+/// songs and Smart downloads follow their lists by themselves.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum DownloadKind {
+    Song,
+    Album,
+    Playlist,
+    /// Follows the mix: when it changes, so do its downloads.
+    Mix,
+    /// Follows Liked songs (the "Download liked songs" setting).
+    LikedSongs,
+    /// Smart downloads (section 21): the app's picks from pinned mixes, inside a
+    /// budget. Turned on and off in the settings, never downloaded by hand.
+    Smart,
+}
+
+/// A thing to download or remove: `id` is the song's, album's or playlist's ID;
+/// a mix is named by `mix_id`. Liked songs and Smart downloads need neither (0).
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct DownloadTarget {
+    pub kind: DownloadKind,
+    pub id: i64,
+    pub mix_id: Option<String>,
+}
+
+/// Where a downloaded thing stands (board 06, item 5: none, a ring, a badge, a
+/// warning dot).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum DownloadState {
+    /// Some songs are still to come; nothing is moving now (`stop` in the
+    /// overview says why, for example waiting for Wi-Fi).
+    Waiting,
+    /// Moving now: a ring.
+    Downloading,
+    /// Every song is on the device: the badge.
+    Saved,
+    /// Paused by the person.
+    Paused,
+    /// Some songs couldn't be fetched after every try: the warning dot. Tap to
+    /// retry.
+    Failed,
+}
+
+/// One downloaded album, playlist, mix or song (the Library's Downloaded chip,
+/// the Downloads page's list).
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct DownloadedItem {
+    pub target: DownloadTarget,
+    pub title: String,
+    /// The artist for an album or song, empty otherwise.
+    pub subtitle: String,
+    pub state: DownloadState,
+    /// "7 of 12 saved" (board 08).
+    pub saved: u32,
+    pub total: u32,
+    pub failed: u32,
+    pub bytes: u64,
+    /// Kept by the app (Liked songs, Smart downloads).
+    pub auto: bool,
+    pub added_utc_ms: i64,
+    /// Why the last failure happened, when some failed.
+    pub error: Option<String>,
+}
+
+/// Everything the lists need to draw badges and dim what can't play offline,
+/// in one cheap call (`download_marks`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct DownloadMarks {
+    pub saved_song_ids: Vec<i64>,
+    /// Wanted and not saved yet (paused ones included).
+    pub pending_song_ids: Vec<i64>,
+    pub failed_song_ids: Vec<i64>,
+    /// What plays with no connection: saved songs plus the ones the player has
+    /// fully cached (`set_connectivity`). Offline, everything else dims.
+    pub playable_offline_song_ids: Vec<i64>,
+    pub items: Vec<DownloadedItem>,
+    /// The connectivity the platform last reported.
+    pub online: bool,
+    /// The song being fetched right now, if any.
+    pub active_song_id: Option<i64>,
+}
+
+/// Why `run_downloads` stopped.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum DownloadStop {
+    /// Nothing left to fetch.
+    Done,
+    /// `stop_downloads` was called; it carries on next time where it was.
+    Stopped,
+    /// Another run is going; this one did nothing.
+    AlreadyRunning,
+    /// "Download only on Wi-Fi" is on and the network is cellular.
+    WaitingForWifi,
+    /// The device has no connection.
+    Offline,
+    /// The media server didn't answer; try later.
+    ServerUnreachable,
+    /// The media server's sign-in ended; sign in again.
+    SignInNeeded,
+    /// The storage limit in the settings is reached; nothing is deleted.
+    StorageLimit,
+    /// The device is nearly full (it keeps `downloads.keepFreeMB` free).
+    LowSpace,
+    /// No profile is open (or it is a Guest, which downloads nothing).
+    NoProfile,
+}
+
+/// What one `run_downloads` did.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct DownloadRun {
+    pub saved: u32,
+    pub failed: u32,
+    /// Still to fetch.
+    pub remaining: u32,
+    pub stop: DownloadStop,
+}
+
+/// The transfer under way, for the progress notification ("Downloading Road
+/// trip, 15 of 24 songs", boards 32 and 34) and the Downloads page.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct DownloadProgress {
+    /// The album, playlist or mix being fetched (the song's own title for a song).
+    pub item_title: String,
+    /// That item's songs on the device so far, and its songs in all ("15 of 24").
+    pub item_saved: u32,
+    pub item_total: u32,
+    pub song_id: i64,
+    pub song_title: String,
+    /// Songs saved in this run, and the run's songs in all.
+    pub songs_done: u32,
+    pub songs_total: u32,
+    pub bytes_done: u64,
+    pub bytes_total: Option<u64>,
+}
+
+/// The Downloads settings (board 17, item 3).
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct DownloadSettings {
+    /// Original, High or Normal (Data saver is for streams only).
+    pub quality: StreamQuality,
+    pub wifi_only: bool,
+    /// None: no limit. At the limit new songs wait; nothing is deleted.
+    pub limit_bytes: Option<u64>,
+    /// Remove an album or playlist not played for `downloads.removeUnplayedAfterDays`.
+    pub remove_unplayed: bool,
+    /// Keep Liked songs downloaded.
+    pub liked_songs: bool,
+    /// Smart downloads (section 21): pinned mixes inside the budget, nightly on
+    /// Wi-Fi while charging.
+    pub smart_downloads: bool,
+    /// The player's rolling cache of streamed songs; 0 turns it off.
+    pub cache_limit_bytes: u64,
+}
+
+/// The Downloads page (board 17, item 3).
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct DownloadsOverview {
+    /// What this profile's downloads take on disk.
+    pub used_bytes: u64,
+    pub song_count: u32,
+    pub items: Vec<DownloadedItem>,
+    pub queued: u32,
+    pub failed: u32,
+    pub active: Option<DownloadProgress>,
+    /// Why the last run stopped, while songs are still waiting.
+    pub stop: Option<DownloadStop>,
+    pub settings: DownloadSettings,
+}
+
 // ---------------------------------------------------------------- events
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1138,6 +1326,12 @@ pub enum EventKind {
     /// `device` is set: the device this one controls changed (now playing,
     /// position, volume): update the "Playing on…" capsule.
     RemoteState,
+    /// What is downloaded changed (a song saved or removed, a collection added,
+    /// connectivity changed): read `download_marks` again.
+    DownloadsChanged,
+    /// `download` is set: the transfer moved on (at most every
+    /// `downloads.progressEveryMs`).
+    DownloadProgress,
 }
 
 /// One event. Only the fields its `kind` names are set.
@@ -1158,6 +1352,7 @@ pub struct CoreEvent {
     pub device: Option<OutputDevice>,
     pub handoff: Option<HandoffInfo>,
     pub remote_command: Option<RemoteCommand>,
+    pub download: Option<DownloadProgress>,
 }
 
 impl CoreEvent {
@@ -1177,6 +1372,7 @@ impl CoreEvent {
             device: None,
             handoff: None,
             remote_command: None,
+            download: None,
         }
     }
 }
@@ -1520,6 +1716,8 @@ impl From<SourceError> for EncoreError {
                 reason,
                 detail: String::new(),
             },
+            SourceError::Cancelled => EncoreError::NotAllowed { reason },
+            SourceError::Storage(_) => EncoreError::Storage { reason },
         }
     }
 }

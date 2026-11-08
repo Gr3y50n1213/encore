@@ -13,7 +13,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::{Result, StoreError};
 
-const MIGRATIONS: &[&str] = &[R1];
+const MIGRATIONS: &[&str] = &[R1, R2];
 
 const R1: &str = r#"
 CREATE TABLE profiles (
@@ -39,6 +39,30 @@ CREATE TABLE device_state (
     value TEXT NOT NULL
 );
 "#;
+
+/// Downloaded files on this device (Phase 8; docs/adr/core-0017). Two profiles
+/// that download the same song from the same server share one file, so the file
+/// is named here, outside every profile, with how many profiles hold it. Never
+/// which ones: each profile's own list says what it holds (board 14).
+const R2: &str = r#"
+CREATE TABLE download_files (
+    file_key   TEXT    PRIMARY KEY,
+    file_name  TEXT    NOT NULL,
+    bytes      INTEGER NOT NULL,
+    refs       INTEGER NOT NULL
+);
+"#;
+
+/// A downloaded file as the device knows it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DownloadFileRecord {
+    pub file_key: String,
+    /// Inside the downloads folder.
+    pub file_name: String,
+    pub bytes: i64,
+    /// How many profiles hold it.
+    pub refs: i64,
+}
 
 /// A profile as the switcher lists it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -250,6 +274,71 @@ impl Registry {
             .optional()?)
     }
 
+    pub fn download_file(&self, file_key: &str) -> Result<Option<DownloadFileRecord>> {
+        Ok(self
+            .conn
+            .query_row(
+                "SELECT file_key, file_name, bytes, refs FROM download_files WHERE file_key = ?1",
+                [file_key],
+                download_file_row,
+            )
+            .optional()?)
+    }
+
+    pub fn download_files(&self) -> Result<Vec<DownloadFileRecord>> {
+        let mut st = self.conn.prepare(
+            "SELECT file_key, file_name, bytes, refs FROM download_files ORDER BY file_key",
+        )?;
+        let rows = st.query_map([], download_file_row)?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
+    /// One more profile holds this file (written now, or already on disk).
+    pub fn hold_download_file(&self, file_key: &str, file_name: &str, bytes: i64) -> Result<()> {
+        self.conn.execute(
+            "INSERT INTO download_files (file_key, file_name, bytes, refs) VALUES (?1, ?2, ?3, 1)
+             ON CONFLICT (file_key) DO UPDATE SET refs = refs + 1",
+            params![file_key, file_name, bytes],
+        )?;
+        Ok(())
+    }
+
+    /// One profile lets go. The file's name comes back when no one holds it any
+    /// more, for the caller to delete.
+    pub fn release_download_file(&self, file_key: &str) -> Result<Option<String>> {
+        let tx = self.conn.unchecked_transaction()?;
+        tx.execute(
+            "UPDATE download_files SET refs = refs - 1 WHERE file_key = ?1",
+            [file_key],
+        )?;
+        let gone: Option<String> = tx
+            .query_row(
+                "SELECT file_name FROM download_files WHERE file_key = ?1 AND refs <= 0",
+                [file_key],
+                |r| r.get(0),
+            )
+            .optional()?;
+        if gone.is_some() {
+            tx.execute("DELETE FROM download_files WHERE file_key = ?1", [file_key])?;
+        }
+        tx.commit()?;
+        Ok(gone)
+    }
+
+    /// The tidy-up's count (encore-core recounts from every profile's list).
+    pub fn set_download_refs(&self, file_key: &str, refs: i64) -> Result<()> {
+        if refs <= 0 {
+            self.conn
+                .execute("DELETE FROM download_files WHERE file_key = ?1", [file_key])?;
+        } else {
+            self.conn.execute(
+                "UPDATE download_files SET refs = ?2 WHERE file_key = ?1",
+                params![file_key, refs],
+            )?;
+        }
+        Ok(())
+    }
+
     pub fn set_state(&self, key: &str, value: Option<&str>) -> Result<()> {
         match value {
             Some(v) => self.conn.execute(
@@ -265,9 +354,44 @@ impl Registry {
     }
 }
 
+fn download_file_row(r: &rusqlite::Row<'_>) -> rusqlite::Result<DownloadFileRecord> {
+    Ok(DownloadFileRecord {
+        file_key: r.get(0)?,
+        file_name: r.get(1)?,
+        bytes: r.get(2)?,
+        refs: r.get(3)?,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_shared_file_goes_only_when_the_last_profile_lets_go() {
+        let r = Registry::open_in_memory().unwrap();
+        r.hold_download_file("k", "k.flac", 30).unwrap();
+        r.hold_download_file("k", "k.flac", 30).unwrap();
+        assert_eq!(r.download_file("k").unwrap().unwrap().refs, 2);
+        assert_eq!(
+            r.release_download_file("k").unwrap(),
+            None,
+            "one profile still holds it"
+        );
+        assert_eq!(
+            r.release_download_file("k").unwrap().as_deref(),
+            Some("k.flac")
+        );
+        assert_eq!(r.download_file("k").unwrap(), None);
+        assert_eq!(
+            r.release_download_file("k").unwrap(),
+            None,
+            "letting go twice is harmless"
+        );
+        r.hold_download_file("j", "j.mp3", 5).unwrap();
+        r.set_download_refs("j", 0).unwrap();
+        assert!(r.download_files().unwrap().is_empty());
+    }
 
     #[test]
     fn profiles_keep_their_order_names_avatars_and_pins() {

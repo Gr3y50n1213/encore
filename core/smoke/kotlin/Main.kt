@@ -8,6 +8,9 @@
 
 import kotlinx.coroutines.runBlocking
 import uk.gcartee.encore.core.AlbumSort
+import uk.gcartee.encore.core.DownloadKind
+import uk.gcartee.encore.core.DownloadStop
+import uk.gcartee.encore.core.DownloadTarget
 import uk.gcartee.encore.core.CoreConfig
 import uk.gcartee.encore.core.DropTarget
 import uk.gcartee.encore.core.DropTargetKind
@@ -161,6 +164,15 @@ fun smoke() {
         error("handoff needs a companion")
     } catch (e: EncoreException) {
     }
+    // Phase 8: a downloaded song plays from its file (the replay serves audio).
+    val kept = DownloadTarget(DownloadKind.SONG, all.first().id, null)
+    core.download(kept)
+    val run = core.runDownloads(Network.WIFI, 0uL)
+    check(run.stop == DownloadStop.DONE && run.saved == 1u) { "download ${run.stop}" }
+    check(core.streamFor(kept.id, Network.WIFI).local) { "local stream" }
+    check(core.downloadMarks().savedSongIds == listOf(kept.id)) { "download marks" }
+    core.removeDownload(kept)
+    check(core.downloadsOverview().usedBytes == 0uL) { "download removed" }
             val artAlbum = core.albums(AlbumSort.TITLE, 0u, 100u).first { it.hasArtwork }
             val palette = checkNotNull(core.albumPalette(artAlbum.id)) { "no palette" }
             check(palette.base == "3D0000" && palette.stops.size == 4) { palette.base }

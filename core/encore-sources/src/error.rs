@@ -59,6 +59,13 @@ pub enum SourceError {
     Server { status: u16, message: String },
     #[error("The server's reply wasn't understood: {0}")]
     Protocol(String),
+    /// A download was stopped on purpose (the platform's job ended); what it
+    /// wrote is kept for the next try.
+    #[error("The download was stopped")]
+    Cancelled,
+    /// A file couldn't be written (a full disk, a removed folder).
+    #[error("Couldn't save the file: {0}")]
+    Storage(String),
 }
 
 pub type Result<T> = std::result::Result<T, SourceError>;

@@ -22,11 +22,17 @@ test settings:
     recording holds each one at the 64 px the palette samples, and the apps ask for
     the size they draw (fillWidth, fillHeight), so the end-to-end screenshots show
     the covers, scaled.
+  - A song's audio (GET /Audio/<id>/stream or /universal) is a few seconds of
+    silence made here, as WAV, with ranges honoured: the recording holds no audio,
+    and Phase 8's emulator test downloads songs and plays them offline. No audio is
+    committed anywhere.
 """
 
 import email.utils
 import json
 import os
+import re
+import struct
 import sys
 import threading
 from datetime import datetime, timezone
@@ -34,6 +40,21 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qsl, urlsplit
 
 IGNORED_PARAMS = {"limit"}
+AUDIO_PATH = re.compile(r"^/Audio/[^/]+/(stream|universal)$")
+SAMPLE_RATE = 8000
+SECONDS = 4
+
+
+def silence_wav():
+    """SECONDS of 16-bit mono silence as a WAV file."""
+    frames = b"\x00\x00" * SAMPLE_RATE * SECONDS
+    header = b"RIFF" + struct.pack("<I", 36 + len(frames)) + b"WAVE"
+    header += b"fmt " + struct.pack("<IHHIIHH", 16, 1, 1, SAMPLE_RATE, SAMPLE_RATE * 2, 2, 16)
+    header += b"data" + struct.pack("<I", len(frames))
+    return header + frames
+
+
+SILENCE = silence_wav()
 
 
 def load(path):
@@ -113,6 +134,9 @@ def handler(replay):
             if length:
                 self.rfile.read(length)
             url = urlsplit(self.path)
+            if method == "GET" and AUDIO_PATH.match(url.path):
+                self.audio()
+                return
             x = replay.find(method, url.path, parse_qsl(url.query, keep_blank_values=True))
             if x is None:
                 # Never echo the query: it can hold the ApiKey parameter.
@@ -145,6 +169,22 @@ def handler(replay):
             self.end_headers()
             if status != 204:
                 self.wfile.write(body)
+
+        def audio(self):
+            """The made-up song, whole or from a `Range: bytes=N-`."""
+            self.recorded_date = None
+            body, status, start = SILENCE, 200, 0
+            asked = re.match(r"bytes=(\d+)-$", self.headers.get("Range") or "")
+            if asked and int(asked.group(1)) < len(SILENCE):
+                start, status = int(asked.group(1)), 206
+            self.send_response(status)
+            self.send_header("Content-Type", "audio/wav")
+            self.send_header("Accept-Ranges", "bytes")
+            if status == 206:
+                self.send_header("Content-Range", f"bytes {start}-{len(body) - 1}/{len(body)}")
+            self.send_header("Content-Length", str(len(body) - start))
+            self.end_headers()
+            self.wfile.write(body[start:])
 
         def do_GET(self):
             self.answer("GET")

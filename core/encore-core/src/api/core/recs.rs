@@ -155,7 +155,12 @@ fn inputs(
     let history = recs::History {
         plays,
         likes: store.likes_with_times()?,
-        added: store.playlist_adds()?,
+        // Songs added to a playlist, and songs downloaded by hand (section 21, +1.5).
+        added: {
+            let mut a = store.playlist_adds()?;
+            a.extend(store.download_signals()?);
+            a
+        },
         feedback: store
             .feedback_rows()?
             .into_iter()
@@ -316,6 +321,7 @@ impl Inner {
             .filter(|(_, t)| *t >= since)
             .max_by_key(|(_, t)| *t)
             .map(|(k, _)| k);
+        let only = self.playable_keys(&store)?;
         drop(store);
         drop(pb);
         Ok(recs::Context {
@@ -325,7 +331,8 @@ impl Inner {
             pushed_away,
             pulled_toward,
             exploration_percent: self.adventurousness_percent(p, model.plays_counted)?,
-            only: None,
+            // Offline (Phase 8; board 37): picks only from what can play.
+            only,
             hide_explicit: false,
             seed: now as u64,
         })
@@ -540,7 +547,7 @@ impl Inner {
         Ok(set)
     }
 
-    fn pinned(&self, store: &Store) -> Vec<recs::Mix> {
+    pub(super) fn pinned(&self, store: &Store) -> Vec<recs::Mix> {
         Self::stored(store, PINNED_KEY).unwrap_or_default()
     }
 
@@ -583,7 +590,7 @@ impl Inner {
         }
     }
 
-    fn find_mix(&self, store: &Store, mix_id: &str) -> Option<(recs::Mix, bool, i64)> {
+    pub(super) fn find_mix(&self, store: &Store, mix_id: &str) -> Option<(recs::Mix, bool, i64)> {
         if let Some(m) = self.pinned(store).into_iter().find(|m| m.id == mix_id) {
             return Some((m, true, 0));
         }
@@ -671,6 +678,8 @@ impl EncoreCore {
         context_id: Option<String>,
     ) -> Result<QueueState, EncoreError> {
         let p = self.inner.profile()?;
+        // Offline (Phase 8): shuffle what can play.
+        let song_ids = self.inner.offline_songs(&p, &song_ids)?;
         let (model, catalog, ids) = self.inner.recs_model(&p)?;
         let keys: Vec<String> = {
             let store = lock(&p.store)?;

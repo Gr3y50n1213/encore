@@ -890,6 +890,36 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_unlike(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_download(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_download_marks(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_download_settings(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_downloads_overview(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_pause_download(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_refresh_smart_downloads(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_remove_all_downloads(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_remove_download(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_remove_unplayed_downloads(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_retry_failed_downloads(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_run_downloads(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_search_downloaded(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_set_connectivity(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_set_download_settings(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_stop_downloads(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_control_only(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_dismiss_continue(
@@ -1199,6 +1229,36 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_unlike(`ptr`: Long,`songIds`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_download(`ptr`: Long,`target`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_download_marks(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_download_settings(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_downloads_overview(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_pause_download(`ptr`: Long,`target`: RustBuffer.ByValue,`paused`: Byte,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_refresh_smart_downloads(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Int
+    external fun uniffi_encore_core_fn_method_encorecore_remove_all_downloads(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Int
+    external fun uniffi_encore_core_fn_method_encorecore_remove_download(`ptr`: Long,`target`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_remove_unplayed_downloads(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Int
+    external fun uniffi_encore_core_fn_method_encorecore_retry_failed_downloads(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Int
+    external fun uniffi_encore_core_fn_method_encorecore_run_downloads(`ptr`: Long,`network`: RustBuffer.ByValue,`freeBytes`: Long,
+    ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_search_downloaded(`ptr`: Long,`query`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_set_connectivity(`ptr`: Long,`online`: Byte,`network`: RustBuffer.ByValue,`cachedKeys`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_set_download_settings(`ptr`: Long,`settings`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_stop_downloads(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     external fun uniffi_encore_core_fn_method_encorecore_control_only(`ptr`: Long,`deviceId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_dismiss_continue(`ptr`: Long,`deviceId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -1707,6 +1767,51 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_unlike() and 0xFFFF) != 42881) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_download() and 0xFFFF) != 30141) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_download_marks() and 0xFFFF) != 14595) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_download_settings() and 0xFFFF) != 53498) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_downloads_overview() and 0xFFFF) != 18719) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_pause_download() and 0xFFFF) != 12051) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_refresh_smart_downloads() and 0xFFFF) != 8323) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_remove_all_downloads() and 0xFFFF) != 5281) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_remove_download() and 0xFFFF) != 52628) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_remove_unplayed_downloads() and 0xFFFF) != 58008) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_retry_failed_downloads() and 0xFFFF) != 36084) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_run_downloads() and 0xFFFF) != 64491) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_search_downloaded() and 0xFFFF) != 22053) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_set_connectivity() and 0xFFFF) != 27453) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_set_download_settings() and 0xFFFF) != 11329) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_stop_downloads() and 0xFFFF) != 23165) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_control_only() and 0xFFFF) != 5220) {
@@ -3182,6 +3287,95 @@ public interface EncoreCoreInterface {
      * Unlike songs; every copy of each song (on any album) stops being liked.
      */
     fun `unlike`(`songIds`: List<kotlin.Long>): EditResult
+    
+    /**
+     * Keep a song, album, playlist or mix on this device (board 13, item 3;
+     * board 08). Its songs wait for `run_downloads`. Liked songs and Smart
+     * downloads are turned on in `set_download_settings`.
+     */
+    fun `download`(`target`: DownloadTarget): DownloadedItem
+    
+    /**
+     * Badges, rings and what dims offline, for every list (cheap).
+     */
+    fun `downloadMarks`(): DownloadMarks
+    
+    fun `downloadSettings`(): DownloadSettings
+    
+    /**
+     * The Downloads page (board 17, item 3).
+     */
+    fun `downloadsOverview`(): DownloadsOverview
+    
+    /**
+     * Pause or resume one item's downloads (board 06, item 5: tap the ring).
+     */
+    fun `pauseDownload`(`target`: DownloadTarget, `paused`: kotlin.Boolean)
+    
+    /**
+     * Smart downloads' nightly pick (section 21): call before `run_downloads`
+     * from the nightly job. Returns how many songs it holds.
+     */
+    fun `refreshSmartDownloads`(): kotlin.UInt
+    
+    /**
+     * Board 03: "clear downloads" (after a confirm sheet). Returns how many
+     * collections went.
+     */
+    fun `removeAllDownloads`(): kotlin.UInt
+    
+    /**
+     * Stop keeping it (board 13: Remove download). A song that is also part of a
+     * downloaded album or playlist stays, and the reason says which.
+     */
+    fun `removeDownload`(`target`: DownloadTarget)
+    
+    /**
+     * "Remove downloads not played for 30 days" (board 17, item 3), per album,
+     * playlist, mix or song, never Liked songs or Smart downloads. Call it at
+     * launch and from the jobs; it does nothing when the setting is off.
+     */
+    fun `removeUnplayedDownloads`(): kotlin.UInt
+    
+    /**
+     * Try every failed song again (board 06, item 5: tap the warning dot).
+     */
+    fun `retryFailedDownloads`(): kotlin.UInt
+    
+    /**
+     * Fetch what waits, one song at a time, until done or blocked (Wi-Fi only,
+     * the limit, low space, offline, sign-in). `free_bytes` is the free space on
+     * the device now (0 if unknown); `network` is the current one. Call it from
+     * the platform's background job; `stop_downloads` ends it, keeping what was
+     * fetched. Async.
+     */
+    suspend fun `runDownloads`(`network`: Network, `freeBytes`: kotlin.ULong): DownloadRun
+    
+    /**
+     * Board 07's Downloaded scope: the same search over what can play offline.
+     */
+    fun `searchDownloaded`(`query`: kotlin.String): SearchResults
+    
+    /**
+     * What the network is now (call on every change, and at start). Offline,
+     * only saved songs and the player's fully cached ones (`cached_keys`, the
+     * `StreamInfo.cache_key`s it holds whole) can play: the queue passes over the
+     * rest and taps on them are refused. Works with no profile open.
+     */
+    fun `setConnectivity`(`online`: kotlin.Boolean, `network`: Network, `cachedKeys`: List<kotlin.String>)
+    
+    /**
+     * Change the Downloads settings (changes apply at once, board 17). Liked
+     * songs and Smart downloads add or remove their collections; a new quality
+     * applies to songs downloaded from now on.
+     */
+    fun `setDownloadSettings`(`settings`: DownloadSettings)
+    
+    /**
+     * End the run in progress after the chunk it is writing (the job was
+     * stopped). The part fetched so far is kept and resumed next time.
+     */
+    fun `stopDownloads`()
     
     /**
      * "Control only" (board 12, Hold menu) or the "Playing on…" capsule: send
@@ -5328,6 +5522,287 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
 
     
     /**
+     * Keep a song, album, playlist or mix on this device (board 13, item 3;
+     * board 08). Its songs wait for `run_downloads`. Liked songs and Smart
+     * downloads are turned on in `set_download_settings`.
+     */
+    @Throws(EncoreException::class)override fun `download`(`target`: DownloadTarget): DownloadedItem {
+            return FfiConverterTypeDownloadedItem.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_download(
+        it,
+        
+        FfiConverterTypeDownloadTarget.lower(`target`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Badges, rings and what dims offline, for every list (cheap).
+     */
+    @Throws(EncoreException::class)override fun `downloadMarks`(): DownloadMarks {
+            return FfiConverterTypeDownloadMarks.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_download_marks(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    @Throws(EncoreException::class)override fun `downloadSettings`(): DownloadSettings {
+            return FfiConverterTypeDownloadSettings.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_download_settings(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * The Downloads page (board 17, item 3).
+     */
+    @Throws(EncoreException::class)override fun `downloadsOverview`(): DownloadsOverview {
+            return FfiConverterTypeDownloadsOverview.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_downloads_overview(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Pause or resume one item's downloads (board 06, item 5: tap the ring).
+     */
+    @Throws(EncoreException::class)override fun `pauseDownload`(`target`: DownloadTarget, `paused`: kotlin.Boolean)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_pause_download(
+        it,
+        
+        FfiConverterTypeDownloadTarget.lower(`target`),
+        FfiConverterBoolean.lower(`paused`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Smart downloads' nightly pick (section 21): call before `run_downloads`
+     * from the nightly job. Returns how many songs it holds.
+     */
+    @Throws(EncoreException::class)override fun `refreshSmartDownloads`(): kotlin.UInt {
+            return FfiConverterUInt.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_refresh_smart_downloads(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Board 03: "clear downloads" (after a confirm sheet). Returns how many
+     * collections went.
+     */
+    @Throws(EncoreException::class)override fun `removeAllDownloads`(): kotlin.UInt {
+            return FfiConverterUInt.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_remove_all_downloads(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Stop keeping it (board 13: Remove download). A song that is also part of a
+     * downloaded album or playlist stays, and the reason says which.
+     */
+    @Throws(EncoreException::class)override fun `removeDownload`(`target`: DownloadTarget)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_remove_download(
+        it,
+        
+        FfiConverterTypeDownloadTarget.lower(`target`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * "Remove downloads not played for 30 days" (board 17, item 3), per album,
+     * playlist, mix or song, never Liked songs or Smart downloads. Call it at
+     * launch and from the jobs; it does nothing when the setting is off.
+     */
+    @Throws(EncoreException::class)override fun `removeUnplayedDownloads`(): kotlin.UInt {
+            return FfiConverterUInt.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_remove_unplayed_downloads(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Try every failed song again (board 06, item 5: tap the warning dot).
+     */
+    @Throws(EncoreException::class)override fun `retryFailedDownloads`(): kotlin.UInt {
+            return FfiConverterUInt.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_retry_failed_downloads(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Fetch what waits, one song at a time, until done or blocked (Wi-Fi only,
+     * the limit, low space, offline, sign-in). `free_bytes` is the free space on
+     * the device now (0 if unknown); `network` is the current one. Call it from
+     * the platform's background job; `stop_downloads` ends it, keeping what was
+     * fetched. Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `runDownloads`(`network`: Network, `freeBytes`: kotlin.ULong) : DownloadRun {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_run_downloads(
+                uniffiHandle,
+                
+        FfiConverterTypeNetwork.lower(`network`),
+        FfiConverterULong.lower(`freeBytes`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeDownloadRun.lift(it) },
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * Board 07's Downloaded scope: the same search over what can play offline.
+     */
+    @Throws(EncoreException::class)override fun `searchDownloaded`(`query`: kotlin.String): SearchResults {
+            return FfiConverterTypeSearchResults.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_search_downloaded(
+        it,
+        
+        FfiConverterString.lower(`query`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * What the network is now (call on every change, and at start). Offline,
+     * only saved songs and the player's fully cached ones (`cached_keys`, the
+     * `StreamInfo.cache_key`s it holds whole) can play: the queue passes over the
+     * rest and taps on them are refused. Works with no profile open.
+     */
+    @Throws(EncoreException::class)override fun `setConnectivity`(`online`: kotlin.Boolean, `network`: Network, `cachedKeys`: List<kotlin.String>)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_set_connectivity(
+        it,
+        
+        FfiConverterBoolean.lower(`online`),
+        FfiConverterTypeNetwork.lower(`network`),
+        FfiConverterSequenceString.lower(`cachedKeys`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Change the Downloads settings (changes apply at once, board 17). Liked
+     * songs and Smart downloads add or remove their collections; a new quality
+     * applies to songs downloaded from now on.
+     */
+    @Throws(EncoreException::class)override fun `setDownloadSettings`(`settings`: DownloadSettings)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_set_download_settings(
+        it,
+        
+        FfiConverterTypeDownloadSettings.lower(`settings`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * End the run in progress after the chunk it is writing (the job was
+     * stopped). The part fetched so far is kept and resumed next time.
+     */override fun `stopDownloads`()
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_stop_downloads(
+        it,
+        _status)
+}
+    }
+    
+    
+
+    
+    /**
      * "Control only" (board 12, Hold menu) or the "Playing on…" capsule: send
      * `RemoteState` whenever that device changes.
      */
@@ -6782,6 +7257,8 @@ data class CoreEvent (
     var `handoff`: HandoffInfo?
     , 
     var `remoteCommand`: RemoteCommand?
+    , 
+    var `download`: DownloadProgress?
     
 ){
     
@@ -6812,6 +7289,7 @@ public object FfiConverterTypeCoreEvent: FfiConverterRustBuffer<CoreEvent> {
             FfiConverterOptionalTypeOutputDevice.read(buf),
             FfiConverterOptionalTypeHandoffInfo.read(buf),
             FfiConverterOptionalTypeRemoteCommand.read(buf),
+            FfiConverterOptionalTypeDownloadProgress.read(buf),
         )
     }
 
@@ -6829,7 +7307,8 @@ public object FfiConverterTypeCoreEvent: FfiConverterRustBuffer<CoreEvent> {
             FfiConverterOptionalTypeOutputDevices.allocationSize(value.`outputDevices`) +
             FfiConverterOptionalTypeOutputDevice.allocationSize(value.`device`) +
             FfiConverterOptionalTypeHandoffInfo.allocationSize(value.`handoff`) +
-            FfiConverterOptionalTypeRemoteCommand.allocationSize(value.`remoteCommand`)
+            FfiConverterOptionalTypeRemoteCommand.allocationSize(value.`remoteCommand`) +
+            FfiConverterOptionalTypeDownloadProgress.allocationSize(value.`download`)
     )
 
     override fun write(value: CoreEvent, buf: ByteBuffer) {
@@ -6847,6 +7326,7 @@ public object FfiConverterTypeCoreEvent: FfiConverterRustBuffer<CoreEvent> {
             FfiConverterOptionalTypeOutputDevice.write(value.`device`, buf)
             FfiConverterOptionalTypeHandoffInfo.write(value.`handoff`, buf)
             FfiConverterOptionalTypeRemoteCommand.write(value.`remoteCommand`, buf)
+            FfiConverterOptionalTypeDownloadProgress.write(value.`download`, buf)
     }
 }
 
@@ -6885,6 +7365,534 @@ public object FfiConverterTypeCredentialKey: FfiConverterRustBuffer<CredentialKe
     override fun write(value: CredentialKey, buf: ByteBuffer) {
             FfiConverterLong.write(value.`sourceId`, buf)
             FfiConverterString.write(value.`key`, buf)
+    }
+}
+
+
+
+/**
+ * Everything the lists need to draw badges and dim what can't play offline,
+ * in one cheap call (`download_marks`).
+ */
+data class DownloadMarks (
+    var `savedSongIds`: List<kotlin.Long>
+    , 
+    /**
+     * Wanted and not saved yet (paused ones included).
+     */
+    var `pendingSongIds`: List<kotlin.Long>
+    , 
+    var `failedSongIds`: List<kotlin.Long>
+    , 
+    /**
+     * What plays with no connection: saved songs plus the ones the player has
+     * fully cached (`set_connectivity`). Offline, everything else dims.
+     */
+    var `playableOfflineSongIds`: List<kotlin.Long>
+    , 
+    var `items`: List<DownloadedItem>
+    , 
+    /**
+     * The connectivity the platform last reported.
+     */
+    var `online`: kotlin.Boolean
+    , 
+    /**
+     * The song being fetched right now, if any.
+     */
+    var `activeSongId`: kotlin.Long?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeDownloadMarks: FfiConverterRustBuffer<DownloadMarks> {
+    override fun read(buf: ByteBuffer): DownloadMarks {
+        return DownloadMarks(
+            FfiConverterSequenceLong.read(buf),
+            FfiConverterSequenceLong.read(buf),
+            FfiConverterSequenceLong.read(buf),
+            FfiConverterSequenceLong.read(buf),
+            FfiConverterSequenceTypeDownloadedItem.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterOptionalLong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: DownloadMarks) = (
+            FfiConverterSequenceLong.allocationSize(value.`savedSongIds`) +
+            FfiConverterSequenceLong.allocationSize(value.`pendingSongIds`) +
+            FfiConverterSequenceLong.allocationSize(value.`failedSongIds`) +
+            FfiConverterSequenceLong.allocationSize(value.`playableOfflineSongIds`) +
+            FfiConverterSequenceTypeDownloadedItem.allocationSize(value.`items`) +
+            FfiConverterBoolean.allocationSize(value.`online`) +
+            FfiConverterOptionalLong.allocationSize(value.`activeSongId`)
+    )
+
+    override fun write(value: DownloadMarks, buf: ByteBuffer) {
+            FfiConverterSequenceLong.write(value.`savedSongIds`, buf)
+            FfiConverterSequenceLong.write(value.`pendingSongIds`, buf)
+            FfiConverterSequenceLong.write(value.`failedSongIds`, buf)
+            FfiConverterSequenceLong.write(value.`playableOfflineSongIds`, buf)
+            FfiConverterSequenceTypeDownloadedItem.write(value.`items`, buf)
+            FfiConverterBoolean.write(value.`online`, buf)
+            FfiConverterOptionalLong.write(value.`activeSongId`, buf)
+    }
+}
+
+
+
+/**
+ * The transfer under way, for the progress notification ("Downloading Road
+ * trip, 15 of 24 songs", boards 32 and 34) and the Downloads page.
+ */
+data class DownloadProgress (
+    /**
+     * The album, playlist or mix being fetched (the song's own title for a song).
+     */
+    var `itemTitle`: kotlin.String
+    , 
+    /**
+     * That item's songs on the device so far, and its songs in all ("15 of 24").
+     */
+    var `itemSaved`: kotlin.UInt
+    , 
+    var `itemTotal`: kotlin.UInt
+    , 
+    var `songId`: kotlin.Long
+    , 
+    var `songTitle`: kotlin.String
+    , 
+    /**
+     * Songs saved in this run, and the run's songs in all.
+     */
+    var `songsDone`: kotlin.UInt
+    , 
+    var `songsTotal`: kotlin.UInt
+    , 
+    var `bytesDone`: kotlin.ULong
+    , 
+    var `bytesTotal`: kotlin.ULong?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeDownloadProgress: FfiConverterRustBuffer<DownloadProgress> {
+    override fun read(buf: ByteBuffer): DownloadProgress {
+        return DownloadProgress(
+            FfiConverterString.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterOptionalULong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: DownloadProgress) = (
+            FfiConverterString.allocationSize(value.`itemTitle`) +
+            FfiConverterUInt.allocationSize(value.`itemSaved`) +
+            FfiConverterUInt.allocationSize(value.`itemTotal`) +
+            FfiConverterLong.allocationSize(value.`songId`) +
+            FfiConverterString.allocationSize(value.`songTitle`) +
+            FfiConverterUInt.allocationSize(value.`songsDone`) +
+            FfiConverterUInt.allocationSize(value.`songsTotal`) +
+            FfiConverterULong.allocationSize(value.`bytesDone`) +
+            FfiConverterOptionalULong.allocationSize(value.`bytesTotal`)
+    )
+
+    override fun write(value: DownloadProgress, buf: ByteBuffer) {
+            FfiConverterString.write(value.`itemTitle`, buf)
+            FfiConverterUInt.write(value.`itemSaved`, buf)
+            FfiConverterUInt.write(value.`itemTotal`, buf)
+            FfiConverterLong.write(value.`songId`, buf)
+            FfiConverterString.write(value.`songTitle`, buf)
+            FfiConverterUInt.write(value.`songsDone`, buf)
+            FfiConverterUInt.write(value.`songsTotal`, buf)
+            FfiConverterULong.write(value.`bytesDone`, buf)
+            FfiConverterOptionalULong.write(value.`bytesTotal`, buf)
+    }
+}
+
+
+
+/**
+ * What one `run_downloads` did.
+ */
+data class DownloadRun (
+    var `saved`: kotlin.UInt
+    , 
+    var `failed`: kotlin.UInt
+    , 
+    /**
+     * Still to fetch.
+     */
+    var `remaining`: kotlin.UInt
+    , 
+    var `stop`: DownloadStop
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeDownloadRun: FfiConverterRustBuffer<DownloadRun> {
+    override fun read(buf: ByteBuffer): DownloadRun {
+        return DownloadRun(
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterTypeDownloadStop.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: DownloadRun) = (
+            FfiConverterUInt.allocationSize(value.`saved`) +
+            FfiConverterUInt.allocationSize(value.`failed`) +
+            FfiConverterUInt.allocationSize(value.`remaining`) +
+            FfiConverterTypeDownloadStop.allocationSize(value.`stop`)
+    )
+
+    override fun write(value: DownloadRun, buf: ByteBuffer) {
+            FfiConverterUInt.write(value.`saved`, buf)
+            FfiConverterUInt.write(value.`failed`, buf)
+            FfiConverterUInt.write(value.`remaining`, buf)
+            FfiConverterTypeDownloadStop.write(value.`stop`, buf)
+    }
+}
+
+
+
+/**
+ * The Downloads settings (board 17, item 3).
+ */
+data class DownloadSettings (
+    /**
+     * Original, High or Normal (Data saver is for streams only).
+     */
+    var `quality`: StreamQuality
+    , 
+    var `wifiOnly`: kotlin.Boolean
+    , 
+    /**
+     * None: no limit. At the limit new songs wait; nothing is deleted.
+     */
+    var `limitBytes`: kotlin.ULong?
+    , 
+    /**
+     * Remove an album or playlist not played for `downloads.removeUnplayedAfterDays`.
+     */
+    var `removeUnplayed`: kotlin.Boolean
+    , 
+    /**
+     * Keep Liked songs downloaded.
+     */
+    var `likedSongs`: kotlin.Boolean
+    , 
+    /**
+     * Smart downloads (section 21): pinned mixes inside the budget, nightly on
+     * Wi-Fi while charging.
+     */
+    var `smartDownloads`: kotlin.Boolean
+    , 
+    /**
+     * The player's rolling cache of streamed songs; 0 turns it off.
+     */
+    var `cacheLimitBytes`: kotlin.ULong
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeDownloadSettings: FfiConverterRustBuffer<DownloadSettings> {
+    override fun read(buf: ByteBuffer): DownloadSettings {
+        return DownloadSettings(
+            FfiConverterTypeStreamQuality.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterOptionalULong.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterULong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: DownloadSettings) = (
+            FfiConverterTypeStreamQuality.allocationSize(value.`quality`) +
+            FfiConverterBoolean.allocationSize(value.`wifiOnly`) +
+            FfiConverterOptionalULong.allocationSize(value.`limitBytes`) +
+            FfiConverterBoolean.allocationSize(value.`removeUnplayed`) +
+            FfiConverterBoolean.allocationSize(value.`likedSongs`) +
+            FfiConverterBoolean.allocationSize(value.`smartDownloads`) +
+            FfiConverterULong.allocationSize(value.`cacheLimitBytes`)
+    )
+
+    override fun write(value: DownloadSettings, buf: ByteBuffer) {
+            FfiConverterTypeStreamQuality.write(value.`quality`, buf)
+            FfiConverterBoolean.write(value.`wifiOnly`, buf)
+            FfiConverterOptionalULong.write(value.`limitBytes`, buf)
+            FfiConverterBoolean.write(value.`removeUnplayed`, buf)
+            FfiConverterBoolean.write(value.`likedSongs`, buf)
+            FfiConverterBoolean.write(value.`smartDownloads`, buf)
+            FfiConverterULong.write(value.`cacheLimitBytes`, buf)
+    }
+}
+
+
+
+/**
+ * A thing to download or remove: `id` is the song's, album's or playlist's ID;
+ * a mix is named by `mix_id`. Liked songs and Smart downloads need neither (0).
+ */
+data class DownloadTarget (
+    var `kind`: DownloadKind
+    , 
+    var `id`: kotlin.Long
+    , 
+    var `mixId`: kotlin.String?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeDownloadTarget: FfiConverterRustBuffer<DownloadTarget> {
+    override fun read(buf: ByteBuffer): DownloadTarget {
+        return DownloadTarget(
+            FfiConverterTypeDownloadKind.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: DownloadTarget) = (
+            FfiConverterTypeDownloadKind.allocationSize(value.`kind`) +
+            FfiConverterLong.allocationSize(value.`id`) +
+            FfiConverterOptionalString.allocationSize(value.`mixId`)
+    )
+
+    override fun write(value: DownloadTarget, buf: ByteBuffer) {
+            FfiConverterTypeDownloadKind.write(value.`kind`, buf)
+            FfiConverterLong.write(value.`id`, buf)
+            FfiConverterOptionalString.write(value.`mixId`, buf)
+    }
+}
+
+
+
+/**
+ * One downloaded album, playlist, mix or song (the Library's Downloaded chip,
+ * the Downloads page's list).
+ */
+data class DownloadedItem (
+    var `target`: DownloadTarget
+    , 
+    var `title`: kotlin.String
+    , 
+    /**
+     * The artist for an album or song, empty otherwise.
+     */
+    var `subtitle`: kotlin.String
+    , 
+    var `state`: DownloadState
+    , 
+    /**
+     * "7 of 12 saved" (board 08).
+     */
+    var `saved`: kotlin.UInt
+    , 
+    var `total`: kotlin.UInt
+    , 
+    var `failed`: kotlin.UInt
+    , 
+    var `bytes`: kotlin.ULong
+    , 
+    /**
+     * Kept by the app (Liked songs, Smart downloads).
+     */
+    var `auto`: kotlin.Boolean
+    , 
+    var `addedUtcMs`: kotlin.Long
+    , 
+    /**
+     * Why the last failure happened, when some failed.
+     */
+    var `error`: kotlin.String?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeDownloadedItem: FfiConverterRustBuffer<DownloadedItem> {
+    override fun read(buf: ByteBuffer): DownloadedItem {
+        return DownloadedItem(
+            FfiConverterTypeDownloadTarget.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterTypeDownloadState.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: DownloadedItem) = (
+            FfiConverterTypeDownloadTarget.allocationSize(value.`target`) +
+            FfiConverterString.allocationSize(value.`title`) +
+            FfiConverterString.allocationSize(value.`subtitle`) +
+            FfiConverterTypeDownloadState.allocationSize(value.`state`) +
+            FfiConverterUInt.allocationSize(value.`saved`) +
+            FfiConverterUInt.allocationSize(value.`total`) +
+            FfiConverterUInt.allocationSize(value.`failed`) +
+            FfiConverterULong.allocationSize(value.`bytes`) +
+            FfiConverterBoolean.allocationSize(value.`auto`) +
+            FfiConverterLong.allocationSize(value.`addedUtcMs`) +
+            FfiConverterOptionalString.allocationSize(value.`error`)
+    )
+
+    override fun write(value: DownloadedItem, buf: ByteBuffer) {
+            FfiConverterTypeDownloadTarget.write(value.`target`, buf)
+            FfiConverterString.write(value.`title`, buf)
+            FfiConverterString.write(value.`subtitle`, buf)
+            FfiConverterTypeDownloadState.write(value.`state`, buf)
+            FfiConverterUInt.write(value.`saved`, buf)
+            FfiConverterUInt.write(value.`total`, buf)
+            FfiConverterUInt.write(value.`failed`, buf)
+            FfiConverterULong.write(value.`bytes`, buf)
+            FfiConverterBoolean.write(value.`auto`, buf)
+            FfiConverterLong.write(value.`addedUtcMs`, buf)
+            FfiConverterOptionalString.write(value.`error`, buf)
+    }
+}
+
+
+
+/**
+ * The Downloads page (board 17, item 3).
+ */
+data class DownloadsOverview (
+    /**
+     * What this profile's downloads take on disk.
+     */
+    var `usedBytes`: kotlin.ULong
+    , 
+    var `songCount`: kotlin.UInt
+    , 
+    var `items`: List<DownloadedItem>
+    , 
+    var `queued`: kotlin.UInt
+    , 
+    var `failed`: kotlin.UInt
+    , 
+    var `active`: DownloadProgress?
+    , 
+    /**
+     * Why the last run stopped, while songs are still waiting.
+     */
+    var `stop`: DownloadStop?
+    , 
+    var `settings`: DownloadSettings
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeDownloadsOverview: FfiConverterRustBuffer<DownloadsOverview> {
+    override fun read(buf: ByteBuffer): DownloadsOverview {
+        return DownloadsOverview(
+            FfiConverterULong.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterSequenceTypeDownloadedItem.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterOptionalTypeDownloadProgress.read(buf),
+            FfiConverterOptionalTypeDownloadStop.read(buf),
+            FfiConverterTypeDownloadSettings.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: DownloadsOverview) = (
+            FfiConverterULong.allocationSize(value.`usedBytes`) +
+            FfiConverterUInt.allocationSize(value.`songCount`) +
+            FfiConverterSequenceTypeDownloadedItem.allocationSize(value.`items`) +
+            FfiConverterUInt.allocationSize(value.`queued`) +
+            FfiConverterUInt.allocationSize(value.`failed`) +
+            FfiConverterOptionalTypeDownloadProgress.allocationSize(value.`active`) +
+            FfiConverterOptionalTypeDownloadStop.allocationSize(value.`stop`) +
+            FfiConverterTypeDownloadSettings.allocationSize(value.`settings`)
+    )
+
+    override fun write(value: DownloadsOverview, buf: ByteBuffer) {
+            FfiConverterULong.write(value.`usedBytes`, buf)
+            FfiConverterUInt.write(value.`songCount`, buf)
+            FfiConverterSequenceTypeDownloadedItem.write(value.`items`, buf)
+            FfiConverterUInt.write(value.`queued`, buf)
+            FfiConverterUInt.write(value.`failed`, buf)
+            FfiConverterOptionalTypeDownloadProgress.write(value.`active`, buf)
+            FfiConverterOptionalTypeDownloadStop.write(value.`stop`, buf)
+            FfiConverterTypeDownloadSettings.write(value.`settings`, buf)
     }
 }
 
@@ -9637,6 +10645,19 @@ data class StreamInfo (
     var `headers`: List<HttpHeader>
     , 
     var `mayTranscode`: kotlin.Boolean
+    , 
+    /**
+     * The song is downloaded: `url` is a `file://` path on this device, with no
+     * headers (Phase 8).
+     */
+    var `local`: kotlin.Boolean
+    , 
+    /**
+     * A name for the player's rolling cache: the server, the song and the
+     * quality, with no token in it. Report fully cached ones to
+     * `set_connectivity`, so they play offline.
+     */
+    var `cacheKey`: kotlin.String
     
 ){
     
@@ -9658,6 +10679,8 @@ public object FfiConverterTypeStreamInfo: FfiConverterRustBuffer<StreamInfo> {
             FfiConverterString.read(buf),
             FfiConverterSequenceTypeHttpHeader.read(buf),
             FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterString.read(buf),
         )
     }
 
@@ -9666,7 +10689,9 @@ public object FfiConverterTypeStreamInfo: FfiConverterRustBuffer<StreamInfo> {
             FfiConverterString.allocationSize(value.`url`) +
             FfiConverterString.allocationSize(value.`urlWithApiKey`) +
             FfiConverterSequenceTypeHttpHeader.allocationSize(value.`headers`) +
-            FfiConverterBoolean.allocationSize(value.`mayTranscode`)
+            FfiConverterBoolean.allocationSize(value.`mayTranscode`) +
+            FfiConverterBoolean.allocationSize(value.`local`) +
+            FfiConverterString.allocationSize(value.`cacheKey`)
     )
 
     override fun write(value: StreamInfo, buf: ByteBuffer) {
@@ -9675,6 +10700,8 @@ public object FfiConverterTypeStreamInfo: FfiConverterRustBuffer<StreamInfo> {
             FfiConverterString.write(value.`urlWithApiKey`, buf)
             FfiConverterSequenceTypeHttpHeader.write(value.`headers`, buf)
             FfiConverterBoolean.write(value.`mayTranscode`, buf)
+            FfiConverterBoolean.write(value.`local`, buf)
+            FfiConverterString.write(value.`cacheKey`, buf)
     }
 }
 
@@ -10119,6 +11146,191 @@ public object FfiConverterTypeDeviceState: FfiConverterRustBuffer<DeviceState> {
     override fun allocationSize(value: DeviceState) = 4UL
 
     override fun write(value: DeviceState, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+/**
+ * What can be kept on the device (board 13, item 3; board 17, item 3). Liked
+ * songs and Smart downloads follow their lists by themselves.
+ */
+
+enum class DownloadKind {
+    
+    SONG,
+    ALBUM,
+    PLAYLIST,
+    /**
+     * Follows the mix: when it changes, so do its downloads.
+     */
+    MIX,
+    /**
+     * Follows Liked songs (the "Download liked songs" setting).
+     */
+    LIKED_SONGS,
+    /**
+     * Smart downloads (section 21): the app's picks from pinned mixes, inside a
+     * budget. Turned on and off in the settings, never downloaded by hand.
+     */
+    SMART;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeDownloadKind: FfiConverterRustBuffer<DownloadKind> {
+    override fun read(buf: ByteBuffer) = try {
+        DownloadKind.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: DownloadKind) = 4UL
+
+    override fun write(value: DownloadKind, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+/**
+ * Where a downloaded thing stands (board 06, item 5: none, a ring, a badge, a
+ * warning dot).
+ */
+
+enum class DownloadState {
+    
+    /**
+     * Some songs are still to come; nothing is moving now (`stop` in the
+     * overview says why, for example waiting for Wi-Fi).
+     */
+    WAITING,
+    /**
+     * Moving now: a ring.
+     */
+    DOWNLOADING,
+    /**
+     * Every song is on the device: the badge.
+     */
+    SAVED,
+    /**
+     * Paused by the person.
+     */
+    PAUSED,
+    /**
+     * Some songs couldn't be fetched after every try: the warning dot. Tap to
+     * retry.
+     */
+    FAILED;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeDownloadState: FfiConverterRustBuffer<DownloadState> {
+    override fun read(buf: ByteBuffer) = try {
+        DownloadState.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: DownloadState) = 4UL
+
+    override fun write(value: DownloadState, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+/**
+ * Why `run_downloads` stopped.
+ */
+
+enum class DownloadStop {
+    
+    /**
+     * Nothing left to fetch.
+     */
+    DONE,
+    /**
+     * `stop_downloads` was called; it carries on next time where it was.
+     */
+    STOPPED,
+    /**
+     * Another run is going; this one did nothing.
+     */
+    ALREADY_RUNNING,
+    /**
+     * "Download only on Wi-Fi" is on and the network is cellular.
+     */
+    WAITING_FOR_WIFI,
+    /**
+     * The device has no connection.
+     */
+    OFFLINE,
+    /**
+     * The media server didn't answer; try later.
+     */
+    SERVER_UNREACHABLE,
+    /**
+     * The media server's sign-in ended; sign in again.
+     */
+    SIGN_IN_NEEDED,
+    /**
+     * The storage limit in the settings is reached; nothing is deleted.
+     */
+    STORAGE_LIMIT,
+    /**
+     * The device is nearly full (it keeps `downloads.keepFreeMB` free).
+     */
+    LOW_SPACE,
+    /**
+     * No profile is open (or it is a Guest, which downloads nothing).
+     */
+    NO_PROFILE;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeDownloadStop: FfiConverterRustBuffer<DownloadStop> {
+    override fun read(buf: ByteBuffer) = try {
+        DownloadStop.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: DownloadStop) = 4UL
+
+    override fun write(value: DownloadStop, buf: ByteBuffer) {
         buf.putInt(value.ordinal + 1)
     }
 }
@@ -10814,7 +12026,17 @@ enum class EventKind {
      * `device` is set: the device this one controls changed (now playing,
      * position, volume): update the "Playing on…" capsule.
      */
-    REMOTE_STATE;
+    REMOTE_STATE,
+    /**
+     * What is downloaded changed (a song saved or removed, a collection added,
+     * connectivity changed): read `download_marks` again.
+     */
+    DOWNLOADS_CHANGED,
+    /**
+     * `download` is set: the transfer moved on (at most every
+     * `downloads.progressEveryMs`).
+     */
+    DOWNLOAD_PROGRESS;
 
     
 
@@ -12033,6 +13255,38 @@ public object FfiConverterOptionalInt: FfiConverterRustBuffer<kotlin.Int?> {
 /**
  * @suppress
  */
+public object FfiConverterOptionalULong: FfiConverterRustBuffer<kotlin.ULong?> {
+    override fun read(buf: ByteBuffer): kotlin.ULong? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterULong.read(buf)
+    }
+
+    override fun allocationSize(value: kotlin.ULong?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterULong.allocationSize(value)
+        }
+    }
+
+    override fun write(value: kotlin.ULong?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterULong.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalLong: FfiConverterRustBuffer<kotlin.Long?> {
     override fun read(buf: ByteBuffer): kotlin.Long? {
         if (buf.get().toInt() == 0) {
@@ -12215,6 +13469,38 @@ public object FfiConverterOptionalTypeArtworkPalette: FfiConverterRustBuffer<Art
         } else {
             buf.put(1)
             FfiConverterTypeArtworkPalette.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeDownloadProgress: FfiConverterRustBuffer<DownloadProgress?> {
+    override fun read(buf: ByteBuffer): DownloadProgress? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeDownloadProgress.read(buf)
+    }
+
+    override fun allocationSize(value: DownloadProgress?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeDownloadProgress.allocationSize(value)
+        }
+    }
+
+    override fun write(value: DownloadProgress?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeDownloadProgress.write(value, buf)
         }
     }
 }
@@ -12769,6 +14055,38 @@ public object FfiConverterOptionalTypeTopResult: FfiConverterRustBuffer<TopResul
 /**
  * @suppress
  */
+public object FfiConverterOptionalTypeDownloadStop: FfiConverterRustBuffer<DownloadStop?> {
+    override fun read(buf: ByteBuffer): DownloadStop? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeDownloadStop.read(buf)
+    }
+
+    override fun allocationSize(value: DownloadStop?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeDownloadStop.allocationSize(value)
+        }
+    }
+
+    override fun write(value: DownloadStop?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeDownloadStop.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalTypeDropRefusal: FfiConverterRustBuffer<DropRefusal?> {
     override fun read(buf: ByteBuffer): DropRefusal? {
         if (buf.get().toInt() == 0) {
@@ -13047,6 +14365,34 @@ public object FfiConverterSequenceTypeCredentialKey: FfiConverterRustBuffer<List
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeCredentialKey.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeDownloadedItem: FfiConverterRustBuffer<List<DownloadedItem>> {
+    override fun read(buf: ByteBuffer): List<DownloadedItem> {
+        val len = buf.getInt()
+        return List<DownloadedItem>(len) {
+            FfiConverterTypeDownloadedItem.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<DownloadedItem>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeDownloadedItem.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<DownloadedItem>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeDownloadedItem.write(it, buf)
         }
     }
 }

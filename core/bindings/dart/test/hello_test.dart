@@ -167,6 +167,16 @@ void main() {
       // Phase 7: without a companion the output picker hides handoff.
       expect(core.outputDevices().state, OutputState.noCompanion);
       await expectLater(core.handOffTo(deviceId: 'nobody'), throwsA(anything));
+      // Phase 8: a downloaded song plays from its file (the replay serves audio).
+      final kept = DownloadTarget(kind: DownloadKind.song, id: all.first.id);
+      core.download(target: kept);
+      final run = await core.runDownloads(network: Network.wifi, freeBytes: BigInt.zero);
+      expect(run.stop, DownloadStop.done);
+      expect(run.saved, 1);
+      expect(core.streamFor(songId: kept.id, network: Network.wifi).local, isTrue);
+      expect(core.downloadMarks().savedSongIds, [kept.id]);
+      core.removeDownload(target: kept);
+      expect(core.downloadsOverview().usedBytes, BigInt.zero);
       final artAlbum = core
           .albums(sort: AlbumSort.title, offset: 0, limit: 100)
           .firstWhere((a) => a.hasArtwork);

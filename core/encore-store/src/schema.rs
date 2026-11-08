@@ -405,8 +405,64 @@ CREATE TABLE recs_state (
 );
 "#;
 
+/// Migration 8: downloads (Phase 8; docs/adr/core-0017).
+///
+/// - `download_collections`: what this profile asked to keep: a song, an album,
+///   a playlist, a mix, Liked songs or Smart downloads (`item` is '' for the last
+///   two). `auto` marks the ones the app keeps by itself (Liked songs, Smart).
+/// - `download_members`: the songs each one holds now, in its order; recomputed
+///   when the library, likes, a playlist or a mix change.
+/// - `download_songs`: each wanted song once, however many collections hold it,
+///   with its file's key (the file itself is named in the device registry, so two
+///   profiles share it on disk but never this list; board 14).
+/// - `download_covers`: a downloaded album's cover, for showing it offline.
+/// - `download_signals`: songs the person chose to download (the +1.5 "added"
+///   signal, section 21). Nothing is written under Private listening.
+///
+/// No foreign key to `tracks`: a song that leaves the library must still be found
+/// here, so its file is let go.
+const V8: &str = r#"
+CREATE TABLE download_collections (
+    kind          TEXT    NOT NULL,
+    item          TEXT    NOT NULL,
+    title         TEXT    NOT NULL,
+    added_utc_ms  INTEGER NOT NULL,
+    auto          INTEGER NOT NULL DEFAULT 0,
+    paused        INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (kind, item)
+);
+CREATE TABLE download_members (
+    kind      TEXT    NOT NULL,
+    item      TEXT    NOT NULL,
+    track_id  INTEGER NOT NULL,
+    position  INTEGER NOT NULL,
+    PRIMARY KEY (kind, item, track_id),
+    FOREIGN KEY (kind, item) REFERENCES download_collections (kind, item) ON DELETE CASCADE
+);
+CREATE INDEX download_members_by_track ON download_members (track_id);
+CREATE TABLE download_songs (
+    track_id       INTEGER PRIMARY KEY,
+    file_key       TEXT    NOT NULL,
+    state          TEXT    NOT NULL,
+    bytes          INTEGER NOT NULL DEFAULT 0,
+    attempts       INTEGER NOT NULL DEFAULT 0,
+    error          TEXT,
+    queued_utc_ms  INTEGER NOT NULL,
+    saved_utc_ms   INTEGER
+);
+CREATE TABLE download_covers (
+    album_id   INTEGER PRIMARY KEY,
+    file_key   TEXT    NOT NULL,
+    bytes      INTEGER NOT NULL
+);
+CREATE TABLE download_signals (
+    song_key    TEXT    NOT NULL,
+    at_utc_ms   INTEGER NOT NULL
+);
+"#;
+
 /// Every migration, oldest first. Append only.
-pub(crate) const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7];
+pub(crate) const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7, V8];
 
 /// Bring the database up to the newest schema. Returns the version it ended at.
 #[cfg(test)]

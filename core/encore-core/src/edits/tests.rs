@@ -111,6 +111,20 @@ impl MediaSource for FakeServer {
     fn cover_png<'a>(&'a self, _: &'a str, _: u32, _: Option<&'a str>) -> Fut<'a, Option<Vec<u8>>> {
         Box::pin(async { Ok(None) })
     }
+    fn download<'a>(
+        &'a self,
+        _: &'a str,
+        _: &'a encore_sources::jellyfin::StreamRequest,
+        _: &'a std::path::Path,
+        _: u64,
+        _: encore_sources::transport::Progress<'a>,
+        _: &'a std::sync::atomic::AtomicBool,
+    ) -> Fut<'a, encore_sources::transport::Downloaded> {
+        Box::pin(async { Err(SourceError::NotFound) })
+    }
+    fn artwork_bytes<'a>(&'a self, _: &'a str, _: u32) -> Fut<'a, Option<Vec<u8>>> {
+        Box::pin(async { Ok(None) })
+    }
     fn edit<'a>(&'a self, edit: &'a ServerEdit) -> Fut<'a, EditOutcome> {
         Box::pin(async move {
             match *self.mode.lock().unwrap() {

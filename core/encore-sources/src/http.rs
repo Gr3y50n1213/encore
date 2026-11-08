@@ -261,6 +261,84 @@ impl Transport for HttpTransport {
             })
         })
     }
+
+    /// Streams the body to disk chunk by chunk, so a 60 MB file never sits in
+    /// memory. `req.timeout` bounds the wait for the reply and for each chunk, not
+    /// the whole file, so a long download on a slow network finishes.
+    fn download<'a>(
+        &'a self,
+        req: Request,
+        to: &'a std::path::Path,
+        resume_from: u64,
+        progress: crate::transport::Progress<'a>,
+        cancel: &'a std::sync::atomic::AtomicBool,
+    ) -> BoxFuture<'a, Result<crate::transport::Downloaded>> {
+        use std::io::Write;
+        use std::sync::atomic::Ordering;
+        Box::pin(async move {
+            let mut b = self.client.get(req.url);
+            for (k, v) in &req.headers {
+                b = b.header(k, v);
+            }
+            if resume_from > 0 {
+                b = b.header("Range", format!("bytes={resume_from}-"));
+            }
+            let mut resp = tokio::time::timeout(req.timeout, b.send())
+                .await
+                .map_err(|_| SourceError::Unreachable(Unreachable::TimedOut))?
+                .map_err(|e| self.map_error(e))?;
+            let status = resp.status().as_u16();
+            if !(200..=299).contains(&status) {
+                return Ok(crate::transport::Downloaded {
+                    status,
+                    bytes: 0,
+                    content_type: None,
+                    expected_bytes: None,
+                });
+            }
+            let content_type = resp
+                .headers()
+                .get("content-type")
+                .and_then(|v| v.to_str().ok())
+                .map(str::to_owned);
+            // 206: the server sent the rest; anything else starts again.
+            let appending = status == 206 && resume_from > 0;
+            let start = if appending { resume_from } else { 0 };
+            let expected = resp.content_length().map(|n| n + start);
+            let io = |e: std::io::Error| SourceError::Storage(e.to_string());
+            let mut file = std::fs::OpenOptions::new()
+                .create(true)
+                .write(true)
+                .append(appending)
+                .truncate(!appending)
+                .open(to)
+                .map_err(io)?;
+            let mut written = start;
+            progress(written, expected);
+            loop {
+                if cancel.load(Ordering::SeqCst) {
+                    file.flush().map_err(io)?;
+                    return Err(SourceError::Cancelled);
+                }
+                let chunk = tokio::time::timeout(req.timeout, resp.chunk())
+                    .await
+                    .map_err(|_| SourceError::Unreachable(Unreachable::TimedOut))?
+                    .map_err(|e| self.map_error(e))?;
+                let Some(chunk) = chunk else { break };
+                file.write_all(&chunk).map_err(io)?;
+                written += chunk.len() as u64;
+                progress(written, expected);
+            }
+            file.flush().map_err(io)?;
+            file.sync_all().map_err(io)?;
+            Ok(crate::transport::Downloaded {
+                status,
+                bytes: written,
+                content_type,
+                expected_bytes: expected,
+            })
+        })
+    }
 }
 
 #[cfg(test)]

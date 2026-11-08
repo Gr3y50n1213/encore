@@ -15,7 +15,7 @@ use crate::jellyfin::{
 use crate::model::{
     Capabilities, Cursor, EditOutcome, LibraryDelta, PlaylistEntry, ServerEdit, SourceKind,
 };
-use crate::transport::BoxFuture;
+use crate::transport::{BoxFuture, Downloaded, Progress};
 
 pub trait MediaSource: Send + Sync + fmt::Debug {
     fn kind(&self) -> SourceKind;
@@ -47,6 +47,22 @@ pub trait MediaSource: Send + Sync + fmt::Debug {
         &'a self,
         playlist_id: &'a str,
     ) -> BoxFuture<'a, Result<Vec<PlaylistEntry>>>;
+    /// Save a song to a file (Phase 8), resuming a kept part where possible.
+    fn download<'a>(
+        &'a self,
+        item_id: &'a str,
+        req: &'a StreamRequest,
+        to: &'a std::path::Path,
+        resume_from: u64,
+        progress: Progress<'a>,
+        cancel: &'a std::sync::atomic::AtomicBool,
+    ) -> BoxFuture<'a, Result<Downloaded>>;
+    /// The cover's bytes at a size, for showing a downloaded album offline.
+    fn artwork_bytes<'a>(
+        &'a self,
+        item_id: &'a str,
+        size_px: u32,
+    ) -> BoxFuture<'a, Result<Option<Vec<u8>>>>;
 }
 
 /// A signed-in Jellyfin account.
@@ -119,5 +135,28 @@ impl MediaSource for JellyfinSource {
                 .filter_map(jellyfin::map::to_playlist_entry)
                 .collect())
         })
+    }
+
+    fn download<'a>(
+        &'a self,
+        item_id: &'a str,
+        req: &'a StreamRequest,
+        to: &'a std::path::Path,
+        resume_from: u64,
+        progress: Progress<'a>,
+        cancel: &'a std::sync::atomic::AtomicBool,
+    ) -> BoxFuture<'a, Result<Downloaded>> {
+        Box::pin(
+            self.client
+                .download(item_id, req, to, resume_from, progress, cancel),
+        )
+    }
+
+    fn artwork_bytes<'a>(
+        &'a self,
+        item_id: &'a str,
+        size_px: u32,
+    ) -> BoxFuture<'a, Result<Option<Vec<u8>>>> {
+        Box::pin(self.client.artwork_bytes(item_id, size_px))
     }
 }

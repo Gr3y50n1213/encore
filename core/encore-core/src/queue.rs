@@ -142,6 +142,10 @@ pub struct Queue {
     next_uid: u64,
     next_order: i64,
     rng: SplitMix64,
+    /// Offline (Phase 8): the songs that can play (downloaded or fully cached).
+    /// Moving forward or back passes over the rest (board 11: "skipped
+    /// automatically"); None plays everything. Not part of the undo state.
+    playable: Option<std::collections::HashSet<i64>>,
 }
 
 /// A read-only view for the UI.
@@ -168,7 +172,22 @@ impl Queue {
             next_uid: 1,
             next_order: 0,
             rng: SplitMix64(seed),
+            playable: None,
         }
+    }
+
+    /// Offline: only these songs can play; None when online.
+    pub fn set_playable(&mut self, playable: Option<std::collections::HashSet<i64>>) {
+        self.playable = playable;
+    }
+
+    /// Whether this song can play now.
+    pub fn can_play(&self, track_id: i64) -> bool {
+        self.playable.as_ref().is_none_or(|p| p.contains(&track_id))
+    }
+
+    fn ok(&self, i: &QueueItem) -> bool {
+        self.can_play(i.track_id)
     }
 
     pub fn view(&self) -> QueueView<'_> {
@@ -437,22 +456,27 @@ impl Queue {
     /// Where a swipe back would land: the song before, or with Repeat All at the
     /// first song, the session's last. None is the start of the queue.
     pub fn peek_previous(&self) -> Option<&QueueItem> {
-        self.state.history.last().or_else(|| {
-            (self.state.repeat == RepeatMode::All)
-                .then(|| self.state.session.last())
-                .flatten()
-        })
+        self.state
+            .history
+            .iter()
+            .rev()
+            .find(|i| self.ok(i))
+            .or_else(|| {
+                (self.state.repeat == RepeatMode::All)
+                    .then(|| self.state.session.iter().rev().find(|i| self.ok(i)))
+                    .flatten()
+            })
     }
 
     fn peek_next(&self) -> Option<&QueueItem> {
-        if let Some(i) = self.state.up_next.first() {
+        if let Some(i) = self.state.up_next.iter().find(|i| self.ok(i)) {
             return Some(i);
         }
         if self.state.repeat == RepeatMode::All {
-            return self.state.session.first();
+            return self.state.session.iter().find(|i| self.ok(i));
         }
         if self.state.autoplay_enabled {
-            return self.state.autoplay.first();
+            return self.state.autoplay.iter().find(|i| self.ok(i));
         }
         None
     }
@@ -463,9 +487,18 @@ impl Queue {
         if why == Advance::Ended && self.state.repeat == RepeatMode::One {
             return self.state.current.as_ref();
         }
-        let next = if !self.state.up_next.is_empty() {
+        // Offline, songs that can't play are passed over: they go to History as
+        // if jumped past (board 11). Online every song can play, so this is the
+        // first of each part as before.
+        let first_up_next = self.state.up_next.iter().position(|i| self.ok(i));
+        let first_auto = self.state.autoplay.iter().position(|i| self.ok(i));
+        let session_can = self.state.session.iter().any(|i| self.ok(i));
+        let mut passed: Vec<QueueItem> = Vec::new();
+        let next = if let Some(p) = first_up_next {
+            passed.extend(self.state.up_next.drain(..p));
             Some(self.state.up_next.remove(0))
-        } else if self.state.repeat == RepeatMode::All && !self.state.session.is_empty() {
+        } else if self.state.repeat == RepeatMode::All && session_can {
+            passed.append(&mut self.state.up_next);
             // Start the session again with fresh copies.
             let again: Vec<QueueItem> = self
                 .state
@@ -485,8 +518,19 @@ impl Queue {
             if self.state.shuffle {
                 self.shuffle_up_next();
             }
+            let p = self
+                .state
+                .up_next
+                .iter()
+                .position(|i| self.ok(i))
+                .unwrap_or(0);
+            passed.extend(self.state.up_next.drain(..p));
             Some(self.state.up_next.remove(0))
-        } else if self.state.autoplay_enabled && !self.state.autoplay.is_empty() {
+        } else if self.state.autoplay_enabled
+            && let Some(p) = first_auto
+        {
+            passed.append(&mut self.state.up_next);
+            passed.extend(self.state.autoplay.drain(..p));
             Some(self.state.autoplay.remove(0))
         } else {
             None
@@ -496,6 +540,7 @@ impl Queue {
         if let Some(cur) = self.state.current.take() {
             self.state.history.push(cur);
         }
+        self.state.history.extend(passed);
         self.state.current = Some(next);
         self.state.current.as_ref()
     }
@@ -512,25 +557,58 @@ impl Queue {
         if !always_back && position_ms > restart_after_ms {
             return PreviousOutcome::Restart;
         }
-        let prev = match self.state.history.pop() {
+        // Offline, songs that can't play are stepped over and stay ahead.
+        let mut stepped: Vec<QueueItem> = Vec::new();
+        while let Some(last) = self.state.history.last() {
+            if self.ok(last) {
+                break;
+            }
+            if let Some(i) = self.state.history.pop() {
+                stepped.push(i);
+            }
+        }
+        let popped = self.state.history.pop();
+        if popped.is_none() && self.state.repeat != RepeatMode::All {
+            // Nothing playable behind: put back what was stepped over.
+            self.state.history.extend(stepped.into_iter().rev());
+            return PreviousOutcome::Restart;
+        }
+        let prev = match popped {
             Some(p) => p,
             // The first song with Repeat All wraps to the session's last (board 42).
             None if self.state.repeat == RepeatMode::All => {
-                match self.state.session.last().cloned() {
+                match self
+                    .state
+                    .session
+                    .iter()
+                    .rev()
+                    .find(|i| self.ok(i))
+                    .cloned()
+                {
                     Some(last) => self.make(NewItem {
                         track_id: last.track_id,
                         chosen_by: last.chosen_by,
                         started_from: last.started_from,
                         context_id: last.context_id,
                     }),
-                    None => return PreviousOutcome::Restart,
+                    None => {
+                        self.state.history.extend(stepped.into_iter().rev());
+                        return PreviousOutcome::Restart;
+                    }
                 }
             }
-            None => return PreviousOutcome::Restart,
+            None => {
+                self.state.history.extend(stepped.into_iter().rev());
+                return PreviousOutcome::Restart;
+            }
         };
         self.undo = None;
         if let Some(cur) = self.state.current.take() {
             self.state.up_next.insert(0, cur);
+        }
+        // What was stepped over goes back ahead, in its order.
+        for i in stepped {
+            self.state.up_next.insert(0, i);
         }
         self.state.current = Some(prev);
         PreviousOutcome::Moved
@@ -623,6 +701,49 @@ mod tests {
         q.current().map(|i| i.track_id)
     }
 
+    /// Offline (Phase 8, board 11): songs that can't play are passed over, forward
+    /// and back, and land in History or stay ahead in their order; online nothing
+    /// changes.
+    #[test]
+    fn offline_the_queue_passes_over_songs_that_cannot_play() {
+        let mut q = Queue::new(1);
+        q.play(album(&[1, 2, 3, 4, 5]), 0);
+        q.set_autoplay(picks(&[90, 91]));
+        q.set_playable(Some([1, 3, 5, 91].into_iter().collect()));
+        assert_eq!(q.peek_skip().map(|i| i.track_id), Some(3));
+        assert_eq!(q.advance(Advance::Skip).map(|i| i.track_id), Some(3));
+        assert_eq!(ids(q.view().history), [1, 2], "2 was passed over");
+        assert_eq!(q.advance(Advance::Ended).map(|i| i.track_id), Some(5));
+        assert_eq!(ids(q.view().history), [1, 2, 3, 4]);
+        // Up Next is spent: Autoplay's first playable pick.
+        assert_eq!(q.advance(Advance::Skip).map(|i| i.track_id), Some(91));
+        assert!(
+            q.advance(Advance::Skip).is_none(),
+            "nothing left that can play"
+        );
+        assert_eq!(cur(&q), Some(91));
+        // Back steps over what can't play and keeps it ahead.
+        assert_eq!(q.peek_previous().map(|i| i.track_id), Some(5));
+        assert_eq!(q.previous(0, 3000, true), PreviousOutcome::Moved);
+        assert_eq!(cur(&q), Some(5));
+        assert_eq!(q.previous(0, 3000, true), PreviousOutcome::Moved);
+        assert_eq!(cur(&q), Some(3));
+        assert_eq!(ids(q.view().up_next)[..2], [4, 5], "4 stays ahead of 5");
+        // Online again, every song plays.
+        q.set_playable(None);
+        assert_eq!(q.peek_skip().map(|i| i.track_id), Some(4));
+    }
+
+    #[test]
+    fn offline_with_nothing_playable_behind_previous_restarts() {
+        let mut q = Queue::new(1);
+        q.play(album(&[7, 8]), 0);
+        q.advance(Advance::Skip);
+        q.set_playable(Some([8].into_iter().collect()));
+        let history = ids(q.view().history);
+        assert_eq!(q.previous(0, 3000, true), PreviousOutcome::Restart);
+        assert_eq!(ids(q.view().history), history, "nothing lost");
+    }
     #[test]
     fn playing_an_album_from_the_middle() {
         let mut q = Queue::new(1);

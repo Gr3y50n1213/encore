@@ -23,6 +23,7 @@ abstract final class EncoreTokens {
   static const EncoreTokensRecap recap = EncoreTokensRecap._();
   static const EncoreTokensGestures gestures = EncoreTokensGestures._();
   static const EncoreTokensPlayback playback = EncoreTokensPlayback._();
+  static const EncoreTokensDownloads downloads = EncoreTokensDownloads._();
   static const EncoreTokensPlayLog playLog = EncoreTokensPlayLog._();
   static const EncoreTokensLibrary library = EncoreTokensLibrary._();
   static const EncoreTokensSearch search = EncoreTokensSearch._();
@@ -2076,6 +2077,27 @@ final class EncoreTokensPlaybackQuality {
   final List<String> codecs = const ['aac', 'opus'];
   final String defaultWifi = 'original';
   final String defaultCellular = 'high';
+}
+
+/// Source: plan section 8 (offline downloads), board 17 item 3, board 20, board 06 item 5, section 21 (Smart downloads)
+/// Status: Starting values chosen for the plan, not measurements. The owner approved these defaults on 8 November 2026.
+/// Downloads and the rolling cache. Original keeps the file as it is (lossless, gapless); the others ask the server for a smaller transcode. At the storage limit new songs wait; nothing is deleted. Auto-remove works per album or playlist and is off by default.
+final class EncoreTokensDownloads {
+  const EncoreTokensDownloads._();
+
+  final List<String> qualities = const ['original', 'high', 'normal'];
+  final String defaultQuality = 'original';
+  final bool wifiOnlyDefault = true;
+  final List<int> limitOptionsGB = const [2, 5, 10, 20, 50];
+  final int removeUnplayedAfterDays = 30;
+  final int keepFreeMB = 500;
+  final int maxAttempts = 3;
+  final int progressEveryMs = 500;
+  final int coverSizePx = 1200;
+  final int estimateLosslessKbps = 1000;
+  final int estimateLossyKbps = 320;
+  final List<int> cacheOptionsMB = const [0, 500, 1000, 2000, 5000];
+  final int cacheDefaultMB = 1000;
 }
 
 /// Source: plan sections 5 and 8

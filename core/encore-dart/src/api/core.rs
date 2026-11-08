@@ -36,6 +36,10 @@ pub use encore_core::api::{
     DeviceState, HandoffInfo, OutputDevice, OutputDevices, OutputState, RemoteCommand,
     RemoteCommandKind, RemoteQueue, RemoteQueueItem, RemoteSong,
 };
+pub use encore_core::api::{
+    DownloadKind, DownloadMarks, DownloadProgress, DownloadRun, DownloadSettings, DownloadState,
+    DownloadStop, DownloadTarget, DownloadedItem, DownloadsOverview,
+};
 
 use crate::frb_generated::StreamSink;
 
@@ -422,6 +426,8 @@ pub struct _StreamInfo {
     pub url_with_api_key: String,
     pub headers: Vec<HttpHeader>,
     pub may_transcode: bool,
+    pub local: bool,
+    pub cache_key: String,
 }
 
 #[frb(mirror(ArtworkRequest))]
@@ -446,6 +452,119 @@ pub struct _CoreEvent {
     pub device: Option<OutputDevice>,
     pub handoff: Option<HandoffInfo>,
     pub remote_command: Option<RemoteCommand>,
+    pub download: Option<DownloadProgress>,
+}
+
+// Phase 8: downloads and offline.
+
+#[frb(mirror(DownloadKind))]
+pub enum _DownloadKind {
+    Song,
+    Album,
+    Playlist,
+    Mix,
+    LikedSongs,
+    Smart,
+}
+
+#[frb(mirror(DownloadTarget))]
+pub struct _DownloadTarget {
+    pub kind: DownloadKind,
+    pub id: i64,
+    pub mix_id: Option<String>,
+}
+
+#[frb(mirror(DownloadState))]
+pub enum _DownloadState {
+    Waiting,
+    Downloading,
+    Saved,
+    Paused,
+    Failed,
+}
+
+#[frb(mirror(DownloadedItem))]
+pub struct _DownloadedItem {
+    pub target: DownloadTarget,
+    pub title: String,
+    pub subtitle: String,
+    pub state: DownloadState,
+    pub saved: u32,
+    pub total: u32,
+    pub failed: u32,
+    pub bytes: u64,
+    pub auto: bool,
+    pub added_utc_ms: i64,
+    pub error: Option<String>,
+}
+
+#[frb(mirror(DownloadMarks))]
+pub struct _DownloadMarks {
+    pub saved_song_ids: Vec<i64>,
+    pub pending_song_ids: Vec<i64>,
+    pub failed_song_ids: Vec<i64>,
+    pub playable_offline_song_ids: Vec<i64>,
+    pub items: Vec<DownloadedItem>,
+    pub online: bool,
+    pub active_song_id: Option<i64>,
+}
+
+#[frb(mirror(DownloadStop))]
+pub enum _DownloadStop {
+    Done,
+    Stopped,
+    AlreadyRunning,
+    WaitingForWifi,
+    Offline,
+    ServerUnreachable,
+    SignInNeeded,
+    StorageLimit,
+    LowSpace,
+    NoProfile,
+}
+
+#[frb(mirror(DownloadRun))]
+pub struct _DownloadRun {
+    pub saved: u32,
+    pub failed: u32,
+    pub remaining: u32,
+    pub stop: DownloadStop,
+}
+
+#[frb(mirror(DownloadProgress))]
+pub struct _DownloadProgress {
+    pub item_title: String,
+    pub item_saved: u32,
+    pub item_total: u32,
+    pub song_id: i64,
+    pub song_title: String,
+    pub songs_done: u32,
+    pub songs_total: u32,
+    pub bytes_done: u64,
+    pub bytes_total: Option<u64>,
+}
+
+#[frb(mirror(DownloadSettings))]
+pub struct _DownloadSettings {
+    pub quality: StreamQuality,
+    pub wifi_only: bool,
+    pub limit_bytes: Option<u64>,
+    pub remove_unplayed: bool,
+    pub liked_songs: bool,
+    pub smart_downloads: bool,
+    pub cache_limit_bytes: u64,
+}
+
+#[frb(mirror(DownloadsOverview))]
+pub struct _DownloadsOverview {
+    pub used_bytes: u64,
+    pub song_count: u32,
+    pub items: Vec<DownloadedItem>,
+    pub queued: u32,
+    pub failed: u32,
+    pub active: Option<DownloadProgress>,
+    pub stop: Option<DownloadStop>,
+    pub settings: DownloadSettings,
 }
 
 // Phase 7: handoff and remote control.
@@ -706,6 +825,8 @@ pub enum _EventKind {
     HandoffFailed,
     RemoteCommand,
     RemoteState,
+    DownloadsChanged,
+    DownloadProgress,
 }
 
 #[frb(mirror(ErrorKind))]
@@ -1497,6 +1618,76 @@ impl Encore {
     #[frb(sync)]
     pub fn stream_for(&self, song_id: i64, network: Network) -> Result<StreamInfo, ApiError> {
         Ok(self.core.stream_for(song_id, network)?)
+    }
+
+    // Phase 8: downloads and offline.
+    #[frb(sync)]
+    pub fn download(&self, target: DownloadTarget) -> Result<DownloadedItem, ApiError> {
+        Ok(self.core.download(target)?)
+    }
+    #[frb(sync)]
+    pub fn remove_download(&self, target: DownloadTarget) -> Result<(), ApiError> {
+        Ok(self.core.remove_download(target)?)
+    }
+    #[frb(sync)]
+    pub fn remove_all_downloads(&self) -> Result<u32, ApiError> {
+        Ok(self.core.remove_all_downloads()?)
+    }
+    #[frb(sync)]
+    pub fn pause_download(&self, target: DownloadTarget, paused: bool) -> Result<(), ApiError> {
+        Ok(self.core.pause_download(target, paused)?)
+    }
+    #[frb(sync)]
+    pub fn retry_failed_downloads(&self) -> Result<u32, ApiError> {
+        Ok(self.core.retry_failed_downloads()?)
+    }
+    #[frb(sync)]
+    pub fn download_marks(&self) -> Result<DownloadMarks, ApiError> {
+        Ok(self.core.download_marks()?)
+    }
+    #[frb(sync)]
+    pub fn downloads_overview(&self) -> Result<DownloadsOverview, ApiError> {
+        Ok(self.core.downloads_overview()?)
+    }
+    #[frb(sync)]
+    pub fn download_settings(&self) -> Result<DownloadSettings, ApiError> {
+        Ok(self.core.download_settings()?)
+    }
+    #[frb(sync)]
+    pub fn set_download_settings(&self, settings: DownloadSettings) -> Result<(), ApiError> {
+        Ok(self.core.set_download_settings(settings)?)
+    }
+    pub async fn run_downloads(
+        &self,
+        network: Network,
+        free_bytes: u64,
+    ) -> Result<DownloadRun, ApiError> {
+        Ok(self.core.run_downloads(network, free_bytes).await?)
+    }
+    #[frb(sync)]
+    pub fn stop_downloads(&self) {
+        self.core.stop_downloads()
+    }
+    #[frb(sync)]
+    pub fn refresh_smart_downloads(&self) -> Result<u32, ApiError> {
+        Ok(self.core.refresh_smart_downloads()?)
+    }
+    #[frb(sync)]
+    pub fn remove_unplayed_downloads(&self) -> Result<u32, ApiError> {
+        Ok(self.core.remove_unplayed_downloads()?)
+    }
+    #[frb(sync)]
+    pub fn set_connectivity(
+        &self,
+        online: bool,
+        network: Network,
+        cached_keys: Vec<String>,
+    ) -> Result<(), ApiError> {
+        Ok(self.core.set_connectivity(online, network, cached_keys)?)
+    }
+    #[frb(sync)]
+    pub fn search_downloaded(&self, query: String) -> Result<SearchResults, ApiError> {
+        Ok(self.core.search_downloaded(query)?)
     }
     #[frb(sync)]
     pub fn stream_quality(&self, network: Network) -> Result<StreamQuality, ApiError> {

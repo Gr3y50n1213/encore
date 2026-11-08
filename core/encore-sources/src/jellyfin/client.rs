@@ -479,6 +479,60 @@ impl JellyfinClient {
         })
     }
 
+    /// Save a song to `to` (Phase 8): the same address the player would stream
+    /// from at that quality, so Original is the file as it is (gapless intact).
+    /// A part kept from an earlier try is resumed where the server allows.
+    pub async fn download(
+        &self,
+        item_id: &str,
+        req: &StreamRequest,
+        to: &std::path::Path,
+        resume_from: u64,
+        progress: crate::transport::Progress<'_>,
+        cancel: &std::sync::atomic::AtomicBool,
+    ) -> Result<crate::transport::Downloaded> {
+        let info = self.stream(item_id, req)?;
+        let url = Url::parse(&info.url).map_err(|e| SourceError::InvalidAddress(e.to_string()))?;
+        let got = self
+            .transport
+            .download(
+                Request {
+                    method: Method::Get,
+                    url,
+                    headers: info.headers,
+                    body: None,
+                    timeout: self.timeout,
+                },
+                to,
+                resume_from,
+                progress,
+                cancel,
+            )
+            .await?;
+        match got.status {
+            200..=299 => Ok(got),
+            401 | 403 => Err(SourceError::SessionExpired),
+            404 => Err(SourceError::NotFound),
+            status => Err(SourceError::Server {
+                status,
+                message: String::new(),
+            }),
+        }
+    }
+
+    /// The primary image's bytes at `size_px` square, for a downloaded album's
+    /// cover (shown offline). None when the item has no image.
+    pub async fn artwork_bytes(&self, item_id: &str, size_px: u32) -> Result<Option<Vec<u8>>> {
+        let a = self.artwork(item_id, size_px)?;
+        let url = Url::parse(&a.url).map_err(|e| SourceError::InvalidAddress(e.to_string()))?;
+        let resp = self.send(Method::Get, url, None).await?;
+        match Self::check(resp, SourceError::SessionExpired) {
+            Ok(r) if !r.body.is_empty() => Ok(Some(r.body)),
+            Ok(_) | Err(SourceError::NotFound) => Ok(None),
+            Err(e) => Err(e),
+        }
+    }
+
     /// Send one playlist or favourite write (plan section 26). Jellyfin 12.0:
     /// `POST /Playlists`, `POST /Playlists/{id}/Items?ids=&position=`,
     /// `DELETE /Playlists/{id}/Items?entryIds=`,

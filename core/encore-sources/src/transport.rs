@@ -81,8 +81,64 @@ impl Response {
     }
 }
 
+/// What a download wrote (Phase 8). `bytes` is the whole file's size on disk,
+/// including any part kept from an earlier try.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Downloaded {
+    pub status: u16,
+    pub bytes: u64,
+    /// The reply's `Content-Type`, for the file's extension.
+    pub content_type: Option<String>,
+    /// The size the server announced for the whole file, when it said.
+    pub expected_bytes: Option<u64>,
+}
+
+/// Bytes written so far and the whole size when known; called often.
+pub type Progress<'a> = &'a (dyn Fn(u64, Option<u64>) + Send + Sync);
+
 pub trait Transport: Send + Sync + fmt::Debug {
     fn send(&self, req: Request) -> BoxFuture<'_, Result<Response>>;
+
+    /// Stream a GET's body to `to` (Phase 8 downloads). When `resume_from` is above
+    /// 0 and the server answers a range, the rest is appended; otherwise the file is
+    /// written from the start. A status outside 200..=299 writes nothing and comes
+    /// back for the caller to read. `cancel` is checked between chunks: a cancelled
+    /// download keeps what it wrote, for the next try, and fails with `Cancelled`.
+    ///
+    /// The default reads the whole reply into memory first (test transports).
+    fn download<'a>(
+        &'a self,
+        req: Request,
+        to: &'a std::path::Path,
+        resume_from: u64,
+        progress: Progress<'a>,
+        cancel: &'a std::sync::atomic::AtomicBool,
+    ) -> BoxFuture<'a, Result<Downloaded>> {
+        let _ = resume_from;
+        Box::pin(async move {
+            let resp = self.send(req).await?;
+            if !(200..=299).contains(&resp.status) {
+                return Ok(Downloaded {
+                    status: resp.status,
+                    bytes: 0,
+                    content_type: None,
+                    expected_bytes: None,
+                });
+            }
+            if cancel.load(std::sync::atomic::Ordering::SeqCst) {
+                return Err(SourceError::Cancelled);
+            }
+            std::fs::write(to, &resp.body).map_err(|e| SourceError::Storage(e.to_string()))?;
+            let n = resp.body.len() as u64;
+            progress(n, Some(n));
+            Ok(Downloaded {
+                status: resp.status,
+                bytes: n,
+                content_type: None,
+                expected_bytes: Some(n),
+            })
+        })
+    }
 }
 
 /// One recorded exchange in a fixture file.
