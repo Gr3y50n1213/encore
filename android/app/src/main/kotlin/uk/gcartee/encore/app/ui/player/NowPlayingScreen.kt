@@ -481,6 +481,8 @@ private fun ArtworkArea(
 }
 
 private const val PAUSED_SCALE = 0.88f
+/** The paused artwork's scale, for the morph into the mini player (EncoreRoot). */
+internal const val ART_PAUSED_SCALE = PAUSED_SCALE
 private const val ART_DAMPING = 0.7f
 private const val COMPACT_ART_DP = 52
 

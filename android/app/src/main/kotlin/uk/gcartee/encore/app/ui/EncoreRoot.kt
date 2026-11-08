@@ -50,6 +50,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import uk.gcartee.encore.app.ui.player.ART_PAUSED_SCALE
 import uk.gcartee.encore.app.ui.player.MINI_ART_RADIUS_DP
 import kotlinx.coroutines.launch
 import androidx.compose.ui.input.pointer.pointerInput
@@ -299,7 +300,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                                     // The bar takes Now Playing in: it swells a little as the
                                     // artwork arrives and settles with a small bounce after.
                                     .graphicsLayer {
-                                        val s = 1f + barSwell(expand.value, nowPlaying || expand.value > 0f, pulse.value)
+                                        val s = 1f + pulse.value
                                         scaleX = s
                                         scaleY = s
                                     }
@@ -335,10 +336,10 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
             ContinueBanner(host, continueFrom, onDone = { continueFrom = null })
             // Board 09 and 42, as the owner asked: one movement, not a shrink then a fade. A
             // swipe down drives it directly: the screen closes in around the artwork, which
-            // shrinks and travels into the mini player's own cover; the page behind comes up
-            // from under a dimming scrim; the bar swells as it arrives and, once it has taken
-            // it in, settles with a small bounce. Opening runs the same path backwards. Reduce
-            // Motion cross-fades.
+            // zooms into the mini player's own cover, centred on it by the time it is its size;
+            // the page behind comes up from under a dimming scrim; once the bar has taken it in
+            // it eases up a little and floats back. Opening runs the same path backwards, with
+            // no swell. Reduce Motion cross-fades.
             val visible = nowPlaying && player.entry != null
             val shown = visible || expand.value > 0f
             var everShown by remember { mutableStateOf(false) }
@@ -346,8 +347,9 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                 if (shown) {
                     everShown = true
                 } else if (everShown && !still) {
-                    pulse.snapTo(MINI_SWELL)
-                    pulse.animateTo(0f, androidx.compose.animation.core.spring(dampingRatio = PULSE_DAMPING, stiffness = androidx.compose.animation.core.Spring.StiffnessMedium))
+                    // A soft gulp once the artwork is in: up a little, then floating back.
+                    pulse.animateTo(MINI_SWELL, tween(PULSE_UP_MS, easing = androidx.compose.animation.core.FastOutSlowInEasing))
+                    pulse.animateTo(0f, androidx.compose.animation.core.spring(dampingRatio = PULSE_DAMPING, stiffness = androidx.compose.animation.core.Spring.StiffnessLow))
                 }
             }
             LaunchedEffect(visible) {
@@ -412,32 +414,36 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                             val g = p.coerceIn(0f, 1f)
                             val w = screen.width.toFloat()
                             val h = screen.height.toFloat()
-                            val art = nowArt ?: androidx.compose.ui.geometry.Rect(w * 0.06f, h * 0.14f, w * 0.94f, h * 0.14f + w * 0.88f)
-                            val grow = barSwell(p, true, 0f)
-                            val bar = miniBar
-                            val thumb0 = miniArt ?: androidx.compose.ui.geometry.Rect(w * 0.05f, h * 0.86f, w * 0.05f + 48.dp.toPx(), h * 0.86f + 48.dp.toPx())
-                            // Where the cover is right now, the bar's swell included.
-                            val thumb = if (bar != null) thumb0.scaledAround(bar.center, 1f + grow) else thumb0
-                            val k = thumb.width / art.width.coerceAtLeast(1f)
-                            val s = mix(k, 1f, g)
+                            val laid = nowArt ?: androidx.compose.ui.geometry.Rect(w * 0.06f, h * 0.14f, w * 0.94f, h * 0.14f + w * 0.88f)
+                            // The artwork as drawn: it sits at 88 % while paused.
+                            val art = laid.scaledAround(laid.center, if (player.isPlaying) 1f else ART_PAUSED_SCALE)
+                            val thumb = miniArt ?: androidx.compose.ui.geometry.Rect(w * 0.05f, h * 0.86f, w * 0.05f + 48.dp.toPx(), h * 0.86f + 48.dp.toPx())
+                            val k = (thumb.width / art.width.coerceAtLeast(1f)).coerceIn(0.01f, 1f)
+                            // A zoom, not a slide: the size changes geometrically, and the
+                            // position follows the size, so the art is centred on the cover by
+                            // the time it is the cover's size.
+                            val s = Math.pow(k.toDouble(), (1f - g).toDouble()).toFloat()
+                            val u = ((s - k) / (1f - k)).coerceIn(0f, 1f)
+                            val cx = mix(thumb.center.x, art.center.x, u)
+                            val cy = mix(thumb.center.y, art.center.y, u)
                             transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0f)
                             scaleX = s
                             scaleY = s
-                            translationX = mix(thumb.left - art.left * k, 0f, g)
-                            translationY = mix(thumb.top - art.top * k, 0f, g)
+                            translationX = cx - art.center.x * s
+                            translationY = cy - art.center.y * s
                             if (g < 0.999f) {
                                 // The visible part closes in from the whole screen to the art,
                                 // its corners from a card's to the bar cover's, in the layer's
                                 // own coordinates (divided by the scale to land right).
                                 val region = androidx.compose.ui.geometry.Rect(
-                                    mix(art.left, 0f, g), mix(art.top, 0f, g), mix(art.right, w, g), mix(art.bottom, h, g),
+                                    mix(art.left, 0f, u), mix(art.top, 0f, u), mix(art.right, w, u), mix(art.bottom, h, u),
                                 )
-                                val r = mix(MINI_ART_RADIUS_DP.dp.toPx() / k.coerceAtLeast(0.01f), CARD_RADIUS_DP.dp.toPx() / s, g)
+                                val r = mix(MINI_ART_RADIUS_DP.dp.toPx() / k, CARD_RADIUS_DP.dp.toPx() / s, u)
                                 shape = RegionShape(region, r)
                                 clip = true
                             }
-                            // The last moment hands over to the bar's own cover beneath.
-                            alpha = (p / MORPH_FADE_UNTIL).coerceIn(0f, 1f)
+                            // Only at the very end, already on the cover, does it hand over.
+                            alpha = (u / MORPH_FADE_UNTIL).coerceIn(0f, 1f)
                         }
                     },
             ) {
@@ -582,20 +588,17 @@ private const val NAV_RADIUS_DP = 28
 
 private fun mix(start: Float, stop: Float, fraction: Float): Float = start + (stop - start) * fraction
 private const val OPEN_DAMPING = 0.85f
-private const val MORPH_FADE_UNTIL = 0.06f
+private const val MORPH_FADE_UNTIL = 0.04f
 private const val CARD_RADIUS_DP = 32
 private const val SCRIM = 0.32f
-private const val MINI_SWELL = 0.05f
-private const val ABSORB_FROM = 0.35f
-private const val PULSE_DAMPING = 0.4f
+private const val MINI_SWELL = 0.04f
+private const val PULSE_DAMPING = 0.7f
+private const val PULSE_UP_MS = 140
 private const val COMMIT_BELOW = 0.82f
 private const val FLICK_DP = 900
 private const val MIN_TRAVEL = 0.3f
 private const val DEFAULT_TRAVEL = 0.6f
 
-/** How much the bar has swollen: as Now Playing nears it, then the bounce after. */
-private fun barSwell(p: Float, morphing: Boolean, pulse: Float): Float =
-    if (morphing) MINI_SWELL * ((ABSORB_FROM - p) / ABSORB_FROM).coerceIn(0f, 1f) else pulse
 
 private fun androidx.compose.ui.geometry.Rect.scaledAround(c: androidx.compose.ui.geometry.Offset, s: Float) =
     androidx.compose.ui.geometry.Rect(c.x + (left - c.x) * s, c.y + (top - c.y) * s, c.x + (right - c.x) * s, c.y + (bottom - c.y) * s)
