@@ -174,7 +174,8 @@ void main() {
       expect(run.stop, DownloadStop.done);
       expect(run.saved, 1);
       expect(core.streamFor(songId: kept.id, network: Network.wifi).local, isTrue);
-      expect(core.downloadMarks().savedSongIds, [kept.id]);
+      // frb's 64-bit lists hold BigInt; compare as text so int and BigInt agree.
+      expect(core.downloadMarks().savedSongIds.map((e) => e.toString()).toList(), [kept.id.toString()]);
       core.removeDownload(target: kept);
       expect(core.downloadsOverview().usedBytes, BigInt.zero);
       final artAlbum = core
