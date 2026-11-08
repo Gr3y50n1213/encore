@@ -66,6 +66,7 @@ import uk.gcartee.encore.app.playback.PlayerState
 import uk.gcartee.encore.app.ui.components.Artwork
 import uk.gcartee.encore.app.ui.components.Haptic
 import uk.gcartee.encore.app.ui.components.Icons
+import uk.gcartee.encore.app.ui.components.rememberPop
 import uk.gcartee.encore.app.ui.components.fadingEdges
 import uk.gcartee.encore.app.ui.components.LocalAppActions
 import uk.gcartee.encore.app.ui.components.MenuPlace
@@ -223,7 +224,7 @@ fun NowPlayingScreen(
                             if (!liked) toggleLike(true) else haptics.perform(Haptic.Confirm)
                             heart = true
                         }, onMenu = { menu = true }, onEnd = { endOfQueue = it })
-                        PlayerPanel.Lyrics -> LyricsPanel(host, song, scrubbing ?: state.positionMs, content, onSeek = { PlaybackHub.seekTo(context, it) }, modifier = Modifier.fillMaxSize())
+                        PlayerPanel.Lyrics -> LyricsPanel(host, song, scrubbing ?: state.positionMs, content, onSeek = { PlaybackHub.seekAndPlay(context, it) }, modifier = Modifier.fillMaxSize())
                         PlayerPanel.Queue -> QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize().fadingEdges(), onColour = colours.base)
                     }
                 }
@@ -260,7 +261,8 @@ fun NowPlayingScreen(
                             )
                         }
                         // Item 4: like; also the "love" signal. Board 35: off it is round and
-                        // tonal, on it turns squarer and fills.
+                        // tonal, on it turns squarer and fills, and the heart pops 1 -> 1.25 -> 1.
+                        val heart = rememberPop(liked)
                         FilledTonalIconToggleButton(
                             checked = liked,
                             onCheckedChange = ::toggleLike,
@@ -276,7 +278,7 @@ fun NowPlayingScreen(
                                 checkedContentColor = colours.base,
                             ),
                             modifier = Modifier.size(56.dp).semantics { stateDescription = if (liked) "Liked" else "Not liked" },
-                        ) { Icon(Icons.favorite(liked), contentDescription = "Like") }
+                        ) { Icon(Icons.favorite(liked), contentDescription = "Like", modifier = Modifier.graphicsLayer { scaleX = heart; scaleY = heart }) }
                     }
                     if (endOfQueue) Text("End of queue", style = type.caption, color = content.copy(alpha = 0.8f))
                     Spacer(Modifier.height(Grid.base.dp))
@@ -390,7 +392,7 @@ fun NowPlayingScreen(
                 // Lyrics and the Queue sit straight on the field, fading at their edges.
                 Box(Modifier.weight(1f).fillMaxWidth().fadingEdges()) {
                     when (panel) {
-                        PlayerPanel.Lyrics -> LyricsPanel(host, song, scrubbing ?: state.positionMs, content, onSeek = { PlaybackHub.seekTo(context, it) }, modifier = Modifier.fillMaxSize())
+                        PlayerPanel.Lyrics -> LyricsPanel(host, song, scrubbing ?: state.positionMs, content, onSeek = { PlaybackHub.seekAndPlay(context, it) }, modifier = Modifier.fillMaxSize())
                         else -> QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize(), onColour = colours.base)
                     }
                 }

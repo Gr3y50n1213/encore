@@ -66,6 +66,12 @@ object PlaybackHub {
     fun previous(context: Context) = withPlayback(context) { it.previous(SkipOrigin.BUTTON) }
     fun seekTo(context: Context, ms: Long) = withPlayback(context) { it.seekTo(ms) }
 
+    /** Board 10, item 7: a tapped lyric plays from its line, whether or not it was paused. */
+    fun seekAndPlay(context: Context, ms: Long) = withPlayback(context) {
+        it.seekTo(ms)
+        it.play()
+    }
+
     /** Board 42: a completed swipe is a skip exactly like the button, with origin Swipe. */
     fun swipeNext(context: Context) = withPlayback(context) { it.next(SkipOrigin.SWIPE) }
     fun swipePrevious(context: Context) = withPlayback(context) { it.previous(SkipOrigin.SWIPE) }

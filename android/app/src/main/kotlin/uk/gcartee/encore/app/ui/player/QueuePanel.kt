@@ -48,6 +48,8 @@ import uk.gcartee.encore.app.core.CoreHost
 import uk.gcartee.encore.app.core.userMessage
 import uk.gcartee.encore.app.ui.components.Haptic
 import uk.gcartee.encore.app.ui.components.Icons
+import uk.gcartee.encore.app.ui.components.rememberTurn
+import uk.gcartee.encore.app.ui.components.rememberPop
 import uk.gcartee.encore.app.ui.components.LocalAppActions
 import uk.gcartee.encore.app.ui.components.MenuPlace
 import uk.gcartee.encore.app.ui.components.SongItem
@@ -93,10 +95,18 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
             // shape tells the state (section 22).
             Row(Modifier.fillMaxWidth().padding(start = (Grid.base * 2).dp, end = Grid.base.dp, top = (Grid.base * 2).dp, bottom = Grid.base.dp), horizontalArrangement = Arrangement.spacedBy(Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("Queue", style = type.sheetTitle, color = colour, modifier = Modifier.weight(1f))
+                // Each glyph answers its change: Shuffle flips, Repeat and Autoplay turn once,
+                // all with a small pop, while the button morphs round <-> square (board 35).
+                val shuffleFlip = rememberTurn(q.shuffle)
+                val repeatTurn = rememberTurn(q.repeat)
+                val autoTurn = rememberTurn(q.autoplayEnabled)
+                val shufflePop = rememberPop(q.shuffle, TOGGLE_POP)
+                val repeatPop = rememberPop(q.repeat, TOGGLE_POP)
+                val autoPop = rememberPop(q.autoplayEnabled, TOGGLE_POP)
                 StateToggle(q.shuffle, if (q.shuffle) "Shuffle on" else "Shuffle off", colour, onColour, onToggle = { on ->
                     haptics.perform(if (on) Haptic.ToggleOn else Haptic.ToggleOff)
                     edit(null) { host.core.setShuffle(on) }
-                }) { Icon(Icons.shuffle(), contentDescription = "Shuffle") }
+                }) { Icon(Icons.shuffle(), contentDescription = "Shuffle", modifier = Modifier.graphicsLayer { rotationY = shuffleFlip; scaleX = shufflePop; scaleY = shufflePop }) }
                 StateToggle(q.repeat != RepeatMode.OFF, "Repeat ${q.repeat.name.lowercase()}", colour, onColour, onToggle = {
                     val next = when (q.repeat) {
                         RepeatMode.OFF -> RepeatMode.ALL
@@ -105,11 +115,11 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
                     }
                     haptics.perform(if (next == RepeatMode.OFF) Haptic.ToggleOff else Haptic.ToggleOn)
                     edit(null) { host.core.setRepeat(next) }
-                }) { Icon(if (q.repeat == RepeatMode.ONE) Icons.repeatOne() else Icons.repeat(), contentDescription = "Repeat") }
+                }) { Icon(if (q.repeat == RepeatMode.ONE) Icons.repeatOne() else Icons.repeat(), contentDescription = "Repeat", modifier = Modifier.graphicsLayer { rotationZ = repeatTurn; scaleX = repeatPop; scaleY = repeatPop }) }
                 StateToggle(q.autoplayEnabled, if (q.autoplayEnabled) "Autoplay on" else "Autoplay off", colour, onColour, onToggle = { on ->
                     haptics.perform(if (on) Haptic.ToggleOn else Haptic.ToggleOff)
                     edit(null) { host.core.setAutoplay(on) }
-                }) { Icon(Icons.autoplay(), contentDescription = "Autoplay") }
+                }) { Icon(Icons.autoplay(), contentDescription = "Autoplay", modifier = Modifier.graphicsLayer { rotationZ = autoTurn; scaleX = autoPop; scaleY = autoPop }) }
             }
         }
         // Item 2: History, collapsed by default, newest at the bottom.
@@ -321,3 +331,4 @@ private fun LazyListScope.reorderable(
 private const val HIGHLIGHT_ALPHA = 0.14f
 private const val TONAL_ALPHA = 0.16f
 private const val AUTOPLAY_FILLS_BELOW = 5
+private const val TOGGLE_POP = 1.15f

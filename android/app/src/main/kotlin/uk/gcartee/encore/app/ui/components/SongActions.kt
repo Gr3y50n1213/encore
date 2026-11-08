@@ -19,6 +19,37 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.sp
+import android.os.Build
+import android.view.ViewGroup
+import android.view.WindowManager
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionOnScreen
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
+import kotlin.math.roundToInt
+import uk.gcartee.encore.app.ui.onboarding.reduceMotion
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -154,7 +185,14 @@ data class MenuExtra(val label: String, val destructive: Boolean, val icon: (@Co
  * and the first item is never pre-selected (DropdownMenu does neither).
  */
 @Composable
-fun SongMenu(song: Song, expanded: Boolean, onDismiss: () -> Unit, place: MenuPlace = MenuPlace()) {
+fun SongMenu(
+    song: Song,
+    expanded: Boolean,
+    onDismiss: () -> Unit,
+    place: MenuPlace = MenuPlace(),
+    anchor: Rect? = null,
+    lifted: (@Composable () -> Unit)? = null,
+) {
     val actions = LocalAppActions.current
     val haptics = rememberHaptics()
     var playlistSheet by remember { mutableStateOf(false) }
@@ -162,12 +200,7 @@ fun SongMenu(song: Song, expanded: Boolean, onDismiss: () -> Unit, place: MenuPl
     val liked = remember(song.id, expanded) { if (expanded) actions.isLiked(song) else false }
     // The render: one rounded card, text only, groups split by a band of the darker tone,
     // sentence case.
-    DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(MENU_RADIUS_DP.dp),
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-    ) {
+    val items: @Composable () -> Unit = {
         MenuItem("Play next") { onDismiss(); actions.playNext(listOf(song)) }
         MenuItem("Add to queue") { onDismiss(); actions.addToQueue(listOf(song)) }
         MenuItem("Add to playlist") { onDismiss(); playlistSheet = true }
@@ -185,6 +218,17 @@ fun SongMenu(song: Song, expanded: Boolean, onDismiss: () -> Unit, place: MenuPl
         GroupGap()
         place.extra.filter { it.destructive }.forEach { e -> MenuItem(e.label, destructive = true) { onDismiss(); e.action() } }
         MenuItem("Not interested", destructive = true) { onDismiss(); actions.notInterested(song) }
+    }
+    if (anchor != null && lifted != null) {
+        // Item 1: from a row, the row lifts and the menu grows out of it.
+        if (expanded) LiftedMenu(anchor, onDismiss, lifted, items)
+    } else {
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = onDismiss,
+            shape = RoundedCornerShape(MENU_RADIUS_DP.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ) { items() }
     }
     if (playlistSheet) AddToPlaylistSheet(listOf(song)) { playlistSheet = false }
     if (why) WhyThisSongSheet(song) { why = false }
@@ -205,7 +249,96 @@ private fun GroupGap() {
     Box(Modifier.fillMaxWidth().padding(vertical = 4.dp).height(MENU_GAP_DP.dp).background(MaterialTheme.colorScheme.surfaceContainerHighest))
 }
 
+/**
+ * Board 13, item 1: the pressed row lifts to 1.03 with a shadow in the tonal highlight,
+ * everything else dims (and blurs from Android 12, where the window can), and the menu
+ * grows out of the row on the expressive spring, below it or above it if there is no room.
+ * A tap outside closes it with no change.
+ */
+@Composable
+private fun LiftedMenu(anchor: Rect, onDismiss: () -> Unit, lifted: @Composable () -> Unit, items: @Composable () -> Unit) {
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+        val view = LocalView.current
+        DisposableEffect(view) {
+            (view.parent as? DialogWindowProvider)?.window?.let { w ->
+                w.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+                w.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+                w.setDimAmount(MENU_DIM)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    w.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                    w.attributes = w.attributes.apply { blurBehindRadius = MENU_BLUR_PX }
+                }
+            }
+            onDispose { }
+        }
+        val still = reduceMotion()
+        val appear = remember { Animatable(if (still) 1f else 0f) }
+        LaunchedEffect(Unit) { appear.animateTo(1f, spring(dampingRatio = APPEAR_DAMPING, stiffness = Spring.StiffnessMediumLow)) }
+        val density = LocalDensity.current
+        var origin by remember { mutableStateOf(Offset.Zero) }
+        var root by remember { mutableStateOf(IntSize.Zero) }
+        var card by remember { mutableStateOf(IntSize.Zero) }
+        Box(
+            Modifier
+                .fillMaxSize()
+                .onGloballyPositioned {
+                    origin = it.positionOnScreen()
+                    root = it.size
+                }
+                .pointerInput(Unit) { detectTapGestures { onDismiss() } },
+        ) {
+            val left = anchor.left - origin.x
+            val top = anchor.top - origin.y
+            Box(
+                Modifier
+                    .offset { IntOffset(left.roundToInt(), top.roundToInt()) }
+                    .size(with(density) { anchor.width.toDp() }, with(density) { anchor.height.toDp() })
+                    .graphicsLayer {
+                        val s = 1f + LIFT_SCALE * appear.value
+                        scaleX = s
+                        scaleY = s
+                    }
+                    .shadow((LIFT_SHADOW_DP * appear.value).dp, RoundedCornerShape(LIFT_RADIUS_DP.dp))
+                    .background(MaterialTheme.colorScheme.secondaryContainer, RoundedCornerShape(LIFT_RADIUS_DP.dp)),
+            ) { lifted() }
+            val gap = with(density) { MENU_GAP_FROM_ROW_DP.dp.toPx() }
+            val edge = with(density) { MENU_EDGE_DP.dp.toPx() }
+            val below = top + anchor.height + gap + card.height <= root.height - edge
+            val cardTop = (if (below) top + anchor.height + gap else top - gap - card.height)
+                .coerceIn(edge, (root.height - edge - card.height).coerceAtLeast(edge))
+            val cardLeft = (left + edge).coerceAtMost((root.width - edge - card.width).coerceAtLeast(edge))
+            Surface(
+                shape = RoundedCornerShape(MENU_RADIUS_DP.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                shadowElevation = MENU_SHADOW_DP.dp,
+                modifier = Modifier
+                    .offset { IntOffset(cardLeft.roundToInt(), cardTop.roundToInt()) }
+                    .onSizeChanged { card = it }
+                    .graphicsLayer {
+                        transformOrigin = TransformOrigin(0.15f, if (below) 0f else 1f)
+                        val s = MENU_START_SCALE + (1f - MENU_START_SCALE) * appear.value
+                        scaleX = s
+                        scaleY = s
+                        alpha = appear.value.coerceIn(0f, 1f)
+                    },
+            ) {
+                Column(Modifier.width(IntrinsicSize.Max).padding(vertical = Grid.base.dp)) { items() }
+            }
+        }
+    }
+}
+
 private const val MENU_RADIUS_DP = 16
+private const val MENU_DIM = 0.32f
+private const val MENU_BLUR_PX = 40
+private const val APPEAR_DAMPING = 0.8f
+private const val LIFT_SCALE = 0.03f
+private const val LIFT_SHADOW_DP = 8
+private const val LIFT_RADIUS_DP = 20
+private const val MENU_GAP_FROM_ROW_DP = 8
+private const val MENU_EDGE_DP = 16
+private const val MENU_SHADOW_DP = 6
+private const val MENU_START_SCALE = 0.85f
 private const val MENU_GAP_DP = 6
 private const val MENU_TEXT_SP = 15
 

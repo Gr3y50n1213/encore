@@ -46,6 +46,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import kotlin.math.roundToInt
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -93,6 +102,11 @@ private class LibraryPrefs(context: Context, profile: String) {
     fun setGrid(s: Shelf, v: Boolean) = prefs.edit().putBoolean("grid-${s.name}", v).apply()
 }
 
+/** Library opens on [shelf] the next time it shows (Search's Browse tiles). */
+fun showLibraryShelf(context: Context, host: CoreHost, shelf: Shelf) {
+    LibraryPrefs(context, host.core.currentProfile().orEmpty()).shelf = shelf
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LibraryScreen(host: CoreHost, onOpen: (Route) -> Unit, playingSongId: Long?, contentPadding: PaddingValues) {
@@ -107,103 +121,101 @@ fun LibraryScreen(host: CoreHost, onOpen: (Route) -> Unit, playingSongId: Long?,
     var sortOpen by remember { mutableStateOf(false) }
     val sync by host.sync.state.collectAsState()
 
-    Column(Modifier.fillMaxSize().statusBarsPadding()) {
-        Row(
-            Modifier.fillMaxWidth().padding(start = (Grid.base * 2).dp, end = (Grid.base * 2).dp, top = (Grid.base * 2).dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text("Library", style = type.pageTitle, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
-            val sortable = shelf == Shelf.Albums || shelf == Shelf.Songs
-            Box {
-                // Item 2: Sort.
-                FilledTonalIconButton(onClick = { sortOpen = true }, enabled = sortable) {
-                    Icon(Icons.sort(), contentDescription = "Sort, ${sort.label}")
-                }
-                DropdownMenu(expanded = sortOpen, onDismissRequest = { sortOpen = false }) {
-                    SortChoice.entries.filter { if (shelf == Shelf.Songs) it.song != null else it.album != null }.forEach { choice ->
-                        DropdownMenuItem(
-                            text = { Text(choice.label, style = if (choice == sort) type.buttonLabelSelected else type.buttonLabel) },
-                            onClick = {
-                                sortOpen = false
-                                sort = choice
-                                prefs.setSort(shelf, choice)
-                            },
-                        )
+    // The header (title, the shelf group, sort and grid or list) slides away as the list
+    // scrolls down and returns as soon as it scrolls up, so browsing is just the albums.
+    val headerState = rememberTopAppBarState()
+    val collapse = TopAppBarDefaults.enterAlwaysScrollBehavior(headerState)
+    var headerHeight by remember { mutableIntStateOf(0) }
+    LaunchedEffect(headerHeight) { headerState.heightOffsetLimit = -headerHeight.toFloat() }
+    val sortable = shelf == Shelf.Albums || shelf == Shelf.Songs
+    Column(Modifier.fillMaxSize().statusBarsPadding().nestedScroll(collapse.nestedScrollConnection)) {
+        Layout(
+            content = {
+                Column(Modifier.onSizeChanged { headerHeight = it.height }) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(start = (Grid.base * 2).dp, end = (Grid.base * 2).dp, top = (Grid.base * 2).dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("Library", style = type.pageTitle, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                        // Board 14: the avatar on Library too; its sheet holds Settings (board 17).
+                        uk.gcartee.encore.app.ui.home.ProfileButton(host, uk.gcartee.encore.app.ui.components.LocalAppActions.current.openProfiles)
                     }
-                }
-            }
-            Spacer(Modifier.size(Grid.base.dp))
-            // Board 14: the avatar on Library too; its sheet holds Settings (board 17).
-            uk.gcartee.encore.app.ui.home.ProfileButton(host, uk.gcartee.encore.app.ui.components.LocalAppActions.current.openProfiles)
-        }
-        // Item 1: filter chips; one is always active.
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp),
-            horizontalArrangement = Arrangement.spacedBy(Grid.base.dp),
-        ) {
-            items(Shelf.entries) { s ->
-                // Boards 06 and 35: tonal chips with a 12 dp corner; the active one is
-                // stronger and adds a check.
-                val on = s == shelf
-                androidx.compose.material3.Surface(
-                    onClick = {
-                        if (s != shelf) {
-                            haptics.perform(Haptic.Tick)
+                    // Item 1: Albums, Playlists, Artists, Songs as one connected group, the
+                    // chosen one round and filled (boards 06, 24), like every group in the app.
+                    ChoiceGroup(
+                        options = Shelf.entries.map { it to it.label },
+                        selected = shelf,
+                        onSelect = { s ->
                             shelf = s
                             prefs.shelf = s
+                        },
+                        modifier = Modifier.padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp),
+                    )                    Row(
+                        Modifier.fillMaxWidth().padding(start = Grid.base.dp, end = (Grid.base * 2).dp, bottom = Grid.base.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        // Item 2: the order is its own menu, named by what it is.
+                        Box(Modifier.weight(1f)) {
+                            if (sortable) {
+                                androidx.compose.material3.TextButton(onClick = { sortOpen = true }) {
+                                    Text(sort.label, style = type.groupLabel, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Spacer(Modifier.size(4.dp))
+                                    Icon(Icons.expandMore(), contentDescription = "Sort", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                                }
+                                DropdownMenu(expanded = sortOpen, onDismissRequest = { sortOpen = false }) {
+                                    SortChoice.entries.filter { if (shelf == Shelf.Songs) it.song != null else it.album != null }.forEach { choice ->
+                                        DropdownMenuItem(
+                                            text = { Text(choice.label, style = if (choice == sort) type.buttonLabelSelected else type.buttonLabel) },
+                                            trailingIcon = if (choice == sort) ({ Icon(Icons.check(), contentDescription = null) }) else null,
+                                            onClick = {
+                                                sortOpen = false
+                                                sort = choice
+                                                prefs.setSort(shelf, choice)
+                                            },
+                                        )
+                                    }
+                                }
+                            } else {
+                                Text(shelf.label, style = type.groupLabel, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = Grid.base.dp))
+                            }
                         }
-                    },
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(CHIP_RADIUS_DP.dp),
-                    color = if (on) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-                    // The render draws the active label in the accent.
-                    contentColor = if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.height(CHIP_DP.dp).semantics {
-                        role = Role.Tab
-                        selected = on
-                    },
-                ) {
-                    ChipLabel(s.label, on)
+                        if (shelf == Shelf.Albums) {
+                            // Item 3: grid or list, a compact connected pair of icons.
+                            Row(horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)) {
+                                ToggleButton(
+                                    checked = grid,
+                                    onCheckedChange = {
+                                        if (!grid) haptics.perform(Haptic.ToggleOn)
+                                        grid = true
+                                        prefs.setGrid(shelf, true)
+                                    },
+                                    shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
+                                    colors = tonalToggle(),
+                                    modifier = Modifier.height(VIEW_TOGGLE_DP.dp).width(VIEW_TOGGLE_W_DP.dp),
+                                ) { Icon(Icons.grid(), contentDescription = "Grid", modifier = Modifier.size(20.dp)) }
+                                ToggleButton(
+                                    checked = !grid,
+                                    onCheckedChange = {
+                                        if (grid) haptics.perform(Haptic.ToggleOn)
+                                        grid = false
+                                        prefs.setGrid(shelf, false)
+                                    },
+                                    shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
+                                    colors = tonalToggle(),
+                                    modifier = Modifier.height(VIEW_TOGGLE_DP.dp).width(VIEW_TOGGLE_W_DP.dp),
+                                ) { Icon(Icons.list(), contentDescription = "List", modifier = Modifier.size(20.dp)) }
+                            }
+                        }
+                    }
                 }
-            }
+            },
+            modifier = Modifier.clipToBounds(),
+        ) { measurables, constraints ->
+            val header = measurables.first().measure(constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity))
+            val offset = headerState.heightOffset.roundToInt()
+            layout(header.width, (header.height + offset).coerceAtLeast(0)) { header.place(0, offset) }
         }
-        SyncRow(sync)
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = (Grid.base * 2).dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                if (shelf == Shelf.Albums || shelf == Shelf.Songs) sort.label else shelf.label,
-                style = type.groupLabel,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
-            if (shelf == Shelf.Albums) {
-                // Item 3: grid or list, a connected group of two.
-                Row(horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)) {
-                    ToggleButton(
-                        checked = grid,
-                        onCheckedChange = {
-                            if (!grid) haptics.perform(Haptic.ToggleOn)
-                            grid = true
-                            prefs.setGrid(shelf, true)
-                        },
-                        shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
-                        colors = tonalToggle(),
-                    ) { Text("Grid", style = if (grid) type.buttonLabelSelected else type.buttonLabel) }
-                    ToggleButton(
-                        checked = !grid,
-                        onCheckedChange = {
-                            if (grid) haptics.perform(Haptic.ToggleOn)
-                            grid = false
-                            prefs.setGrid(shelf, false)
-                        },
-                        shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
-                        colors = tonalToggle(),
-                    ) { Text("List", style = if (!grid) type.buttonLabelSelected else type.buttonLabel) }
-                }
-            }
-        }
-        PullToRefreshBox(isRefreshing = sync.running, onRefresh = { host.sync.syncNow() }, modifier = Modifier.weight(1f)) {
+        SyncRow(sync)        PullToRefreshBox(isRefreshing = sync.running, onRefresh = { host.sync.syncNow() }, modifier = Modifier.weight(1f)) {
             when (shelf) {
                 Shelf.Albums -> AlbumsList(host, sort.album ?: AlbumSort.RECENTLY_ADDED, grid, sync.generation, onOpen, contentPadding)
                 Shelf.Songs -> SongsList(host, sort.song ?: SongSort.RECENTLY_ADDED, sync.generation, playingSongId, contentPadding)
@@ -358,12 +370,14 @@ fun EmptyState(title: String, reason: String) {
 private const val EMPTY_RADIUS_DP = 24
 
 private const val TILE_MIN_DP = 150
-private const val CHIP_DP = 48
+private const val GROUP_TEXT_SP = 14
+private const val VIEW_TOGGLE_DP = 40
+private const val VIEW_TOGGLE_W_DP = 52
 
 /** Board 06, item 3: the selected one filled with the tonal colour, the other lighter. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun tonalToggle() = androidx.compose.material3.ToggleButtonDefaults.colors(
+internal fun tonalToggle() = androidx.compose.material3.ToggleButtonDefaults.colors(
     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
     contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
     checkedContainerColor = MaterialTheme.colorScheme.inversePrimary,
@@ -385,5 +399,44 @@ internal fun ChipLabel(label: String, on: Boolean) {
             }
         }
         Text(label, style = type.sectionHeader.copy(fontSize = CHIP_TEXT_SP.sp, fontWeight = if (on) androidx.compose.ui.text.font.FontWeight.Medium else androidx.compose.ui.text.font.FontWeight.Normal))
+    }
+}
+
+/**
+ * A one-of choice drawn as a connected button group (boards 06 and 24): outer corners
+ * round, facing corners 10 dp, the chosen one fully round and filled. Library's shelves
+ * and Search's scopes both use it, like the app's other groups.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+internal fun <T> ChoiceGroup(options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit, modifier: Modifier = Modifier, enabled: (T) -> Boolean = { true }) {
+    val type = LocalEncoreType.current
+    val haptics = rememberHaptics()
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)) {
+        options.forEachIndexed { i, (value, label) ->
+            val on = value == selected
+            ToggleButton(
+                checked = on,
+                onCheckedChange = {
+                    if (!on) {
+                        haptics.perform(Haptic.Tick)
+                        onSelect(value)
+                    }
+                },
+                enabled = enabled(value),
+                shapes = when (i) {
+                    0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                    options.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                    else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                },
+                colors = tonalToggle(),
+                modifier = Modifier.weight(1f).semantics {
+                    role = Role.Tab
+                    this.selected = on
+                },
+            ) {
+                Text(label, style = type.sectionHeader.copy(fontSize = GROUP_TEXT_SP.sp, fontWeight = if (on) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Medium), maxLines = 1, softWrap = false)
+            }
+        }
     }
 }

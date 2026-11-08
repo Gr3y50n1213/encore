@@ -35,6 +35,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.semantics
@@ -124,15 +130,15 @@ fun ProfileSheet(host: CoreHost, playing: Boolean, onDismiss: () -> Unit, onSwit
                             .heightIn(min = 64.dp)
                             // Board 14: the active profile sits in a tonal highlight.
                             .padding(horizontal = Grid.base.dp)
-                            .clip(androidx.compose.foundation.shape.RoundedCornerShape(ACTIVE_RADIUS_DP.dp))
+                            .clip(RoundedCornerShape(ROW_RADIUS_DP.dp))
                             .background(if (p.active) MaterialTheme.colorScheme.secondaryContainer else androidx.compose.ui.graphics.Color.Transparent)
                             .combinedClickable(onClick = { pick(p) }, onLongClick = { haptics.perform(Haptic.LongPress); menu = true })
                             .padding(horizontal = (Grid.base * 2).dp)
                             .semantics { stateDescription = if (p.active) "Current profile" else if (p.needsSignIn) "Sign in again" else "" },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Box(Modifier.size(40.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape), contentAlignment = Alignment.Center) {
-                            Text(p.initials, style = type.buttonLabelSelected, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        Avatar(if (p.active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest) {
+                            Text(p.initials, style = type.buttonLabelSelected, color = if (p.active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Spacer(Modifier.width((Grid.base * 2).dp))
                         Column(Modifier.weight(1f)) {
@@ -140,8 +146,11 @@ fun ProfileSheet(host: CoreHost, playing: Boolean, onDismiss: () -> Unit, onSwit
                             if (p.needsSignIn) Text("Session ended. Sign in again", style = type.caption, color = MaterialTheme.colorScheme.error)
                             else if (p.active) Text("Active", style = type.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        if (p.locked) Icon(Icons.lock(), contentDescription = "Locked")
-                        if (p.active) Icon(Icons.check(), contentDescription = null)
+                        // Board 14: a locked profile wears a small PIN pill.
+                        if (p.locked) Surface(shape = CircleShape, color = Color.Transparent, border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline), modifier = Modifier.semantics { contentDescription = "Locked with a PIN" }) {
+                            Text("PIN", style = type.caption, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
+                        }
+                        if (p.active) Icon(Icons.check(), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     }
                     // Item 3: row actions. Removing is not deleting (that lives in Privacy and data).
                     DropdownMenu(menu, onDismissRequest = { menu = false }) {
@@ -160,28 +169,19 @@ fun ProfileSheet(host: CoreHost, playing: Boolean, onDismiss: () -> Unit, onSwit
                     }
                 }
             }
-            HorizontalDivider(Modifier.padding(vertical = Grid.base.dp))
-            // Board 17: Settings, reached from the avatar on Home and Library.
+            // Item 4: Add account, drawn like a profile row with a + in its circle.
             Row(
-                Modifier.fillMaxWidth().heightIn(min = 56.dp).combinedClickable(onClick = { onDismiss(); actions.open(uk.gcartee.encore.app.ui.nav.Route.Settings()) }).padding(horizontal = (Grid.base * 3).dp),
+                Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = Grid.base.dp).clip(RoundedCornerShape(ROW_RADIUS_DP.dp)).combinedClickable(onClick = { onDismiss(); onAddAccount() }).padding(horizontal = (Grid.base * 2).dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.settings(), contentDescription = null)
-                Spacer(Modifier.width((Grid.base * 2).dp))
-                Text("Settings", style = type.listRowTitle)
-            }
-            Row(
-                Modifier.fillMaxWidth().heightIn(min = 56.dp).combinedClickable(onClick = { onDismiss(); onAddAccount() }).padding(horizontal = (Grid.base * 3).dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(Icons.personAdd(), contentDescription = null)
+                Avatar(MaterialTheme.colorScheme.surfaceContainerHighest) { Icon(Icons.add(), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                 Spacer(Modifier.width((Grid.base * 2).dp))
                 Text("Add account", style = type.listRowTitle)
             }
             if (guest == null) {
                 // Item 5: Guest records nothing and ends after 4 hours idle.
                 Row(
-                    Modifier.fillMaxWidth().heightIn(min = 56.dp).combinedClickable(onClick = {
+                    Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = Grid.base.dp).clip(RoundedCornerShape(ROW_RADIUS_DP.dp)).combinedClickable(onClick = {
                         runCatching { host.core.startGuest() }
                             .onSuccess { q ->
                                 host.profileSwitched(q)
@@ -191,13 +191,26 @@ fun ProfileSheet(host: CoreHost, playing: Boolean, onDismiss: () -> Unit, onSwit
                                 onDismiss()
                             }
                             .onFailure { actions.toaster.show(it.userMessage()) }
-                    }).padding(horizontal = (Grid.base * 3).dp),
+                    }).padding(horizontal = (Grid.base * 2).dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.artist(), contentDescription = null)
+                    Avatar(MaterialTheme.colorScheme.surfaceContainerHighest) { Text("G", style = type.buttonLabelSelected, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     Spacer(Modifier.width((Grid.base * 2).dp))
-                    Text("Guest", style = type.listRowTitle)
+                    Column {
+                        Text("Guest", style = type.listRowTitle)
+                        Text("Nothing is saved", style = type.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
+            }
+            // Where board 14 has "Manage profiles": a tonal pill to Settings (board 17), the
+            // phone's way in to every setting and the profile page.
+            FilledTonalButton(
+                onClick = { onDismiss(); actions.open(uk.gcartee.encore.app.ui.nav.Route.Settings()) },
+                modifier = Modifier.padding(start = (Grid.base * 3).dp, top = (Grid.base * 2).dp).height(48.dp),
+            ) {
+                Icon(Icons.settings(), contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(Grid.base.dp))
+                Text("Settings", style = type.sectionHeader.copy(fontSize = 16.sp))
             }
         }
     }
@@ -257,4 +270,12 @@ fun ProfileSheet(host: CoreHost, playing: Boolean, onDismiss: () -> Unit, onSwit
     }
 }
 
-private const val ACTIVE_RADIUS_DP = 20
+
+/** Board 14's avatar circle, 48 dp, for profiles, Add account and Guest alike. */
+@Composable
+private fun Avatar(color: Color, content: @Composable () -> Unit) {
+    Box(Modifier.size(AVATAR_DP.dp).background(color, CircleShape), contentAlignment = Alignment.Center) { content() }
+}
+
+private const val AVATAR_DP = 48
+private const val ROW_RADIUS_DP = 20

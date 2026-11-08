@@ -256,7 +256,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                                     Tab.Home -> HomeScreen(host, homeData, onProfile = { profiles = true }, reselect = nav.reselect, contentPadding = inner)
                                     Tab.Mixes -> MixesScreen(host, homeData, onProfile = { profiles = true }, contentPadding = inner)
                                     Tab.Library -> LibraryScreen(host, actions.open, playingSongId, inner)
-                                    Tab.Search -> SearchScreen(host, playingSongId, actions.open, inner)
+                                    Tab.Search -> SearchScreen(host, playingSongId, actions.open, inner, onLibrary = { nav.select(Tab.Library) })
                                 }
                             }
                         }

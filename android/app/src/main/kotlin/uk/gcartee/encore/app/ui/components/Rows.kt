@@ -22,6 +22,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -137,15 +139,25 @@ fun LevelBars(colour: Color, size: Dp = 16.dp) {
 fun AlbumTile(album: AlbumSummary, onClick: () -> Unit, onLongClick: (() -> Unit)? = null, modifier: Modifier = Modifier) {
     val type = LocalEncoreType.current
     val haptics = rememberHaptics()
+    // Board 05: a tile presses to 0.97 on a spring instead of a flat ripple over it.
+    val press = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val pressed = press.collectIsPressedAsState().value
+    val scale = androidx.compose.animation.core.animateFloatAsState(if (pressed) TILE_PRESSED else 1f, androidx.compose.animation.core.spring(dampingRatio = 0.6f, stiffness = androidx.compose.animation.core.Spring.StiffnessMedium), label = "press").value
     Column(
-        modifier.combinedClickable(
-            onClick = onClick,
-            onLongClick = onLongClick?.let { { haptics.perform(Haptic.LongPress); it() } },
-        ),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .combinedClickable(
+                interactionSource = press,
+                indication = null,
+                onClick = onClick,
+                onLongClick = onLongClick?.let { { haptics.perform(Haptic.LongPress); it() } },
+            ),
     ) {
         Artwork(ArtworkOf.ALBUM, album.id, TILE_ART_DP.dp, Modifier.fillMaxWidth(), cornerRadius = TILE_RADIUS_DP.dp)
-        Spacer(Modifier.size(2.dp))
+        Spacer(Modifier.size(TILE_TEXT_GAP_DP.dp))
         Text(album.title, style = type.tileTitle, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(album.artist, style = type.tileSubtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
@@ -179,3 +191,5 @@ const val ROW_ART_DP = 48
 const val NUMBER_DP = 28
 const val TILE_ART_DP = 172
 const val TILE_RADIUS_DP = 20
+private const val TILE_PRESSED = 0.97f
+private const val TILE_TEXT_GAP_DP = 8

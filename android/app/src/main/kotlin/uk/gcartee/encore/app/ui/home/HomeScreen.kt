@@ -54,6 +54,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import uk.gcartee.encore.core.SongSort
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Outline
@@ -358,9 +360,7 @@ fun MixesScreen(host: CoreHost, data: HomeData, onProfile: () -> Unit, contentPa
         PageTitleRow("Mixes", host, onProfile)
         when {
             shelf == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator() }
-            shelf.mixes.isEmpty() -> Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                EmptyState("Listen for a few days and mixes will appear here", "${shelf.playsSoFar} of ${shelf.playsNeeded} plays so far.")
-            }
+            shelf.mixes.isEmpty() -> MixesLearning(host, shelf.playsSoFar.toInt(), shelf.playsNeeded.toInt(), contentPadding)
             else -> {
                 // Item 1: when and where they were made.
                 val count = shelf.mixes.size
@@ -395,6 +395,103 @@ fun MixesScreen(host: CoreHost, data: HomeData, onProfile: () -> Unit, contentPa
         }
     }
 }
+
+/**
+ * Boards 15, 23 and 38, before there are any mixes: the card says Encore is still learning
+ * with the plays so far on a progress line and a Play something button (board 15, "Not
+ * enough history"); under it the four mix shapes wait as tonal placeholders, two turning
+ * slowly and two breathing, so the tab looks like it is working on them. Reduce Motion
+ * keeps them still.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun MixesLearning(host: CoreHost, plays: Int, needed: Int, contentPadding: PaddingValues) {
+    val type = LocalEncoreType.current
+    val actions = LocalAppActions.current
+    val scheme = MaterialTheme.colorScheme
+    val still = uk.gcartee.encore.app.ui.onboarding.reduceMotion()
+    val motion = androidx.compose.animation.core.rememberInfiniteTransition(label = "learning")
+    val turn by motion.animateFloat(
+        0f, 360f,
+        androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(LEARNING_TURN_MS, easing = androidx.compose.animation.core.LinearEasing)),
+        label = "turn",
+    )
+    val breathe by motion.animateFloat(
+        LEARNING_BREATHE_MIN, 1f,
+        androidx.compose.animation.core.infiniteRepeatable(
+            androidx.compose.animation.core.tween(LEARNING_BREATHE_MS, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+            androidx.compose.animation.core.RepeatMode.Reverse,
+        ),
+        label = "breathe",
+    )
+    val shapes = remember { listOf(MaterialShapes.Cookie9Sided, MaterialShapes.Square, MaterialShapes.Arch, MaterialShapes.Clover4Leaf).map { PolygonShape(it) } }
+    val tones = listOf(scheme.primaryContainer, scheme.tertiaryContainer, scheme.secondaryContainer, scheme.surfaceContainerHighest)
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(160.dp),
+        contentPadding = PaddingValues(start = (Grid.base * 2).dp, end = (Grid.base * 2).dp, top = Grid.base.dp, bottom = contentPadding.calculateBottomPadding() + (Grid.base * 2).dp),
+        horizontalArrangement = Arrangement.spacedBy((Grid.base * 2).dp),
+        verticalArrangement = Arrangement.spacedBy((Grid.base * 3).dp),
+    ) {
+        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+            Surface(color = scheme.surfaceContainer, shape = androidx.compose.foundation.shape.RoundedCornerShape(LEARNING_CARD_RADIUS_DP.dp)) {
+                Column(Modifier.fillMaxWidth().padding((Grid.base * 2.5f).dp)) {
+                    Text("Encore is still learning", style = type.sectionHeader)
+                    Spacer(Modifier.height(4.dp))
+                    Text("Play a few more songs and your mixes will start. They're made on this phone, from what you play.", style = type.body, color = scheme.onSurfaceVariant)
+                    Spacer(Modifier.height((Grid.base * 2).dp))
+                    androidx.compose.material3.LinearWavyProgressIndicator(
+                        progress = { if (needed > 0) (plays.toFloat() / needed).coerceIn(0f, 1f) else 0f },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height((Grid.base * 1.5f).dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("$plays of $needed plays", style = type.caption, color = scheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                        androidx.compose.material3.Button(onClick = {
+                            val ids = runCatching { host.core.songs(SongSort.RECENTLY_ADDED, 0u, PLAY_SOMETHING_SONGS.toUInt()).map { it.id } }.getOrDefault(emptyList())
+                            if (ids.isNotEmpty()) actions.play(ids, ids.indices.random(), StartedFrom.SONGS, null, "Your library", shuffle = true)
+                        }) {
+                            Icon(Icons.shuffle(), contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(Grid.base.dp))
+                            Text("Play something")
+                        }
+                    }
+                }
+            }
+        }
+        items(shapes.size) { i ->
+            Column(Modifier.semantics { contentDescription = "A mix being made" }) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .graphicsLayer {
+                            if (!still) {
+                                // Cookie and clover turn, opposite ways; squircle and arch breathe.
+                                if (i % 3 == 0) rotationZ = if (i == 0) turn else -turn
+                                else {
+                                    scaleX = breathe
+                                    scaleY = breathe
+                                }
+                            }
+                        }
+                        .clip(shapes[i])
+                        .background(tones[i]),
+                )
+                Spacer(Modifier.height(Grid.base.dp))
+                // Where the title and line will go.
+                Box(Modifier.fillMaxWidth(0.7f).height(14.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(7.dp)).background(scheme.surfaceContainerHighest))
+                Spacer(Modifier.height(6.dp))
+                Box(Modifier.fillMaxWidth(0.45f).height(10.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(5.dp)).background(scheme.surfaceContainerHigh))
+            }
+        }
+    }
+}
+
+private const val LEARNING_TURN_MS = 24_000
+private const val LEARNING_BREATHE_MS = 2_400
+private const val LEARNING_BREATHE_MIN = 0.94f
+private const val LEARNING_CARD_RADIUS_DP = 24
+private const val PLAY_SOMETHING_SONGS = 300
 
 // Board 05's sizes, measured from the Android render.
 private const val CAROUSEL_ITEM_DP = 220

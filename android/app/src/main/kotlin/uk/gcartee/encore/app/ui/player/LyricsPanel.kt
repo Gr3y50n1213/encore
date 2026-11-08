@@ -13,6 +13,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import kotlin.math.abs
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.FlowRow
@@ -98,7 +100,21 @@ private fun Lines(host: CoreHost, lyrics: SongLyrics, positionMs: Long, colour: 
     val type = LocalEncoreType.current
     val still = reduceMotion()
     val synced = lyrics.syncLevel != LyricsSync.UNSYNCED
-    val current = if (synced) lyrics.lines.indexOfLast { (it.startMs ?: Long.MAX_VALUE) <= positionMs } else -1
+    // After a tap the highlight moves at once; the player's reported position catches up a
+    // moment later and takes over, so the lines never flick back to where they were.
+    var pending by remember { mutableStateOf<Long?>(null) }
+    LaunchedEffect(positionMs) {
+        val p = pending
+        if (p != null && abs(positionMs - p) < CAUGHT_UP_MS) pending = null
+    }
+    LaunchedEffect(pending) {
+        if (pending != null) {
+            delay(PENDING_TIMEOUT_MS)
+            pending = null
+        }
+    }
+    val at = pending ?: positionMs
+    val current = if (synced) lyrics.lines.indexOfLast { (it.startMs ?: Long.MAX_VALUE) <= at } else -1
     val list = rememberLazyListState()
     var lastTouchEnd by remember { mutableLongStateOf(0L) }
     var back by remember { mutableStateOf<Long?>(null) }
@@ -162,10 +178,12 @@ private fun Lines(host: CoreHost, lyrics: SongLyrics, positionMs: Long, colour: 
                 Column(
                     Modifier
                         .fillMaxWidth()
+                        .clip(RoundedCornerShape(LINE_RADIUS_DP.dp))
                         .clickable(enabled = synced && line.startMs != null) {
                             val start = line.startMs ?: return@clickable
-                            // Item 7: tap seeks to the line and offers the way back.
+                            // Item 7: tap plays from the line and offers the way back.
                             back = positionMs
+                            pending = start
                             onSeek(start)
                             runCatching { host.core.lyricLineTapped(i.toUInt(), start) }
                         }
@@ -204,6 +222,7 @@ private fun Lines(host: CoreHost, lyrics: SongLyrics, positionMs: Long, colour: 
         AnimatedVisibility(back != null, enter = fadeIn(), exit = fadeOut(), modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = (Grid.base * 2).dp)) {
             val to = back ?: 0L
             Surface(shape = CircleShape, color = colour.copy(alpha = 0.18f), modifier = Modifier.clickable {
+                pending = to
                 onSeek(to)
                 back = null
             }) {
@@ -251,3 +270,6 @@ private const val PAST_BLUR_DP = 1.2f
 private const val BACK_PILL_MS = 4_000L
 
 private const val ACTIVE_LINE_FROM_TOP = 0.3f
+private const val CAUGHT_UP_MS = 1_000L
+private const val PENDING_TIMEOUT_MS = 2_000L
+private const val LINE_RADIUS_DP = 16

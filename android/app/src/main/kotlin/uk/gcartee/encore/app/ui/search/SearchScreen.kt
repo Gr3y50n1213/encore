@@ -58,7 +58,7 @@ import uk.gcartee.encore.tokens.EncoreTokens.Grid
 
 /** Board 07 on Android: the field docked at the top, results as you type. */
 @Composable
-fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, contentPadding: PaddingValues) {
+fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, contentPadding: PaddingValues, onLibrary: () -> Unit = {}) {
     val type = LocalEncoreType.current
     val context = LocalContext.current
     val keyboard = LocalSoftwareKeyboardController.current
@@ -120,32 +120,15 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
             }),
             modifier = Modifier.fillMaxWidth().padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp),
         )
-        // Item 1: Android's scope chips. Downloaded searches downloads, which come in Phase 8.
-        androidx.compose.foundation.lazy.LazyRow(
-            contentPadding = PaddingValues(horizontal = (Grid.base * 2).dp),
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(Grid.base.dp),
-            modifier = Modifier.padding(bottom = Grid.base.dp),
-        ) {
-            items(listOf("All", "Library", "Downloaded")) { label ->
-                val on = label == scope
-                val enabled = label != "Downloaded"
-                androidx.compose.material3.Surface(
-                    onClick = { if (enabled) scope = label },
-                    enabled = enabled,
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(uk.gcartee.encore.app.ui.library.CHIP_RADIUS_DP.dp),
-                    color = if (on) androidx.compose.material3.MaterialTheme.colorScheme.secondaryContainer else androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh,
-                    contentColor = when {
-                        on -> androidx.compose.material3.MaterialTheme.colorScheme.primary
-                        enabled -> androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
-                        else -> androidx.compose.material3.MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                    },
-                    modifier = Modifier.height(48.dp),
-                ) {
-                    uk.gcartee.encore.app.ui.library.ChipLabel(label, on)
-                }
-            }
-        }
-        val results = shown
+        // Item 1: Android's scopes, as the same connected group as Library's shelves.
+        // Downloaded searches downloads, which come in Phase 8.
+        uk.gcartee.encore.app.ui.library.ChoiceGroup(
+            options = listOf("All" to "All", "Library" to "Library", "Downloaded" to "Downloaded"),
+            selected = scope,
+            onSelect = { scope = it },
+            enabled = { it != "Downloaded" },
+            modifier = Modifier.padding(horizontal = (Grid.base * 2).dp).padding(bottom = Grid.base.dp),
+        )        val results = shown
         val listState = rememberLazyListState()
         LaunchedEffect(listState) {
             // SWIPE down on results dismisses the keyboard.
@@ -161,10 +144,6 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
         }
         when {
             query.isBlank() -> LazyColumn(freeze, state = listState, contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding())) {
-                // Board 20, item 2: an empty screen says what will appear, in one sentence.
-                if (recents.isEmpty()) item {
-                    uk.gcartee.encore.app.ui.library.EmptyState("Search your library", "Songs, albums, artists and lyrics. What you search for stays on this phone and shows here.")
-                }
                 if (recents.isNotEmpty()) {
                     item {
                         androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -188,6 +167,10 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
                         }
                     }
                 }
+                // Item 3: the tile grid under the recents. Moods come from audio analysis
+                // (Phase 10), so for now the tiles open the library's own ways in.
+                item { SectionTitle("Browse") }
+                item { BrowseTiles(host, onLibrary) }
             }
             results == null || isEmpty(results) -> EmptyState("Nothing matches “${query.trim()}”", "Check the spelling, or try fewer words.")
             else -> LazyColumn(freeze, state = listState, contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding())) {
@@ -233,3 +216,60 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
 
 private fun isEmpty(r: SearchResults) =
     r.top == null && r.songs.isEmpty() && r.albums.isEmpty() && r.artists.isEmpty() && r.playlists.isEmpty() && r.lyrics.isEmpty()
+
+/**
+ * Board 07, item 3: plain-colour tiles two to a row, alternating the two leaf shapes (round
+ * at one pair of corners, tight at the other) so the grid reads as a pattern.
+ */
+@Composable
+private fun BrowseTiles(host: CoreHost, onLibrary: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val actions = uk.gcartee.encore.app.ui.components.LocalAppActions.current
+    val scheme = androidx.compose.material3.MaterialTheme.colorScheme
+    val type = LocalEncoreType.current
+    val haptics = uk.gcartee.encore.app.ui.components.rememberHaptics()
+    fun library(shelf: uk.gcartee.encore.app.ui.library.Shelf) {
+        uk.gcartee.encore.app.ui.library.showLibraryShelf(context, host, shelf)
+        onLibrary()
+    }
+    val tiles: List<Triple<String, androidx.compose.ui.graphics.Color, () -> Unit>> = listOf(
+        Triple("Shuffle all", scheme.primaryContainer, {
+            val ids = runCatching { host.core.songs(uk.gcartee.encore.core.SongSort.RECENTLY_ADDED, 0u, SHUFFLE_ALL_SONGS.toUInt()).map { it.id } }.getOrDefault(emptyList())
+            if (ids.isNotEmpty()) actions.play(ids, ids.indices.random(), uk.gcartee.encore.core.StartedFrom.SONGS, null, "Your library", shuffle = true)
+        }),
+        Triple("Recently added", scheme.secondaryContainer, { library(uk.gcartee.encore.app.ui.library.Shelf.Albums) }),
+        Triple("Playlists", scheme.secondaryContainer, { library(uk.gcartee.encore.app.ui.library.Shelf.Playlists) }),
+        Triple("Artists", scheme.tertiaryContainer, { library(uk.gcartee.encore.app.ui.library.Shelf.Artists) }),
+    )
+    androidx.compose.foundation.layout.Column(
+        Modifier.padding(horizontal = (Grid.base * 2).dp),
+        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(Grid.base.dp * 1.5f),
+    ) {
+        tiles.chunked(2).forEachIndexed { row, pair ->
+            androidx.compose.foundation.layout.Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(Grid.base.dp * 1.5f)) {
+                pair.forEachIndexed { col, (label, colour, open) ->
+                    val big = LEAF_BIG_DP.dp
+                    val small = LEAF_SMALL_DP.dp
+                    // The two leaves alternate like a checkerboard.
+                    val leaf = if ((row + col) % 2 == 0) androidx.compose.foundation.shape.RoundedCornerShape(big, small, big, small)
+                    else androidx.compose.foundation.shape.RoundedCornerShape(small, big, small, big)
+                    androidx.compose.material3.Surface(
+                        onClick = { haptics.perform(uk.gcartee.encore.app.ui.components.Haptic.Soft); open() },
+                        shape = leaf,
+                        color = colour,
+                        modifier = Modifier.weight(1f).height(TILE_HEIGHT_DP.dp),
+                    ) {
+                        androidx.compose.foundation.layout.Box(Modifier.padding(horizontal = (Grid.base * 2).dp), contentAlignment = androidx.compose.ui.Alignment.CenterStart) {
+                            Text(label, style = type.sectionHeader)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private const val LEAF_BIG_DP = 28
+private const val LEAF_SMALL_DP = 8
+private const val TILE_HEIGHT_DP = 84
+private const val SHUFFLE_ALL_SONGS = 300
