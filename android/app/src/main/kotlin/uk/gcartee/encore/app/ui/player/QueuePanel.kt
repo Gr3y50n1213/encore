@@ -129,7 +129,8 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
             item(key = "now${c.uid}") {
                 // Item 3: highlighted, with live level bars; no heading, the highlight says it.
                 androidx.compose.material3.Surface(
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                    // Concentric with the 28 dp sheet it sits 8 dp inside.
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
                     color = highlight,
                     modifier = Modifier.padding(horizontal = Grid.base.dp, vertical = Grid.base.dp),
                 ) {

@@ -98,7 +98,9 @@ fun MiniPlayer(host: CoreHost, state: PlayerState, onExpand: () -> Unit, modifie
                         },
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Artwork(ArtworkOf.SONG, song.id, ART_DP.dp, Modifier.size(ART_DP.dp), cornerRadius = Grid.base.dp)
+                    // Concentric with the container: its radius less the 8 dp gap, so the cover's
+                    // corners follow the pill's curve instead of poking into it.
+                    Artwork(ArtworkOf.SONG, song.id, ART_DP.dp, Modifier.size(ART_DP.dp), cornerRadius = (Radius.androidCard - Grid.base).dp)
                     Spacer(Modifier.width((Grid.base * 1.5f).dp))
                     Column(Modifier.weight(1f)) {
                         Text(song.title, style = type.songRowTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
