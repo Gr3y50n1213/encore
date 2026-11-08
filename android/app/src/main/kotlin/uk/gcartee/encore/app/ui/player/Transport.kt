@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.FilledTonalIconButton
@@ -84,8 +83,10 @@ fun rememberDebounced(action: () -> Unit): () -> Unit {
 /**
  * Play and pause: a toggle whose checked state is "is playing" (section 22). Paused it
  * is round (50%), playing a rounded square, pressed tighter again; the library morphs
- * between the three shapes, so no radius is animated here. Loading shows a spinner
- * and stays tappable: a tap pauses, which cancels the load.
+ * between the three shapes, so no radius is animated here. It always shows the glyph:
+ * the owner asked for the play and pause icons people expect, never a spinner or a bare
+ * shape (7 November 2026, in place of board 09's "spinner replaces play"). While a song
+ * loads it shows Pause, and a tap cancels the load; buffering shows on the progress bar.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -135,12 +136,7 @@ fun PlayPauseButton(
                 }
             },
     ) {
-        if (loading) {
-            // Board 20, item 4: the expressive loading indicator, a shape morphing as it turns.
-            LoadingIndicator(Modifier.size((size.playH * 0.6f).dp), color = content)
-        } else {
-            Icon(if (playing) Icons.pause() else Icons.play(), contentDescription = null, modifier = Modifier.size((size.playH / 2.4f).dp))
-        }
+        Icon(if (playing || loading) Icons.pause() else Icons.play(), contentDescription = null, modifier = Modifier.size((size.playH / 2.4f).dp))
     }
 }
 
@@ -158,6 +154,7 @@ fun SkipButton(
     enabled: Boolean = true,
     onScan: ((active: Boolean) -> Unit)? = null,
     tint: Color? = null,
+    colors: androidx.compose.material3.IconButtonColors? = null,
 ) {
     val haptics = rememberHaptics()
     val interaction = remember { MutableInteractionSource() }
@@ -203,7 +200,7 @@ fun SkipButton(
         onClick = tap,
         enabled = enabled,
         interactionSource = interaction,
-        colors = if (tint != null) {
+        colors = colors ?: if (tint != null) {
             IconButtonDefaults.filledTonalIconButtonColors(containerColor = tint.copy(alpha = 0.16f), contentColor = tint)
         } else {
             IconButtonDefaults.filledTonalIconButtonColors()

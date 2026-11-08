@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -51,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -94,7 +96,16 @@ fun paletteColor(hex: String): Color = Color(0xFF000000 or hex.removePrefix("#")
  * A page's tint (board 08, item 2): the palette's base and text, else the theme. [themed]
  * is the no-artwork case, where Play takes the profile accent (board 08, States).
  */
-data class PageTint(val field: Color, val content: Color, val secondary: Color, val themed: Boolean = false)
+data class PageTint(val field: Color, val content: Color, val secondary: Color, val themed: Boolean = false, val top: Color = field) {
+    /**
+     * Board 04, album and playlist pages: "the cover sits on one tint taken from the
+     * palette, fading to the dark base". The tint is the palette's leading stop (contrast
+     * clamped by the core), the base its dark field; the page is pinned, only the list scrolls.
+     */
+    val brush: Brush get() = Brush.verticalGradient(0f to top, FADE_END to field, 1f to field)
+}
+
+private const val FADE_END = 0.72f
 
 @Composable
 fun rememberTint(load: suspend () -> ArtworkPalette?, key: Any): PageTint {
@@ -102,6 +113,7 @@ fun rememberTint(load: suspend () -> ArtworkPalette?, key: Any): PageTint {
     LaunchedEffect(key) { palette = runCatching { load() }.getOrNull() }
     val p = palette
     val field = p?.let { paletteColor(it.base) } ?: MaterialTheme.colorScheme.surface
+    val top = p?.stops?.firstOrNull()?.let(::paletteColor) ?: field
     val content = p?.let { paletteColor(it.text) } ?: MaterialTheme.colorScheme.onSurface
     val secondary = if (p != null) content.copy(alpha = 0.72f) else MaterialTheme.colorScheme.onSurfaceVariant
     val fade = tween<Color>(AlbumGradient.crossfadeMs)
@@ -110,6 +122,7 @@ fun rememberTint(load: suspend () -> ArtworkPalette?, key: Any): PageTint {
         animateColorAsState(content, fade, label = "content").value,
         animateColorAsState(secondary, fade, label = "secondary").value,
         themed = p == null,
+        top = animateColorAsState(top, fade, label = "top").value,
     )
 }
 
@@ -129,6 +142,7 @@ private fun Header(
     onShuffle: (() -> Unit)?,
     onSubtitle: (() -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
+    third: GroupButton? = null,
     cover: @Composable () -> Unit,
 ) {
     val type = LocalEncoreType.current
@@ -159,17 +173,19 @@ private fun Header(
         if (onPlay != null || onShuffle != null) {
             // Item 4: one connected group; the pressed button rounds fully and widens.
             ConnectedButtons(
-                listOf(
+                listOfNotNull(
+                    // Play is the widest, Download an icon at the end (boards 08 and 24).
                     if (tint.themed) {
-                        GroupButton("Play", MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary, icon = Icons.play(), enabled = onPlay != null) { onPlay?.invoke() }
+                        GroupButton("Play", MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary, icon = Icons.play(), weight = PLAY_WEIGHT, enabled = onPlay != null) { onPlay?.invoke() }
                     } else {
-                        GroupButton("Play", tint.content, tint.field, icon = Icons.play(), enabled = onPlay != null) { onPlay?.invoke() }
+                        GroupButton("Play", tint.content, tint.field, icon = Icons.play(), weight = PLAY_WEIGHT, enabled = onPlay != null) { onPlay?.invoke() }
                     },
                     if (tint.themed) {
                         GroupButton("Shuffle", MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer, icon = Icons.shuffle(), enabled = onShuffle != null) { onShuffle?.invoke() }
                     } else {
                         GroupButton("Shuffle", tint.content.copy(alpha = 0.16f), tint.content, icon = Icons.shuffle(), enabled = onShuffle != null) { onShuffle?.invoke() }
                     },
+                    third,
                 ),
                 height = BUTTON_DP.dp,
             )
@@ -179,6 +195,15 @@ private fun Header(
 }
 
 private fun songs(n: Int) = if (n == 1) "1 song" else "$n songs"
+
+/** The icon-only end of a page's button group: Download (board 08) or Pin (board 15). */
+@Composable
+private fun iconButton(tint: PageTint, icon: androidx.compose.ui.graphics.painter.Painter, description: String, filled: Boolean = false, onClick: () -> Unit): GroupButton = when {
+    filled && tint.themed -> GroupButton(null, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary, icon = icon, description = description, weight = ICON_WEIGHT, onClick = onClick)
+    filled -> GroupButton(null, tint.content, tint.field, icon = icon, description = description, weight = ICON_WEIGHT, onClick = onClick)
+    tint.themed -> GroupButton(null, MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer, icon = icon, description = description, weight = ICON_WEIGHT, onClick = onClick)
+    else -> GroupButton(null, tint.content.copy(alpha = 0.16f), tint.content, icon = icon, description = description, weight = ICON_WEIGHT, onClick = onClick)
+}
 
 /** Board 08, item 1: Back and More, tonal rounded squares that round fully when pressed. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -206,12 +231,12 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
     val album = detail.album
     val ids = remember(detail) { detail.songs.map { it.id } }
     val multiDisc = remember(detail) { detail.songs.mapNotNull { it.discNumber }.distinct().size > 1 }
-    SystemBarIconsFor(tint.field)
+    SystemBarIconsFor(tint.top)
     val more = remember(album.id) {
         runCatching { host.core.search(album.artist).albums.filter { it.artist == album.artist && it.id != album.id }.take(12) }.getOrDefault(emptyList())
     }
     val type = LocalEncoreType.current
-    Box(Modifier.fillMaxSize().background(tint.field)) {
+    Box(Modifier.fillMaxSize().background(tint.brush)) {
         LazyColumn(contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding() + (Grid.base * 2).dp)) {
             item {
                 Header(
@@ -223,14 +248,15 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
                     onPlay = { actions.play(ids, 0, StartedFrom.ALBUM, album.id.toString(), album.title) },
                     onShuffle = { actions.play(ids, ids.indices.random(), StartedFrom.ALBUM, album.id.toString(), album.title, shuffle = true) },
                     onSubtitle = { detail.songs.firstOrNull()?.let(actions::goToArtist) },
+                    third = iconButton(tint, Icons.download(), "Download") { actions.toaster.show(DOWNLOADS_LATER) },
                     trailing = {
                         var open by remember { mutableStateOf(false) }
                         Box {
                             PageButton(tint, { open = true }) { Icon(Icons.more(), contentDescription = "More") }
                             DropdownMenu(open, onDismissRequest = { open = false }) {
-                                DropdownMenuItem(text = { Text("Play Next") }, leadingIcon = { Icon(Icons.playNext(), null) }, onClick = { open = false; actions.playNext(detail.songs) })
-                                DropdownMenuItem(text = { Text("Add to Queue") }, leadingIcon = { Icon(Icons.queue(), null) }, onClick = { open = false; actions.addToQueue(detail.songs) })
-                                DropdownMenuItem(text = { Text("Go to Artist") }, leadingIcon = { Icon(Icons.artist(), null) }, onClick = { open = false; detail.songs.firstOrNull()?.let(actions::goToArtist) })
+                                DropdownMenuItem(text = { Text("Play next") }, onClick = { open = false; actions.playNext(detail.songs) })
+                                DropdownMenuItem(text = { Text("Add to queue") }, onClick = { open = false; actions.addToQueue(detail.songs) })
+                                DropdownMenuItem(text = { Text("Go to artist") }, onClick = { open = false; detail.songs.firstOrNull()?.let(actions::goToArtist) })
                             }
                         }
                     },
@@ -294,12 +320,12 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
         EmptyState("This playlist isn't in your library", "It may have been removed from the server.")
         return
     }
-    SystemBarIconsFor(tint.field)
+    SystemBarIconsFor(tint.top)
     val playable = remember(detail) { detail.entries.mapNotNull { it.song } }
     val ids = remember(playable) { playable.map { it.id } }
     val name = detail.playlist.name
     val removeIcon = Icons.remove()
-    Box(Modifier.fillMaxSize().background(tint.field)) {
+    Box(Modifier.fillMaxSize().background(tint.brush)) {
         LazyColumn(contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding() + (Grid.base * 2).dp)) {
             item {
                 Header(
@@ -310,6 +336,7 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
                     onBack,
                     onPlay = if (ids.isEmpty()) null else ({ actions.play(ids, 0, StartedFrom.PLAYLIST, playlistId.toString(), name) }),
                     onShuffle = if (ids.isEmpty()) null else ({ actions.play(ids, ids.indices.random(), StartedFrom.PLAYLIST, playlistId.toString(), name, shuffle = true) }),
+                    third = iconButton(tint, Icons.download(), "Download") { actions.toaster.show(DOWNLOADS_LATER) },
                 ) {
                     // The server's playlist image, over a mosaic of its first songs for playlists without one.
                     Box {
@@ -413,8 +440,6 @@ fun ArtistScreen(host: CoreHost, artistId: Long, playingSongId: Long?, onBack: (
 @Composable
 fun MixScreen(host: CoreHost, mixId: String, playingSongId: Long?, onBack: () -> Unit, contentPadding: PaddingValues) {
     val actions = LocalAppActions.current
-    val haptics = rememberHaptics()
-    val type = LocalEncoreType.current
     var version by remember { mutableIntStateOf(0) }
     val page: MixPage? = remember(mixId, version) { runCatching { host.core.mix(mixId) }.getOrNull() }
     if (page == null) {
@@ -425,11 +450,14 @@ fun MixScreen(host: CoreHost, mixId: String, playingSongId: Long?, onBack: () ->
     val first = summary.coverSongIds.firstOrNull()
     val firstSong = remember(first) { first?.let { runCatching { host.core.song(it) }.getOrNull() } }
     val tint = rememberTint({ firstSong?.albumId?.let { host.core.albumPalette(it) } }, first ?: 0L)
-    SystemBarIconsFor(tint.field)
+    // Board 15: the page sits on the same moving field as Now Playing, from the cover's palette.
+    val field = uk.gcartee.encore.app.ui.player.rememberFieldColours(host, firstSong?.albumId)
+    SystemBarIconsFor(field.base)
     val ids = remember(page) { page.songs.map { it.song.id } }
     var pinned by remember(summary.pinned) { mutableStateOf(summary.pinned) }
     val notIcon = Icons.block()
-    Box(Modifier.fillMaxSize().background(tint.field)) {
+    Box(Modifier.fillMaxSize().background(field.base)) {
+        uk.gcartee.encore.app.ui.player.AlbumField(field, Modifier.matchParentSize())
         LazyColumn(contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding() + (Grid.base * 2).dp)) {
             item {
                 Header(
@@ -440,28 +468,39 @@ fun MixScreen(host: CoreHost, mixId: String, playingSongId: Long?, onBack: () ->
                     onBack,
                     onPlay = { actions.play(ids, 0, StartedFrom.MIX, mixId, summary.title) },
                     onShuffle = { actions.play(ids, ids.indices.random(), StartedFrom.MIX, mixId, summary.title, shuffle = true) },
-                    trailing = {
-                        // Item 4: Pin; the button fills, with the success haptic.
-                        FilledTonalIconToggleButton(
-                            checked = pinned,
-                            onCheckedChange = { on ->
-                                runCatching { host.core.pinMix(mixId, on) }
-                                    .onSuccess {
-                                        pinned = on
-                                        haptics.perform(if (on) Haptic.Confirm else Haptic.ToggleOff)
-                                    }
-                                    .onFailure { actions.toaster.show(it.userMessage()) }
-                            },
-                            colors = IconButtonDefaults.filledTonalIconToggleButtonColors(
-                                containerColor = tint.content.copy(alpha = 0.14f),
-                                contentColor = tint.content,
-                                checkedContainerColor = tint.content,
-                                checkedContentColor = tint.field,
-                            ),
-                            modifier = Modifier.semantics { stateDescription = if (pinned) "Pinned" else "Not pinned" },
-                        ) { Icon(Icons.pin(pinned), contentDescription = "Pin") }
+                    // Item 4: Pin ends the group and fills when pinned.
+                    third = iconButton(tint, Icons.pin(pinned), if (pinned) "Unpin" else "Pin", filled = pinned) {
+                        val on = !pinned
+                        runCatching { host.core.pinMix(mixId, on) }
+                            .onSuccess { pinned = on }
+                            .onFailure { actions.toaster.show(it.userMessage()) }
                     },
-                ) { Mosaic(summary.coverSongIds) }
+                    trailing = {
+                        // Item 6: More.
+                        var open by remember { mutableStateOf(false) }
+                        Box {
+                            PageButton(tint, { open = true }) { Icon(Icons.more(), contentDescription = "More") }
+                            DropdownMenu(open, onDismissRequest = { open = false }) {
+                                DropdownMenuItem(text = { Text("Save as playlist") }, onClick = {
+                                    open = false
+                                    runCatching { host.core.saveMixAsPlaylist(mixId) }
+                                        .onSuccess { actions.toaster.show("Saved as a playlist") }
+                                        .onFailure { actions.toaster.show(it.userMessage()) }
+                                })
+                                DropdownMenuItem(text = { Text("Hide this mix", color = MaterialTheme.colorScheme.error) }, onClick = {
+                                    open = false
+                                    runCatching { host.core.hideMix(mixId) }.onSuccess { onBack(); actions.toaster.show("Hidden from today's mixes") }
+                                })
+                            }
+                        }
+                    },
+                ) {
+                    // Item 1: the mosaic in this mix's own Material shape, as on the Mixes tab.
+                    val shape = uk.gcartee.encore.app.ui.home.shapeFor(mixId)
+                    Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(shape).background(tint.content.copy(alpha = 0.22f)).padding(MIX_RING_DP.dp).clip(shape)) {
+                        MosaicFill(summary.coverSongIds, Modifier.fillMaxSize())
+                    }
+                }
             }
             items(page.songs, key = { it.song.id }) { ms ->
                 val notInMix = SwipeAction("Not in this mix", destructive = true, icon = { notIcon }) {
@@ -479,23 +518,11 @@ fun MixScreen(host: CoreHost, mixId: String, playingSongId: Long?, onBack: () ->
                     onClick = { actions.play(ids, ids.indexOf(ms.song.id), StartedFrom.MIX, mixId, summary.title) },
                     subtitle = ms.reason?.let(::describe) ?: if (ms.newToYou) "New to you" else ms.song.artist,
                     place = MenuPlace(chosenBy = ChosenBy.APP, extra = listOf(MenuExtra("Not in this mix", destructive = true) { notInMix.perform() })),
-                    contentColor = tint.content,
-                    secondaryColor = tint.secondary,
-                    rowColor = tint.field,
+                    contentColor = field.text,
+                    secondaryColor = field.secondary,
+                    rowColor = field.base,
                     toStart = notInMix,
                 )
-            }
-            item {
-                Row(Modifier.fillMaxWidth().padding((Grid.base * 2).dp), horizontalArrangement = Arrangement.spacedBy(Grid.base.dp)) {
-                    androidx.compose.material3.TextButton(onClick = {
-                        runCatching { host.core.saveMixAsPlaylist(mixId) }
-                            .onSuccess { actions.toaster.show("Saved as a playlist") }
-                            .onFailure { actions.toaster.show(it.userMessage()) }
-                    }) { Text("Save as playlist", color = tint.content) }
-                    androidx.compose.material3.TextButton(onClick = {
-                        runCatching { host.core.hideMix(mixId) }.onSuccess { onBack(); actions.toaster.show("Hidden from today's mixes") }
-                    }) { Text("Hide this mix", color = tint.content) }
-                }
             }
         }
     }
@@ -556,3 +583,12 @@ private const val ARTIST_SONGS = 200
 private const val ROW_TILE_DP = TILE_ART_DP * 3 / 4
 private const val PAGE_BUTTON_DP = 48
 private const val PAGE_BUTTON_RADIUS_DP = 14
+private const val PLAY_WEIGHT = 1.3f
+private const val ICON_WEIGHT = 0.5f
+
+/**
+ * Downloads and offline play are Phase 8 and the core has no download calls yet
+ * (CORE-API "Not available yet"), so the button is drawn as the boards show it and says so.
+ */
+const val DOWNLOADS_LATER = "Downloads aren't ready yet. They come with offline listening."
+private const val MIX_RING_DP = 8

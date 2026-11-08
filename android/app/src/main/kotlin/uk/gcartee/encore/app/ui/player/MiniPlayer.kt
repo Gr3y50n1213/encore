@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -53,8 +54,16 @@ fun MiniPlayer(host: CoreHost, state: PlayerState, onExpand: () -> Unit, modifie
     val context = LocalContext.current
     val type = LocalEncoreType.current
     var endOfQueue by remember { mutableStateOf(false) }
+    // Board 04: a tonal container lightly tinted by the album's dominant stop.
+    val field = rememberFieldColours(host, entry.song.albumId)
+    val container = androidx.compose.ui.graphics.lerp(MaterialTheme.colorScheme.secondaryContainer, field.stops.first(), MINI_TINT)
+    // Board 42: Next is a tonal button, round on the side its arrow points to.
+    val tonal = IconButtonDefaults.filledTonalIconButtonColors(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+    )
     Surface(
-        color = MaterialTheme.colorScheme.secondaryContainer,
+        color = container,
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
         shape = RoundedCornerShape(Radius.androidCard.dp),
         modifier = modifier
@@ -105,7 +114,7 @@ fun MiniPlayer(host: CoreHost, state: PlayerState, onExpand: () -> Unit, modifie
             // Board 29, item 5: on wider windows a bar with the whole transport, 48 dp or more
             // apart, so a stray touch only expands the bar.
             if (bar) {
-                SkipButton(next = false, onClick = { PlaybackHub.previous(context) }, size = TransportSize.Bar)
+                SkipButton(next = false, onClick = { PlaybackHub.previous(context) }, size = TransportSize.Bar, colors = tonal)
                 Spacer(Modifier.width(Grid.base.dp))
             }
             Box {
@@ -114,14 +123,16 @@ fun MiniPlayer(host: CoreHost, state: PlayerState, onExpand: () -> Unit, modifie
                     loading = state.buffering,
                     onToggle = { PlaybackHub.togglePlay(context) },
                     size = if (bar) TransportSize.Bar else TransportSize.Compact,
-                    container = MaterialTheme.colorScheme.secondaryContainer,
-                    onContainer = MaterialTheme.colorScheme.onSecondaryContainer,
+                    // Board 42: the filled accent button, shaped by its state (board 35).
+                    container = MaterialTheme.colorScheme.primary,
+                    onContainer = MaterialTheme.colorScheme.onPrimary,
                 )
             }
             Spacer(Modifier.width(if (bar) Grid.base.dp else 4.dp))
-            SkipButton(next = true, onClick = { PlaybackHub.next(context) }, size = if (bar) TransportSize.Bar else TransportSize.Compact)
+            SkipButton(next = true, onClick = { PlaybackHub.next(context) }, size = if (bar) TransportSize.Bar else TransportSize.Compact, colors = tonal)
         }
     }
 }
 
 private const val ART_DP = 48
+private const val MINI_TINT = 0.14f

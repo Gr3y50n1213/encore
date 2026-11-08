@@ -36,12 +36,31 @@
 | Queue toggles (board 11 render) | Shuffle on drawn as a circle, off as rounded squares | On is the rounded square, off round | Section 22 |
 | Search "Browse by mood" and Settings "Lyrics", "Downloads", "Lock screen and widgets", "Crossfade" (boards 07, 17) | Drawn | No core behind them yet (Phases 8 to 10) | Left out rather than shown doing nothing |
 
+## Second review against every board (7 November 2026)
+
+The owner asked for "a deep look one more time at all of the wireframes and renders and all the documentation on the Android side". Every Android board was compared with the app (01 to 26, 29, 35, 38, 42 and the specs), and the owner named three things:
+
+| Owner's point | What the app does now | Source |
+| --- | --- | --- |
+| "The play button ... is an odd shape instead of the usual icons" | Play and pause always show their glyph; loading shows Pause (a tap cancels the load), and a stall over 500 ms runs the indeterminate wavy bar instead | Owner, in place of spec 09 "spinner replaces play" and board 20 "the play button becomes a ring" |
+| The album page should take the album's colour | Album and playlist pages fade from the palette's leading stop down to its dark base, the page pinned under the scrolling list; the status bar icons follow the top colour; no artwork falls back to the profile accent | Board 04, "Album and playlist pages"; spec 08, item 2 |
+| A download button beside Play and Shuffle | Play, Shuffle and Download are one connected group (Play widest). Downloads are Phase 8 and the core has none yet, so the button says so | Boards 08 and 24 |
+
+Also brought in line: the mini player (board 42: a filled accent play button and a tonal Next, the container lightly tinted by the album, board 04); the mix page (board 15: the moving field, the mosaic in the mix's own shape, Play, Shuffle and Pin as one group, Back and More as tonal rounded squares, Save and Hide moved into More); filter chips (board 35: a 12 dp corner and a check on the selected one); the song menu (board 13: text only, sentence case, groups split by bands); Settings pages (boards 18 and 19: rounded-square Back, the page action as a tonal pill, small centered section labels, health dots before server names, switches with a check); How adventurous (board 38: a segmented choice with a check and "About 1 in 10 picks will be new to you"); Like (board 35: round off, squarer and filled on); empty states as tonal cards (board 20).
+
+| Item | Boards | What the app does |
+| --- | --- | --- |
+| How adventurous | Board 17 says "a 3-step slider"; board 38 draws a segmented choice | Board 38, the page's own board |
+| Filter chips | Board 35: 12 dp corner, a check when selected, unselected outlined; renders 06 and 07: tonal fill, no check | 12 dp, tonal fill (renders) and the check (board 35) |
+| Where Settings opens on a phone | Spec 17: "Settings sits in the Library tab on phones"; render 06 shows no entry; board 14's sheet has none | The avatar (Home, Library, Search) opens the profile sheet, which has a Settings row |
+
 ## Not built yet, and why
 
 - Downloads, the Download buttons and offline-only browsing (Phase 8); Android Auto (8); the sleep timer, widgets, Quick Settings tile and Live Updates (9); the year recap (11).
-- Search's scope chips and Browse by mood: moods come from audio analysis (Phase 10).
+- Search's Downloaded scope (shown, disabled until Phase 8) and Browse by mood: moods come from audio analysis (Phase 10).
 - The demo library (bundled tracks), multi-select, drag and drop onto playlists on tablets (board 43), the Large supporting pane, fold postures (tabletop and book), and the "Playing on ..." remote-control capsule.
 - Settings with no core behind them yet: crossfade, normalisation, equaliser, lyrics options, Hide explicit.
+- From the second review: the album tile's long-press menu and the list-mode fast scroll handle (board 06, items 4 and 6), the row lift and dim behind the song menu (board 13, item 1), the Not interested sheet with scope and reason (board 38), "Lyrics and artwork" sources on the Servers page (board 18, item 4, no core yet), the tablet album detail as a grouped track list (board 29, item 3).
 - Screenshot tests for every control state, and comparing each screen with its board at the same size: next, on the emulators.
 
 ## What the owner should try on a phone

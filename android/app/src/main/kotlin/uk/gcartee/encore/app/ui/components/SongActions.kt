@@ -14,6 +14,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.sp
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -155,38 +160,54 @@ fun SongMenu(song: Song, expanded: Boolean, onDismiss: () -> Unit, place: MenuPl
     var playlistSheet by remember { mutableStateOf(false) }
     var why by remember { mutableStateOf(false) }
     val liked = remember(song.id, expanded) { if (expanded) actions.isLiked(song) else false }
-    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
-        MenuItem("Play Next", Icons.playNext()) { onDismiss(); actions.playNext(listOf(song)) }
-        MenuItem("Add to Queue", Icons.queue()) { onDismiss(); actions.addToQueue(listOf(song)) }
-        MenuItem("Add to Playlist", Icons.playlistAdd()) { onDismiss(); playlistSheet = true }
-        HorizontalDivider()
-        MenuItem(if (liked) "Unlike" else "Like", Icons.favorite(liked)) {
+    // The render: one rounded card, text only, groups split by a band of the darker tone,
+    // sentence case.
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(MENU_RADIUS_DP.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        MenuItem("Play next") { onDismiss(); actions.playNext(listOf(song)) }
+        MenuItem("Add to queue") { onDismiss(); actions.addToQueue(listOf(song)) }
+        MenuItem("Add to playlist") { onDismiss(); playlistSheet = true }
+        GroupGap()
+        MenuItem(if (liked) "Unlike" else "Like") {
             onDismiss()
             if (actions.setLiked(song, !liked)) haptics.perform(if (liked) Haptic.ToggleOff else Haptic.ToggleOn)
         }
-        MenuItem("Start radio", Icons.radio()) { onDismiss(); actions.startRadio(song) }
-        HorizontalDivider()
-        if (song.albumId != null && song.albumId != place.onAlbum) MenuItem("Go to Album", Icons.album()) { onDismiss(); actions.goToAlbum(song) }
-        if (!place.onArtist) MenuItem("Go to Artist", Icons.artist()) { onDismiss(); actions.goToArtist(song) }
-        if (place.chosenBy == ChosenBy.APP) MenuItem("Why this song", Icons.info()) { onDismiss(); why = true }
-        place.extra.filter { !it.destructive }.forEach { e -> MenuItem(e.label, e.icon?.invoke()) { onDismiss(); e.action() } }
-        HorizontalDivider(Modifier.padding(vertical = 4.dp))
-        place.extra.filter { it.destructive }.forEach { e -> MenuItem(e.label, e.icon?.invoke(), destructive = true) { onDismiss(); e.action() } }
-        MenuItem("Not interested", Icons.block(), destructive = true) { onDismiss(); actions.notInterested(song) }
+        MenuItem("Start radio") { onDismiss(); actions.startRadio(song) }
+        GroupGap()
+        if (song.albumId != null && song.albumId != place.onAlbum) MenuItem("Go to album") { onDismiss(); actions.goToAlbum(song) }
+        if (!place.onArtist) MenuItem("Go to artist") { onDismiss(); actions.goToArtist(song) }
+        if (place.chosenBy == ChosenBy.APP) MenuItem("Why this song") { onDismiss(); why = true }
+        place.extra.filter { !it.destructive }.forEach { e -> MenuItem(e.label) { onDismiss(); e.action() } }
+        GroupGap()
+        place.extra.filter { it.destructive }.forEach { e -> MenuItem(e.label, destructive = true) { onDismiss(); e.action() } }
+        MenuItem("Not interested", destructive = true) { onDismiss(); actions.notInterested(song) }
     }
     if (playlistSheet) AddToPlaylistSheet(listOf(song)) { playlistSheet = false }
     if (why) WhyThisSongSheet(song) { why = false }
 }
 
 @Composable
-private fun MenuItem(label: String, icon: Painter?, destructive: Boolean = false, onClick: () -> Unit) {
+private fun MenuItem(label: String, destructive: Boolean = false, onClick: () -> Unit) {
     val colour = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
     DropdownMenuItem(
-        text = { Text(label, style = LocalEncoreType.current.listRowTitle, color = colour) },
-        leadingIcon = icon?.let { { Icon(it, contentDescription = null, tint = colour) } },
+        text = { Text(label, style = LocalEncoreType.current.listRowTitle.copy(fontSize = MENU_TEXT_SP.sp), color = colour) },
         onClick = onClick,
     )
 }
+
+/** Board 13: the gap between groups, drawn as a band of the darker tone. */
+@Composable
+private fun GroupGap() {
+    Box(Modifier.fillMaxWidth().padding(vertical = 4.dp).height(MENU_GAP_DP.dp).background(MaterialTheme.colorScheme.surfaceContainerHighest))
+}
+
+private const val MENU_RADIUS_DP = 16
+private const val MENU_GAP_DP = 6
+private const val MENU_TEXT_SP = 15
 
 /** Board 13, item 2: several playlists can be ticked at once, plus a New Playlist row. */
 @OptIn(ExperimentalMaterial3Api::class)

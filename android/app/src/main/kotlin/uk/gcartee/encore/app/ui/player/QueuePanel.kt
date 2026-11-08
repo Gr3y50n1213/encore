@@ -175,7 +175,7 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
         AlertDialog(
             onDismissRequest = { adventurous = false },
             title = { Text("How adventurous") },
-            text = { uk.gcartee.encore.app.ui.settings.AdventurousSlider(level) { l -> runCatching { host.core.setAdventurousness(l) }.onSuccess { level = l } } },
+            text = { uk.gcartee.encore.app.ui.settings.AdventurousChoice(level) { l -> runCatching { host.core.setAdventurousness(l) }.onSuccess { level = l } } },
             confirmButton = { TextButton(onClick = { adventurous = false }) { Text("Done") } },
         )
     }

@@ -52,8 +52,20 @@ fun ScrubBar(
     onScrub: (Long?) -> Unit,
     onHeld: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
+    buffering: Boolean = false,
 ) {
     val haptics = rememberHaptics()
+    // Board 09, States: "Buffering: bar shows a moving stripe", after 500 ms of stalling so a
+    // quick load never flashes (board 20). The play button keeps its glyph (owner's choice).
+    var stalled by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(buffering) {
+        if (buffering) {
+            kotlinx.coroutines.delay(STALL_MS)
+            stalled = true
+        } else {
+            stalled = false
+        }
+    }
     val duration = durationMs.coerceAtLeast(1)
     var scrub by remember { mutableStateOf<Float?>(null) }
     val fraction = (scrub ?: (positionMs.toFloat() / duration)).coerceIn(0f, 1f)
@@ -101,22 +113,30 @@ fun ScrubBar(
         contentAlignment = Alignment.CenterStart,
     ) {
         val handleX = maxWidth * fraction
-        LinearWavyProgressIndicator(
-            progress = { fraction },
-            color = colour,
-            trackColor = colour.copy(alpha = 0.24f),
-            // Flat when paused or while scrubbing, wavy while playing.
-            amplitude = { if (playing && scrub == null) 1f else 0f },
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        )
-        // The tall pill handle; the gap around it is the field showing through.
-        Box(
-            Modifier
-                .offset(x = (handleX - HANDLE_W_DP.dp / 2).coerceAtLeast(0.dp))
-                .size(width = (HANDLE_W_DP + 2 * GAP_DP).dp, height = (HANDLE_H_DP + 2 * GAP_DP).dp)
-                .padding(GAP_DP.dp)
-                .background(colour, RoundedCornerShape(50)),
-        )
+        if (stalled && scrub == null) {
+            LinearWavyProgressIndicator(
+                color = colour,
+                trackColor = colour.copy(alpha = 0.24f),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            )
+        } else {
+            LinearWavyProgressIndicator(
+                progress = { fraction },
+                color = colour,
+                trackColor = colour.copy(alpha = 0.24f),
+                // Flat when paused or while scrubbing, wavy while playing.
+                amplitude = { if (playing && scrub == null) 1f else 0f },
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            )
+            // The tall pill handle; the gap around it is the field showing through.
+            Box(
+                Modifier
+                    .offset(x = (handleX - HANDLE_W_DP.dp / 2).coerceAtLeast(0.dp))
+                    .size(width = (HANDLE_W_DP + 2 * GAP_DP).dp, height = (HANDLE_H_DP + 2 * GAP_DP).dp)
+                    .padding(GAP_DP.dp)
+                    .background(colour, RoundedCornerShape(50)),
+            )
+        }
     }
 }
 
@@ -126,3 +146,4 @@ private const val BAND_DP = 56
 private const val HANDLE_W_DP = 4
 private const val HANDLE_H_DP = 24
 private const val GAP_DP = 2
+private const val STALL_MS = 500L

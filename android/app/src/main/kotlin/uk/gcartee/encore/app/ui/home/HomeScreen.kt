@@ -329,7 +329,7 @@ private fun SongAlbumTile(song: Song, tileDp: Int, onOpen: () -> Unit) {
                     actions.play(ids, 0, StartedFrom.ALBUM, id.toString(), song.albumTitle)
                 }
             })
-            DropdownMenuItem(text = { Text("Play Next") }, onClick = { menu = false; actions.playNext(listOf(song)) })
+            DropdownMenuItem(text = { Text("Play next") }, onClick = { menu = false; actions.playNext(listOf(song)) })
             DropdownMenuItem(text = { Text("Not interested", color = MaterialTheme.colorScheme.error) }, onClick = { menu = false; actions.notInterested(song) })
         }
     }

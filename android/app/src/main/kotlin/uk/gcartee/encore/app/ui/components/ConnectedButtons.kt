@@ -79,6 +79,8 @@ fun ConnectedButtons(buttons: List<GroupButton>, height: Dp, modifier: Modifier 
                 ),
                 enabled = b.enabled,
                 colors = ButtonDefaults.buttonColors(containerColor = b.container, contentColor = b.content),
+                // An icon-only end button (Download, Pin) is narrow; its icon needs the room.
+                contentPadding = if (b.label == null) androidx.compose.foundation.layout.PaddingValues(0.dp) else ButtonDefaults.ContentPadding,
                 interactionSource = sources[i],
                 modifier = Modifier.weight(weight).height(height),
             ) {

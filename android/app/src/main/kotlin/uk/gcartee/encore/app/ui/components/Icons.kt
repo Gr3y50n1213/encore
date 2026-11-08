@@ -63,6 +63,7 @@ object Icons {
     @Composable fun personAdd(): Painter = painterResource(R.drawable.sym_person_add)
     @Composable fun radio(): Painter = painterResource(R.drawable.sym_radio)
     @Composable fun share(): Painter = painterResource(R.drawable.sym_share)
+    @Composable fun download(): Painter = painterResource(R.drawable.sym_download)
     @Composable fun expandMore(): Painter = painterResource(R.drawable.sym_expand_more)
     @Composable fun expandLess(): Painter = painterResource(R.drawable.sym_expand_less)
     @Composable fun phone(): Painter = painterResource(R.drawable.sym_phone_android)

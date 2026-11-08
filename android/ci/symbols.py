@@ -26,6 +26,7 @@ NAMES = {
     "remove": False, "person_add": False, "person": False, "radio": False, "share": False,
     "expand_more": False, "expand_less": False, "phone_android": False, "computer": False,
     "speaker": False, "fast_forward": False, "fast_rewind": False, "translate": False,
+    "download": False,
 }
 BASE = "https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/{n}/materialsymbolsrounded/{n}{f}_24px.svg"
 TEMPLATE = """<?xml version="1.0" encoding="utf-8"?>

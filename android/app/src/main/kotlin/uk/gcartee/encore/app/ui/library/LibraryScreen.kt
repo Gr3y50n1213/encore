@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -140,7 +142,8 @@ fun LibraryScreen(host: CoreHost, onOpen: (Route) -> Unit, playingSongId: Long?,
             horizontalArrangement = Arrangement.spacedBy(Grid.base.dp),
         ) {
             items(Shelf.entries) { s ->
-                // Board 06: filled tonal pills, the active one stronger; no outline.
+                // Boards 06 and 35: tonal chips with a 12 dp corner; the active one is
+                // stronger and adds a check.
                 val on = s == shelf
                 androidx.compose.material3.Surface(
                     onClick = {
@@ -150,7 +153,7 @@ fun LibraryScreen(host: CoreHost, onOpen: (Route) -> Unit, playingSongId: Long?,
                             prefs.shelf = s
                         }
                     },
-                    shape = androidx.compose.foundation.shape.CircleShape,
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(CHIP_RADIUS_DP.dp),
                     color = if (on) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
                     // The render draws the active label in the accent.
                     contentColor = if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -159,9 +162,7 @@ fun LibraryScreen(host: CoreHost, onOpen: (Route) -> Unit, playingSongId: Long?,
                         selected = on
                     },
                 ) {
-                    Box(Modifier.padding(horizontal = (Grid.base * 2.5f).dp), contentAlignment = Alignment.Center) {
-                        Text(s.label, style = if (on) type.sectionHeader.copy(fontSize = CHIP_TEXT_SP.sp) else type.sectionHeader.copy(fontSize = CHIP_TEXT_SP.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Normal))
-                    }
+                    ChipLabel(s.label, on)
                 }
             }
         }
@@ -339,11 +340,22 @@ fun EmptyState(title: String, reason: String) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(title, style = type.sectionHeader, color = MaterialTheme.colorScheme.onSurface)
-        Spacer(Modifier.size(Grid.base.dp))
-        Text(reason, style = type.body, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // Board 20, item 2: one sentence on a tonal card, no cartoons.
+        androidx.compose.material3.Surface(
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(EMPTY_RADIUS_DP.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(Modifier.padding((Grid.base * 2).dp)) {
+                Text(title, style = type.sectionHeader.copy(fontSize = CHIP_TEXT_SP.sp), color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.size(4.dp))
+                Text(reason, style = type.body, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
     }
 }
+
+private const val EMPTY_RADIUS_DP = 24
 
 private const val TILE_MIN_DP = 150
 private const val CHIP_DP = 48
@@ -359,3 +371,19 @@ private fun tonalToggle() = androidx.compose.material3.ToggleButtonDefaults.colo
 )
 /** Board 06: chip labels at 16 sp. */
 internal const val CHIP_TEXT_SP = 16
+internal const val CHIP_RADIUS_DP = 12
+
+/** A chip's label, with the check the selected chip adds (board 35). */
+@Composable
+internal fun ChipLabel(label: String, on: Boolean) {
+    val type = LocalEncoreType.current
+    Row(Modifier.padding(start = if (on) 12.dp else 20.dp, end = 20.dp).fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
+        androidx.compose.animation.AnimatedVisibility(on) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.check(), contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+            }
+        }
+        Text(label, style = type.sectionHeader.copy(fontSize = CHIP_TEXT_SP.sp, fontWeight = if (on) androidx.compose.ui.text.font.FontWeight.Medium else androidx.compose.ui.text.font.FontWeight.Normal))
+    }
+}

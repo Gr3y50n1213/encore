@@ -132,7 +132,7 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
                 androidx.compose.material3.Surface(
                     onClick = { if (enabled) scope = label },
                     enabled = enabled,
-                    shape = CircleShape,
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(uk.gcartee.encore.app.ui.library.CHIP_RADIUS_DP.dp),
                     color = if (on) androidx.compose.material3.MaterialTheme.colorScheme.secondaryContainer else androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh,
                     contentColor = when {
                         on -> androidx.compose.material3.MaterialTheme.colorScheme.primary
@@ -141,9 +141,7 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
                     },
                     modifier = Modifier.height(48.dp),
                 ) {
-                    androidx.compose.foundation.layout.Box(Modifier.padding(horizontal = (Grid.base * 2.5f).dp), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                        Text(label, style = type.sectionHeader.copy(fontSize = uk.gcartee.encore.app.ui.library.CHIP_TEXT_SP.sp, fontWeight = if (on) androidx.compose.ui.text.font.FontWeight.Medium else androidx.compose.ui.text.font.FontWeight.Normal))
-                    }
+                    uk.gcartee.encore.app.ui.library.ChipLabel(label, on)
                 }
             }
         }

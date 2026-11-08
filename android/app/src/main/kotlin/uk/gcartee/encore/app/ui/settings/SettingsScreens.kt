@@ -57,6 +57,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import java.io.File
 import java.text.DateFormat
@@ -92,13 +93,11 @@ private const val OUTER = 24
 private const val INNER = 6
 
 /** A settings row; a trailing lambda is its tap action. */
-class Row0(val title: String, val value: String? = null, val icon: (@Composable () -> Painter)? = null, val destructive: Boolean = false, val right: String? = null, val trailing: (@Composable () -> Unit)? = null, val onClick: (() -> Unit)? = null)
+class Row0(val title: String, val value: String? = null, val icon: (@Composable () -> Painter)? = null, val destructive: Boolean = false, val right: String? = null, val dot: Color? = null, val valueColor: Color? = null, val trailing: (@Composable () -> Unit)? = null, val onClick: (() -> Unit)? = null)
 
 fun LazyListScope.group(title: String?, rows: List<Row0>) {
     if (rows.isEmpty()) return
-    if (title != null) item {
-        Text(title, style = LocalEncoreType.current.groupLabel, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = (Grid.base * 3).dp, top = (Grid.base * 3).dp, bottom = Grid.base.dp).semantics { heading() })
-    }
+    if (title != null) item { SectionLabel(title) }
     items(rows.size) { i ->
         val r = rows[i]
         val top = if (i == 0) OUTER else INNER
@@ -121,9 +120,14 @@ fun LazyListScope.group(title: String?, rows: List<Row0>) {
                     Icon(it(), contentDescription = null, tint = if (r.destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.width((Grid.base * 2).dp))
                 }
+                // Board 18, item 2: a colored dot for health, before the name.
+                r.dot?.let {
+                    Box(Modifier.size(10.dp).background(it, CircleShape))
+                    Spacer(Modifier.width((Grid.base * 2).dp))
+                }
                 Column(Modifier.weight(1f)) {
                     Text(r.title, style = type.listRowTitle, color = if (r.destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
-                    r.value?.let { Text(it, style = type.body, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    r.value?.let { Text(it, style = type.body, color = r.valueColor ?: MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
                 // Board 17: a value on the right, then the chevron for rows that open a page.
                 r.right?.let { Text(it, style = type.body, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(end = Grid.base.dp)) }
@@ -136,13 +140,30 @@ fun LazyListScope.group(title: String?, rows: List<Row0>) {
     }
 }
 
+/**
+ * Boards 17 to 19: back as a tonal rounded square that rounds when pressed, the page's
+ * one action as a tonal pill on the right ("Add server"), then the large title.
+ */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun Page(title: String, onBack: (() -> Unit)?, contentPadding: PaddingValues, content: LazyListScope.() -> Unit) {
+private fun Page(title: String, onBack: (() -> Unit)?, contentPadding: PaddingValues, action: Pair<String, () -> Unit>? = null, content: LazyListScope.() -> Unit) {
     val type = LocalEncoreType.current
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding() + (Grid.base * 3).dp)) {
         item {
             Column(Modifier.statusBarsPadding().padding(horizontal = (Grid.base * 2).dp)) {
-                if (onBack != null) FilledTonalIconButton(onClick = onBack, modifier = Modifier.padding(vertical = Grid.base.dp)) { Icon(Icons.back(), contentDescription = "Back") }
+                Row(Modifier.fillMaxWidth().padding(vertical = Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (onBack != null) FilledTonalIconButton(
+                        onClick = onBack,
+                        shapes = androidx.compose.material3.IconButtonDefaults.shapes(RoundedCornerShape(BACK_RADIUS_DP.dp), RoundedCornerShape(50)),
+                        modifier = Modifier.size(48.dp),
+                    ) { Icon(Icons.back(), contentDescription = "Back") }
+                    Spacer(Modifier.weight(1f))
+                    action?.let { (label, run) ->
+                        androidx.compose.material3.FilledTonalButton(onClick = run, modifier = Modifier.height(48.dp)) {
+                            Text(label, style = type.sectionHeader.copy(fontSize = 16.sp))
+                        }
+                    }
+                }
                 // Android: a large top app bar title.
                 Text(title, style = type.pageTitle, modifier = Modifier.padding(vertical = Grid.base.dp).semantics { heading() })
             }
@@ -150,6 +171,34 @@ private fun Page(title: String, onBack: (() -> Unit)?, contentPadding: PaddingVa
         content()
     }
 }
+
+/** Boards 18 and 38: a group's label, small, uppercase and quiet, centered over its rows. */
+@Composable
+private fun SectionLabel(text: String) {
+    Text(
+        text.uppercase(),
+        style = LocalEncoreType.current.caption.copy(letterSpacing = 1.sp),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        modifier = Modifier.fillMaxWidth().padding(top = (Grid.base * 3).dp, bottom = Grid.base.dp).semantics { heading() },
+    )
+}
+
+/** Board 19: the Material 3 switch, its thumb carrying a check when on. */
+@Composable
+fun CheckSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Switch(
+        checked,
+        onCheckedChange = onCheckedChange,
+        thumbContent = if (checked) {
+            { Icon(Icons.check(), contentDescription = null, modifier = Modifier.size(androidx.compose.material3.SwitchDefaults.IconSize)) }
+        } else {
+            null
+        },
+    )
+}
+
+private const val BACK_RADIUS_DP = 14
 
 /** Settings and its pages; [page] is the route's page name. */
 @Composable
@@ -188,7 +237,7 @@ private fun SettingsHome(host: CoreHost, onBack: () -> Unit, onProfiles: () -> U
         listOf(
             Row0("Appearance", right = if (appearance.mode == ThemeMode.System) "Auto" else appearance.mode.label) { actions.open(Route.Settings("appearance")) },
             Row0("Haptics", trailing = {
-                Switch(hapticsOn, onCheckedChange = { on ->
+                CheckSwitch(hapticsOn, onCheckedChange = { on ->
                     uk.gcartee.encore.app.ui.components.HapticSetting.set(context, on)
                     hapticsOn = on
                     if (on) haptics.perform(Haptic.ToggleOn)
@@ -271,39 +320,39 @@ fun <T> Choices(options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Un
 }
 
 /**
- * Board 17, item 4: how adventurous suggestions are, a 3-step slider with a detent tick
- * (SEGMENT_FREQUENT_TICK) at each step.
+ * How adventurous suggestions are: three steps (board 17, item 4), drawn as board 38's
+ * Android page does, a segmented choice whose selected step carries a check, with the
+ * line saying what it means. SEGMENT_TICK on each change.
  */
 @Composable
-fun AdventurousSlider(level: Adventurousness, onChange: (Adventurousness) -> Unit) {
+fun AdventurousChoice(level: Adventurousness, onChange: (Adventurousness) -> Unit) {
     val haptics = rememberHaptics()
-    val steps = listOf(Adventurousness.FAMILIAR, Adventurousness.BALANCED, Adventurousness.ADVENTUROUS)
-    var position by remember(level) { mutableStateOf(steps.indexOf(level).toFloat()) }
+    val steps = listOf(Adventurousness.FAMILIAR to "Familiar", Adventurousness.BALANCED to "Balanced", Adventurousness.ADVENTUROUS to "Adventurous")
     Column {
-        androidx.compose.material3.Slider(
-            value = position,
-            onValueChange = { v ->
-                if (Math.round(v) != Math.round(position)) haptics.perform(Haptic.Tick)
-                position = v
-            },
-            onValueChangeFinished = { onChange(steps[Math.round(position).coerceIn(0, 2)]) },
-            valueRange = 0f..2f,
-            steps = 1,
-            modifier = Modifier.fillMaxWidth().semantics { stateDescription = steps[Math.round(position).coerceIn(0, 2)].name.lowercase() },
-        )
-        Row(Modifier.fillMaxWidth()) {
-            val type = LocalEncoreType.current
-            Text("Familiar", style = type.caption, modifier = Modifier.weight(1f))
-            Text("Balanced", style = type.caption)
-            Text("Adventurous", style = type.caption, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+        androidx.compose.material3.SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            steps.forEachIndexed { i, (value, label) ->
+                androidx.compose.material3.SegmentedButton(
+                    selected = value == level,
+                    onClick = { if (value != level) { haptics.perform(Haptic.Tick); onChange(value) } },
+                    shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(i, steps.size),
+                ) { Text(label, maxLines = 1) }
+            }
         }
+        Text(
+            when (level) {
+                Adventurousness.FAMILIAR -> "About 1 in 20 picks will be new to you."
+                Adventurousness.BALANCED -> "About 1 in 10 picks will be new to you."
+                Adventurousness.ADVENTUROUS -> "About 1 in 5 picks will be new to you."
+            },
+            style = LocalEncoreType.current.body,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = Grid.base.dp),
+        )
     }
 }
 
 @Composable
-private fun Label(text: String) {
-    Text(text, style = LocalEncoreType.current.groupLabel, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = (Grid.base * 3).dp, top = (Grid.base * 3).dp))
-}
+private fun Label(text: String) = SectionLabel(text)
 
 @Composable
 private fun PlaybackPage(host: CoreHost, onBack: () -> Unit, contentPadding: PaddingValues) {
@@ -337,21 +386,9 @@ private fun SuggestionsPage(host: CoreHost, onBack: () -> Unit, contentPadding: 
     Page("Mixes and suggestions", onBack, contentPadding) {
         item { Label("How adventurous") }
         item {
-            Box(Modifier.padding(horizontal = (Grid.base * 3).dp)) {
-                AdventurousSlider(level) { l -> runCatching { host.core.setAdventurousness(l) }.onSuccess { level = l } }
+            Box(Modifier.padding(horizontal = (Grid.base * 2).dp)) {
+                AdventurousChoice(level) { l -> runCatching { host.core.setAdventurousness(l) }.onSuccess { level = l } }
             }
-        }
-        item {
-            Text(
-                when (level) {
-                    Adventurousness.FAMILIAR -> "About 1 in 20 picks will be new to you."
-                    Adventurousness.BALANCED -> "About 1 in 10 picks will be new to you."
-                    Adventurousness.ADVENTUROUS -> "About 1 in 5 picks will be new to you."
-                },
-                style = LocalEncoreType.current.body,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = (Grid.base * 3).dp),
-            )
         }
         group("Not interested", notInterested.map { item ->
             Row0(item.label, null, { Icons.block() }, trailing = {
@@ -431,25 +468,24 @@ private fun ServersPage(host: CoreHost, onBack: () -> Unit, onAddServer: () -> U
     var companion by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
     val fmt = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
-    Page("Servers and sources", onBack, contentPadding) {
-        group("Media servers", servers.map { s ->
+    Page("Servers", onBack, contentPadding, action = "Add server" to onAddServer) {
+        group("Your sources", servers.map { s ->
             Row0(
                 s.name,
-                listOfNotNull(
-                    "Jellyfin ${s.version.orEmpty()}".trim(),
-                    "${s.songCount} songs",
-                    s.lastSyncUtcMs?.let { "synced " + fmt.format(Date(it)) },
-                    if (!s.signedIn) "Sign in again" else null,
-                ).joinToString(" · "),
-                { Icons.servers() },
-                trailing = {
-                    // Item 2: the health dot.
-                    Box(Modifier.size(10.dp).background(if (s.signedIn) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error, CircleShape))
+                if (s.signedIn) {
+                    listOfNotNull(
+                        "Jellyfin",
+                        "${s.songCount} songs",
+                        s.lastSyncUtcMs?.let { "synced " + fmt.format(Date(it)) },
+                    ).joinToString(" · ")
+                } else {
+                    "Session ended. Sign in again"
                 },
+                dot = if (s.signedIn) HEALTHY else MaterialTheme.colorScheme.error,
+                valueColor = if (s.signedIn) null else MaterialTheme.colorScheme.error,
             )
         } + listOf(
-            Row0("Sync now", if (sync.running) "Syncing…" else null, { Icons.sync() }) { host.sync.syncNow() },
-            Row0("Add a server", null, { Icons.add() }, onClick = onAddServer),
+            Row0("Sync now", if (sync.running) "Syncing…" else null) { host.sync.syncNow() },
         ))
         // Item 5: the companion server.
         val st = status
@@ -518,7 +554,7 @@ private fun PrivacyPage(host: CoreHost, onBack: () -> Unit, contentPadding: Padd
             )
         }
         group("Learning", listOf(Row0("Learn from my listening", "Off stops all recommendation learning and hides Mixes", trailing = {
-            Switch(learning, onCheckedChange = { on ->
+            CheckSwitch(learning, onCheckedChange = { on ->
                 haptics.perform(if (on) Haptic.ToggleOn else Haptic.ToggleOff)
                 host.setLearningOff(!on)
                 learning = on
@@ -618,3 +654,6 @@ private fun LicencesPage(onBack: () -> Unit, contentPadding: PaddingValues) {
         }
     }
 }
+
+/** Board 18: the green health dot. */
+private val HEALTHY = Color(0xFF2E7D32)

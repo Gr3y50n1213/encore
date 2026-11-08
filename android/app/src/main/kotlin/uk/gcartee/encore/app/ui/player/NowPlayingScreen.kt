@@ -258,15 +258,21 @@ fun NowPlayingScreen(
                                 },
                             )
                         }
-                        // Item 4: like, in a tonal circle; also the "love" signal.
+                        // Item 4: like; also the "love" signal. Board 35: off it is round and
+                        // tonal, on it turns squarer and fills.
                         FilledTonalIconToggleButton(
                             checked = liked,
                             onCheckedChange = ::toggleLike,
+                            shapes = IconButtonDefaults.toggleableShapes(
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
+                                pressedShape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
+                                checkedShape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
+                            ),
                             colors = IconButtonDefaults.filledTonalIconToggleButtonColors(
                                 containerColor = content.copy(alpha = 0.16f),
                                 contentColor = content,
-                                checkedContainerColor = content.copy(alpha = 0.24f),
-                                checkedContentColor = content,
+                                checkedContainerColor = content,
+                                checkedContentColor = colours.base,
                             ),
                             modifier = Modifier.size(56.dp).semantics { stateDescription = if (liked) "Liked" else "Not liked" },
                         ) { Icon(Icons.favorite(liked), contentDescription = "Like") }
@@ -282,6 +288,7 @@ fun NowPlayingScreen(
                         onSeek = { PlaybackHub.seekTo(context, it) },
                         onScrub = { scrubbing = it },
                         onHeld = { scrubHeld = it },
+                        buffering = state.buffering,
                     )
                     var remaining by rememberSaveable { mutableStateOf(false) }
                     val pos = scrubbing ?: state.positionMs
