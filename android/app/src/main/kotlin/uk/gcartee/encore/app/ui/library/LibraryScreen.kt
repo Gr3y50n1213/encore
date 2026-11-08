@@ -373,6 +373,8 @@ private const val EMPTY_RADIUS_DP = 24
 
 private const val TILE_MIN_DP = 150
 private const val GROUP_TEXT_SP = 14
+private const val GROUP_SIDE_DP = 8
+private const val GROUP_WEIGHT_BASE = 3f
 private const val VIEW_TOGGLE_DP = 40
 private const val VIEW_TOGGLE_W_DP = 52
 
@@ -432,7 +434,10 @@ internal fun <T> ChoiceGroup(options: List<Pair<T, String>>, selected: T, onSele
                     else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
                 },
                 colors = tonalToggle(),
-                modifier = Modifier.weight(1f).semantics {
+                // Labels never cut: each button is as wide as its word wants, with slim sides,
+                // so large text sizes still fit four in a row.
+                contentPadding = PaddingValues(horizontal = GROUP_SIDE_DP.dp),
+                modifier = Modifier.weight(label.length + GROUP_WEIGHT_BASE).semantics {
                     role = Role.Tab
                     this.selected = on
                 },

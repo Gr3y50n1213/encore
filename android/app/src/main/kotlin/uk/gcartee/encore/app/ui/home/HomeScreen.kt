@@ -372,7 +372,7 @@ fun MixesScreen(host: CoreHost, data: HomeData, onProfile: () -> Unit, contentPa
                     modifier = Modifier.padding(horizontal = (Grid.base * 2).dp),
                 )
                 LazyVerticalGrid(
-                    columns = GridCells.Adaptive(160.dp),
+                    columns = GridCells.Adaptive(MIX_MIN_DP.dp),
                     state = grid,
                     contentPadding = PaddingValues(start = (Grid.base * 2).dp, end = (Grid.base * 2).dp, top = (Grid.base * 2).dp, bottom = contentPadding.calculateBottomPadding() + (Grid.base * 2).dp),
                     horizontalArrangement = Arrangement.spacedBy((Grid.base * 2).dp),
@@ -428,7 +428,7 @@ private fun MixesLearning(host: CoreHost, plays: Int, needed: Int, contentPaddin
     val shapes = remember { listOf(MaterialShapes.Cookie9Sided, MaterialShapes.Square, MaterialShapes.Arch, MaterialShapes.Clover4Leaf).map { PolygonShape(it) } }
     val tones = listOf(scheme.primaryContainer, scheme.tertiaryContainer, scheme.secondaryContainer, scheme.surfaceContainerHighest)
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(160.dp),
+        columns = GridCells.Adaptive(MIX_MIN_DP.dp),
         contentPadding = PaddingValues(start = (Grid.base * 2).dp, end = (Grid.base * 2).dp, top = Grid.base.dp, bottom = contentPadding.calculateBottomPadding() + (Grid.base * 2).dp),
         horizontalArrangement = Arrangement.spacedBy((Grid.base * 2).dp),
         verticalArrangement = Arrangement.spacedBy((Grid.base * 3).dp),
@@ -489,6 +489,8 @@ private fun MixesLearning(host: CoreHost, plays: Int, needed: Int, contentPaddin
 }
 
 private const val LEARNING_TURN_MS = 24_000
+// Two columns even with a large display size (the S20 FE at its zoom is about 360 dp wide).
+private const val MIX_MIN_DP = 128
 private const val LEARNING_BREATHE_MS = 2_400
 private const val LEARNING_BREATHE_MIN = 0.94f
 private const val LEARNING_CARD_RADIUS_DP = 24
