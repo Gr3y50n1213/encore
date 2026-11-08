@@ -102,7 +102,8 @@ data class PageTint(val field: Color, val content: Color, val secondary: Color, 
      * palette, fading to the dark base". The tint is the palette's leading stop (contrast
      * clamped by the core), the base its dark field; the page is pinned, only the list scrolls.
      */
-    val brush: Brush get() = Brush.verticalGradient(0f to top, FADE_END to field, 1f to field)
+    // `this.field`: inside a getter a bare `field` is the backing field.
+    val brush: Brush get() = Brush.verticalGradient(0f to top, FADE_END to this.field, 1f to this.field)
 }
 
 private const val FADE_END = 0.72f

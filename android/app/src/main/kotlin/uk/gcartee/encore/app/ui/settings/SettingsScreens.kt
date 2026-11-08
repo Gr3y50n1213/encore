@@ -33,6 +33,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -331,7 +332,7 @@ fun AdventurousChoice(level: Adventurousness, onChange: (Adventurousness) -> Uni
     Column {
         androidx.compose.material3.SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
             steps.forEachIndexed { i, (value, label) ->
-                androidx.compose.material3.SegmentedButton(
+                SegmentedButton(
                     selected = value == level,
                     onClick = { if (value != level) { haptics.perform(Haptic.Tick); onChange(value) } },
                     shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(i, steps.size),
@@ -468,6 +469,7 @@ private fun ServersPage(host: CoreHost, onBack: () -> Unit, onAddServer: () -> U
     var companion by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
     val fmt = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
+    val error = MaterialTheme.colorScheme.error
     Page("Servers", onBack, contentPadding, action = "Add server" to onAddServer) {
         group("Your sources", servers.map { s ->
             Row0(
@@ -481,8 +483,8 @@ private fun ServersPage(host: CoreHost, onBack: () -> Unit, onAddServer: () -> U
                 } else {
                     "Session ended. Sign in again"
                 },
-                dot = if (s.signedIn) HEALTHY else MaterialTheme.colorScheme.error,
-                valueColor = if (s.signedIn) null else MaterialTheme.colorScheme.error,
+                dot = if (s.signedIn) HEALTHY else error,
+                valueColor = if (s.signedIn) null else error,
             )
         } + listOf(
             Row0("Sync now", if (sync.running) "Syncing…" else null) { host.sync.syncNow() },
