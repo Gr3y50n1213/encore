@@ -67,8 +67,10 @@ class Connectivity(private val context: Context, private val host: CoreHost) {
         scope.launch {
             val now = hasNetwork()
             if (now == raw) {
-                // Wi-Fi to cellular and back: the core's quality and Wi-Fi-only rules.
+                // Wi-Fi to cellular and back: the core's quality and Wi-Fi-only rules, and a
+                // sync that failed on the old network tries the new one.
                 report()
+                if (now) host.sync.onNetworkChanged()
                 return@launch
             }
             raw = now
@@ -77,6 +79,7 @@ class Connectivity(private val context: Context, private val host: CoreHost) {
                 delay(SETTLE_MS)
                 _offline.value = !raw
                 report()
+                if (raw) host.sync.onNetworkChanged()
             }
         }
     }

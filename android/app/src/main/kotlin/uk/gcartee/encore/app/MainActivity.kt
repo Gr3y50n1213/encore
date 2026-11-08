@@ -50,6 +50,7 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         if (host.profileOpen.value) PlaybackHub.connect(this)
+        host.sync.onForeground()
     }
 
     /** The download notification opens Settings › Downloads. */
@@ -76,6 +77,7 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         // Music that is playing keeps the service in the foreground on its own.
         PlaybackHub.disconnect()
+        host.sync.onBackground()
         super.onStop()
     }
 }
