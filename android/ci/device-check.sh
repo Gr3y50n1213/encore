@@ -98,8 +98,15 @@ if [ -z "$pid" ]; then
   grep -A 20 'FATAL EXCEPTION' "$out/logcat.txt" >&2 || true
   exit 1
 fi
-adb shell uiautomator dump /sdcard/ui.xml > /dev/null
-adb shell cat /sdcard/ui.xml > "$out/ui-release.xml"
+# uiautomator can answer "null root node" while the first frame is still drawing (seen
+# once on API 28, 9 November 2026): try again for a few seconds.
+for try in 1 2 3 4 5; do
+  adb shell rm -f /sdcard/ui.xml
+  adb shell uiautomator dump /sdcard/ui.xml > /dev/null || true
+  if adb shell cat /sdcard/ui.xml > "$out/ui-release.xml" 2> /dev/null && grep -q '<hierarchy' "$out/ui-release.xml"; then break; fi
+  echo "uiautomator gave no view tree (try $try); trying again"
+  sleep 2
+done
 # A fresh install opens on Welcome (board 22), whose name comes from the core's
 # app_name(), the one brand constant (core/encore-core/src/brand.rs).
 name="$(sed -nE 's/^pub const APP_NAME: &str = "([^"]+)";/\1/p' core/encore-core/src/brand.rs)"
