@@ -76,8 +76,16 @@ fun rememberSmoothPosition(positionMs: Long, playing: Boolean, durationMs: Long)
         if (!playing) return@LaunchedEffect
         val start = withFrameMillis { it }
         val end = if (durationMs > 0) durationMs else Long.MAX_VALUE
+        // About 30 steps a second: the bar moves a pixel every few hundred ms, so stepping
+        // on every frame of a 120 Hz screen only spent battery.
+        var shown = start - SMOOTH_FRAME_MS
         while (true) {
-            withInfiniteAnimationFrameMillis { now -> out.longValue = (base + (now - start)).coerceAtMost(end) }
+            withInfiniteAnimationFrameMillis { now ->
+                if (now - shown >= SMOOTH_FRAME_MS) {
+                    shown = now
+                    out.longValue = (base + (now - start)).coerceAtMost(end)
+                }
+            }
         }
     }
     return out
@@ -210,3 +218,4 @@ private const val GAP_DP = 2
 private const val WAVE_SPEED = 0.75f
 private const val STALL_MS = 500L
 private const val JITTER_MS = 400L
+private const val SMOOTH_FRAME_MS = 33L

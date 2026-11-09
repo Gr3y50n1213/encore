@@ -1,8 +1,13 @@
 package uk.gcartee.encore.app.playback
 
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
+import android.util.Log
 import androidx.annotation.OptIn
+import androidx.annotation.VisibleForTesting
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
@@ -32,6 +37,7 @@ import uk.gcartee.encore.core.InterruptionKind
 import uk.gcartee.encore.core.PreviousResult
 import uk.gcartee.encore.core.QueueEntry
 import uk.gcartee.encore.core.QueueState
+import uk.gcartee.encore.core.RepeatMode
 import uk.gcartee.encore.core.SkipOrigin
 
 /** What the mini player and Now Playing draw. */
@@ -45,11 +51,17 @@ data class PlayerState(
 
 /**
  * Plays the core's queue with ExoPlayer (CORE-API, "Playback reporting"). The core owns
- * the queue and the play log; this only loads what the core says is current, preloads
- * what `Preload` names for gapless playback, and reports what happened:
- * `playback_started` when sound starts, `playback_progress` each second, and
- * `playback_ended` when a song finishes or fails. Skips need no report: the next
+ * the queue and the play log; this only loads what the core says is current, keeps the
+ * song that plays next loaded right behind it (gapless, and Next is instant), and reports
+ * what happened: `playback_started` when sound starts, `playback_progress` each second,
+ * and `playback_ended` when a song finishes or fails. Skips need no report: the next
  * `playback_started` closes the play as skipped. Runs on the main thread.
+ *
+ * The player's list is the current song, then the next one. It is never edited inside
+ * ExoPlayer's own callbacks: [tidy] runs just after, from the main looper. A song counts
+ * as finished only when the player really reached its end ([reallyAtEnd]); otherwise
+ * the end is not believed and the song plays again (seen on 8 November 2026: the player
+ * ended the song it had just moved into, and the queue jumped one song too far).
  */
 @OptIn(UnstableApi::class)
 class CorePlayback(
@@ -70,6 +82,15 @@ class CorePlayback(
     private var scanFrom = 0L
     /** The song each loaded item plays, by queue uid (see [adopt]). */
     private val songOfUid = java.util.concurrent.ConcurrentHashMap<Long, Long>()
+    private val main = Handler(Looper.getMainLooper())
+    private var tidyPending = false
+    /** The song whose false end was already answered by playing it again ([notReallyEnded]). */
+    private var replayedUid: Long? = null
+
+    /** How many times the player said a song ended when it hadn't (tests read it). */
+    @VisibleForTesting
+    var falseEnds = 0
+        private set
 
     private val _state = MutableStateFlow(PlayerState())
     val state: StateFlow<PlayerState> = _state.asStateFlow()
@@ -89,6 +110,8 @@ class CorePlayback(
 
     /** The profile is closing or the service stops: close the open play honestly. */
     fun stop() {
+        main.removeCallbacksAndMessages(null)
+        tidyPending = false
         if (startedUid != null) {
             val reason = if (exo.playWhenReady) EndReason.ENDED_BY_SYSTEM else EndReason.PAUSED_ABANDONED
             runCatching { core.playbackEnded(reason, clock.listenedMs) }
@@ -134,7 +157,7 @@ class CorePlayback(
     fun playCurrent() {
         val current = core.queue().current ?: return
         if (currentUid() == current.uid) {
-            exo.seekTo(0, 0)
+            exo.seekTo(currentIndex(), 0)
             exo.play()
         } else {
             load(current, play = true)
@@ -149,7 +172,7 @@ class CorePlayback(
             return
         }
         if (exo.playbackState == Player.STATE_IDLE) exo.prepare()
-        if (exo.playbackState == Player.STATE_ENDED) exo.seekTo(0, 0)
+        if (exo.playbackState == Player.STATE_ENDED) exo.seekTo(currentIndex(), 0)
         exo.play()
     }
 
@@ -231,7 +254,9 @@ class CorePlayback(
         when (event.kind) {
             // A swipe that is still settling loads its song itself.
             EventKind.NOW_PLAYING -> if (pendingSettle == null) show(event.nowPlaying, play = exo.playWhenReady)
-            EventKind.PRELOAD -> event.preload?.let(::preload)
+            // The next song is kept loaded from the start of each song; the core's own
+            // reminder near the end only re-checks it.
+            EventKind.PRELOAD -> tidy()
             EventKind.QUEUE_CHANGED -> event.queue?.let(::queueChanged)
             EventKind.HANDOFF_INCOMING -> event.handoff?.let(::handoffIncoming)
             EventKind.HANDOFF_CONFIRMED -> fadeOutAndPause()
@@ -310,10 +335,12 @@ class CorePlayback(
             if (play && !exo.playWhenReady) exo.play()
             return
         }
-        if (exo.mediaItemCount > 1 && (uidAt(1) == entry.uid || adopt(1, entry))) {
-            exo.seekToDefaultPosition(1)
-            exo.removeMediaItem(0)
+        val next = nextIndex()
+        if (next < exo.mediaItemCount && (uidAt(next) == entry.uid || adopt(next, entry))) {
+            Log.i(TAG, "skip onto the loaded next song (uid ${entry.uid})")
+            exo.seekToDefaultPosition(next)
             if (play) exo.play()
+            tidy()
             publish()
             return
         }
@@ -322,6 +349,7 @@ class CorePlayback(
 
     private fun load(entry: QueueEntry, play: Boolean) {
         val item = mediaItem(entry) ?: return
+        Log.i(TAG, "load uid ${entry.uid} (play=$play)")
         exo.setMediaItem(item)
         exo.prepare()
         exo.playWhenReady = play
@@ -329,13 +357,55 @@ class CorePlayback(
         publish(entry)
     }
 
-    private fun preload(entry: QueueEntry) {
-        if (adopt(1, entry)) {
-            while (exo.mediaItemCount > 2) exo.removeMediaItem(exo.mediaItemCount - 1)
+    private fun currentIndex(): Int = exo.currentMediaItemIndex
+
+    private fun nextIndex(): Int = exo.currentMediaItemIndex + 1
+
+    /**
+     * Soon, from the main looper (never inside ExoPlayer's own callbacks): drops the songs
+     * already played from the player's list and makes sure the song after the current one
+     * is the one the core will move to, loading it now so it's ready long before the end
+     * (and Next starts at once).
+     */
+    private fun tidy() {
+        if (tidyPending) return
+        tidyPending = true
+        main.post {
+            tidyPending = false
+            dropPlayed()
+            keepNextLoaded()
+        }
+    }
+
+    private fun dropPlayed() {
+        val current = currentIndex()
+        if (current > 0 && current < exo.mediaItemCount) exo.removeMediaItems(0, current)
+    }
+
+    private fun keepNextLoaded() {
+        if (exo.mediaItemCount == 0 || currentUid() == null) return
+        val target = songAfterThis()
+        val next = nextIndex()
+        if (exo.mediaItemCount > next + 1) exo.removeMediaItems(next + 1, exo.mediaItemCount)
+        if (target == null) {
+            if (exo.mediaItemCount > next) exo.removeMediaItem(next)
             return
         }
-        while (exo.mediaItemCount > 1) exo.removeMediaItem(exo.mediaItemCount - 1)
-        mediaItem(entry)?.let(exo::addMediaItem)
+        if (uidAt(next) == target.uid || adopt(next, target)) return
+        val item = mediaItem(target)
+        when {
+            item == null -> if (exo.mediaItemCount > next) exo.removeMediaItem(next)
+            exo.mediaItemCount > next -> exo.replaceMediaItem(next, item)
+            else -> exo.addMediaItem(item)
+        }
+        Log.i(TAG, "next loaded: uid ${target.uid}")
+    }
+
+    /** What plays when the current song ends by itself: the next one, or itself on Repeat One. */
+    private fun songAfterThis(): QueueEntry? {
+        val queue = runCatching { core.queue() }.getOrNull() ?: return null
+        if (queue.repeat == RepeatMode.ONE) return queue.current
+        return runCatching { core.nextTarget().song }.getOrNull()
     }
 
     /**
@@ -356,14 +426,10 @@ class CorePlayback(
         return true
     }
 
-    /** The queue changed after a preload (a reorder, Play Next): replace the stale one. */
+    /** The queue changed (a reorder, Play Next, Autoplay refilled): the next song may differ. */
     private fun queueChanged(state: QueueState) {
-        if (exo.mediaItemCount < 2) return
-        val expected = runCatching { core.nextTarget().song }.getOrNull()
-        if (uidAt(1) == expected?.uid) return
-        if (expected != null && adopt(1, expected)) return
-        while (exo.mediaItemCount > 1) exo.removeMediaItem(exo.mediaItemCount - 1)
-        expected?.let { mediaItem(it)?.let(exo::addMediaItem) }
+        if (exo.mediaItemCount == 0) return
+        tidy()
         publish(state.current)
     }
 
@@ -389,12 +455,47 @@ class CorePlayback(
 
     override fun onPlaybackStateChanged(playbackState: Int) {
         if (playbackState == Player.STATE_ENDED && startedUid != null) {
-            // The last loaded song finished with nothing preloaded.
+            if (!reallyAtEnd()) {
+                notReallyEnded()
+                publish()
+                return
+            }
+            // The last loaded song finished with nothing after it in the player.
+            Log.i(TAG, "uid $startedUid finished (end of the player's list)")
             val next = core.playbackEnded(EndReason.FINISHED, clock.listenedMs)
             startedUid = null
             next?.let { load(it, play = true) }
         }
         publish()
+    }
+
+    /** The player is at the end of the current song (not just told it ended). */
+    private fun reallyAtEnd(): Boolean {
+        val duration = exo.duration
+        if (duration == C.TIME_UNSET || duration <= 0) return true
+        return exo.currentPosition >= duration - END_SLACK_MS
+    }
+
+    /**
+     * The player said the song ended at the start of it. Play it again rather than move
+     * the queue on (a second false end of the same song is treated as an error: skipped).
+     */
+    private fun notReallyEnded() {
+        val uid = startedUid
+        falseEnds++
+        Log.w(TAG, "the player ended uid $uid at ${exo.currentPosition} of ${exo.duration} ms; not moving on")
+        if (uid != null && replayedUid == uid) {
+            replayedUid = null
+            val next = runCatching { core.playbackEnded(EndReason.ERROR, clock.listenedMs) }.getOrNull()
+            startedUid = null
+            if (next != null) load(next, play = true) else exo.stop()
+            return
+        }
+        replayedUid = uid
+        ownSeek = true
+        exo.seekTo(currentIndex(), 0)
+        exo.prepare()
+        exo.play()
     }
 
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -403,19 +504,21 @@ class CorePlayback(
             publish()
             return
         }
-        // Gapless into the preloaded song: the previous one finished.
+        // Gapless into the next song: the previous one finished. The finished item stays
+        // in the player's list until tidy() runs, after this callback.
         val heard = clock.listenedMs
         val next = core.playbackEnded(EndReason.FINISHED, heard)
         startedUid = null
-        exo.removeMediaItem(0)
         val arrived = mediaItem?.mediaId?.toUidOrNull()
+        Log.i(TAG, "moved on by itself to uid $arrived; the core says uid ${next?.uid}")
         when {
             next == null -> exo.stop()
             next.uid == arrived -> started(next.uid)
             // The same song under a new uid (Autoplay refilled): keep playing what arrived.
-            adopt(0, next) -> started(next.uid)
+            adopt(currentIndex(), next) -> started(next.uid)
             else -> load(next, play = true)
         }
+        tidy()
         publish()
     }
 
@@ -464,6 +567,9 @@ class CorePlayback(
         core.playbackStarted(uid, offsetMinutes)
         startedUid = uid
         errorsInARow = 0
+        if (replayedUid != uid) replayedUid = null
+        // Load the song after this one now, so it's ready long before the end.
+        tidy()
     }
 
     private fun tick() {
@@ -525,6 +631,9 @@ class CorePlayback(
 
     companion object {
         const val UID_PREFIX = "uid:"
+        private const val TAG = "CorePlayback"
+        /** How close to the end a song must be for the player's "ended" to count. */
+        private const val END_SLACK_MS = 3_000L
         private const val TICK_MS = 1_000L
         private const val ARTWORK_PX = 512
         private const val MAX_ERRORS_IN_A_ROW = 3

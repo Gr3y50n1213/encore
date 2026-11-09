@@ -17,6 +17,8 @@ import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.util.EventLogger
+import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.common.MediaItem
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
@@ -52,8 +54,11 @@ class PlaybackService : MediaLibraryService() {
         // Started by the car or Bluetooth with the app closed: the last profile.
         host.ensureProfile()
         val dataSource = dataSourceFactory()
+        // Constant-bitrate seeking: a song downloaded at a capped quality is a plain AAC
+        // (ADTS) file with no index, and seeks by its byte rate.
+        val extractors = DefaultExtractorsFactory().setConstantBitrateSeekingEnabled(true)
         val exo = ExoPlayer.Builder(this)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSource))
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSource, extractors))
             .setLoadControl(wholeSongLoadControl())
             .setAudioAttributes(
                 AudioAttributes.Builder()
@@ -65,6 +70,10 @@ class PlaybackService : MediaLibraryService() {
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
+        // Debug builds (and CI's emulators) log every player event: no addresses, no titles.
+        if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+            exo.addAnalyticsListener(EventLogger("EncorePlayer"))
+        }
         val core = CorePlayback(host, exo, headers, scope).also { it.start() }
         playback = core
         PlaybackHub.attach(core)
@@ -146,10 +155,12 @@ class PlaybackService : MediaLibraryService() {
 
     /**
      * Read a song through in one go (up to [WHOLE_SONG_MS] or [BUFFER_BYTES]) instead of
-     * ExoPlayer's 50 s. A transcoded stream (a capped quality) can't be resumed: when the
-     * player paused reading it, the idle connection was dropped, and each reopen started
-     * a new transcode on the server. The owner's Jellyfin got 3-4 per song and crashed
-     * killing one (8 November 2026). One read per song also lets the radio sleep sooner.
+     * ExoPlayer's 50 s, then the next one right after it (CorePlayback keeps it loaded).
+     * A transcoded stream (a capped quality) can't be resumed: when the player paused
+     * reading it, the idle connection was dropped, and each reopen started a new
+     * transcode on the server. The owner's Jellyfin got 3-4 per song and crashed killing
+     * one (8 November 2026). One read per song also lets the radio sleep sooner. 64 MB
+     * holds a CD-quality FLAC and the next song.
      */
     private fun wholeSongLoadControl(): DefaultLoadControl = DefaultLoadControl.Builder()
         .setBufferDurationsMs(
@@ -194,7 +205,7 @@ class PlaybackService : MediaLibraryService() {
     private companion object {
         const val DEFAULT_CACHE_BYTES = 1_000_000_000L
         const val WHOLE_SONG_MS = 15 * 60_000
-        const val BUFFER_BYTES = 32 * 1024 * 1024
+        const val BUFFER_BYTES = 64 * 1024 * 1024
         const val CONNECT_TIMEOUT_MS = 10_000
         const val READ_TIMEOUT_MS = 20_000
         val TRANSPORT = setOf(

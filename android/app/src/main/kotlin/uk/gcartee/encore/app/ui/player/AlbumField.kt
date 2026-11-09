@@ -4,19 +4,18 @@ import android.graphics.RuntimeShader
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.withInfiniteAnimationFrameMillis
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.FloatState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -25,8 +24,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 import uk.gcartee.encore.app.core.CoreHost
@@ -70,37 +71,64 @@ fun rememberFieldColours(host: CoreHost, albumId: Long?): FieldColours {
 
 /**
  * The moving field behind Now Playing: four blobs of the album's stops over its base,
- * drifting 6 to 10 % of the width on a 40 s loop. An AGSL shader from Android 13
+ * drifting 6 to 10 % of the width, one turn every 40 s. An AGSL shader from Android 13
  * (tokens albumGradient.android), radial brushes before; one still frame with Reduce
- * Motion. Decorative, so hidden from TalkBack.
+ * Motion. Decorative, so hidden from TalkBack. Drawn in its own layer at most
+ * [DRIFT_FRAME_MS] apart, reading the phase where it draws: the slow drift doesn't need
+ * the display's 120 Hz, and nothing else on the page redraws with it.
  */
 @Composable
 fun AlbumField(colours: FieldColours, modifier: Modifier = Modifier) {
-    val still = reduceMotion()
-    val transition = rememberInfiniteTransition(label = "field")
-    val phase by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = (2 * Math.PI).toFloat(),
-        animationSpec = infiniteRepeatable(tween(Timing.GradientBlobLoopSeconds.min * 1000, easing = LinearEasing)),
-        label = "phase",
-    )
-    val t = if (still) 0f else phase
+    val phase = rememberDriftPhase(still = reduceMotion(), turnMs = Timing.GradientBlobLoopSeconds.min * 1000)
     Box(modifier.background(colours.base).clearAndSetSemantics { }) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ShaderField(colours, t)
+            ShaderField(colours, phase)
         } else {
-            BrushField(colours, t)
+            BrushField(colours, phase)
         }
     }
 }
+
+/**
+ * The drift's angle for the blobs' `cos(t)` and `sin(1.3 t)`. Those two only meet their
+ * starting point again after ten turns of t, so one loop is ten turns: a one-turn loop
+ * snapped the blobs back every 40 s, which showed as a flicker (owner, 9 November 2026).
+ * Steps at most every [DRIFT_FRAME_MS]; an infinite animation, so UI tests can pause it.
+ */
+@Composable
+internal fun rememberDriftPhase(still: Boolean, turnMs: Int): FloatState {
+    val phase = remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(still, turnMs) {
+        if (still) {
+            phase.floatValue = 0f
+            return@LaunchedEffect
+        }
+        val loopMs = turnMs.toLong() * DRIFT_TURNS_PER_LOOP
+        val start = withInfiniteAnimationFrameMillis { it }
+        var shown = start - DRIFT_FRAME_MS
+        while (true) {
+            withInfiniteAnimationFrameMillis { now ->
+                if (now - shown >= DRIFT_FRAME_MS) {
+                    shown = now
+                    phase.floatValue = ((now - start) % loopMs).toFloat() / turnMs * (2 * PI).toFloat()
+                }
+            }
+        }
+    }
+    return phase
+}
+
+private const val DRIFT_TURNS_PER_LOOP = 10
+private const val DRIFT_FRAME_MS = 33L
 
 private val travel = (AlbumGradient.BlobTravelPercentOfWidth.min + AlbumGradient.BlobTravelPercentOfWidth.max) / 200f
 
 private val anchors = listOf(Offset(0.2f, 0.18f), Offset(0.85f, 0.35f), Offset(0.25f, 0.75f), Offset(0.8f, 0.92f))
 
 @Composable
-private fun BrushField(colours: FieldColours, t: Float) {
-    Canvas(Modifier.fillMaxSize()) {
+private fun BrushField(colours: FieldColours, phase: FloatState) {
+    Canvas(Modifier.fillMaxSize().graphicsLayer { }) {
+        val t = phase.floatValue
         colours.stops.forEachIndexed { i, c ->
             val a = anchors[i]
             val centre = Offset(
@@ -147,11 +175,11 @@ half4 main(float2 p) {
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
-private fun ShaderField(colours: FieldColours, t: Float) {
+private fun ShaderField(colours: FieldColours, phase: FloatState) {
     val shader = remember { RuntimeShader(SHADER) }
-    Canvas(Modifier.fillMaxSize()) {
+    Canvas(Modifier.fillMaxSize().graphicsLayer { }) {
         shader.setFloatUniform("size", size.width, size.height)
-        shader.setFloatUniform("t", t)
+        shader.setFloatUniform("t", phase.floatValue)
         shader.setFloatUniform("travel", travel)
         shader.setColorUniform("base", colours.base.toArgb())
         shader.setColorUniform("c0", colours.stops[0].toArgb())

@@ -226,16 +226,13 @@ private fun WelcomeShape(still: Boolean, modifier: Modifier) {
     }
 }
 
-/** Board 22, item 1: the app's own palette drifting on a 40 s loop; one still frame for Reduce Motion. */
+/**
+ * Board 22, item 1: the app's own palette drifting, one turn every 40 s, with the same
+ * seamless loop and frame pacing as Now Playing's field; one still frame for Reduce Motion.
+ */
 @Composable
 private fun DriftingField(still: Boolean, modifier: Modifier) {
-    val transition = rememberInfiniteTransition(label = "welcome-field")
-    val t by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = (2 * Math.PI).toFloat(),
-        animationSpec = infiniteRepeatable(tween(Timing.GradientBlobLoopSeconds.min * 1000, easing = LinearEasing)),
-        label = "drift",
-    )
+    val phase = uk.gcartee.encore.app.ui.player.rememberDriftPhase(still, Timing.GradientBlobLoopSeconds.min * 1000)
     val blobs = remember {
         listOf(
             Blob(tokenColor(WireframeAccent.ios), 0.22f, 0.18f, 0.75f, 0f),
@@ -243,7 +240,10 @@ private fun DriftingField(still: Boolean, modifier: Modifier) {
             Blob(tokenColor(Iris.Dark.tertiary), 0.55f, 0.98f, 0.8f, 4.2f),
         )
     }
-    Canvas(modifier.alpha(0.95f)) { blobs.forEach { drawBlob(it, if (still) 0f else t) } }
+    Canvas(modifier.alpha(0.95f)) {
+        val t = phase.floatValue
+        blobs.forEach { drawBlob(it, t) }
+    }
 }
 
 private data class Blob(val colour: Color, val x: Float, val y: Float, val radius: Float, val phase: Float)
