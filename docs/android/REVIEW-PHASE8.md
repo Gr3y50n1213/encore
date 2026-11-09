@@ -61,6 +61,23 @@ Checked against the "done when" line (*a downloaded playlist plays in airplane m
 7. **A waiting download looked like an active one.** It now shows a still ring and says why it waits.
 8. **Lint:** an Auto media app must take `MEDIA_PLAY_FROM_SEARCH`, so the phone's assistant can now "Play X on Encore".
 
+## After the merge: playback fixes (9 November 2026)
+A live check on the owner's tablet (LTE, a capped quality, the owner's Jellyfin) found what no test had covered, because no test let a song play to its end. Branch `playback-fixes`, ADR android-0003.
+
+| Found | Fixed |
+| --- | --- |
+| Every natural song end skipped a song. The player reported "ended" for the song it had just moved into, so the queue moved on twice: the skipped song went to History as played, and the one after loaded cold (0.5 to 19 s of silence). This is most likely the "buffering for the next song" the owner had noticed. | The player's list is never edited inside ExoPlayer's callbacks, and "ended" counts only at the real end of a song. On the tablet: gapless changes onto the right song, and no false ends. |
+| Next mid-song was a cold start: the next song was loaded only 20 s before the end. | The next song is loaded as soon as the current one has settled. Next onto it starts in about 0.2 s. |
+| A capped quality couldn't seek: a seek restarted the song (and the transcode), and the lock screen showed no position. ExoPlayer also never cached a transcode, so Phase 8's "played whole, so playable offline" never held for capped qualities. | Transcodes are now cached. A song is opened again from the cache once whole: seekable, with its length. A seek while a song is still arriving waits for the rest (seconds). |
+| One song was asked for three times when a seek reopened the current song just as the next one started downloading. | The next song is added only after the current one settles. |
+| On the owner's server under load (a minute to answer), the 20 s read timeout and ExoPlayer's up-to-six retries asked for one song five times. | The read timeout is 90 s, and a failed song load gets two slow retries (5 s, then 15 s). Under the same load: one request. |
+| Now Playing's field (and Welcome's) jumped every 40 s: the loop ended where `sin(1.3 t)` hadn't come round. This was the flicker the owner saw. It also redrew at 120 fps. | One loop is ten turns, so it's seamless. The field draws in its own layer at about 30 fps, and the smooth position steps about 30 times a second. |
+| TalkBack said "Play" on the button while a song loaded, under a Pause glyph. | The label follows the glyph. |
+
+**Evidence:**
+- CI run 42572878220 is green on the three emulators. `PlaybackFlowTest` lets a song end, checks History and the preloaded next song, uses Next, seeks a transcoded song (the replay now sends `/universal` like Jellyfin's transcode: chunked, with no length), and checks that the next one starts seekable.
+- On the tablet, the Jellyfin log showed one request per song.
+
 ## Not claimed (for the owner)
 
 - **Android Auto:** a real car or the desktop head unit.

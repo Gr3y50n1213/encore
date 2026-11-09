@@ -29,6 +29,8 @@ The owner left the seeking approach to Encore ("whatever works best for everyone
 - A song already whole in the cache (played before) opens from there at once.
 - The address read from the cache is the stream's own with a `#whole` fragment: never sent to the server, and a different item to the player.
 
+**A busy server is waited for, not hammered.** Each new request for a transcode is a new ffmpeg on Jellyfin, while the abandoned one keeps running. On the owner's server under load (9 November 2026: another job had the CPU, a transcode took over a minute to start) the old 20 s read timeout and ExoPlayer's retries (up to six for a stream of unknown length) asked for one song five times. The read timeout is now 90 s (connect 10 s, so an unreachable server still fails fast), and a failed song load is tried again twice, after 5 s and 15 s (`PatientRetries`).
+
 ## Considered
 - **HLS for capped qualities** (`master.m3u8`, Media3's HLS module). Seeks before the song has arrived and is what Jellyfin's web client uses. Rejected for now: a new library; the core can't tell from its library data which songs need a transcode (it stores the container, not the codec or bitrate, so an M4A could be ALAC or AAC), so every capped song would go through ffmpeg on the server, a real cost on a small server; HLS segments need their own cache keys, and "played whole, so playable offline" would need rethinking. Worth revisiting if a seek in the first seconds of a cold transcode matters.
 - **Asking Jellyfin for an estimated length** (`EstimateContentLength`, byte-range seeking into a transcode): a DLNA-era option, not reliable across server versions.

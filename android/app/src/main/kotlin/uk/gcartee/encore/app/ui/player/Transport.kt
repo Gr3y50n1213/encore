@@ -128,7 +128,8 @@ fun PlayPauseButton(
         modifier = Modifier
             .size(width = size.playW.dp, height = size.playH.dp)
             .semantics {
-                contentDescription = if (playing) "Pause" else "Play"
+                // Says what the glyph shows: Pause while a song loads too (a tap cancels it).
+                contentDescription = if (playing || loading) "Pause" else "Play"
                 stateDescription = when {
                     loading -> "Loading"
                     playing -> "Playing"
