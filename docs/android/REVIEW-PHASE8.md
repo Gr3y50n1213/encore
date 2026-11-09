@@ -75,8 +75,8 @@ A live check on the owner's tablet (LTE, a capped quality, the owner's Jellyfin)
 | TalkBack said "Play" on the button while a song loaded, under a Pause glyph. | The label follows the glyph. |
 
 **Evidence:**
-- CI run 42572878220 is green on the three emulators. `PlaybackFlowTest` lets a song end, checks History and the preloaded next song, uses Next, seeks a transcoded song (the replay now sends `/universal` like Jellyfin's transcode: chunked, with no length), and checks that the next one starts seekable.
-- On the tablet, the Jellyfin log showed one request per song.
+- CI run 42577304779 (b5eac50) is green: `make check-android` and the three emulators. `PlaybackFlowTest` lets a song end, checks History and the preloaded next song, uses Next, seeks a transcoded song (the replay now sends `/universal` like Jellyfin's transcode: chunked, with no length), and checks that the next one starts seekable.
+- On the tablet, the Jellyfin log showed one request per song, including under load: another job had the PC's CPU, and the server took 43 s to answer.
 
 ## Not claimed (for the owner)
 
