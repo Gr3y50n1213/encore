@@ -98,7 +98,9 @@ class PlaybackFlowTest {
             host.core.play(songs.map { it.id }, 0u, StartedFrom.ALBUM, null)
             rule.runOnUiThread { PlaybackHub.playCurrent(rule.activity) }
             step("the first song plays, transcoded", TIMEOUT) { host.core.queue().current?.song?.id == songs[0].id && playing() }
-            onMain { controller.seekTo(SEEK_TO_MS) }
+            // Now Playing's bar seeks through the app, as here (the session offers no seek for
+            // a stream ExoPlayer can't seek).
+            onMain { PlaybackHub.seekTo(rule.activity, SEEK_TO_MS) }
             step("the seek lands once the transcoded song is whole", TIMEOUT) {
                 onMain { controller.isCurrentMediaItemSeekable && controller.currentPosition >= SEEK_TO_MS - SEEK_SLACK_MS }
             }
@@ -140,7 +142,8 @@ class PlaybackFlowTest {
         const val END_TIMEOUT = 30_000L
         const val END_IN_MS = 4_000L
         const val SETTLE_MS = 4_000L
-        const val SEEK_TO_MS = 20_000L
+        // Mid-song: the next song is swapped for its cached copy only up to 8 s from the end.
+        const val SEEK_TO_MS = 15_000L
         const val SEEK_SLACK_MS = 1_500L
     }
 }

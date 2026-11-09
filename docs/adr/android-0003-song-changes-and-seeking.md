@@ -23,8 +23,9 @@ The owner left the seeking approach to Encore ("whatever works best for everyone
 
 **A transcoded song seeks from the rolling cache.** The player already reads each song through into the rolling cache (ADR android-0002, the 15-minute load control), and when the cache reaches the end of a stream with no length it records the length. Opened again from the cache, the same song has a known length; with constant-bitrate seeking on in the extractors, ADTS (AAC) and MP3 then seek by their bitrate, and Ogg (Opus) by its pages.
 - The song after the current one is opened again from the cache once it's whole (`RollingCache.isWhole`), before it plays: it plays seekable, with its length on the lock screen and in the car.
-- A seek in the current transcoded song reopens it from the cache at that point; while it is still arriving, the seek waits for the rest (seconds). The media session offers seeking whenever a song is loaded (ExoPlayer withholds it for a stream it can't seek), so the lock screen's, the car's and Bluetooth's seeks reach the same code.
+- A seek from Now Playing in the current transcoded song reopens it from the cache at that point; while it is still arriving, the seek waits for the rest (seconds).
 - The check runs after each load and on the one-second tick, and never in the current song's last 8 s (the player may already be reading into the next song for a gapless change).
+- The next song is added to the player only once the current one has settled (arrived whole, any waiting seek done). Any seek in the current song, or reopening it, makes ExoPlayer drop the next song's download and start it again (`seekToPeriodPosition` removes the periods after the playing one); on a capped quality each new start is another transcode on the server. On the owner's Jellyfin a reopen right as the next song started downloading asked for it three times. The player reads songs one after another anyway, so this costs no time.
 - A song already whole in the cache (played before) opens from there at once.
 - The address read from the cache is the stream's own with a `#whole` fragment: never sent to the server, and a different item to the player.
 
@@ -34,6 +35,8 @@ The owner left the seeking approach to Encore ("whatever works best for everyone
 
 ## Consequences
 - More data on mobile networks: one song ahead is always fetched, including songs that are then skipped.
+- The lock screen, the car and Bluetooth can't seek the first transcoded song of a run (the one that loaded cold): the media session takes its available commands from ExoPlayer, which withholds seeking for a stream it can't seek, and `ForwardingPlayer` passes that list through. From the second song on they can, as those open from the cache. Fixing the first would mean a `ForwardingSimpleBasePlayer` for the session.
+- A seek in the current song while the next one is still downloading (a few seconds after the current one arrived) still restarts the next one's download: one more transcode request on the server.
 - With the rolling cache set to Off, a transcoded song can't seek (the seek waits and is dropped at the next song). Original quality, downloads and direct streams seek as before.
 - If the cache evicts a song opened as `#whole`, its reads fall back to the server, which re-transcodes from the start (rare: the cache keeps the newest songs).
 - Debug builds log every player event (`EncorePlayer`) and the app's decisions (`CorePlayback`); CI keeps both in `device-check/logcat-playback.txt`.

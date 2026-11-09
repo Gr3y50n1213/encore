@@ -312,7 +312,15 @@ class CorePlayback(
     private fun useWholeSongs() {
         val at = pendingSeekMs
         val item = exo.currentMediaItem
-        if (at != null && item != null && currentUid() == pendingSeekUid) reopenWhole(currentIndex(), item, at)
+        if (at != null && item != null && currentUid() == pendingSeekUid) {
+            if (!reopenWhole(currentIndex(), item, at) && currentArrived()) {
+                // Arrived but not kept whole (the rolling cache is off): it can't seek.
+                Log.i(TAG, "seek dropped: the song isn't in the rolling cache")
+                pendingSeekMs = null
+            }
+        }
+        // The current song may have just settled: add the next one now.
+        keepNextLoaded()
         // Not in the current song's last seconds: the player may already be reading into
         // the next one for a gapless change, and swapping it then would break the gap.
         val left = if (exo.duration == C.TIME_UNSET) Long.MAX_VALUE else exo.duration - exo.currentPosition
@@ -458,8 +466,18 @@ class CorePlayback(
 
     private fun keepNextLoaded() {
         if (exo.mediaItemCount == 0 || currentUid() == null) return
-        val target = songAfterThis()
         val next = nextIndex()
+        if (!currentSettled()) {
+            // A transcoded current song still arriving, or waiting to seek: the next one is
+            // added after it. Reopening the current song (or any seek in it) makes ExoPlayer
+            // drop the next song's download and start it again, and on a capped quality each
+            // new start is another transcode on the server (seen on the owner's Jellyfin:
+            // one song asked for three times). The player reads songs one after another
+            // anyway, so this costs no time.
+            if (exo.mediaItemCount > next) exo.removeMediaItems(next, exo.mediaItemCount)
+            return
+        }
+        val target = songAfterThis()
         if (exo.mediaItemCount > next + 1) exo.removeMediaItems(next + 1, exo.mediaItemCount)
         if (target == null) {
             if (exo.mediaItemCount > next) exo.removeMediaItem(next)
@@ -473,6 +491,24 @@ class CorePlayback(
             else -> exo.addMediaItem(item)
         }
         Log.i(TAG, "next loaded: uid ${target.uid}")
+    }
+
+    /**
+     * The current song won't be reopened soon: it isn't a transcoded stream, or it's
+     * already open from the cache, or it has fully arrived with no seek waiting.
+     */
+    private fun currentSettled(): Boolean {
+        val config = exo.currentMediaItem?.localConfiguration ?: return true
+        val key = config.customCacheKey ?: return true
+        if (key !in transcodeKeys || config.uri.toString().endsWith(WHOLE)) return true
+        if (pendingSeekMs != null) return false
+        return wholeInCache(key) || currentArrived()
+    }
+
+    /** All of the current song is buffered (a transcode's length is known once it has). */
+    private fun currentArrived(): Boolean {
+        val duration = exo.duration
+        return duration != C.TIME_UNSET && exo.bufferedPosition >= duration - ARRIVED_SLACK_MS
     }
 
     /** What plays when the current song ends by itself: the next one, or itself on Repeat One. */
@@ -728,6 +764,7 @@ class CorePlayback(
         private const val END_SLACK_MS = 3_000L
         /** No swapping the next song for its cached copy this close to the current one's end. */
         private const val LATE_SWAP_MS = 8_000L
+        private const val ARRIVED_SLACK_MS = 1_000L
         private const val TICK_MS = 1_000L
         private const val ARTWORK_PX = 512
         private const val MAX_ERRORS_IN_A_ROW = 3

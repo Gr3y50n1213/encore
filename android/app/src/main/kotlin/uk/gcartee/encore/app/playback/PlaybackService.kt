@@ -80,8 +80,6 @@ class PlaybackService : MediaLibraryService() {
         PlaybackHub.attach(core)
 
         val sessionPlayer = object : ForwardingPlayer(exo) {
-            // Seeking is always offered while a song is loaded: a transcoded song looks
-            // unseekable to ExoPlayer, but the app seeks it from the rolling cache.
             override fun getAvailableCommands(): Player.Commands =
                 super.getAvailableCommands().buildUpon()
                     .addAll(
@@ -90,13 +88,10 @@ class PlaybackService : MediaLibraryService() {
                         Player.COMMAND_SEEK_TO_PREVIOUS,
                         Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,
                     )
-                    .addIf(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM, exo.mediaItemCount > 0)
                     .build()
 
             override fun isCommandAvailable(command: Int): Boolean =
-                command in TRANSPORT ||
-                    (command == Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM && exo.mediaItemCount > 0) ||
-                    super.isCommandAvailable(command)
+                command in TRANSPORT || super.isCommandAvailable(command)
 
             override fun seekToNext() = core.next(origin())
             override fun seekToNextMediaItem() = core.next(origin())
@@ -104,8 +99,9 @@ class PlaybackService : MediaLibraryService() {
             override fun seekToPreviousMediaItem() = core.previous(origin())
             override fun play() = core.play()
 
-            // The lock screen's, the car's and Bluetooth's seeks go the app's way: a
-            // transcoded song seeks once it's whole in the rolling cache (CorePlayback.seekTo).
+            // The lock screen's, the car's and Bluetooth's seeks go the app's way
+            // (CorePlayback.seekTo). The session offers them only when ExoPlayer can seek:
+            // for a transcode that's from the second song on, opened from the cache.
             override fun seekTo(positionMs: Long) = core.seekTo(positionMs)
             override fun seekTo(mediaItemIndex: Int, positionMs: Long) {
                 if (mediaItemIndex == exo.currentMediaItemIndex) core.seekTo(positionMs) else super.seekTo(mediaItemIndex, positionMs)
