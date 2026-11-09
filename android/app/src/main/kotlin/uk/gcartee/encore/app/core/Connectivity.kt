@@ -89,6 +89,7 @@ class Connectivity(private val context: Context, private val host: CoreHost) {
         val online = !_offline.value
         val cached = if (online) emptyList() else RollingCache.fullyCachedKeys(context)
         runCatching { host.core.setConnectivity(online, host.network(), cached) }
+        host.downloads.refresh()
     }
 
     private companion object {

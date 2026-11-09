@@ -611,7 +611,7 @@ private fun DownloadedList(host: CoreHost, onOpen: (Route) -> Unit, playingSongI
     LazyColumn(contentPadding = PaddingValues(bottom = padding.calculateBottomPadding() + Grid.base.dp)) {
         items(collections, key = { "${it.target.kind}-${it.target.id}-${it.target.mixId}" }) { item ->
             val target = item.target
-            val line = uk.gcartee.encore.app.ui.components.downloadLine(item)
+            val line = uk.gcartee.encore.app.ui.components.downloadLine(item, uk.gcartee.encore.app.ui.components.LocalDownloads.current.waitReason)
                 ?: listOf(item.subtitle.ifBlank { null }, if (item.total == 1u) "1 song" else "${item.total} songs").filterNotNull().joinToString(" · ")
             ListRow(
                 item.title,

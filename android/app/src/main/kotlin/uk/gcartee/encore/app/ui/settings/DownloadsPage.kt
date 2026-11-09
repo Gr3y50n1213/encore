@@ -124,7 +124,8 @@ internal fun DownloadsPage(host: CoreHost, onBack: () -> Unit, contentPadding: P
         // The transfer, or why it waits.
         item {
             val p = progress
-            val stop = overview?.stop
+            // The live reason first (known before any run), then how the last run stopped.
+            val stop = view.waitReason ?: overview?.stop
             val queued = overview?.queued ?: 0u
             when {
                 p != null -> StatusCard(
@@ -431,7 +432,7 @@ private fun ItemRow(item: DownloadedItem) {
         Column(Modifier.weight(1f)) {
             Text(item.title, style = rowTitle(), color = scheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
-                downloadLine(item) ?: listOfNotNull(
+                downloadLine(item, LocalDownloads.current.waitReason) ?: listOfNotNull(
                     item.subtitle.ifBlank { null },
                     if (item.total == 1u) "1 song" else "${item.total} songs",
                     formatBytes(item.bytes.toLong()),

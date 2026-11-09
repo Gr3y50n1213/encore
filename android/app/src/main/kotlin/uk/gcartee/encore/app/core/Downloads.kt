@@ -13,6 +13,7 @@ import uk.gcartee.encore.core.DownloadKind
 import uk.gcartee.encore.core.DownloadMarks
 import uk.gcartee.encore.core.DownloadProgress
 import uk.gcartee.encore.core.DownloadState
+import uk.gcartee.encore.core.DownloadStop
 import uk.gcartee.encore.core.DownloadTarget
 import uk.gcartee.encore.core.DownloadedItem
 
@@ -30,6 +31,11 @@ data class DownloadView(
     val items: List<DownloadedItem> = emptyList(),
     val online: Boolean = true,
     val activeSong: Long? = null,
+    /**
+     * Why songs wait when nothing transfers, known before any run: offline, or Wi-Fi
+     * only on mobile data (Android holds the job until Wi-Fi, so no run reports it).
+     */
+    val waitReason: DownloadStop? = null,
 ) {
     private val byTarget: Map<Pair<DownloadKind, String>, DownloadedItem> = items.associateBy { key(it.target) }
 
@@ -54,7 +60,7 @@ data class DownloadView(
             else -> t.kind to t.id.toString()
         }
 
-        fun of(m: DownloadMarks) = DownloadView(
+        fun of(m: DownloadMarks, waitReason: DownloadStop? = null) = DownloadView(
             saved = m.savedSongIds.toHashSet(),
             pending = m.pendingSongIds.toHashSet(),
             failed = m.failedSongIds.toHashSet(),
@@ -62,6 +68,7 @@ data class DownloadView(
             items = m.items,
             online = m.online,
             activeSong = m.activeSongId,
+            waitReason = waitReason,
         )
     }
 }
@@ -86,7 +93,14 @@ class Downloads(private val host: CoreHost) {
 
     fun refreshNow() {
         val marks = runCatching { host.core.downloadMarks() }.getOrNull()
-        _view.value = marks?.let(DownloadView::of) ?: DownloadView(online = _view.value.online)
+        val wait = when {
+            marks == null || marks.pendingSongIds.isEmpty() || marks.activeSongId != null -> null
+            !marks.online -> DownloadStop.OFFLINE
+            runCatching { host.core.downloadSettings().wifiOnly }.getOrDefault(false) &&
+                host.network() == uk.gcartee.encore.core.Network.CELLULAR -> DownloadStop.WAITING_FOR_WIFI
+            else -> null
+        }
+        _view.value = marks?.let { DownloadView.of(it, wait) } ?: DownloadView(online = _view.value.online)
         if (marks?.activeSongId == null) _progress.value = null
     }
 

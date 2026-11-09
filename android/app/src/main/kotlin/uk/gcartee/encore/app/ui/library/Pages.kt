@@ -226,7 +226,7 @@ private fun downloadButton(tint: PageTint, item: uk.gcartee.encore.core.Download
         null,
         container,
         content,
-        description = uk.gcartee.encore.app.ui.components.downloadLabel(item),
+        description = uk.gcartee.encore.app.ui.components.downloadLabel(item, uk.gcartee.encore.app.ui.components.LocalDownloads.current.waitReason),
         weight = ICON_WEIGHT,
         custom = { c -> uk.gcartee.encore.app.ui.components.DownloadGlyph(item, c) },
         onClick = onClick,
@@ -236,7 +236,7 @@ private fun downloadButton(tint: PageTint, item: uk.gcartee.encore.core.Download
 /** Board 08's quiet line under the header: "7 of 12 saved". */
 @Composable
 private fun DownloadLine(item: uk.gcartee.encore.core.DownloadedItem?, tint: PageTint) {
-    val line = uk.gcartee.encore.app.ui.components.downloadLine(item) ?: return
+    val line = uk.gcartee.encore.app.ui.components.downloadLine(item, uk.gcartee.encore.app.ui.components.LocalDownloads.current.waitReason) ?: return
     Text(line, style = LocalEncoreType.current.caption, color = tint.secondary, modifier = Modifier.padding(horizontal = (Grid.base * 2).dp, vertical = 4.dp))
 }
 

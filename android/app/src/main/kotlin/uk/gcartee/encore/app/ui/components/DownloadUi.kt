@@ -46,6 +46,7 @@ import uk.gcartee.encore.app.ui.onboarding.reduceMotion
 import uk.gcartee.encore.app.ui.theme.LocalEncoreType
 import uk.gcartee.encore.core.DownloadProgress
 import uk.gcartee.encore.core.DownloadState
+import uk.gcartee.encore.core.DownloadStop
 import uk.gcartee.encore.core.DownloadedItem
 
 /** What is downloaded and what plays offline, for every list (Phase 8). */
@@ -188,6 +189,11 @@ fun DownloadGlyph(item: DownloadedItem?, tint: Color) {
                     CircularProgressIndicator(progress = { animated }, strokeWidth = 2.5.dp, color = tint, trackColor = tint.copy(alpha = 0.22f), modifier = Modifier.size(26.dp))
                     Icon(Icons.download(), contentDescription = null, tint = tint, modifier = Modifier.size(14.dp))
                 }
+                // Queued, nothing moving yet: a still ring (the wave is for songs arriving).
+                DownloadState.WAITING -> {
+                    CircularProgressIndicator(progress = { animated }, strokeWidth = 2.5.dp, color = tint, trackColor = tint.copy(alpha = 0.22f), modifier = Modifier.size(26.dp))
+                    Icon(Icons.pause(), contentDescription = null, tint = tint, modifier = Modifier.size(12.dp))
+                }
                 else -> {
                     CircularWavyProgressIndicator(
                         progress = { animated.coerceAtLeast(0.02f) },
@@ -202,20 +208,33 @@ fun DownloadGlyph(item: DownloadedItem?, tint: Color) {
     }
 }
 
+/** Why songs wait, in a few words for a line or a label ([DownloadView.waitReason]). */
+fun waitWords(stop: DownloadStop?): String = when (stop) {
+    DownloadStop.WAITING_FOR_WIFI -> "Waiting for Wi-Fi"
+    DownloadStop.OFFLINE -> "Waiting for a connection"
+    DownloadStop.STORAGE_LIMIT -> "Storage limit reached"
+    DownloadStop.LOW_SPACE -> "Device nearly full"
+    DownloadStop.SERVER_UNREACHABLE -> "Server didn't answer"
+    DownloadStop.SIGN_IN_NEEDED -> "Sign in again"
+    else -> "Waiting"
+}
+
 /** What the Download button says to TalkBack, and does. */
-fun downloadLabel(item: DownloadedItem?): String = when (item?.state) {
+fun downloadLabel(item: DownloadedItem?, wait: DownloadStop? = null): String = when (item?.state) {
     null -> "Download"
     DownloadState.SAVED -> "Downloaded. Remove download"
     DownloadState.FAILED -> "Some songs couldn't download. Try again"
     DownloadState.PAUSED -> "Download paused. Resume"
-    DownloadState.DOWNLOADING, DownloadState.WAITING -> "Downloading, ${item.saved} of ${item.total}. Pause"
+    DownloadState.DOWNLOADING -> "Downloading, ${item.saved} of ${item.total}. Pause"
+    DownloadState.WAITING -> "${waitWords(wait)}, ${item.saved} of ${item.total} saved. Pause"
 }
 
 /** Board 08: "7 of 12 saved", or why it waits. Null when there is nothing to say. */
-fun downloadLine(item: DownloadedItem?): String? = when (item?.state) {
+fun downloadLine(item: DownloadedItem?, wait: DownloadStop? = null): String? = when (item?.state) {
     null, DownloadState.SAVED -> null
     DownloadState.FAILED -> "${item.saved} of ${item.total} saved · ${item.failed} couldn't download"
     DownloadState.PAUSED -> "${item.saved} of ${item.total} saved · Paused"
+    DownloadState.WAITING -> "${item.saved} of ${item.total} saved · ${waitWords(wait)}"
     else -> "${item.saved} of ${item.total} saved"
 }
 
