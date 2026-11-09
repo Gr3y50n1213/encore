@@ -15,7 +15,7 @@ Checked against the "done when" line (*a downloaded playlist plays in airplane m
 **New permission:** `RUN_USER_INITIATED_JOBS`, approved by the owner; see PLAN-ANDROID section 19 and ADR android-0002. There are no new libraries.
 
 **Evidence:**
-- **CI, `android.yml` on `phase8-offline`:**
+- **CI run 42538247424, `android.yml` on `phase8-offline` at b81081a, every job green:**
   - `make check-android`: lint, unit tests, debug and R8 release builds, four ABIs, 16 KB alignment.
   - Three emulators: API 28 phone, API 36 phone and API 36 tablet.
   - On each, the sign-in test and then the new `OfflineAndCarTest` run against the Jellyfin replay, which now serves real audio.
