@@ -19,6 +19,10 @@ import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.dp
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -124,6 +128,38 @@ class SignInAndBrowseTest {
         shot("06b-radio")
         Espresso.pressBack()
         rule.waitUntilDoesNotExist(hasContentDescription("Close Now Playing"), TIMEOUT)
+
+        // The owner (9 November 2026): the swipe down to close was too sensitive; a tap could
+        // close it. A quick short flick and a slow short pull leave it open; a swipe closes it.
+        val playing = host.core.queue().current!!.song
+        rule.onNodeWithContentDescription("${playing.title}, ${playing.artist}").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("now-playing-art"), TIMEOUT)
+        rule.waitForIdle()
+        rule.onNodeWithTag("now-playing-art").performTouchInput {
+            down(center)
+            repeat(FLICK_STEPS) {
+                advanceEventTime(FLICK_STEP_MS)
+                moveBy(Offset(0f, FLICK_STEP_DP.dp.toPx()))
+            }
+            up()
+        }
+        rule.waitForIdle()
+        rule.onNodeWithContentDescription("Close Now Playing").assertExists("a quick short flick closed Now Playing")
+        rule.onNodeWithTag("now-playing-art").performTouchInput {
+            down(center)
+            repeat(PULL_STEPS) {
+                advanceEventTime(PULL_STEP_MS)
+                moveBy(Offset(0f, PULL_STEP_DP.dp.toPx()))
+            }
+            up()
+        }
+        rule.waitForIdle()
+        rule.onNodeWithContentDescription("Close Now Playing").assertExists("a slow short pull closed Now Playing")
+        rule.onNodeWithTag("now-playing-art").performTouchInput {
+            swipeDown(startY = centerY, endY = centerY + SWIPE_DP.dp.toPx(), durationMillis = SWIPE_MS)
+        }
+        rule.waitUntilDoesNotExist(hasContentDescription("Close Now Playing"), TIMEOUT)
+
         // A playlist page lists its songs (the owner found it broken on 7 November 2026).
         val playlist = host.core.playlists(0u, 50u).firstOrNull { it.songCount > 0u }
         if (playlist != null) {
@@ -188,6 +224,17 @@ class SignInAndBrowseTest {
     }
 
     private companion object {
+        // A quick short flick: 32 dp in 24 ms (about 1,300 dp/s), which closed it before.
+        const val FLICK_STEPS = 4
+        const val FLICK_STEP_DP = 8f
+        const val FLICK_STEP_MS = 6L
+        // A slow short pull: 60 dp in half a second.
+        const val PULL_STEPS = 10
+        const val PULL_STEP_DP = 6f
+        const val PULL_STEP_MS = 50L
+        // A real swipe down.
+        const val SWIPE_DP = 360f
+        const val SWIPE_MS = 250L
         const val SIGN_IN_TIMEOUT = 30_000L
         const val GUARD_MS = 400L
         const val SETTLE_MS = 900L

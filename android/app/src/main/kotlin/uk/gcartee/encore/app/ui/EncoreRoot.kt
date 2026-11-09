@@ -59,7 +59,9 @@ import uk.gcartee.encore.app.ui.player.ART_PAUSED_SCALE
 import uk.gcartee.encore.app.ui.player.MINI_ART_RADIUS_DP
 import kotlinx.coroutines.launch
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import uk.gcartee.encore.app.ui.player.COLLAPSE_MIN_WAY_DP
+import uk.gcartee.encore.app.ui.player.collapseCloses
+import uk.gcartee.encore.app.ui.player.detectCollapseDrag
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInRoot
@@ -413,12 +415,21 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                 val h = screen.height.toFloat().coerceAtLeast(1f)
                 val from = nowArt?.rect
                 val to = miniArt
-                return if (from != null && to != null) (to.center.y - from.center.y).coerceAtLeast(h * MIN_TRAVEL) else h * DEFAULT_TRAVEL
+                // Never a hair trigger: in landscape the cover sits close to the bar.
+                val least = maxOf(h * MIN_TRAVEL, with(density) { COLLAPSE_MIN_WAY_DP.dp.toPx() }).coerceAtMost(h)
+                return if (from != null && to != null) (to.center.y - from.center.y).coerceAtLeast(least) else h * DEFAULT_TRAVEL
             }
             fun release(velocity: Float) {
-                val perSecond = -velocity / travel()
-                val flick = with(density) { FLICK_DP.dp.toPx() }
-                if (expand.value < COMMIT_BELOW || velocity > flick) {
+                val way = travel()
+                val perSecond = -velocity / way
+                val closes = with(density) {
+                    collapseCloses(
+                        draggedDp = ((1f - expand.value) * way).toDp().value,
+                        wayDp = way.toDp().value,
+                        velocityDpPerS = velocity.toDp().value,
+                    )
+                }
+                if (closes) {
                     releasing = true
                     nowPlaying = false
                     morphScope.launch {
@@ -446,18 +457,15 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                     // small the screen has become.
                     .pointerInput(scrubHeld) {
                         if (scrubHeld) return@pointerInput
-                        val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
-                        detectVerticalDragGestures(
-                            onDragStart = { tracker.resetTracking() },
-                            onDragEnd = { release(tracker.calculateVelocity().y) },
-                            onDragCancel = { release(0f) },
-                        ) { change, amount ->
-                            val next = (expand.value - amount / travel()).coerceIn(0f, 1f)
-                            if (next == expand.value) return@detectVerticalDragGestures
-                            change.consume()
-                            tracker.addPosition(change.uptimeMillis, change.position)
-                            morphScope.launch { expand.snapTo(next) }
-                        }
+                        // Deliberate and mostly downward, and never over something that
+                        // takes the finger first (CollapseGesture.kt).
+                        detectCollapseDrag(
+                            onDrag = { dy ->
+                                val next = (expand.value - dy / travel()).coerceIn(0f, 1f)
+                                if (next != expand.value) morphScope.launch { expand.snapTo(next) }
+                            },
+                            onRelease = { release(it) },
+                        )
                     }
                     .graphicsLayer {
                         val p = expand.value
@@ -733,8 +741,6 @@ private const val SCRIM = 0.32f
 private const val MINI_SWELL = 0.04f
 private const val PULSE_DAMPING = 0.7f
 private const val PULSE_UP_MS = 140
-private const val COMMIT_BELOW = 0.82f
-private const val FLICK_DP = 900
 private const val MIN_TRAVEL = 0.3f
 private const val DEFAULT_TRAVEL = 0.6f
 

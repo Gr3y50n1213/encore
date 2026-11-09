@@ -94,9 +94,10 @@ enum class PlayerPanel { Artwork, Lyrics, Queue }
  * Board 09, Android: the album's moving field; collapse and More over it; the artwork
  * (swipe to skip, double tap to like, hold for the menu, 88 % while paused); title and
  * artist; like; the wavy scrub bar; the transport row; and Lyrics, Output and Queue as one
- * connected group that swaps the artwork for that view in place. A swipe down follows
- * the finger and collapses past 30 % of the height or a fast fling, never while the
- * scrub bar is held. Landscape phones put the artwork left and the rest right.
+ * connected group that swaps the artwork for that view in place. A deliberate swipe down
+ * follows the finger and closes past 30 % of the way to the mini player or on a real
+ * flick, never while the scrub bar is held (CollapseGesture.kt). Landscape phones put the
+ * artwork left and the rest right.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalFoundationApi::class)
 @Composable
@@ -452,7 +453,7 @@ private fun ArtworkArea(
             onNext = { PlaybackHub.swipeNext(context) },
             onPrevious = { PlaybackHub.swipePrevious(context) },
             onEndOfQueue = onEnd,
-            modifier = Modifier.size(side),
+            modifier = Modifier.size(side).testTag("now-playing-art"),
         ) { entry, slot ->
             val id = entry?.song?.id ?: return@SkipSwipe
             Box(
