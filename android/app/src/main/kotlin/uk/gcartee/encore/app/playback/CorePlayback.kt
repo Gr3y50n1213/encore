@@ -301,13 +301,24 @@ class CorePlayback(
 
     /** A load finished: a transcoded song now held whole becomes seekable. */
     override fun onIsLoadingChanged(isLoading: Boolean) {
-        if (isLoading) return
-        main.post {
-            val at = pendingSeekMs
-            val item = exo.currentMediaItem
-            if (at != null && item != null && currentUid() == pendingSeekUid) reopenWhole(currentIndex(), item, at)
-            val next = nextIndex()
-            if (next < exo.mediaItemCount) reopenWhole(next, exo.getMediaItemAt(next))
+        if (!isLoading) main.post { useWholeSongs() }
+    }
+
+    /**
+     * After a load and on every tick: a seek waiting for its song does it now if the song
+     * is whole, and the next song, once whole, is opened again from the cache before it
+     * plays, so it plays seekable with its length.
+     */
+    private fun useWholeSongs() {
+        val at = pendingSeekMs
+        val item = exo.currentMediaItem
+        if (at != null && item != null && currentUid() == pendingSeekUid) reopenWhole(currentIndex(), item, at)
+        // Not in the current song's last seconds: the player may already be reading into
+        // the next one for a gapless change, and swapping it then would break the gap.
+        val left = if (exo.duration == C.TIME_UNSET) Long.MAX_VALUE else exo.duration - exo.currentPosition
+        val next = nextIndex()
+        if (left > LATE_SWAP_MS && next < exo.mediaItemCount && reopenWhole(next, exo.getMediaItemAt(next))) {
+            Log.i(TAG, "next song opened from the cache, whole: seekable, its length known")
         }
     }
 
@@ -641,6 +652,7 @@ class CorePlayback(
         if (exo.isPlaying && startedUid != null) {
             core.playbackProgress(exo.currentPosition, clock.listenedMs)
         }
+        if (transcodeKeys.isNotEmpty() && exo.mediaItemCount > 0) useWholeSongs()
         publish()
     }
 
@@ -714,6 +726,8 @@ class CorePlayback(
         private const val WHOLE = "#whole"
         /** How close to the end a song must be for the player's "ended" to count. */
         private const val END_SLACK_MS = 3_000L
+        /** No swapping the next song for its cached copy this close to the current one's end. */
+        private const val LATE_SWAP_MS = 8_000L
         private const val TICK_MS = 1_000L
         private const val ARTWORK_PX = 512
         private const val MAX_ERRORS_IN_A_ROW = 3

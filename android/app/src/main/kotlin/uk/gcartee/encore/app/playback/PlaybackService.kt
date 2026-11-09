@@ -9,6 +9,7 @@ import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.DataSourceBitmapLoader
@@ -79,6 +80,8 @@ class PlaybackService : MediaLibraryService() {
         PlaybackHub.attach(core)
 
         val sessionPlayer = object : ForwardingPlayer(exo) {
+            // Seeking is always offered while a song is loaded: a transcoded song looks
+            // unseekable to ExoPlayer, but the app seeks it from the rolling cache.
             override fun getAvailableCommands(): Player.Commands =
                 super.getAvailableCommands().buildUpon()
                     .addAll(
@@ -87,10 +90,13 @@ class PlaybackService : MediaLibraryService() {
                         Player.COMMAND_SEEK_TO_PREVIOUS,
                         Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,
                     )
+                    .addIf(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM, exo.mediaItemCount > 0)
                     .build()
 
             override fun isCommandAvailable(command: Int): Boolean =
-                command in TRANSPORT || super.isCommandAvailable(command)
+                command in TRANSPORT ||
+                    (command == Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM && exo.mediaItemCount > 0) ||
+                    super.isCommandAvailable(command)
 
             override fun seekToNext() = core.next(origin())
             override fun seekToNextMediaItem() = core.next(origin())
@@ -204,7 +210,15 @@ class PlaybackService : MediaLibraryService() {
         } else {
             http
         }
-        return ResolvingDataSource.Factory(DefaultDataSource.Factory(this, network)) { spec ->
+        return ResolvingDataSource.Factory(DefaultDataSource.Factory(this, network)) { asked ->
+            // ExoPlayer tells the cache to skip a stream whose length is unknown (meant for
+            // endless radio). A transcoded song (a capped quality) is one, and it must be
+            // kept: it's what makes it seekable and playable offline once whole.
+            val spec = if (asked.flags and DataSpec.FLAG_DONT_CACHE_IF_LENGTH_UNKNOWN != 0) {
+                asked.buildUpon().setFlags(asked.flags and DataSpec.FLAG_DONT_CACHE_IF_LENGTH_UNKNOWN.inv()).build()
+            } else {
+                asked
+            }
             headers[spec.uri.toString()]?.let(spec::withAdditionalHeaders) ?: spec
         }
     }
