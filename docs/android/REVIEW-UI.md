@@ -74,10 +74,19 @@ Decisions the owner made after using the app with their own library, which overr
 | Start radio "doesn't do anything" (8 November) | Its toast was drawn under Now Playing, Autoplay off left the radio nowhere to go, and the song playing started again. Radio now turns Autoplay on, carries on the song playing, and its toast shows over Now Playing | Section 21 |
 | Toasts don't match the app | Rounded like the mini player, in the app's tonal colours, and above Now Playing when it is open (under its top bar, never over controls) | Board 20 (the default dark snackbar) |
 | The licences page printed the raw lists | About card (version, source, licence), what the app is built on counted by licence with filter chips and search, families that open, each licence's text a tap away | Board 17 |
+## Phase 8 (offline and car), 8 November 2026
+
+| What | Decision | Against |
+| --- | --- | --- |
+| The offline sign | A slim amber pill that floats under the status bar ("Offline · Showing downloaded music"); pages move their content by its height and keep their colours behind it | Board 20's 16 dp bar across the top: the owner asked for "not too intrusive but notable" |
+| An album tile with nothing downloaded, offline | It dims but still opens, so the page can say which songs are saved; its songs refuse with a shake and "Not downloaded" | Board 06, item 5 (a shake on the tile itself) |
+| A download that waits | A still ring and the reason ("Waiting for Wi-Fi"); the wave is kept for songs arriving | Boards 06 and 08 draw only the downloading ring |
+| A connected group that scrolls | The page margin sits inside the scrolling row, so buttons slide out under the screen edge, and the chosen one is scrolled into view | Boards 06 and 24 draw four shelves that fit; Downloaded is a fifth |
+| The storage bar | Every part is named: Downloads, Cache, Other (the system and other apps) and Free | Board 17, item 3 names used and free only |
 ## Not built yet, and why
 
-- Downloads, the Download buttons and offline-only browsing (Phase 8); Android Auto (8); the sleep timer, widgets, Quick Settings tile and Live Updates (9); the year recap (11).
-- Search's Downloaded scope (shown, disabled until Phase 8) and Browse by mood: moods come from audio analysis (Phase 10).
+- Android Auto on a real head unit (built, checked as a media browser); the sleep timer, widgets, Quick Settings tile and Live Updates (9); the year recap (11).
+- Browse by mood: moods come from audio analysis (Phase 10).
 - The demo library (bundled tracks), multi-select, drag and drop onto playlists on tablets (board 43), the Large supporting pane, fold postures (tabletop and book), and the "Playing on ..." remote-control capsule.
 - Settings with no core behind them yet: crossfade, normalisation, equaliser, lyrics options, Hide explicit.
 - From the second review: the list-mode fast scroll handle (board 06, item 6), the row lift and dim behind the song menu (board 13, item 1), the Not interested sheet with scope and reason (board 38), "Lyrics and artwork" sources on the Servers page (board 18, item 4, no core yet), the tablet album detail as a grouped track list (board 29, item 3).
