@@ -474,7 +474,7 @@ private fun ArtworkArea(
                             haptics.perform(Haptic.Transport)
                             PlaybackHub.togglePlay(context)
                         },
-                        onClickLabel = if (state.isPlaying) "Pause" else "Play",
+                        onClickLabel = if (state.isPlaying || state.buffering) "Pause" else "Play",
                         onDoubleClick = onLike,
                         onLongClick = {
                             haptics.perform(Haptic.LongPress)
