@@ -59,7 +59,7 @@ class PlaybackService : MediaLibraryService() {
         // (ADTS) file with no index, and seeks by its byte rate.
         val extractors = DefaultExtractorsFactory().setConstantBitrateSeekingEnabled(true)
         val exo = ExoPlayer.Builder(this)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSource, extractors))
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSource, extractors).setLoadErrorHandlingPolicy(PatientRetries()))
             .setLoadControl(wholeSongLoadControl())
             .setAudioAttributes(
                 AudioAttributes.Builder()
@@ -188,8 +188,10 @@ class PlaybackService : MediaLibraryService() {
      * [cached] false is for artwork, which the image loaders keep themselves.
      */
     private fun dataSourceFactory(cached: Boolean = true): DataSource.Factory {
-        // A busy server can take a few seconds to start a transcode: a short timeout made
-        // the player retry, and every retry was another transcode.
+        // A busy server can take a while to start a transcode (over a minute, on the owner's
+        // PC under load): a short timeout made the player retry, and every retry was another
+        // transcode. The read timeout is long; a server that can't be reached still fails
+        // fast on the connect timeout.
         val http = DefaultHttpDataSource.Factory()
             .setUserAgent("${appName()} Android")
             .setAllowCrossProtocolRedirects(false)
@@ -219,12 +221,29 @@ class PlaybackService : MediaLibraryService() {
         }
     }
 
+    /**
+     * A failed song load is tried again twice, after 5 s and then 15 s, not ExoPlayer's
+     * up to six quick retries for a stream of unknown length (a transcode). Every retry is a
+     * new request, and on Jellyfin a new transcode while the abandoned one keeps running: on
+     * the owner's busy server (9 November 2026, a minute to answer) one song was asked for
+     * five times, 20 s apart.
+     */
+    private class PatientRetries : androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy(MEDIA_RETRIES) {
+        override fun getRetryDelayMsFor(info: androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy.LoadErrorInfo): Long {
+            val asked = super.getRetryDelayMsFor(info)
+            if (asked == C.TIME_UNSET) return asked // not worth retrying (a 404, say)
+            return RETRY_DELAYS_MS.getOrElse(info.errorCount - 1) { RETRY_DELAYS_MS.last() }
+        }
+    }
+
     private companion object {
+        const val MEDIA_RETRIES = 2
+        val RETRY_DELAYS_MS = longArrayOf(5_000, 15_000).toList()
         const val DEFAULT_CACHE_BYTES = 1_000_000_000L
         const val WHOLE_SONG_MS = 15 * 60_000
         const val BUFFER_BYTES = 64 * 1024 * 1024
         const val CONNECT_TIMEOUT_MS = 10_000
-        const val READ_TIMEOUT_MS = 20_000
+        const val READ_TIMEOUT_MS = 90_000
         val TRANSPORT = setOf(
             Player.COMMAND_SEEK_TO_NEXT,
             Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,
