@@ -69,6 +69,8 @@ class CorePlayback(
     private val exo: ExoPlayer,
     private val headers: ConcurrentHashMap<String, Map<String, String>>,
     private val scope: CoroutineScope,
+    /** The rolling cache holds the song under this cache key whole ([RollingCache.isWhole]). */
+    private val wholeInCache: (String) -> Boolean = { false },
 ) : Player.Listener {
     private val core get() = host.core
     private val clock = ListenClock { SystemClock.elapsedRealtime() }
@@ -86,6 +88,11 @@ class CorePlayback(
     private var tidyPending = false
     /** The song whose false end was already answered by playing it again ([notReallyEnded]). */
     private var replayedUid: Long? = null
+    /** Cache keys of streams the server may transcode (no length, so no seeking at first). */
+    private val transcodeKeys: MutableSet<String> = ConcurrentHashMap.newKeySet()
+    /** A seek asked for while a transcoded song is still arriving: done once it's whole. */
+    private var pendingSeekMs: Long? = null
+    private var pendingSeekUid: Long? = null
 
     /** How many times the player said a song ended when it hadn't (tests read it). */
     @VisibleForTesting
@@ -244,8 +251,64 @@ class CorePlayback(
         runCatching { core.setVolumeLevel(exo.volume.toDouble()) }
     }
 
+    /**
+     * Seeks the current song. A transcoded stream (a capped quality) has no length, so the
+     * player can't seek in it: once the rolling cache holds it whole it's opened again from
+     * there, where it can; until then the seek waits for the rest of it (a few seconds).
+     */
     fun seekTo(positionMs: Long) {
-        exo.seekTo(positionMs) // reported in onPositionDiscontinuity
+        val item = exo.currentMediaItem
+        val key = item?.localConfiguration?.customCacheKey
+        if (item == null || exo.isCurrentMediaItemSeekable || key == null || key !in transcodeKeys) {
+            exo.seekTo(positionMs) // reported in onPositionDiscontinuity
+            return
+        }
+        if (!reopenWhole(currentIndex(), item, positionMs)) {
+            Log.i(TAG, "seek to $positionMs waits for the rest of the song")
+            pendingSeekMs = positionMs
+            pendingSeekUid = currentUid()
+        }
+    }
+
+    /**
+     * Opens [item] (at [index]) again from the rolling cache, where its length is known and
+     * it can seek, at [positionMs] when given. False when it isn't a transcoded stream held
+     * whole yet.
+     */
+    private fun reopenWhole(index: Int, item: MediaItem, positionMs: Long? = null): Boolean {
+        val config = item.localConfiguration ?: return false
+        val key = config.customCacheKey ?: return false
+        val uri = config.uri.toString()
+        if (key !in transcodeKeys || uri.endsWith(WHOLE) || !wholeInCache(key)) return false
+        headers[uri]?.let { headers[uri + WHOLE] = it }
+        val whole = item.buildUpon().setUri(uri + WHOLE).build()
+        if (positionMs == null) {
+            // Not playing yet (the next song): it plays from the start, seekable.
+            exo.replaceMediaItem(index, whole)
+            return true
+        }
+        val from = exo.currentPosition
+        val play = exo.playWhenReady
+        exo.replaceMediaItem(index, whole)
+        ownSeek = true
+        exo.seekTo(index, positionMs)
+        exo.playWhenReady = play
+        if (startedUid != null) core.playbackSeeked(from, positionMs)
+        pendingSeekMs = null
+        Log.i(TAG, "reopened from the cache to seek to $positionMs")
+        return true
+    }
+
+    /** A load finished: a transcoded song now held whole becomes seekable. */
+    override fun onIsLoadingChanged(isLoading: Boolean) {
+        if (isLoading) return
+        main.post {
+            val at = pendingSeekMs
+            val item = exo.currentMediaItem
+            if (at != null && item != null && currentUid() == pendingSeekUid) reopenWhole(currentIndex(), item, at)
+            val next = nextIndex()
+            if (next < exo.mediaItemCount) reopenWhole(next, exo.getMediaItemAt(next))
+        }
     }
 
     // --- Core events. ---
@@ -499,6 +562,8 @@ class CorePlayback(
     }
 
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+        // A seek waiting for its song to arrive whole doesn't carry over to another song.
+        if (currentUid() != pendingSeekUid) pendingSeekMs = null
         if (reason != Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
             startedIfPlaying()
             publish()
@@ -589,12 +654,22 @@ class CorePlayback(
         headers[info.url] = info.headers.associate { it.name to it.value }
         if (songOfUid.size > SONGS_REMEMBERED) songOfUid.clear()
         songOfUid[entry.uid] = entry.song.id
+        // A transcoded song the rolling cache already holds whole (played before) opens
+        // from there at once: its length is known, so it can seek from the start.
+        val transcoded = !info.local && info.mayTranscode
+        if (transcoded) transcodeKeys.add(info.cacheKey)
+        val uri = if (transcoded && wholeInCache(info.cacheKey)) {
+            headers[info.url + WHOLE] = headers.getValue(info.url)
+            info.url + WHOLE
+        } else {
+            info.url
+        }
         val art = runCatching { core.artwork(ArtworkOf.SONG, entry.song.id, ARTWORK_PX.toUInt()) }.getOrNull()
         art?.let { headers[it.url] = it.headers.associate { h -> h.name to h.value } }
         val song = entry.song
         return MediaItem.Builder()
             .setMediaId("$UID_PREFIX${entry.uid}")
-            .setUri(info.url)
+            .setUri(uri)
             // The rolling cache's name for it (no token); a downloaded file isn't cached.
             .apply { if (!info.local) setCustomCacheKey(info.cacheKey) }
             .setMediaMetadata(
@@ -632,6 +707,11 @@ class CorePlayback(
     companion object {
         const val UID_PREFIX = "uid:"
         private const val TAG = "CorePlayback"
+        /**
+         * Marks an address to be read from the rolling cache, where the song is whole: a
+         * fragment, so it's never sent to the server, and the player sees a different item.
+         */
+        private const val WHOLE = "#whole"
         /** How close to the end a song must be for the player's "ended" to count. */
         private const val END_SLACK_MS = 3_000L
         private const val TICK_MS = 1_000L

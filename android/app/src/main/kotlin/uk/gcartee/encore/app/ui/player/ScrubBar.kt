@@ -78,11 +78,11 @@ fun rememberSmoothPosition(positionMs: Long, playing: Boolean, durationMs: Long)
         val end = if (durationMs > 0) durationMs else Long.MAX_VALUE
         // About 30 steps a second: the bar moves a pixel every few hundred ms, so stepping
         // on every frame of a 120 Hz screen only spent battery.
-        var shown = start - SMOOTH_FRAME_MS
+        var stepped = start - SMOOTH_FRAME_MS
         while (true) {
             withInfiniteAnimationFrameMillis { now ->
-                if (now - shown >= SMOOTH_FRAME_MS) {
-                    shown = now
+                if (now - stepped >= SMOOTH_FRAME_MS) {
+                    stepped = now
                     out.longValue = (base + (now - start)).coerceAtMost(end)
                 }
             }

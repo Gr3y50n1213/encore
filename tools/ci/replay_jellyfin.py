@@ -22,10 +22,12 @@ test settings:
     recording holds each one at the 64 px the palette samples, and the apps ask for
     the size they draw (fillWidth, fillHeight), so the end-to-end screenshots show
     the covers, scaled.
-  - A song's audio (GET /Audio/<id>/stream or /universal) is 30 seconds of
-    silence made here, as WAV, with ranges honoured: the recording holds no audio,
-    and Phase 8's emulator test downloads songs and plays them offline. No audio is
-    committed anywhere.
+  - A song's audio is 30 seconds of silence made here: the recording holds no
+    audio, and the emulator tests download songs, play them offline and let them end.
+    GET /Audio/<id>/stream (the file as it is) is a WAV with ranges honoured;
+    GET /Audio/<id>/universal (a capped quality) is sent like Jellyfin's transcode:
+    MP3 in chunks, with no length and no ranges, so the player can't seek it until
+    it's whole. No audio is committed anywhere.
 """
 
 import email.utils
@@ -55,6 +57,21 @@ def silence_wav():
 
 
 SILENCE = silence_wav()
+
+
+def silence_mp3():
+    """SECONDS of silent MPEG-1 Layer III frames (128 kbps, 44.1 kHz, mono, no CRC).
+
+    Each frame is its 4-byte header and zeros: zero side information decodes to
+    silence. No Xing header, so with no length the player has no seek table.
+    """
+    header = bytes([0xFF, 0xFB, 0x90, 0xC0])
+    frame = header + bytes(144 * 128000 // 44100 - len(header))
+    frames = -(-SECONDS * 44100 // 1152)
+    return frame * frames
+
+
+SILENT_MP3 = silence_mp3()
 
 
 def load(path):
@@ -135,7 +152,10 @@ def handler(replay):
                 self.rfile.read(length)
             url = urlsplit(self.path)
             if method == "GET" and AUDIO_PATH.match(url.path):
-                self.audio()
+                if url.path.endswith("/universal"):
+                    self.transcode()
+                else:
+                    self.audio()
                 return
             x = replay.find(method, url.path, parse_qsl(url.query, keep_blank_values=True))
             if x is None:
@@ -185,6 +205,19 @@ def handler(replay):
             self.send_header("Content-Length", str(len(body) - start))
             self.end_headers()
             self.wfile.write(body[start:])
+
+        def transcode(self):
+            """A capped quality, as Jellyfin streams a transcode: no length, no ranges."""
+            self.recorded_date = None
+            self.send_response(200)
+            self.send_header("Content-Type", "audio/mpeg")
+            self.send_header("Transfer-Encoding", "chunked")
+            self.end_headers()
+            step = 16384
+            for i in range(0, len(SILENT_MP3), step):
+                part = SILENT_MP3[i : i + step]
+                self.wfile.write(b"%x\r\n" % len(part) + part + b"\r\n")
+            self.wfile.write(b"0\r\n\r\n")
 
         def do_GET(self):
             self.answer("GET")

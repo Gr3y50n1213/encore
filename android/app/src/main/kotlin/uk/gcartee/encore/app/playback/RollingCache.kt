@@ -53,6 +53,16 @@ object RollingCache {
         }
     }.getOrDefault(emptyList())
 
+    /**
+     * The song under [key] is held whole, its length known. A transcoded stream arrives
+     * with no length (so the player can't seek it); opened again from here, it can.
+     */
+    fun isWhole(context: Context, key: String): Boolean = runCatching {
+        val c = get(context)
+        val length = ContentMetadata.getContentLength(c.getContentMetadata(key))
+        length > 0 && c.isCached(key, 0, length)
+    }.getOrDefault(false)
+
     fun clear(context: Context) {
         runCatching {
             val c = get(context)

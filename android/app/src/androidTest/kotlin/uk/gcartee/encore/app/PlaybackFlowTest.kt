@@ -23,6 +23,7 @@ import uk.gcartee.encore.app.playback.PlaybackHub
 import uk.gcartee.encore.app.playback.PlaybackService
 import uk.gcartee.encore.core.AlbumSort
 import uk.gcartee.encore.core.StartedFrom
+import uk.gcartee.encore.core.StreamQuality
 
 /**
  * A song that ends by itself is followed by the next one, never the one after it, and the
@@ -50,6 +51,10 @@ class PlaybackFlowTest {
         val album = albums.firstOrNull { a -> a.songCount >= 3u && host.core.album(a.id).songs.none { it.id in saved } }
             ?: albums.first { it.songCount >= 3u }
         val songs = host.core.album(album.id).songs
+        // The file as it is first (the emulator may count as Wi-Fi or as mobile data).
+        val network = host.network()
+        val quality = host.core.streamQuality(network)
+        host.core.setStreamQuality(network, StreamQuality.ORIGINAL)
         host.core.play(songs.map { it.id }, 0u, StartedFrom.ALBUM, null)
         rule.runOnUiThread { PlaybackHub.playCurrent(rule.activity) }
         step("the first song plays", TIMEOUT) { host.core.queue().current?.song?.id == songs[0].id && playing() }
@@ -84,8 +89,30 @@ class PlaybackFlowTest {
             }
             onMain { controller.seekToNext() }
             step("Next plays the third song", TIMEOUT) { host.core.queue().current?.song?.id == songs[2].id && playing() }
+
+            // A capped quality: the server transcodes, and sends it with no length (the
+            // replay does it the way Jellyfin does), so the player can't seek it at first.
+            // A seek lands once the song is whole in the rolling cache, and the song after
+            // it is opened from there before it plays: seekable, its length known.
+            host.core.setStreamQuality(network, StreamQuality.HIGH)
+            host.core.play(songs.map { it.id }, 0u, StartedFrom.ALBUM, null)
+            rule.runOnUiThread { PlaybackHub.playCurrent(rule.activity) }
+            step("the first song plays, transcoded", TIMEOUT) { host.core.queue().current?.song?.id == songs[0].id && playing() }
+            onMain { controller.seekTo(SEEK_TO_MS) }
+            step("the seek lands once the transcoded song is whole", TIMEOUT) {
+                onMain { controller.isCurrentMediaItemSeekable && controller.currentPosition >= SEEK_TO_MS - SEEK_SLACK_MS }
+            }
+            assertEquals("still the first song after the seek", songs[0].id, host.core.queue().current?.song?.id)
+            Thread.sleep(SETTLE_MS) // the second song arrives whole and is opened from the cache
+            onMain { controller.seekToNext() }
+            step("the second song is seekable, its length known, as it starts", TIMEOUT) {
+                host.core.queue().current?.song?.id == songs[1].id &&
+                    onMain { controller.isCurrentMediaItemSeekable && controller.duration > 0 }
+            }
+            assertEquals("no false ends on the transcoded songs either", 0, onMain { PlaybackHub.isConnected.value?.falseEnds ?: -1 })
             onMain { controller.pause() }
         } finally {
+            host.core.setStreamQuality(network, quality)
             onMain { controller.release() }
         }
     }
@@ -113,5 +140,7 @@ class PlaybackFlowTest {
         const val END_TIMEOUT = 30_000L
         const val END_IN_MS = 4_000L
         const val SETTLE_MS = 4_000L
+        const val SEEK_TO_MS = 20_000L
+        const val SEEK_SLACK_MS = 1_500L
     }
 }

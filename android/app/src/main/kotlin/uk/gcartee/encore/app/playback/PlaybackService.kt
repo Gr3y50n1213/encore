@@ -74,7 +74,7 @@ class PlaybackService : MediaLibraryService() {
         if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) {
             exo.addAnalyticsListener(EventLogger("EncorePlayer"))
         }
-        val core = CorePlayback(host, exo, headers, scope).also { it.start() }
+        val core = CorePlayback(host, exo, headers, scope) { key -> RollingCache.isWhole(this, key) }.also { it.start() }
         playback = core
         PlaybackHub.attach(core)
 
@@ -97,6 +97,13 @@ class PlaybackService : MediaLibraryService() {
             override fun seekToPrevious() = core.previous(origin())
             override fun seekToPreviousMediaItem() = core.previous(origin())
             override fun play() = core.play()
+
+            // The lock screen's, the car's and Bluetooth's seeks go the app's way: a
+            // transcoded song seeks once it's whole in the rolling cache (CorePlayback.seekTo).
+            override fun seekTo(positionMs: Long) = core.seekTo(positionMs)
+            override fun seekTo(mediaItemIndex: Int, positionMs: Long) {
+                if (mediaItemIndex == exo.currentMediaItemIndex) core.seekTo(positionMs) else super.seekTo(mediaItemIndex, positionMs)
+            }
 
             // A car or another controller chose something: AutoLibrary has already
             // built the queue in the core; load its current song (never the list).
