@@ -1,17 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The Encore mark: a lowercase e in one stroke whose crossbar is Now Playing's wave
-     (docs/android/adr/android-0004-app-icon.md). Drawn on the 108 dp adaptive canvas; the
-     mark is 45 dp across, inside the 66 dp circle every launcher shape keeps. Also the
-     themed (monochrome) layer, where Android replaces the white with its own tint. -->
+<!-- The Encore mark: a repeat sign (two dots beside a double bar line, "play it again"),
+     drawn with round dots and pill-shaped bars (docs/adr/android-0004-app-icon.md). On the
+     108 dp adaptive canvas it is 34 by 38 dp, inside the 66 dp circle every launcher shape
+     keeps. Also the themed (monochrome) layer, where Android replaces the white with its tint. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- The dots -->
     <path
-        android:pathData="M35.31,53.5C38.42,53.5 41.54,50.99 44.65,50.1C47.77,49.21 50.88,50.98 54,53.5C57.12,56.02 60.23,57.79 63.35,56.9C66.46,56.01 69.58,53.5 72.69,53.5A18.7,18.7 0 1 0 67.22,67.22"
-        android:strokeColor="#FFFFFF"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:strokeWidth="7.5" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M37.5,46.2a4.7,4.7 0,1 0,9.4 0a4.7,4.7 0,1 0,-9.4 0ZM37.5,61.8a4.7,4.7 0,1 0,9.4 0a4.7,4.7 0,1 0,-9.4 0Z" />
+    <!-- The thin bar and the thick bar -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M51.5,37.4a2.4,2.4 0,0 1,4.8 0v33.2a2.4,2.4 0,0 1,-4.8 0ZM60.9,40.2a5.2,5.2 0,0 1,10.4 0v27.6a5.2,5.2 0,0 1,-10.4 0Z" />
 </vector>

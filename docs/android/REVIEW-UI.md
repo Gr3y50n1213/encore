@@ -94,7 +94,7 @@ Decisions the owner made after using the app with their own library, which overr
 | The squiggle's tip passes the handle | The wave stops one gap before the handle and nothing of the bar is drawn inside the handle's clear space | Board 09, item 5 |
 | Made for you cuts tiles off while swiping | A row of equal square tiles that snaps to a tile's edge, with the next one showing at the side | Board 05's multi-browse carousel, which resized tiles as they moved |
 | Dragging a song in the queue can't go further than the screen | The list scrolls on its own when the held row nears the top or bottom, faster the nearer it is, and a second finger can scroll the list while the first holds the row | Board 11, item 4 |
-| A real app icon | The wave e (ADR android-0004) | The placeholder note |
+| A real app icon | The repeat sign with round dots and pill bars, in Iris (ADR android-0004) | The placeholder note |
 
 ## Not built yet, and why
 
