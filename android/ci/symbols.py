@@ -30,6 +30,8 @@ NAMES = {
     # Phase 8: downloads and offline.
     "download_done": False, "offline_pin": True, "error": False, "downloading": False,
     "notifications": False, "storage": False, "wifi": False,
+    # Polish round: "This tablet" in Play on.
+    "tablet_android": False,
 }
 BASE = "https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/{n}/materialsymbolsrounded/{n}{f}_24px.svg"
 TEMPLATE = """<?xml version="1.0" encoding="utf-8"?>

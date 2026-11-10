@@ -93,6 +93,10 @@ fun FieldSheetTheme(colours: FieldColours, content: @Composable () -> Unit) {
         scheme.copy(
             primary = colours.text,
             onPrimary = colours.base,
+            // A checked tonal toggle (the sheet's Like) fills with secondary: the album's
+            // text colour, so a liked song stands out in the album's own colours.
+            secondary = colours.text,
+            onSecondary = colours.base,
             secondaryContainer = tone(TONE_SELECTED),
             onSecondaryContainer = colours.text,
             surface = colours.base,

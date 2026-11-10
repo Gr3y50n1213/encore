@@ -68,6 +68,7 @@ object Icons {
     @Composable fun expandMore(): Painter = painterResource(R.drawable.sym_expand_more)
     @Composable fun expandLess(): Painter = painterResource(R.drawable.sym_expand_less)
     @Composable fun phone(): Painter = painterResource(R.drawable.sym_phone_android)
+    @Composable fun tablet(): Painter = painterResource(R.drawable.sym_tablet_android)
     @Composable fun computer(): Painter = painterResource(R.drawable.sym_computer)
     @Composable fun speaker(): Painter = painterResource(R.drawable.sym_speaker)
     // Phase 8: downloads and offline.

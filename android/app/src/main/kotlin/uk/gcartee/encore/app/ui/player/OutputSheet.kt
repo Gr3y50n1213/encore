@@ -122,7 +122,7 @@ fun OutputSheet(host: CoreHost, playingHere: Boolean, onDismiss: () -> Unit) {
                     contentColor = if (playingHere) scheme.onSecondaryContainer else scheme.onSurface,
                 ) {
                     IconDisc(
-                        Icons.phone(),
+                        if (tablet) Icons.tablet() else Icons.phone(),
                         color = if (playingHere) scheme.primary else scheme.surfaceContainerHighest,
                         tint = if (playingHere) scheme.onPrimary else scheme.onSurfaceVariant,
                     )
