@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Material Symbols "music_note" (Apache-2.0), centred in the 108 dp adaptive canvas. -->
+<!-- The Encore mark: a lowercase e in one stroke whose crossbar is Now Playing's wave
+     (docs/android/adr/android-0004-app-icon.md). Drawn on the 108 dp adaptive canvas; the
+     mark is 45 dp across, inside the 66 dp circle every launcher shape keeps. Also the
+     themed (monochrome) layer, where Android replaces the white with its own tint. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="1728"
-    android:viewportHeight="1728">
-    <group android:translateX="384" android:translateY="1344">
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M400,-120q-66,0 -113,-47t-47,-113q0,-66 47,-113t113,-47q23,0 42.5,5.5T480,-418v-422h240v160H560v400q0,66 -47,113t-113,47Z" />
-    </group>
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M35.31,53.5C38.42,53.5 41.54,50.99 44.65,50.1C47.77,49.21 50.88,50.98 54,53.5C57.12,56.02 60.23,57.79 63.35,56.9C66.46,56.01 69.58,53.5 72.69,53.5A18.7,18.7 0 1 0 67.22,67.22"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="7.5" />
 </vector>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The icon's Iris finish: a light iris through the accent seed to a deep violet, corner
+     to corner of the 72 dp every launcher shows, with a soft light from the top left. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:pathData="M0,0h108v108h-108z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="18"
+                android:startY="18"
+                android:endX="90"
+                android:endY="90">
+                <item android:offset="0" android:color="#7F60F4" />
+                <item android:offset="0.55" android:color="@color/ic_launcher_background" />
+                <item android:offset="1" android:color="#4526B4" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M0,0h108v108h-108z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="30"
+                android:centerY="24"
+                android:gradientRadius="62">
+                <item android:offset="0" android:color="#38FFFFFF" />
+                <item android:offset="1" android:color="#00FFFFFF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>

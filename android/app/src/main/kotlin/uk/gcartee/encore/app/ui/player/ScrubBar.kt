@@ -221,8 +221,10 @@ fun ScrubBar(
                     // the bar is ever drawn inside the handle's clear space.
                     .drawWithContent {
                         val centre = if (layoutDirection == LayoutDirection.Rtl) size.width - head() else head()
+                        // clipRect's block is a plain DrawScope, which cannot draw the content itself.
+                        val bar = this
                         clipRect(left = centre - reach, top = 0f, right = centre + reach, bottom = size.height, clipOp = ClipOp.Difference) {
-                            drawContent()
+                            bar.drawContent()
                         }
                     },
             )

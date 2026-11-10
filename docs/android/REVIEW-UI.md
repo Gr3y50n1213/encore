@@ -83,6 +83,19 @@ Decisions the owner made after using the app with their own library, which overr
 | A download that waits | A still ring and the reason ("Waiting for Wi-Fi"); the wave is kept for songs arriving | Boards 06 and 08 draw only the downloading ring |
 | A connected group that scrolls | The page margin sits inside the scrolling row, so buttons slide out under the screen edge, and the chosen one is scrolled into view | Boards 06 and 24 draw four shelves that fit; Downloaded is a fifth |
 | The storage bar | Every part is named: Downloads, Cache, Other (the system and other apps) and Free | Board 17, item 3 names used and free only |
+
+## The owner's polish round (9 November 2026)
+
+| Owner's request | What the app does | Board it changes |
+| --- | --- | --- |
+| Skip forward and back show no animation; check the other buttons | Previous and Next squeeze and kick in their direction on a press, like Play. Every remaining plain icon button (Home and Mixes Play, Search and Licences Clear, show password, Now Playing's collapse) has a pressed shape | Board 35 |
+| The Output pop-up is "very basic" | "Play on" is rebuilt from the action sheet's parts: grouped tonal rows with icon discs, this device marked with level bars, Speakers and headphones, then "Your other devices"; each state (no server, Guest, no other device, unreachable) is one row with its reason and action | The plain list Phase 7 shipped |
+| The three-dot menu in Now Playing should match better | Sheets opened from Now Playing (More, Add to playlist, Why this song, Play on) take the album's colours. Add to playlist and Why this song are drawn with the same grouped rows, and every row squeezes when pressed | Board 13 |
+| The squiggle's tip passes the handle | The wave stops one gap before the handle and nothing of the bar is drawn inside the handle's clear space | Board 09, item 5 |
+| Made for you cuts tiles off while swiping | A row of equal square tiles that snaps to a tile's edge, with the next one showing at the side | Board 05's multi-browse carousel, which resized tiles as they moved |
+| Dragging a song in the queue can't go further than the screen | The list scrolls on its own when the held row nears the top or bottom, faster the nearer it is, and a second finger can scroll the list while the first holds the row | Board 11, item 4 |
+| A real app icon | The wave e (ADR android-0004) | The placeholder note |
+
 ## Not built yet, and why
 
 - Android Auto on a real head unit (built, checked as a media browser); the sleep timer, widgets, Quick Settings tile and Live Updates (9); the year recap (11).
