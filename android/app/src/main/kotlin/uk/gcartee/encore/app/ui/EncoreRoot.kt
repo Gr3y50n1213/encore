@@ -184,7 +184,8 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     val morphScope = rememberCoroutineScope()
     val density = LocalDensity.current
     var profiles by remember { mutableStateOf(false) }
-    var output by remember { mutableStateOf(false) }
+    // The Play on sheet is open, in the colours of the Now Playing page that opened it.
+    var output by remember { mutableStateOf<uk.gcartee.encore.app.ui.player.FieldColours?>(null) }
     var addingAccount by rememberSaveable { mutableStateOf(false) }
     var continueFrom by remember { mutableStateOf<OutputDevice?>(null) }
     var switches by remember { mutableIntStateOf(0) }
@@ -522,7 +523,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                         nowPlaying = false
                         nav.push(route)
                     },
-                    onOutput = { output = true },
+                    onOutput = { output = it },
                     onArtBounds = { rect, shrinks ->
                         if (expand.value >= 0.999f && rect.usable()) {
                             val spot = ArtSpot(rect, shrinks)
@@ -557,7 +558,9 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
         if (profiles) ProfileSheet(host, playing = player.isPlaying, onDismiss = { profiles = false }, onSwitched = { nav.reset(); switches++ }, onAddAccount = { addingAccount = true }, showSettings = nav.top !is Route.Settings)
         val primer by host.notificationPrimer.collectAsState()
         if (primer) NotificationPrimer(onDone = { host.notificationPrimer.value = false })
-        if (output) OutputSheet(host, playingHere = player.isPlaying, onDismiss = { output = false })
+        output?.let { tint ->
+            uk.gcartee.encore.app.ui.player.FieldSheetTheme(tint) { OutputSheet(host, playingHere = player.isPlaying, onDismiss = { output = null }) }
+        }
     }
 }
 

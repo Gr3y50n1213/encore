@@ -13,9 +13,17 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.animation.core.withInfiniteAnimationFrameMillis
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerId
+import androidx.compose.ui.layout.LocalPinnableContainer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -114,7 +122,56 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
     val upShown = shown.take(boundary)
     val autoShown = shown.drop(boundary)
     val autoUids = remember(q.autoplay) { q.autoplay.map { it.uid }.toSet() }
-    LazyColumn(modifier, contentPadding = PaddingValues(bottom = (Grid.base * 2).dp)) {
+    val listState = rememberLazyListState()
+    // The held row changed places: a tick, and the list keeps its place by position. Left
+    // alone it would follow whichever row was first on screen, and jump when that row is
+    // the one that just moved.
+    val onStep = remember(listState, haptics) {
+        {
+            haptics.perform(Haptic.Tick)
+            listState.requestScrollToItem(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset)
+        }
+    }
+    // The owner (9 November 2026): a song could only go as far as the screen showed, "move
+    // it up, scroll up, move it up, scroll up". Held near the top or bottom edge, the list
+    // now scrolls under the row, faster the nearer the edge, and the row goes on trading
+    // places as songs pass beneath it. It needs the finger to be heading that way, so a
+    // row picked up at the edge doesn't run off by itself.
+    val density = LocalDensity.current
+    LaunchedEffect(drag.dragging, listState) {
+        val uid = drag.dragging ?: return@LaunchedEffect
+        val key = "q$uid"
+        val edge = with(density) { SCROLL_EDGE_DP.dp.toPx() }
+        val slow = with(density) { SCROLL_SLOW_DP.dp.toPx() }
+        val fast = with(density) { SCROLL_FAST_DP.dp.toPx() }
+        val lean = with(density) { LEAN_DP.dp.toPx() }
+        var last = withInfiniteAnimationFrameMillis { it }
+        while (true) {
+            val now = withInfiniteAnimationFrameMillis { it }
+            val dt = ((now - last) / 1000f).coerceIn(0f, MAX_FRAME_S)
+            last = now
+            val info = listState.layoutInfo
+            val slot = info.visibleItemsInfo.firstOrNull { it.key == key } ?: continue
+            val top = slot.offset + drag.offset
+            val above = (info.viewportStartOffset + edge - top) / edge
+            val below = (top + slot.size - (info.viewportEndOffset - edge)) / edge
+            val speed = when {
+                above > 0f && drag.lean < -lean -> -(slow + (fast - slow) * above.coerceAtMost(1f).let { it * it })
+                below > 0f && drag.lean > lean -> slow + (fast - slow) * below.coerceAtMost(1f).let { it * it }
+                else -> 0f
+            }
+            if (speed != 0f) {
+                drag.offset += listState.dispatchRawDelta(speed * dt)
+                if (drag.step()) onStep()
+            }
+        }
+    }
+    LazyColumn(
+        // And the other way the owner asked for: one finger holds the row, another scrolls.
+        modifier.secondFingerScroll(drag, listState, onStep),
+        state = listState,
+        contentPadding = PaddingValues(bottom = (Grid.base * 2).dp),
+    ) {
         item {
             // Item 1: the title, then Shuffle, Repeat and Autoplay as tonal toggles whose
             // shape tells the state (section 22).
@@ -184,7 +241,7 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
         if (upShown.isEmpty() && drag.dragging == null) item {
             Text("Nothing queued. Autoplay continues with songs you'll like.", style = type.body, color = colour.copy(alpha = 0.72f), modifier = Modifier.padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp))
         }
-        reorderable(upShown, shown, host, colour, autoUids, ::edit, drag)
+        reorderable(upShown, shown, host, colour, autoUids, ::edit, drag, onStep)
         item(key = "autoplay-heading") {
             // Measured: a pick dragged up past this heading joins Up Next.
             Row(Modifier.fillMaxWidth().onSizeChanged { drag.headerH = it.height.toFloat() }.padding(start = (Grid.base * 2).dp, end = Grid.base.dp, top = (Grid.base * 2).dp), verticalAlignment = Alignment.CenterVertically) {
@@ -210,7 +267,7 @@ fun QueuePanel(host: CoreHost, colour: Color, onPlayer: () -> Unit, modifier: Mo
                     Text("Picking songs you'll like…", style = type.body, color = colour.copy(alpha = 0.72f))
                 }
             }
-            else -> reorderable(autoShown, shown, host, colour, autoUids, ::edit, drag)
+            else -> reorderable(autoShown, shown, host, colour, autoUids, ::edit, drag, onStep)
         }
     }
 
@@ -282,11 +339,119 @@ private class Reorder {
     var order by mutableStateOf<List<QueueEntry>>(emptyList())
     var boundary by mutableIntStateOf(0)
     var headerH = 0f
+    var rowH = 1f
     var startIndex = -1
     var fromAutoplay = false
     var autoplayIndex = 0
 
+    /** Which way the finger has been heading lately, in pixels: up is negative. */
+    var lean = 0f
+
     fun shown(live: List<QueueEntry>): List<QueueEntry> = if (dragging != null || holding) order else live
+
+    /** The finger moved by [dy]: [lean] follows it, and turns round within [most] pixels. */
+    fun leaned(dy: Float, most: Float) {
+        lean = (lean + dy).coerceIn(-most, most)
+    }
+
+    /**
+     * Moves the held row through the list to where [offset] has carried it, whether the
+     * finger moved or the list scrolled beneath it. True when it changed places.
+     */
+    fun step(): Boolean {
+        val uid = dragging ?: return false
+        var i = order.indexOfFirst { it.uid == uid }
+        if (i < 0) return false
+        val item = order[i]
+        // Copied only when the row does change places.
+        var changed: MutableList<QueueEntry>? = null
+        fun list() = changed ?: order.toMutableList().also { changed = it }
+        var b = boundary
+        while (true) {
+            if (i < b) {
+                when {
+                    offset < -rowH / 2 && i > 0 -> {
+                        java.util.Collections.swap(list(), i, i - 1)
+                        i--
+                        offset += rowH
+                    }
+                    offset > rowH / 2 && i < b - 1 -> {
+                        java.util.Collections.swap(list(), i, i + 1)
+                        i++
+                        offset -= rowH
+                    }
+                    // A pick taken into Up Next goes back to its place.
+                    fromAutoplay && i == b - 1 && offset > headerH / 2 + autoplayIndex * rowH -> {
+                        val l = list()
+                        l.removeAt(i)
+                        b--
+                        val slot = (b + autoplayIndex).coerceAtMost(l.size)
+                        l.add(slot, item)
+                        i = slot
+                        offset -= headerH + autoplayIndex * rowH
+                    }
+                    else -> break
+                }
+            } else {
+                // A pick moves only by joining Up Next, past the heading.
+                val k = i - b
+                if (offset < -(headerH / 2 + k * rowH)) {
+                    val l = list()
+                    l.removeAt(i)
+                    l.add(b, item)
+                    offset += headerH + k * rowH
+                    i = b
+                    b++
+                } else {
+                    break
+                }
+            }
+        }
+        // An Up Next row stops above the heading; a pick does not wander among the other
+        // picks.
+        if (i == b - 1 && !fromAutoplay) offset = offset.coerceAtMost(rowH / 2)
+        if (i >= b) offset = offset.coerceAtMost(rowH / 2)
+        if (i == 0) offset = offset.coerceAtLeast(-rowH / 2)
+        val moved = changed ?: return false
+        order = moved
+        boundary = b
+        return true
+    }
+}
+
+/**
+ * While a row is held by its handle, any other finger put down on the queue scrolls it.
+ * The list's own scrolling can't: it only starts with a gesture's first finger, and that
+ * one belongs to the handle. So this takes the later fingers before the rows see them (a
+ * second finger never taps or swipes a row), moves the list by hand and keeps the held row
+ * under the first finger.
+ */
+private fun Modifier.secondFingerScroll(drag: Reorder, list: LazyListState, onStep: () -> Unit): Modifier = pointerInput(drag, list, onStep) {
+    awaitPointerEventScope {
+        val others = mutableSetOf<PointerId>()
+        while (true) {
+            val event = awaitPointerEvent(PointerEventPass.Initial)
+            var dy = 0f
+            for (change in event.changes) {
+                if (drag.dragging != null && change.pressed && !change.previousPressed) others += change.id
+                if (change.id !in others) continue
+                if (!change.pressed) {
+                    others -= change.id
+                } else if (change.previousPressed && dy == 0f) {
+                    dy = change.position.y - change.previousPosition.y
+                }
+                change.consume()
+            }
+            if (dy != 0f) {
+                // A finger moving up brings later songs into view.
+                val used = list.dispatchRawDelta(-dy)
+                if (drag.dragging != null) {
+                    drag.offset += used
+                    if (drag.step()) onStep()
+                }
+            }
+        }
+    }
 }
 
 /**
@@ -304,6 +469,7 @@ private fun LazyListScope.reorderable(
     autoUids: Set<Long>,
     edit: (String?, Boolean, () -> QueueState) -> Unit,
     drag: Reorder,
+    onStep: () -> Unit,
 ) {
     itemsIndexed(entries, key = { _, e -> "q" + e.uid }) { index, e ->
         val haptics = rememberHaptics()
@@ -311,8 +477,17 @@ private fun LazyListScope.reorderable(
         // The drag handler outlives recompositions; it must see the queue as it is now.
         val everything by androidx.compose.runtime.rememberUpdatedState(all)
         val picks by androidx.compose.runtime.rememberUpdatedState(autoUids)
+        val stepped by androidx.compose.runtime.rememberUpdatedState(onStep)
         val isPick = e.uid in autoUids
         val held = drag.dragging == e.uid
+        // The held row's place may scroll off screen while its drag goes on (the row is
+        // drawn under the finger, wherever its place is); pinned, the list keeps it, and
+        // the drag with it.
+        val pinnable = LocalPinnableContainer.current
+        DisposableEffect(held, pinnable) {
+            val pin = if (held) pinnable?.pin() else null
+            onDispose { pin?.release() }
+        }
         val lift by animateFloatAsState(if (held) 1f else 0f, tween(LIFT_MS), label = "lift")
         val removeIcon = Icons.remove()
         val blockIcon = Icons.block()
@@ -381,6 +556,8 @@ private fun LazyListScope.reorderable(
                                 drag.startIndex = list.indexOfFirst { it.uid == e.uid }
                                 drag.fromAutoplay = e.uid in picks
                                 drag.autoplayIndex = (drag.startIndex - firstPick).coerceAtLeast(0)
+                                drag.rowH = rowH
+                                drag.lean = 0f
                                 drag.offset = 0f
                                 drag.dragging = e.uid
                             },
@@ -401,62 +578,9 @@ private fun LazyListScope.reorderable(
                             },
                         ) { change, amount ->
                             change.consume()
+                            drag.leaned(amount.y, LEAN_DP.dp.toPx() * LEAN_TURN)
                             drag.offset += amount.y
-                            val list = drag.order.toMutableList()
-                            var b = drag.boundary
-                            var i = list.indexOfFirst { it.uid == e.uid }
-                            if (i < 0) return@detectDragGestures
-                            val item = list[i]
-                            var stepped = false
-                            while (true) {
-                                if (i < b) {
-                                    when {
-                                        drag.offset < -rowH / 2 && i > 0 -> {
-                                            java.util.Collections.swap(list, i, i - 1)
-                                            i--
-                                            drag.offset += rowH
-                                        }
-                                        drag.offset > rowH / 2 && i < b - 1 -> {
-                                            java.util.Collections.swap(list, i, i + 1)
-                                            i++
-                                            drag.offset -= rowH
-                                        }
-                                        // A pick taken into Up Next goes back to its place.
-                                        drag.fromAutoplay && i == b - 1 && drag.offset > drag.headerH / 2 + drag.autoplayIndex * rowH -> {
-                                            list.removeAt(i)
-                                            b--
-                                            val slot = (b + drag.autoplayIndex).coerceAtMost(list.size)
-                                            list.add(slot, item)
-                                            i = slot
-                                            drag.offset -= drag.headerH + drag.autoplayIndex * rowH
-                                        }
-                                        else -> break
-                                    }
-                                } else {
-                                    // A pick moves only by joining Up Next, past the heading.
-                                    val k = i - b
-                                    if (drag.offset < -(drag.headerH / 2 + k * rowH)) {
-                                        list.removeAt(i)
-                                        list.add(b, item)
-                                        drag.offset += drag.headerH + k * rowH
-                                        i = b
-                                        b++
-                                    } else {
-                                        break
-                                    }
-                                }
-                                stepped = true
-                            }
-                            // An Up Next row stops above the heading; a pick does not wander
-                            // among the other picks.
-                            if (i == b - 1 && !drag.fromAutoplay) drag.offset = drag.offset.coerceAtMost(rowH / 2)
-                            if (i >= b) drag.offset = drag.offset.coerceAtMost(rowH / 2)
-                            if (i == 0) drag.offset = drag.offset.coerceAtLeast(-rowH / 2)
-                            if (stepped) {
-                                haptics.perform(Haptic.Tick)
-                                drag.order = list
-                                drag.boundary = b
-                            }
+                            if (drag.step()) stepped()
                         }
                     },
             )
@@ -472,3 +596,13 @@ private const val LIFT_SCALE = 0.02f
 private const val HELD_ALPHA = 0.14f
 private const val HELD_RADIUS_DP = 16
 private const val HOLD_TIMEOUT_MS = 2_000L
+
+// Scrolling under a held row: the edge zone, the speed at its start and at the very edge
+// (dp a second), how far the finger must have headed that way, and how many times that
+// far it takes to turn round.
+private const val SCROLL_EDGE_DP = 72
+private const val SCROLL_SLOW_DP = 120
+private const val SCROLL_FAST_DP = 760
+private const val LEAN_DP = 6
+private const val LEAN_TURN = 3
+private const val MAX_FRAME_S = 0.05f

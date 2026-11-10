@@ -196,7 +196,7 @@ internal fun LicencesPage(onBack: () -> Unit, contentPadding: PaddingValues) {
                 onValueChange = { query = it },
                 placeholder = { Text("Find a library or licence", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 leadingIcon = { Icon(Icons.search(), contentDescription = null) },
-                trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.close(), contentDescription = "Clear") } },
+                trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { query = "" }, shapes = androidx.compose.material3.IconButtonDefaults.shapes()) { Icon(Icons.close(), contentDescription = "Clear") } },
                 singleLine = true,
                 shape = CircleShape,
                 colors = TextFieldDefaults.colors(

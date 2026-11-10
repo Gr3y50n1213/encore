@@ -119,9 +119,18 @@ class SignInAndBrowseTest {
         rule.onNodeWithContentDescription("${current.title}, ${current.artist}").performClick()
         rule.waitUntilAtLeastOneExists(hasContentDescription("Close Now Playing"), TIMEOUT)
         rule.onNodeWithText("Lyrics").assertIsDisplayed()
+        // The owner (9 November 2026): Play on and More looked basic. Both now take the
+        // album's colours and the app's grouped rows; Back closes Play on.
+        rule.onNodeWithText("Output").performClick()
+        rule.waitUntilAtLeastOneExists(hasText("Play on"), TIMEOUT)
+        rule.onNodeWithText("Speakers and headphones").assertIsDisplayed()
+        shot("04b-output")
+        Espresso.pressBack()
+        rule.waitUntilDoesNotExist(hasText("Play on"), TIMEOUT)
         // Start radio from More: the queue follows, and the toast is seen over Now Playing.
         rule.onNodeWithTag("now-playing-more").performClick()
         rule.waitUntilAtLeastOneExists(hasText("Start radio"), TIMEOUT)
+        shot("04c-more")
         rule.onNodeWithText("Start radio").performScrollTo().performClick()
         step("the radio started", TIMEOUT) { host.playingFrom.value == "${current.title} radio" }
         rule.waitUntilAtLeastOneExists(hasText("Started", substring = true), TIMEOUT)

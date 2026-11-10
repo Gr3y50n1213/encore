@@ -1,6 +1,12 @@
 package uk.gcartee.encore.app.ui.player
 
 import android.os.SystemClock
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
@@ -19,8 +25,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.lerp
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -30,11 +41,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import uk.gcartee.encore.app.ui.components.Haptic
 import uk.gcartee.encore.app.ui.components.Icons
 import uk.gcartee.encore.app.ui.components.rememberHaptics
+import uk.gcartee.encore.app.ui.onboarding.reduceMotion
 import uk.gcartee.encore.tokens.EncoreTokens.AndroidToggleShape
 import uk.gcartee.encore.tokens.EncoreTokens.Motion.Timing
 
@@ -143,8 +154,10 @@ fun PlayPauseButton(
 
 /**
  * Previous or Next: tonal, shaped by its arrow. The end the arrow points to is fully round
- * and the end beside Play is 10 dp (4 dp pressed). Start and end follow the layout
- * direction, so both flip with the arrows in right-to-left languages.
+ * and the end beside Play is 10 dp. A tap squeezes it (the round end to the play button's
+ * pressed corner, the other to 4 dp) and throws the arrow forward, springing back, so a
+ * skip is seen as well as felt. Start and end follow the layout direction, so both flip
+ * with the arrows in right-to-left languages.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -184,19 +197,55 @@ fun SkipButton(
             }
         }
     }
+    // A skip is a quick tap, far shorter than a press morph, so the library's pressed shape
+    // never got to show. The squeeze is held here for long enough to be seen, and the tap
+    // also throws the arrow the way it points.
+    val still = reduceMotion()
+    val scope = rememberCoroutineScope()
+    val kick = remember { Animatable(0f) }
+    var squeezed by remember { mutableStateOf(false) }
+    LaunchedEffect(interaction) {
+        var release: Job? = null
+        var downAt = 0L
+        interaction.interactions.collect { i ->
+            when (i) {
+                is PressInteraction.Press -> {
+                    release?.cancel()
+                    downAt = SystemClock.uptimeMillis()
+                    squeezed = true
+                }
+                is PressInteraction.Release, is PressInteraction.Cancel -> release = launch {
+                    delay((SQUEEZE_SHOWN_MS - (SystemClock.uptimeMillis() - downAt)).coerceAtLeast(0L))
+                    squeezed = false
+                }
+            }
+        }
+    }
+    val squeeze by animateFloatAsState(if (squeezed) 1f else 0f, MaterialTheme.motionScheme.fastSpatialSpec(), label = "squeeze")
     val tap = rememberDebounced {
         if (scanned) {
             scanned = false
         } else {
             haptics.perform(Haptic.Transport)
             onClick()
+            if (!still) {
+                scope.launch {
+                    kick.snapTo(0f)
+                    kick.animateTo(1f, tween(KICK_OUT_MS, easing = LinearOutSlowInEasing))
+                    kick.animateTo(0f, spring(dampingRatio = KICK_DAMPING, stiffness = Spring.StiffnessMedium))
+                }
+            }
         }
     }
-    fun shape(inner: Dp): RoundedCornerShape {
-        val round = CornerSize(size.skipOuter.dp)
-        val flat = CornerSize(inner)
-        return if (next) RoundedCornerShape(flat, round, round, flat) else RoundedCornerShape(round, flat, flat, round)
-    }
+    // Pressed, the round end tightens to the play button's pressed corner and the end
+    // beside Play to its own pressed corner; the spring may run a little past either end.
+    val outer = CornerSize(lerp(size.skipOuter.dp, size.pressedRadius.dp, squeeze).coerceAtLeast(0.dp))
+    val inner = CornerSize(
+        lerp(AndroidToggleShape.TransportRow.PrevNext.innerRadius.dp, AndroidToggleShape.TransportRow.PrevNext.pressedInnerRadius.dp, squeeze).coerceAtLeast(0.dp),
+    )
+    // Towards the round end, which is where the arrow points in either layout direction.
+    val way = if (next != (LocalLayoutDirection.current == LayoutDirection.Rtl)) 1f else -1f
+    val reach = (size.playH / KICK_REACH_DIVISOR).dp
     FilledTonalIconButton(
         onClick = tap,
         enabled = enabled,
@@ -206,19 +255,27 @@ fun SkipButton(
         } else {
             IconButtonDefaults.filledTonalIconButtonColors()
         },
-        shapes = IconButtonDefaults.shapes(
-            shape = shape(AndroidToggleShape.TransportRow.PrevNext.innerRadius.dp),
-            pressedShape = shape(AndroidToggleShape.TransportRow.PrevNext.pressedInnerRadius.dp),
-        ),
+        shape = if (next) RoundedCornerShape(inner, outer, outer, inner) else RoundedCornerShape(outer, inner, inner, outer),
         modifier = Modifier.size(width = size.skipW.dp, height = size.playH.dp),
     ) {
         Icon(
             if (next) Icons.next() else Icons.previous(),
             contentDescription = if (next) "Next" else "Previous",
-            modifier = Modifier.size((size.playH / 2.6f).dp),
+            modifier = Modifier
+                .size((size.playH / 2.6f).dp)
+                .graphicsLayer {
+                    translationX = if (still) 0f else way * reach.toPx() * (SQUEEZE_SHARE * squeeze.coerceIn(0f, 1f) + kick.value)
+                },
         )
     }
 }
+
+// How long the pressed shape stays after a quick tap, and the arrow's throw on a skip.
+private const val SQUEEZE_SHOWN_MS = 140L
+private const val KICK_OUT_MS = 90
+private const val KICK_DAMPING = 0.42f
+private const val KICK_REACH_DIVISOR = 12f
+private const val SQUEEZE_SHARE = 0.4f
 
 /** Three separate buttons 8 dp apart, not one joined pill. */
 @Composable

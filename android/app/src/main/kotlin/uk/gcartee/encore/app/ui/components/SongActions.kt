@@ -1,7 +1,6 @@
 package uk.gcartee.encore.app.ui.components
 
 import android.content.Context
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,8 +9,16 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.foundation.background
@@ -74,7 +81,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import uk.gcartee.encore.app.core.CoreHost
@@ -408,37 +414,57 @@ fun AddToPlaylistSheet(songs: List<Song>, onDone: () -> Unit) {
     val ticked = remember { mutableStateListOf<Long>() }
     var newName by remember { mutableStateOf("") }
     var creating by remember { mutableStateOf(false) }
-    ModalBottomSheet(onDismissRequest = onDone) {
+    val scheme = MaterialTheme.colorScheme
+    val rowTitle = type.listRowTitle.copy(fontSize = 16.sp)
+    val nameField = remember { FocusRequester() }
+    // The app's sheet look (ActionSheet): one rounded tonal group, New playlist first, a
+    // ticked playlist lit. Over Now Playing it comes in the album's colours.
+    ModalBottomSheet(
+        onDismissRequest = onDone,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = scheme.surfaceContainerLow,
+    ) {
         Column(Modifier.navigationBarsPadding().padding(horizontal = (Grid.base * 2).dp)) {
-            Text(if (songs.size == 1) "Add “${songs[0].title}” to" else "Add ${songs.size} songs to", style = type.sheetTitle)
-            Spacer(Modifier.heightIn(min = Grid.base.dp))
-            LazyColumn(Modifier.heightIn(max = 420.dp)) {
+            Text(if (songs.size == 1) "Add “${songs[0].title}” to" else "Add ${songs.size} songs to", style = type.sheetTitle, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = Grid.base.dp))
+            Spacer(Modifier.height((Grid.base * 2).dp))
+            LazyColumn(
+                Modifier.heightIn(max = 420.dp).clip(RoundedCornerShape(SHEET_LIST_RADIUS_DP.dp)),
+                verticalArrangement = Arrangement.spacedBy(SHEET_ROW_GAP_DP.dp),
+            ) {
                 item {
-                    Row(
-                        Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { creating = true },
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(Icons.add(), contentDescription = null)
+                    // Tapped, the row becomes the name's field, with the keyboard up.
+                    GroupRow(first = true, last = playlists.isEmpty(), onClick = if (creating) null else ({ creating = true })) {
+                        IconDisc(Icons.add())
                         Spacer(Modifier.width((Grid.base * 2).dp))
-                        Text("New playlist", style = type.listRowTitle)
-                    }
-                    if (creating) {
-                        OutlinedTextField(newName, { newName = it }, placeholder = { Text("Playlist name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                        if (creating) {
+                            OutlinedTextField(
+                                newName,
+                                { newName = it },
+                                placeholder = { Text("Playlist name") },
+                                singleLine = true,
+                                modifier = Modifier.weight(1f).focusRequester(nameField),
+                            )
+                            LaunchedEffect(Unit) { runCatching { nameField.requestFocus() } }
+                        } else {
+                            Text("New playlist", style = rowTitle)
+                        }
                     }
                 }
-                items(playlists, key = { it.id }) { p ->
+                itemsIndexed(playlists, key = { _, p -> p.id }) { i, p ->
                     val on = p.id in ticked
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 56.dp)
-                            .clickable { if (on) ticked.remove(p.id) else ticked.add(p.id) }
-                            .semantics { role = Role.Checkbox },
-                        verticalAlignment = Alignment.CenterVertically,
+                    GroupRow(
+                        first = false,
+                        last = i == playlists.lastIndex,
+                        color = if (on) scheme.secondaryContainer else scheme.surfaceContainerHigh,
+                        contentColor = if (on) scheme.onSecondaryContainer else scheme.onSurface,
+                        role = Role.Checkbox,
+                        onClick = { if (on) ticked.remove(p.id) else ticked.add(p.id) },
                     ) {
-                        Checkbox(checked = on, onCheckedChange = null)
+                        IconDisc(Icons.queue())
                         Spacer(Modifier.width((Grid.base * 2).dp))
-                        Text(p.name, style = type.listRowTitle, modifier = Modifier.weight(1f))
+                        Text(p.name, style = rowTitle, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                        Spacer(Modifier.width(Grid.base.dp))
+                        Checkbox(checked = on, onCheckedChange = null)
                     }
                 }
             }
@@ -488,22 +514,85 @@ fun WhyThisSongSheet(song: Song, onDone: () -> Unit) {
     val actions = LocalAppActions.current
     val type = LocalEncoreType.current
     val why = remember(song.id) { runCatching { actions.host.core.whyThisSong(song.id) }.getOrNull() }
-    ModalBottomSheet(onDismissRequest = onDone) {
-        Column(Modifier.navigationBarsPadding().padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp)) {
-            Text("Why this song", style = type.sheetTitle)
-            Spacer(Modifier.heightIn(min = (Grid.base * 2).dp))
+    val scheme = MaterialTheme.colorScheme
+    val rowTitle = type.listRowTitle.copy(fontSize = 16.sp)
+    // The app's sheet look (ActionSheet): each reason a row of one rounded tonal group with
+    // its own icon, then the songs it sounds like with their covers.
+    ModalBottomSheet(onDismissRequest = onDone, containerColor = scheme.surfaceContainerLow) {
+        Column(
+            Modifier
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = (Grid.base * 2).dp)
+                .padding(bottom = (Grid.base * 3).dp),
+        ) {
+            Text("Why this song", style = type.sheetTitle, modifier = Modifier.padding(horizontal = Grid.base.dp))
+            Text(
+                "${song.title} · ${song.artist}",
+                style = type.body,
+                color = scheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = Grid.base.dp),
+            )
+            Spacer(Modifier.height((Grid.base * 2).dp))
             val reasons = why?.reasons.orEmpty()
-            if (reasons.isEmpty()) Text("It fits what you've been playing.", style = type.body)
-            reasons.forEach { r -> Text("• " + describe(r), style = type.listRowTitle, modifier = Modifier.padding(vertical = 4.dp)) }
-            why?.soundsLike?.takeIf { it.isNotEmpty() }?.let { like ->
-                Spacer(Modifier.heightIn(min = (Grid.base * 2).dp))
-                Text("Sounds like", style = type.groupLabel, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                like.forEach { s -> Text("${s.title} · ${s.artist}", style = type.body, modifier = Modifier.padding(vertical = 4.dp)) }
+            Column(verticalArrangement = Arrangement.spacedBy(SHEET_ROW_GAP_DP.dp)) {
+                if (reasons.isEmpty()) {
+                    GroupRow(first = true, last = true) {
+                        IconDisc(Icons.spark())
+                        Spacer(Modifier.width((Grid.base * 2).dp))
+                        Text("It fits what you've been playing.", style = rowTitle, modifier = Modifier.weight(1f))
+                    }
+                }
+                reasons.forEachIndexed { i, r ->
+                    GroupRow(first = i == 0, last = i == reasons.lastIndex) {
+                        IconDisc(reasonIcon(r))
+                        Spacer(Modifier.width((Grid.base * 2).dp))
+                        Text(describe(r), style = rowTitle, modifier = Modifier.weight(1f))
+                    }
+                }
             }
-            Spacer(Modifier.heightIn(min = (Grid.base * 3).dp))
+            why?.soundsLike?.takeIf { it.isNotEmpty() }?.let { like ->
+                Spacer(Modifier.height((Grid.base * 2.5f).dp))
+                Text(
+                    "Sounds like",
+                    style = type.groupLabel,
+                    color = scheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = Grid.base.dp, bottom = Grid.base.dp),
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(SHEET_ROW_GAP_DP.dp)) {
+                    like.forEachIndexed { i, s ->
+                        GroupRow(first = i == 0, last = i == like.lastIndex) {
+                            Artwork(uk.gcartee.encore.core.ArtworkOf.SONG, s.id, LIKE_ART_DP.dp, Modifier.size(LIKE_ART_DP.dp), cornerRadius = LIKE_ART_RADIUS_DP.dp)
+                            Spacer(Modifier.width((Grid.base * 2).dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(s.title, style = rowTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(s.artist, style = type.body, color = scheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
+
+/** The picture beside a reason: what kind of reason it is, at a glance. */
+@Composable
+private fun reasonIcon(r: PickReason): Painter = when (r.kind) {
+    ReasonKind.FINISHED_OFTEN -> Icons.check()
+    ReasonKind.PLAYED_TOGETHER -> Icons.queue()
+    ReasonKind.TIME_OF_DAY, ReasonKind.REDISCOVER -> Icons.history()
+    ReasonKind.YOU_LIKED_IT -> Icons.favorite(true)
+    ReasonKind.SAME_ARTIST -> Icons.artist()
+    ReasonKind.SAME_GENRE -> Icons.album()
+    else -> Icons.spark()
+}
+
+private const val SHEET_LIST_RADIUS_DP = 24
+private const val LIKE_ART_DP = 40
+private const val LIKE_ART_RADIUS_DP = 10
 
 /** A reason in words, from its kind and fields (CORE-API "Smart picks"). */
 fun describe(r: PickReason): String = when (r.kind) {

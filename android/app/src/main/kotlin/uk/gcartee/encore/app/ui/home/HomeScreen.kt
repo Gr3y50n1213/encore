@@ -41,8 +41,10 @@ import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
-import androidx.compose.material3.carousel.rememberCarouselState
+import androidx.compose.foundation.gestures.snapping.SnapPosition
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -251,25 +253,41 @@ private fun MadeForYou(home: Home, data: HomeData, onOpenMix: (String) -> Unit, 
             FilledTonalButton(onClick = onRefresh, enabled = !data.loading) { Text("Refresh") }
         }
     }
-    // Board 05, item 2: Android's first tile is wide and shrinks as it scrolls off: the
-    // Material 3 Expressive multi-browse carousel, snapping one tile at a time. Rounded
-    // tiles here; the Material shapes are the Mixes tab's (board 23).
-    val state = rememberCarouselState { shelf.mixes.size }
-    HorizontalMultiBrowseCarousel(
-        state = state,
-        preferredItemWidth = CAROUSEL_ITEM_DP.dp,
-        itemSpacing = Grid.base.dp,
-        contentPadding = PaddingValues(horizontal = (Grid.base * 2).dp),
-        modifier = Modifier.fillMaxWidth().height(CAROUSEL_HEIGHT_DP.dp),
-    ) { i ->
-        val m = shelf.mixes[i]
-        Column(Modifier.fillMaxSize().combinedClickable(onClick = { onOpenMix(m.mixId) })) {
-            MosaicFill(m.coverSongIds, Modifier.weight(1f).fillMaxWidth().maskClip(MaterialTheme.shapes.extraLarge))
-            Spacer(Modifier.height(6.dp))
-            // Inset a little: the carousel clips each item to its mask, which can sit a hair
-            // inside the item, and the first letter must never be cut.
-            Text(m.title, style = type.tileTitle, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = CAROUSEL_LABEL_INSET_DP.dp))
-            Text(m.subtitle, style = type.tileSubtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = CAROUSEL_LABEL_INSET_DP.dp))
+    // A row of whole square tiles that snaps to a tile's edge: two and a deliberate peek
+    // of the next on a phone, more on a wide screen. Board 05 drew Material's multi-browse
+    // carousel here (a wide first tile that shrinks as it leaves), but that squeezes and
+    // masks the tiles at both ends, so covers and names were cut mid-swipe; the owner asked
+    // for it gone on 9 November 2026. Nothing is resized or masked now: a tile is only ever
+    // cut by the screen's edge. The Material shapes stay the Mixes tab's (board 23).
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val side = (Grid.base * 2).dp
+        val tile = ((maxWidth - side * 2) / MIX_ROW_TILES).coerceIn(MIX_ROW_MIN_DP.dp, MIX_ROW_MAX_DP.dp)
+        val row = rememberLazyListState()
+        LazyRow(
+            state = row,
+            flingBehavior = rememberSnapFlingBehavior(row, SnapPosition.Start),
+            contentPadding = PaddingValues(horizontal = side),
+            horizontalArrangement = Arrangement.spacedBy(Grid.base.dp),
+        ) {
+            items(shelf.mixes, key = { it.mixId }) { m ->
+                val press = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                val pressed by press.collectIsPressedAsState()
+                val scale by androidx.compose.animation.core.animateFloatAsState(if (pressed) MIX_ROW_PRESSED_SCALE else 1f, MaterialTheme.motionScheme.fastSpatialSpec(), label = "press")
+                Column(
+                    Modifier
+                        .width(tile)
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                        }
+                        .clickable(interactionSource = press, indication = null) { onOpenMix(m.mixId) },
+                ) {
+                    MosaicFill(m.coverSongIds, Modifier.size(tile).clip(MaterialTheme.shapes.extraLarge))
+                    Spacer(Modifier.height(6.dp))
+                    Text(m.title, style = type.tileTitle, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = MIX_ROW_LABEL_INSET_DP.dp))
+                    Text(m.subtitle, style = type.tileSubtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = MIX_ROW_LABEL_INSET_DP.dp))
+                }
+            }
         }
     }
 }
@@ -305,6 +323,7 @@ private fun greeting(): String = when (java.time.LocalTime.now().hour) {
  * colour (board 04's palette, leading tone fading to the dark base), with Play. The card
  * opens the album; nothing is cropped.
  */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun JumpBackIn(song: Song) {
     val actions = LocalAppActions.current
@@ -351,6 +370,7 @@ private fun JumpBackIn(song: Song) {
                         val ids = runCatching { actions.host.core.album(albumId).songs.map { it.id } }.getOrDefault(emptyList())
                         if (ids.isNotEmpty()) actions.play(ids, 0, StartedFrom.ALBUM, albumId.toString(), song.albumTitle)
                     },
+                    shapes = IconButtonDefaults.shapes(CircleShape, androidx.compose.foundation.shape.RoundedCornerShape(PLAY_PRESSED_RADIUS_DP.dp)),
                     colors = IconButtonDefaults.filledIconButtonColors(containerColor = tint.content, contentColor = tint.field),
                     modifier = Modifier.size(HERO_PLAY_DP.dp),
                 ) { Icon(Icons.play(), contentDescription = "Play ${song.albumTitle ?: song.title}", modifier = Modifier.size(26.dp)) }
@@ -548,6 +568,7 @@ fun MixesScreen(host: CoreHost, data: HomeData, onProfile: () -> Unit, contentPa
                             val ids = runCatching { host.core.mix(m.mixId).songs.map { it.song.id } }.getOrDefault(emptyList())
                             actions.play(ids, 0, StartedFrom.MIX, m.mixId, m.title)
                         },
+                        shapes = IconButtonDefaults.shapes(CircleShape, androidx.compose.foundation.shape.RoundedCornerShape(PLAY_PRESSED_RADIUS_DP.dp)),
                         modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(44.dp),
                     ) { Icon(Icons.play(), contentDescription = "Play ${m.title}") }
                 }
@@ -623,11 +644,14 @@ private const val MIX_MIN_DP = 128
 private const val LEARNING_ORB_DP = 240
 private const val LEARNING_TITLE_SP = 26
 private const val PLAY_SOMETHING_SONGS = 300
-// Board 05's sizes, measured from the Android render.
-private const val CAROUSEL_ITEM_DP = 220
-// Board 05: the large tile is wider than tall (about 220 by 176 dp), its labels below.
-private const val CAROUSEL_HEIGHT_DP = 222
-private const val CAROUSEL_LABEL_INSET_DP = 4
+// Made for you: this many tiles across (the fraction is the next tile's peek), within limits.
+private const val MIX_ROW_TILES = 2.35f
+private const val MIX_ROW_MIN_DP = 140
+private const val MIX_ROW_MAX_DP = 220
+private const val MIX_ROW_LABEL_INSET_DP = 4
+private const val MIX_ROW_PRESSED_SCALE = 0.96f
+// Play buttons on Home and Mixes: round at rest, squarer while pressed.
+private const val PLAY_PRESSED_RADIUS_DP = 14
 private const val SHELF_TILE_DP = 132
 private const val LARGE_TILE_DP = 160
 private const val QUICK_PICKS = 6

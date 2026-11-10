@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
@@ -106,7 +107,8 @@ fun NowPlayingScreen(
     state: PlayerState,
     onCollapse: () -> Unit,
     onOpen: (Route) -> Unit,
-    onOutput: () -> Unit,
+    // Output was tapped; the sheet is EncoreRoot's and is drawn in these colours.
+    onOutput: (FieldColours) -> Unit,
     // Where the artwork is on screen, for the morph into the mini player (EncoreRoot), and
     // whether it is the big cover (which shrinks while paused) or the small one over a panel.
     onArtBounds: (androidx.compose.ui.geometry.Rect, Boolean) -> Unit = { _, _ -> },
@@ -156,27 +158,36 @@ fun NowPlayingScreen(
     }
 
     // Item 4: More's menu, the same wherever its button is (top bar, a panel's song row, a
-    // turned phone's controls): the song's actions plus Private listening.
+    // turned phone's controls): the song's actions plus Private listening. It and the sheets
+    // it leads to are drawn in the album's colours, like the page under them.
     val moreSheet: @Composable () -> Unit = {
-        SongMenu(
-            song,
-            expanded = moreMenu,
-            onDismiss = { moreMenu = false },
-            place = MenuPlace(
-                chosenBy = entry.chosenBy,
-                extra = listOf(
-                    uk.gcartee.encore.app.ui.components.MenuExtra(if (privateOn) "Turn off Private listening" else "Private listening", destructive = false) {
-                        val on = !privateOn
-                        runCatching { host.core.setListeningMode(if (on) ListeningMode.PRIVATE else ListeningMode.NORMAL) }
-                            .onSuccess {
-                                host.privateListening.value = on
-                                actions.toaster.show(if (on) "Private listening is on. Nothing is recorded." else "Private listening is off")
-                            }
-                    },
+        FieldSheetTheme(colours) {
+            SongMenu(
+                song,
+                expanded = moreMenu,
+                onDismiss = { moreMenu = false },
+                place = MenuPlace(
+                    chosenBy = entry.chosenBy,
+                    extra = listOf(
+                        uk.gcartee.encore.app.ui.components.MenuExtra(
+                            if (privateOn) "Turn off Private listening" else "Private listening",
+                            destructive = false,
+                            icon = { if (privateOn) Icons.visibility() else Icons.visibilityOff() },
+                        ) {
+                            val on = !privateOn
+                            runCatching { host.core.setListeningMode(if (on) ListeningMode.PRIVATE else ListeningMode.NORMAL) }
+                                .onSuccess {
+                                    host.privateListening.value = on
+                                    actions.toaster.show(if (on) "Private listening is on. Nothing is recorded." else "Private listening is off")
+                                }
+                        },
+                    ),
                 ),
-            ),
-        )
+            )
+        }
     }
+    // Collapse is round and squeezes to a rounded square under the finger, as More does.
+    val collapseShapes = IconButtonDefaults.shapes(RoundedCornerShape(50), RoundedCornerShape(COLLAPSE_PRESSED_DP.dp))
 
     // Item 1: the swipe down is EncoreRoot's: it drives the morph into the mini player.
     BoxWithConstraints(
@@ -196,6 +207,7 @@ fun NowPlayingScreen(
             if ((panel == PlayerPanel.Artwork || landscape) && !dense) Row(Modifier.fillMaxWidth().padding(vertical = Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
                 FilledTonalIconButton(
                     onClick = onCollapse,
+                    shapes = collapseShapes,
                     colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = content.copy(alpha = 0.16f), contentColor = content),
                 ) { Icon(Icons.collapse(), contentDescription = "Close Now Playing") }
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -232,7 +244,7 @@ fun NowPlayingScreen(
                         PlayerPanel.Queue -> QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize().fadingEdges(), onColour = colours.base)
                     }
                 }
-                Box { SongMenu(song, expanded = menu, onDismiss = { menu = false }, place = MenuPlace(chosenBy = entry.chosenBy)) }
+                Box { FieldSheetTheme(colours) { SongMenu(song, expanded = menu, onDismiss = { menu = false }, place = MenuPlace(chosenBy = entry.chosenBy)) } }
             }
             val controls: @Composable (Boolean, TransportSize) -> Unit = { compact, transport ->
                 Column {
@@ -241,6 +253,7 @@ fun NowPlayingScreen(
                         Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                             FilledTonalIconButton(
                                 onClick = onCollapse,
+                                shapes = collapseShapes,
                                 colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = content.copy(alpha = 0.16f), contentColor = content),
                             ) { Icon(Icons.collapse(), contentDescription = "Close Now Playing") }
                             Spacer(Modifier.weight(1f))
@@ -348,7 +361,7 @@ fun NowPlayingScreen(
                                 checked = checked,
                                 onCheckedChange = {
                                     haptics.perform(Haptic.Tick)
-                                    if (p == null) onOutput() else panel = if (panel == p) PlayerPanel.Artwork else p
+                                    if (p == null) onOutput(colours) else panel = if (panel == p) PlayerPanel.Artwork else p
                                 },
                                 shapes = when (i) {
                                     0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
@@ -527,5 +540,6 @@ private const val ART_MAX_DP = 420
 private const val LANDSCAPE_TALL_DP = 520
 private const val DENSE_TITLE_SP = 22
 private const val ART_RADIUS_DP = 28
+private const val COLLAPSE_PRESSED_DP = 12
 private const val MARQUEE_DELAY_MS = 1_500
 private const val HEART_MS = 700L

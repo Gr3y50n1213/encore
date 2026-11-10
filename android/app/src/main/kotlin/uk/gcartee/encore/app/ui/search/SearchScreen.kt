@@ -57,6 +57,7 @@ import uk.gcartee.encore.core.StartedFrom
 import uk.gcartee.encore.tokens.EncoreTokens.Grid
 
 /** Board 07 on Android: the field docked at the top, results as you type. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, contentPadding: PaddingValues, onLibrary: () -> Unit = {}) {
     val type = LocalEncoreType.current
@@ -106,7 +107,7 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
             placeholder = { Text("Songs, albums, artists, lyrics", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
             leadingIcon = { Icon(Icons.search(), contentDescription = null) },
             trailingIcon = {
-                if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.close(), contentDescription = "Clear") }
+                if (query.isNotEmpty()) IconButton(onClick = { query = "" }, shapes = androidx.compose.material3.IconButtonDefaults.shapes()) { Icon(Icons.close(), contentDescription = "Clear") }
                 // The avatar sits inside the bar with room around it, not against its edge.
                 else androidx.compose.foundation.layout.Box(Modifier.padding(end = Grid.base.dp)) {
                     uk.gcartee.encore.app.ui.home.ProfileButton(host, uk.gcartee.encore.app.ui.components.LocalAppActions.current.openProfiles, size = SEARCH_AVATAR_DP.dp)

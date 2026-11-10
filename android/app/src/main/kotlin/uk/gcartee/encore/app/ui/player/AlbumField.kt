@@ -10,6 +10,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.FloatState
@@ -24,7 +25,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import kotlin.math.PI
@@ -33,6 +36,8 @@ import kotlin.math.sin
 import uk.gcartee.encore.app.core.CoreHost
 import uk.gcartee.encore.app.ui.library.paletteColor
 import uk.gcartee.encore.app.ui.onboarding.reduceMotion
+import uk.gcartee.encore.app.ui.theme.irisDarkScheme
+import uk.gcartee.encore.app.ui.theme.irisLightScheme
 import uk.gcartee.encore.core.ArtworkPalette
 import uk.gcartee.encore.core.PaletteScheme
 import uk.gcartee.encore.tokens.EncoreTokens.AlbumGradient
@@ -68,6 +73,64 @@ fun rememberFieldColours(host: CoreHost, albumId: Long?): FieldColours {
     val dark = p?.scheme != PaletteScheme.LIGHT
     return FieldColours(b, listOf(s0, s1, s2, s3), t, t.copy(alpha = 0.72f), dark)
 }
+
+/**
+ * The app's theme re-tinted with the album's colours, for the sheets opened over Now
+ * Playing (More's menu and the sheets it leads to, Play on). The sheet takes the field's
+ * base, its groups a little of the text colour over that, and its accents the text colour,
+ * so it reads as part of the page instead of a grey panel laid over it (owner, 9 November
+ * 2026: the menu should match Now Playing better). Shapes, type and motion stay the theme's.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun FieldSheetTheme(colours: FieldColours, content: @Composable () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val tinted = remember(colours, scheme) {
+        fun tone(share: Float) = colours.text.copy(alpha = share).compositeOver(colours.base)
+        // The theme's red is picked for the theme's own surfaces. Over an album colour, the
+        // light or the dark scheme's red, whichever stands out more.
+        val error = listOf(irisDarkScheme().error, irisLightScheme().error).maxBy { contrast(it, colours.base) }
+        scheme.copy(
+            primary = colours.text,
+            onPrimary = colours.base,
+            secondaryContainer = tone(TONE_SELECTED),
+            onSecondaryContainer = colours.text,
+            surface = colours.base,
+            onSurface = colours.text,
+            surfaceVariant = tone(TONE_GROUP),
+            onSurfaceVariant = colours.secondary,
+            surfaceContainerLowest = colours.base,
+            surfaceContainerLow = colours.base,
+            surfaceContainer = tone(TONE_FAINT),
+            surfaceContainerHigh = tone(TONE_GROUP),
+            surfaceContainerHighest = tone(TONE_RAISED),
+            outline = tone(TONE_OUTLINE),
+            outlineVariant = tone(TONE_SELECTED),
+            error = error,
+        )
+    }
+    MaterialTheme(
+        colorScheme = tinted,
+        motionScheme = MaterialTheme.motionScheme,
+        shapes = MaterialTheme.shapes,
+        typography = MaterialTheme.typography,
+        content = content,
+    )
+}
+
+/** The contrast ratio of two colours (WCAG), 1 to 21. */
+private fun contrast(a: Color, b: Color): Float {
+    val la = a.luminance() + 0.05f
+    val lb = b.luminance() + 0.05f
+    return if (la > lb) la / lb else lb / la
+}
+
+// How much of the text colour is laid over the base for each tone of a tinted sheet.
+private const val TONE_FAINT = 0.06f
+private const val TONE_GROUP = 0.1f
+private const val TONE_RAISED = 0.17f
+private const val TONE_SELECTED = 0.22f
+private const val TONE_OUTLINE = 0.5f
 
 /**
  * The moving field behind Now Playing: four blobs of the album's stops over its base,

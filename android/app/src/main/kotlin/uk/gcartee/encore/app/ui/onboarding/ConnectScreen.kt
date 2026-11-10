@@ -324,7 +324,7 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
                         singleLine = true,
                         visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                         trailingIcon = {
-                            IconButton(onClick = { showPassword = !showPassword }) {
+                            IconButton(onClick = { showPassword = !showPassword }, shapes = androidx.compose.material3.IconButtonDefaults.shapes()) {
                                 Icon(
                                     if (showPassword) Icons.visibilityOff() else Icons.visibility(),
                                     contentDescription = if (showPassword) "Hide password" else "Show password",

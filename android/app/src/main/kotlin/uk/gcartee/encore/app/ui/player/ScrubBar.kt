@@ -49,8 +49,14 @@ import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.ClipOp
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
+import kotlin.math.max
 import kotlin.math.sin
 import kotlinx.coroutines.delay
 import uk.gcartee.encore.app.ui.components.Haptic
@@ -93,9 +99,9 @@ fun rememberSmoothPosition(positionMs: Long, playing: Boolean, durationMs: Long)
 
 /**
  * Board 09, item 5: Android's bar is wavy while playing and flat when paused, with a tall
- * pill handle and a gap around it, as in the Material 3 Expressive slider. The wave grows
- * out of the handle: its end is pinned to the centre line at the playing point and the
- * waves travel away from it, slowly, so the head never bobs. Tap or drag scrubs; sliding
+ * pill handle and a gap around it, as in the Material 3 Expressive slider. The wave stops
+ * one gap short of the handle and the track picks up one gap after it, so nothing of the
+ * bar shows inside the handle's clear space. Tap or drag scrubs; sliding
  * the finger down halves, then quarters the speed (`motion.scrubSlowdown`). Haptics at
  * the start and end only. While it is held, [onHeld] tells Now Playing to ignore its own
  * swipe-down (item 1, GUARD). [smooth] is the frame-time position from
@@ -184,23 +190,46 @@ fun ScrubBar(
             // Material 3 Expressive's own wavy indicator, its wave and motion as designed,
             // a touch slower than its default; it reads the frame-time position itself, so
             // it glides rather than stepping. The tall pill handle sits at the head.
+            val widthPx = constraints.maxWidth
+            val density = LocalDensity.current
+            // Half the handle plus its gap: how far the handle's clear space reaches each way.
+            val reach = with(density) { (HANDLE_W_DP / 2f + GAP_DP).dp.toPx() }
+            // The indicator ends its lines in round caps half a stroke long.
+            val cap = max(WavyProgressIndicatorDefaults.linearIndicatorStroke.width, WavyProgressIndicatorDefaults.linearTrackStroke.width) / 2
+            // The handle's centre, in pixels from the start, kept clear of both ends.
+            val head = {
+                val f = (scrub ?: ((smooth?.invoke() ?: positionMs).toFloat() / duration)).coerceIn(0f, 1f)
+                (f * widthPx).coerceIn(reach, (widthPx - reach).coerceAtLeast(reach))
+            }
             LinearWavyProgressIndicator(
-                progress = { (scrub ?: ((smooth?.invoke() ?: positionMs).toFloat() / duration)).coerceIn(0f, 1f) },
+                // The indicator would draw its wave up to the playing point and a cap beyond,
+                // which let the wave's tip show past the handle. So it is told a point just
+                // short of the handle, and its gap is the handle's whole clear space: the
+                // wave's round end stops one gap before the handle and the track starts one
+                // gap after it.
+                progress = { if (widthPx > 0) ((head() - reach - cap) / widthPx).coerceIn(0f, 1f) else 0f },
                 color = colour,
                 trackColor = colour.copy(alpha = 0.24f),
+                gapSize = (HANDLE_W_DP + 2 * GAP_DP).dp,
                 amplitude = { if (playing && scrub == null && !still) 1f else 0f },
                 waveSpeed = WavyProgressIndicatorDefaults.LinearDeterminateWavelength * WAVE_SPEED,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+                    // In a song's first seconds the indicator's gap is still opening, and at
+                    // the very end its stop dot sits where the handle arrives: nothing of
+                    // the bar is ever drawn inside the handle's clear space.
+                    .drawWithContent {
+                        val centre = if (layoutDirection == LayoutDirection.Rtl) size.width - head() else head()
+                        clipRect(left = centre - reach, top = 0f, right = centre + reach, bottom = size.height, clipOp = ClipOp.Difference) {
+                            drawContent()
+                        }
+                    },
             )
-            val widthPx = constraints.maxWidth
             Box(
                 Modifier
                     .align(Alignment.CenterStart)
-                    .offset {
-                        val f = (scrub ?: ((smooth?.invoke() ?: positionMs).toFloat() / duration)).coerceIn(0f, 1f)
-                        val handle = HANDLE_W_DP.dp.toPx()
-                        IntOffset((f * widthPx - handle / 2 - GAP_DP.dp.toPx()).coerceIn(0f, (widthPx - handle - 2 * GAP_DP.dp.toPx()).coerceAtLeast(0f)).toInt(), 0)
-                    }
+                    .offset { IntOffset((head() - reach).toInt(), 0) }
                     .size(width = (HANDLE_W_DP + 2 * GAP_DP).dp, height = (HANDLE_H_DP + 2 * GAP_DP).dp)
                     .padding(GAP_DP.dp)
                     .background(colour, RoundedCornerShape(50)),
