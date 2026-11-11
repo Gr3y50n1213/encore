@@ -42,9 +42,32 @@ shot() { # name
   adb exec-out screencap -p > "$out/$1.png"
 }
 
+# The API 37 image reports "booted" while its package service is still settling: an
+# install right away failed with "Failure calling service package: Broken pipe" (run
+# 43058504996). Wait for the package service to answer, then retry an install a few times.
+wait_for_packages() {
+  for _ in $(seq 1 60); do
+    if [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1" ] && adb shell pm path android >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 2
+  done
+  echo "the package service never answered" >&2
+  return 1
+}
+install() { # apk
+  for attempt in 1 2 3; do
+    wait_for_packages
+    if adb install -r -t "$1"; then return 0; fi
+    echo "install of $1 failed (attempt $attempt), retrying" >&2
+    sleep 10
+  done
+  return 1
+}
+
 echo "== 1. Instrumented tests (debug)"
-adb install -r -t "$debug"
-adb install -r -t "$tests"
+install "$debug"
+install "$tests"
 runner=uk.gcartee.encore.debug.test/androidx.test.runner.AndroidJUnitRunner
 signin=uk.gcartee.encore.app.SignInAndBrowseTest
 offline=uk.gcartee.encore.app.OfflineAndCarTest
@@ -88,7 +111,7 @@ grep -q '^OK (1 test)' "$out/instrument-playback.txt" || { echo "the playback fl
 adb uninstall uk.gcartee.encore.debug > /dev/null || true
 
 echo "== 2. Release build"
-adb install -r "$release"
+install "$release"
 adb shell am start -W -n uk.gcartee.encore/uk.gcartee.encore.app.MainActivity | tee "$out/start.txt"
 sleep 4
 pid="$(adb shell pidof uk.gcartee.encore | tr -d '\r' || true)"
