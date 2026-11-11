@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phase 9 (WP7): the Mixes widget in the picker (previewLayout, Android 12 and later).
+     Static demo names ("Evening Drive", "Rainy Focus", ...), never the person's mixes. Only
+     views RemoteViews allows. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_preview_background"
+    android:orientation="vertical"
+    android:padding="10dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="20dp"
+        android:gravity="center_vertical"
+        android:maxLines="1"
+        android:text="@string/mixes_widget_title"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="13sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <FrameLayout
+                android:layout_width="46dp"
+                android:layout_height="46dp">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:importantForAccessibility="no"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/widget_preview_cover" />
+            <FrameLayout
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="bottom|end"
+                android:layout_margin="3dp"
+                android:background="@drawable/widget_button_round"
+                android:backgroundTint="?android:attr/colorAccent">
+
+                <ImageView
+                    android:layout_width="13dp"
+                    android:layout_height="13dp"
+                    android:layout_gravity="center"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/sym_play_arrow_fill"
+                    android:tint="?android:attr/colorBackground" />
+            </FrameLayout>
+            </FrameLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:maxLines="1"
+                android:text="@string/widget_preview_mix_1"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="11sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <FrameLayout
+                android:layout_width="46dp"
+                android:layout_height="46dp">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:importantForAccessibility="no"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/widget_preview_cover_b" />
+            <FrameLayout
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="bottom|end"
+                android:layout_margin="3dp"
+                android:background="@drawable/widget_button_round"
+                android:backgroundTint="?android:attr/colorAccent">
+
+                <ImageView
+                    android:layout_width="13dp"
+                    android:layout_height="13dp"
+                    android:layout_gravity="center"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/sym_play_arrow_fill"
+                    android:tint="?android:attr/colorBackground" />
+            </FrameLayout>
+            </FrameLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:maxLines="1"
+                android:text="@string/widget_preview_mix_2"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="11sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <FrameLayout
+                android:layout_width="46dp"
+                android:layout_height="46dp">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:importantForAccessibility="no"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/widget_preview_cover_c" />
+            <FrameLayout
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="bottom|end"
+                android:layout_margin="3dp"
+                android:background="@drawable/widget_button_round"
+                android:backgroundTint="?android:attr/colorAccent">
+
+                <ImageView
+                    android:layout_width="13dp"
+                    android:layout_height="13dp"
+                    android:layout_gravity="center"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/sym_play_arrow_fill"
+                    android:tint="?android:attr/colorBackground" />
+            </FrameLayout>
+            </FrameLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:maxLines="1"
+                android:text="@string/widget_preview_mix_3"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="11sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <FrameLayout
+                android:layout_width="46dp"
+                android:layout_height="46dp">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:importantForAccessibility="no"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/widget_preview_cover_d" />
+            <FrameLayout
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="bottom|end"
+                android:layout_margin="3dp"
+                android:background="@drawable/widget_button_round"
+                android:backgroundTint="?android:attr/colorAccent">
+
+                <ImageView
+                    android:layout_width="13dp"
+                    android:layout_height="13dp"
+                    android:layout_gravity="center"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/sym_play_arrow_fill"
+                    android:tint="?android:attr/colorBackground" />
+            </FrameLayout>
+            </FrameLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:maxLines="1"
+                android:text="@string/widget_preview_mix_4"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

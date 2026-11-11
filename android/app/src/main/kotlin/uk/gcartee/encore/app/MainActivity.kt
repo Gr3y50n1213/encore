@@ -69,8 +69,19 @@ class MainActivity : ComponentActivity() {
     // another profile, or one with a PIN, opens the profile switcher (EncoreRoot handles
     // both requests). ---
     private fun openFromWidget(intent: android.content.Intent?) {
+        // Phase 9 (WP8): touch and hold on the Start a mix tile opens the Mixes tab.
+        if (intent?.action == ACTION_QS_TILE_PREFERENCES) host.openRequest.value = OPEN_MIXES
         when (val open = intent?.getStringExtra(EXTRA_OPEN)) {
             OPEN_NOW_PLAYING, OPEN_PROFILES -> host.openRequest.value = open
+            // Phase 9 (WP7): a Recently played cover. A request without a valid album or
+            // profile ID opens the app and nothing else.
+            OPEN_ALBUM -> if (intent?.hasExtra(EXTRA_ALBUM_ID) == true) {
+                val profileId = intent.getStringExtra(EXTRA_PROFILE_ID)
+                if (profileId != null) {
+                    val request = uk.gcartee.encore.app.widgets.AlbumOpenRequest.encode(intent.getLongExtra(EXTRA_ALBUM_ID, 0L), profileId)
+                    if (uk.gcartee.encore.app.widgets.AlbumOpenRequest.parse(request) != null) host.openRequest.value = request
+                }
+            }
         }
     }
     // --- End Phase 9 (WP6). ---
@@ -90,11 +101,20 @@ class MainActivity : ComponentActivity() {
         /** The sleep timer's notification opens the sleep timer sheet (EncoreRoot). */
         const val OPEN_SLEEP_TIMER = "sleep-timer"
 
+        /** Phase 9 (WP8): the Start a mix tile's touch and hold (EncoreRoot opens the Mixes tab). */
+        const val OPEN_MIXES = "mixes"
+        private const val ACTION_QS_TILE_PREFERENCES = "android.service.quicksettings.action.QS_TILE_PREFERENCES"
+
         /** Phase 9 (WP6): the Now Playing widget's cover or text. */
         const val OPEN_NOW_PLAYING = "now-playing"
 
         /** Phase 9 (WP6): a widget set to another profile or one with a PIN. */
         const val OPEN_PROFILES = "profiles"
+
+        /** Phase 9 (WP7): a Recently played cover opens that album (with [EXTRA_ALBUM_ID], [EXTRA_PROFILE_ID]). */
+        const val OPEN_ALBUM = "album"
+        const val EXTRA_ALBUM_ID = "uk.gcartee.encore.app.ALBUM_ID"
+        const val EXTRA_PROFILE_ID = "uk.gcartee.encore.app.PROFILE_ID"
     }
 
     override fun onStop() {

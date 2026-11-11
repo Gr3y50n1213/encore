@@ -48,6 +48,10 @@
                 <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+            <!-- Phase 9 (WP8): touch and hold on the Start a mix tile opens Mixes. -->
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
         </activity>
 
         <!-- Board 19, item 5: the export file is shared through the system sheet. -->
@@ -113,6 +117,32 @@
                 android:resource="@xml/now_playing_widget_info" />
         </receiver>
 
+        <!-- Phase 9 (WP7): the Mixes and Recently played widgets. Both history widgets
+             declare not_keyguard in their provider XML (never on the lock screen). -->
+        <receiver
+            android:name=".widgets.MixesWidgetReceiver"
+            android:exported="true"
+            android:label="@string/mixes_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/mixes_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widgets.RecentWidgetReceiver"
+            android:exported="true"
+            android:label="@string/recent_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/recent_widget_info" />
+        </receiver>
+
         <!-- Phase 9 (WP6): a widget's Profile setting. Exported for the widget host; it
              checks the widget ID is one of ours before doing anything. -->
         <activity
@@ -124,6 +154,23 @@
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
         </activity>
+
+        <!-- Phase 9 (WP8): the "Start a mix" Quick Settings tile (tile/StartMixTileService.kt).
+             Exported because Android binds it, protected by BIND_QUICK_SETTINGS_TILE. Active
+             tile: bound only when the app asks for a refresh (WidgetSync) or the panel opens. -->
+        <service
+            android:name=".tile.StartMixTileService"
+            android:exported="true"
+            android:icon="@drawable/sym_graphic_eq"
+            android:label="@string/tile_start_mix_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.quicksettings.ACTIVE_TILE"
+                android:value="true" />
+        </service>
 
         <!-- Android Auto: a media app (res/xml/automotive_app_desc.xml). -->
         <meta-data

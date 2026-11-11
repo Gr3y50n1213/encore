@@ -245,6 +245,32 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
             }
         }
     }
+    // Phase 9 (WP7): a Recently played cover opens its album, but only when the widget's
+    // profile is the one open (else the profile switcher: a tap never switches profiles
+    // silently) and the album is in that profile's library.
+    LaunchedEffect(openRequest) {
+        val album = uk.gcartee.encore.app.widgets.AlbumOpenRequest.parse(openRequest) ?: return@LaunchedEffect
+        host.openRequest.value = null
+        nowPlaying = false
+        val open = runCatching { host.core.currentProfile() }.getOrNull()
+        if (open != album.profileId) {
+            profiles = true
+        } else if (runCatching { host.core.album(album.albumId) }.isSuccess) {
+            profiles = false
+            nav.push(Route.Album(album.albumId))
+        } else {
+            toaster.show("That album isn't in this library")
+        }
+    }
+    // Phase 9 (WP8): touch and hold on the Start a mix tile opens the Mixes tab.
+    LaunchedEffect(openRequest) {
+        if (openRequest == MainActivity.OPEN_MIXES) {
+            nowPlaying = false
+            profiles = false
+            nav.select(uk.gcartee.encore.app.ui.nav.Tab.Mixes)
+            host.openRequest.value = null
+        }
+    }
     LaunchedEffect(openRequest) {
         if (openRequest == MainActivity.OPEN_DOWNLOADS) {
             nowPlaying = false

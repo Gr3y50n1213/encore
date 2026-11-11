@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phase 9 (WP8), board 34 item 4: the Quick Settings tile. %1$s is the app's name
+     (app_name, from the core's brand constant). -->
+<resources>
+    <string name="tile_start_mix_label">Start a mix</string>
+    <string name="tile_playing">Playing</string>
+    <string name="tile_unlock">Unlock %1$s</string>
+    <string name="tile_next_up">Next up</string>
+    <string name="tile_open_app">Open %1$s</string>
+</resources>

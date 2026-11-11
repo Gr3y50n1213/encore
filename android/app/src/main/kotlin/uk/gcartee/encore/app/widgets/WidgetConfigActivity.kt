@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -67,13 +68,22 @@ class WidgetConfigActivity : ComponentActivity() {
             finish()
             return
         }
-        val profiles = WidgetConfig.profileState(this).profiles
+        val profileState = WidgetConfig.profileState(this)
+        val profiles = profileState.profiles
         val initial = WidgetConfig.choice(this, appWidgetId)
+        // Phase 9 (WP7): only a Mixes widget has a Mix setting.
+        val mixes = providerIs(MixesWidgetReceiver::class.java)
+        val initialMix = WidgetConfig.mixChoice(this, appWidgetId)
+        val widgetsDir = SnapshotReader.widgetsDir(filesDir)
+        val mixOptions = { choice: WidgetProfileChoice -> pinnedMixesOf(widgetsDir, WidgetConfig.resolve(choice, profileState)) }
         setContent {
             EncoreTheme {
                 ConfigScreen(
                     profiles = profiles,
                     initial = initial,
+                    showMix = mixes,
+                    initialMix = initialMix,
+                    mixOptions = mixOptions,
                     onSave = ::save,
                     onCancel = ::finish,
                 )
@@ -81,14 +91,37 @@ class WidgetConfigActivity : ComponentActivity() {
         }
     }
 
+    // --- Phase 9 (WP7): one screen serves all three widgets; the provider tells them apart. ---
+    private fun providerIs(receiver: Class<*>): Boolean {
+        val info = runCatching { AppWidgetManager.getInstance(this).getAppWidgetInfo(appWidgetId) }.getOrNull()
+        return info?.provider?.className == receiver.name
+    }
+
+    /** The pinned mixes in the profile's file, for the Mix list: none for a PIN, Guest, a missing file. */
+    private fun pinnedMixesOf(widgetsDir: java.io.File, profileId: String?): List<SnapshotMix> {
+        if (profileId == null) return emptyList()
+        val read = SnapshotReader.read(widgetsDir, profileId) as? SnapshotRead.Ok ?: return emptyList()
+        return if (read.snapshot.privacy == SnapshotPrivacy.NORMAL) read.snapshot.pinnedMixes else emptyList()
+    }
+    // --- End Phase 9 (WP7). ---
+
     private fun isOurWidget(id: Int): Boolean {
         if (id == AppWidgetManager.INVALID_APPWIDGET_ID) return false
         val info = runCatching { AppWidgetManager.getInstance(this).getAppWidgetInfo(id) }.getOrNull() ?: return false
         return info.provider?.packageName == packageName
     }
 
-    private fun save(choice: WidgetProfileChoice) {
+    private fun save(choice: WidgetProfileChoice, mix: WidgetMixChoice) {
         WidgetConfig.setChoice(this, appWidgetId, choice)
+        // Phase 9 (WP7): the Mix setting is kept for a Mixes widget only.
+        val widget: GlanceAppWidget = when {
+            providerIs(MixesWidgetReceiver::class.java) -> {
+                WidgetConfig.setMixChoice(this, appWidgetId, mix)
+                MixesWidget()
+            }
+            providerIs(RecentWidgetReceiver::class.java) -> RecentWidget()
+            else -> NowPlayingWidget()
+        }
         WidgetRedraws.bump()
         val context = applicationContext
         val id = appWidgetId
@@ -96,7 +129,7 @@ class WidgetConfigActivity : ComponentActivity() {
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             runCatching {
                 val glanceId = GlanceAppWidgetManager(context).getGlanceIdBy(id)
-                NowPlayingWidget().update(context, glanceId)
+                widget.update(context, glanceId)
             }
         }
         setResult(Activity.RESULT_OK, resultIntent())
@@ -110,11 +143,16 @@ class WidgetConfigActivity : ComponentActivity() {
 private fun ConfigScreen(
     profiles: List<KnownProfile>,
     initial: WidgetProfileChoice,
-    onSave: (WidgetProfileChoice) -> Unit,
+    showMix: Boolean,
+    initialMix: WidgetMixChoice,
+    mixOptions: (WidgetProfileChoice) -> List<SnapshotMix>,
+    onSave: (WidgetProfileChoice, WidgetMixChoice) -> Unit,
     onCancel: () -> Unit,
 ) {
     // "" is Active profile. A fixed profile that is gone stays chosen until another is picked.
     var selected by rememberSaveable { mutableStateOf((initial as? WidgetProfileChoice.Fixed)?.profileId.orEmpty()) }
+    // Phase 9 (WP7): "" is Next up.
+    var selectedMix by rememberSaveable { mutableStateOf((initialMix as? WidgetMixChoice.Pinned)?.mixId.orEmpty()) }
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
         Column(
             modifier = Modifier
@@ -140,13 +178,40 @@ private fun ConfigScreen(
                     ) { selected = p.id }
                 }
             }
+            // Phase 9 (WP7): a Mixes widget also picks its mix: Next up, or a pinned mix of the
+            // profile chosen above (the list follows that choice).
+            if (showMix) {
+                val choice = if (selected.isEmpty()) WidgetProfileChoice.Active else WidgetProfileChoice.Fixed(selected)
+                val options = mixOptions(choice)
+                Text(
+                    stringResource(R.string.widget_config_mix_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(top = 24.dp, bottom = 8.dp),
+                )
+                Column(modifier = Modifier.selectableGroup()) {
+                    ChoiceRow(stringResource(R.string.widget_config_mix_next_up), null, selectedMix.isEmpty()) { selectedMix = "" }
+                    options.forEach { m ->
+                        ChoiceRow(m.title.ifBlank { m.mixId }, null, selectedMix == m.mixId) { selectedMix = m.mixId }
+                    }
+                }
+                if (options.isEmpty()) {
+                    Text(
+                        stringResource(R.string.widget_config_mix_none),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
             ) {
                 TextButton(onClick = onCancel) { Text(stringResource(R.string.widget_config_cancel)) }
                 Button(onClick = {
-                    onSave(if (selected.isEmpty()) WidgetProfileChoice.Active else WidgetProfileChoice.Fixed(selected))
+                    onSave(
+                        if (selected.isEmpty()) WidgetProfileChoice.Active else WidgetProfileChoice.Fixed(selected),
+                        if (selectedMix.isEmpty()) WidgetMixChoice.NextUp else WidgetMixChoice.Pinned(selectedMix),
+                    )
                 }) { Text(stringResource(R.string.widget_config_save)) }
             }
         }

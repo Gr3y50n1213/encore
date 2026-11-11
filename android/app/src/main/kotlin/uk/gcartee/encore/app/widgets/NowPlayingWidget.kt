@@ -163,7 +163,7 @@ object NowPlayingLoader {
 }
 
 @Composable
-private fun widgetColors(): ColorProviders =
+internal fun widgetColors(): ColorProviders =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         GlanceTheme.colors
     } else {
@@ -206,7 +206,7 @@ private fun NowPlayingUi(view: NowPlayingView, cover: Bitmap?) {
 }
 
 /** The system's corner radius from Android 12; a rounded shape before it. */
-private fun GlanceModifier.tileBackground(color: ColorProvider): GlanceModifier =
+internal fun GlanceModifier.tileBackground(color: ColorProvider): GlanceModifier =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         background(color).cornerRadius(android.R.dimen.system_app_widget_background_radius)
     } else {
@@ -339,7 +339,7 @@ private fun Bar(song: NowPlayingView.Song) {
 }
 
 @Composable
-private fun Cover(cover: Bitmap?, size: Dp, dimmed: Boolean) {
+internal fun Cover(cover: Bitmap?, size: Dp, dimmed: Boolean) {
     val modifier = GlanceModifier.size(size).let {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) it.cornerRadius(android.R.dimen.system_app_widget_inner_radius) else it
     }
@@ -416,7 +416,7 @@ private fun SkipButton(previous: Boolean, buttonsOpen: WidgetTarget?) {
 }
 
 /** Straight to the playback service (a foreground start, allowed for a widget tap), or the app. */
-private fun buttonAction(context: Context, intent: Intent, buttonsOpen: WidgetTarget?): Action =
+internal fun buttonAction(context: Context, intent: Intent, buttonsOpen: WidgetTarget?): Action =
     if (buttonsOpen != null) {
         actionStartActivity(WidgetIntents.open(context, buttonsOpen))
     } else {
@@ -427,10 +427,10 @@ private fun openAction(context: Context, target: WidgetTarget): Action =
     actionStartActivity(WidgetIntents.open(context, target))
 
 @Composable
-private fun titleStyle(size: TextUnit) = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = size, fontWeight = FontWeight.Medium)
+internal fun titleStyle(size: TextUnit) = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = size, fontWeight = FontWeight.Medium)
 
 @Composable
-private fun secondaryStyle(size: TextUnit) = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = size)
+internal fun secondaryStyle(size: TextUnit) = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = size)
 
 /** m:ss, as the app's scrub bar shows it. */
 private fun clock(ms: Long): String {
@@ -438,4 +438,4 @@ private fun clock(ms: Long): String {
     return "%d:%02d".format(s / 60, s % 60)
 }
 
-private const val DIM_ALPHA = 0.5f
+internal const val DIM_ALPHA = 0.5f

@@ -74,12 +74,17 @@ offline=uk.gcartee.encore.app.OfflineAndCarTest
 playback=uk.gcartee.encore.app.PlaybackFlowTest
 sleep_sheet=uk.gcartee.encore.app.SleepTimerSheetTest
 widget=uk.gcartee.encore.app.NowPlayingWidgetTest
+lock_page=uk.gcartee.encore.app.LockScreenWidgetsPageTest # Phase 9 (WP8)
+collections=uk.gcartee.encore.app.CollectionWidgetsTest # Phase 9 (WP7)
 # First on a fresh install (no profile yet), everything but the replay tests.
-adb shell am instrument -w -r -e notClass "$signin,$offline,$playback,$sleep_sheet,$widget" "$runner" | tee "$out/instrument.txt"
+adb shell am instrument -w -r -e notClass "$signin,$offline,$playback,$sleep_sheet,$widget,$lock_page,$collections" "$runner" | tee "$out/instrument.txt"
 grep -q '^OK (' "$out/instrument.txt" || { echo "instrumented tests failed" >&2; exit 1; }
-# Phase 9 (WP6): in a process of its own, so "a widget update never starts the core" is checked.
+# Phase 9 (WP6, WP7): each in a process of its own, so "a widget update never starts the
+# core" is checked.
 adb shell am instrument -w -r -e class "$widget" "$runner" | tee "$out/instrument-widget.txt"
 grep -q '^OK (' "$out/instrument-widget.txt" || { echo "the widget test failed" >&2; exit 1; }
+adb shell am instrument -w -r -e class "$collections" "$runner" | tee "$out/instrument-collections.txt"
+grep -q '^OK (' "$out/instrument-collections.txt" || { echo "the Mixes and Recently played widget test failed" >&2; exit 1; }
 
 echo "== 1b. Sign in to the Jellyfin replay, browse, play"
 # The owner's anonymized recording, served on this host and reached from the device
@@ -103,6 +108,32 @@ echo "== 1e. Phase 9: the sleep timer sheet (set, cancel, Undo)"
 adb shell am instrument -w -r -e class "$sleep_sheet" -e replayUrl "$replay" "$runner" | tee "$out/instrument-sleep-sheet.txt"
 echo "== 1f. Phase 9 (WP6): the Now Playing widget's buttons with no activity open"
 adb shell am instrument -w -r -e class "$widget" -e replayUrl "$replay" "$runner" | tee "$out/instrument-widget-play.txt"
+echo "== 1f2. Phase 9 (WP7): a Mixes widget tile starts a mix with no activity open"
+adb shell am instrument -w -r -e class "$collections" -e replayUrl "$replay" "$runner" | tee "$out/instrument-collections-play.txt"
+echo "== 1g. Phase 9 (WP8): Settings > Lock screen and widgets"
+adb shell am instrument -w -r -e class "$lock_page" -e replayUrl "$replay" "$runner" | tee "$out/instrument-lock-page.txt"
+echo "== 1h. Phase 9 (WP8): the Start a mix tile, added and clicked from the shell"
+# Best effort, never fails the job: not every emulator image has the statusbar service's
+# add-tile and click-tile commands. A tap should start playback headlessly (the service
+# opens the last active profile), which shows as a playing media session. The result,
+# or why nothing could be checked, goes to tile.txt for the review.
+tile=uk.gcartee.encore.debug/uk.gcartee.encore.app.tile.StartMixTileService
+{
+  adb shell am force-stop uk.gcartee.encore.debug || true
+  echo "add-tile:";   adb shell cmd statusbar add-tile "$tile" 2>&1 || echo "(add-tile not available)"
+  sleep 2
+  echo "click-tile:"; adb shell cmd statusbar click-tile "$tile" 2>&1 || echo "(click-tile not available)"
+  sleep 8
+  echo "media sessions (state=3 playing, 6 buffering):"
+  adb shell dumpsys media_session 2>&1 | grep -E 'package=uk.gcartee.encore|state=PlaybackState' | head -n 12 || true
+  if adb shell dumpsys media_session 2>&1 | grep -A 12 'package=uk.gcartee.encore' | grep -Eq 'state=(3|6)'; then
+    echo "RESULT: the tile started playback"
+  else
+    echo "RESULT: playback not seen (the emulator may not support tile clicks; not a failure)"
+  fi
+  adb shell cmd statusbar remove-tile "$tile" 2>&1 || true
+} 2>&1 | tee "$out/tile.txt" || true
+adb shell input keyevent KEYCODE_MEDIA_PAUSE || true
 # The player's story for the review: the app's decisions and Media3's events.
 adb logcat -d -s CorePlayback:V EncorePlayer:V > "$out/logcat-playback.txt" 2>/dev/null || true
 adb reverse --remove "tcp:$port" || true
@@ -118,6 +149,8 @@ grep -q '^OK (1 test)' "$out/instrument-offline.txt" || { echo "the offline and 
 grep -q '^OK (' "$out/instrument-playback.txt" || { echo "the playback flow test failed" >&2; exit 1; }
 grep -q '^OK (' "$out/instrument-sleep-sheet.txt" || { echo "the sleep timer sheet test failed" >&2; exit 1; }
 grep -q '^OK (' "$out/instrument-widget-play.txt" || { echo "the widget play test failed" >&2; exit 1; }
+grep -q '^OK (' "$out/instrument-collections-play.txt" || { echo "the Mixes widget play test failed" >&2; exit 1; }
+grep -q '^OK (' "$out/instrument-lock-page.txt" || { echo "the Lock screen and widgets page test failed" >&2; exit 1; }
 # The release build below must start fresh again, on Welcome.
 adb uninstall uk.gcartee.encore.debug > /dev/null || true
 

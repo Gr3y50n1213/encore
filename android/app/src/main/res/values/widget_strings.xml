@@ -26,7 +26,35 @@
     <string name="widget_preview_title">Slow Tide</string>
     <string name="widget_preview_artist">Ember Cove</string>
 
+    <!-- Phase 9 (WP7): the Mixes and Recently played widgets. -->
+    <string name="mixes_widget_label">Mixes</string>
+    <string name="mixes_widget_description">Your mixes, one tap to start one</string>
+    <string name="recent_widget_label">Recently played</string>
+    <string name="recent_widget_description">The albums you played lately, one tap to open one</string>
+    <string name="mixes_widget_title">Your mixes</string>
+    <string name="recent_widget_title">Recently played</string>
+    <string name="widget_play_mix">Play %1$s</string>
+    <string name="widget_open_album">Open %1$s</string>
+    <string name="widget_untitled_album">Album</string>
+
+    <!-- The picker's previews: made-up demo names, never the person's library. -->
+    <string name="widget_preview_mix_1">Evening Drive</string>
+    <string name="widget_preview_mix_2">Rainy Focus</string>
+    <string name="widget_preview_mix_3">Drive Home</string>
+    <string name="widget_preview_mix_4">Slow Morning</string>
+    <string name="widget_preview_album_1">Golden Hour</string>
+    <string name="widget_preview_album_2">Night Market</string>
+    <string name="widget_preview_album_3">Salt and Signal</string>
+    <string name="widget_preview_album_4">Tidewater</string>
+    <string name="widget_preview_album_5">Paper Lanterns</string>
+    <string name="widget_preview_album_6">Low Orbit</string>
+    <string name="widget_preview_album_7">Harbor Light</string>
+    <string name="widget_preview_album_8">Cinder Road</string>
+
     <!-- The configuration screen. -->
+    <string name="widget_config_mix_title">Mix</string>
+    <string name="widget_config_mix_next_up">Next up</string>
+    <string name="widget_config_mix_none">Pinned mixes show here once the app has saved them.</string>
     <string name="widget_config_title">Widget profile</string>
     <string name="widget_config_explainer">A widget set to one profile keeps showing it after you switch.</string>
     <string name="widget_config_active">Active profile</string>

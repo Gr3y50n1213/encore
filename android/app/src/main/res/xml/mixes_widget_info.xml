@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phase 9, board 34, item 3: the Mixes widget, 4x2. A history widget: it declares
+     not_keyguard (PLAN-ANDROID section 20), so it can never be placed on the lock screen.
+     updatePeriodMillis is 3 hours so a snapshot over 24 hours old dims even when the app
+     never runs. The preview is demo text and art. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:configure="uk.gcartee.encore.app.widgets.WidgetConfigActivity"
+    android:description="@string/mixes_widget_description"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:minWidth="250dp"
+    android:minHeight="110dp"
+    android:minResizeWidth="250dp"
+    android:minResizeHeight="110dp"
+    android:maxResizeWidth="530dp"
+    android:maxResizeHeight="250dp"
+    android:previewImage="@drawable/widget_preview_mixes"
+    android:previewLayout="@layout/mixes_widget_preview"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="10800000"
+    android:widgetCategory="home_screen|not_keyguard"
+    android:widgetFeatures="reconfigurable|configuration_optional" />

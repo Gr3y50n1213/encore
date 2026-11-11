@@ -6,6 +6,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import uk.gcartee.encore.app.core.CoreHost
 import uk.gcartee.encore.core.EventKind
@@ -36,6 +38,13 @@ object WidgetSync {
                 if (event.kind == EventKind.WIDGET_SNAPSHOT_CHANGED) request(host)
             }
         }
+        // Phase 9 (WP8): the Start a mix tile shows "Playing" while playback runs in this process.
+        scope.launch {
+            uk.gcartee.encore.app.playback.PlaybackHub.state
+                .map { it.isPlaying }
+                .distinctUntilChanged()
+                .collect { uk.gcartee.encore.app.tile.StartMixTileService.refresh(host.context) }
+        }
         request(host)
     }
 
@@ -61,5 +70,8 @@ object WidgetSync {
         WidgetConfig.saveProfileState(host.context, state)
         WidgetRedraws.bump()
         runCatching { NowPlayingWidget().updateAll(host.context) }
+        runCatching { MixesWidget().updateAll(host.context) } // Phase 9 (WP7)
+        runCatching { RecentWidget().updateAll(host.context) } // Phase 9 (WP7)
+        uk.gcartee.encore.app.tile.StartMixTileService.refresh(host.context) // Phase 9 (WP8)
     }
 }

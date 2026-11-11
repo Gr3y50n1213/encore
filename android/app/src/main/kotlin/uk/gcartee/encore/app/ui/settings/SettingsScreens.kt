@@ -303,6 +303,7 @@ fun SettingsScreen(host: CoreHost, page: String, onBack: () -> Unit, onProfiles:
         "privacy" -> PrivacyPage(host, onBack, contentPadding)
         "licences" -> LicencesPage(onBack, contentPadding)
         "downloads" -> DownloadsPage(host, onBack, contentPadding)
+        "lock-screen-widgets" -> LockScreenWidgetsPage(onBack, contentPadding) // Phase 9 (WP8)
         else -> SettingsHome(host, onBack, onProfiles, contentPadding)
     }
 }
@@ -326,6 +327,7 @@ private fun SettingsHome(host: CoreHost, onBack: () -> Unit, onProfiles: () -> U
             // Board 17: "Downloads 12.4 GB".
             Row0("Downloads", right = if (used > 0) formatBytes(used) else null) { actions.open(Route.Settings("downloads")) },
             Row0("Mixes and suggestions") { actions.open(Route.Settings("suggestions")) },
+            Row0("Lock screen and widgets") { actions.open(Route.Settings("lock-screen-widgets")) }, // Phase 9 (WP8)
         ),
         listOf(
             Row0("Servers and sources") { actions.open(Route.Settings("servers")) },

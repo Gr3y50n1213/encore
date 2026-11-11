@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phase 9, board 34, item 4: the Recently played widget, 4x3. A history widget: it
+     declares not_keyguard (PLAN-ANDROID section 20), so it can never be placed on the lock
+     screen. updatePeriodMillis is 3 hours so a snapshot over 24 hours old dims even when the
+     app never runs. The preview is demo text and art. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:configure="uk.gcartee.encore.app.widgets.WidgetConfigActivity"
+    android:description="@string/recent_widget_description"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:minWidth="250dp"
+    android:minHeight="180dp"
+    android:minResizeWidth="250dp"
+    android:minResizeHeight="180dp"
+    android:maxResizeWidth="530dp"
+    android:maxResizeHeight="320dp"
+    android:previewImage="@drawable/widget_preview_recent"
+    android:previewLayout="@layout/recent_widget_preview"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="4"
+    android:targetCellHeight="3"
+    android:updatePeriodMillis="10800000"
+    android:widgetCategory="home_screen|not_keyguard"
+    android:widgetFeatures="reconfigurable|configuration_optional" />

@@ -33,6 +33,8 @@ data class ProfileState(
 object WidgetConfig {
     private const val PREFS = "widget-config"
     private const val KEY_PROFILE = "profile-"
+    private const val KEY_DEFAULT = "default-for-new" // Phase 9 (WP8)
+    private const val KEY_MIX = "mix-"
 
     private const val STATE_PREFS = "widget-profiles"
     private const val KEY_CURRENT = "current"
@@ -40,9 +42,23 @@ object WidgetConfig {
     private const val KEY_PROFILES = "profiles"
 
     fun choice(context: Context, appWidgetId: Int): WidgetProfileChoice {
-        val id = prefs(context).getString(KEY_PROFILE + appWidgetId, null)
+        // Phase 9 (WP8): a widget never configured follows the device-wide default
+        // (Settings > Lock screen and widgets); a saved choice, even Active (""), wins.
+        val id = prefs(context).getString(KEY_PROFILE + appWidgetId, null) ?: return defaultChoice(context)
+        return if (id.isEmpty()) WidgetProfileChoice.Active else WidgetProfileChoice.Fixed(id)
+    }
+
+    // --- Phase 9 (WP8): the Profile setting new widgets start with (Active profile until changed). ---
+    fun defaultChoice(context: Context): WidgetProfileChoice {
+        val id = prefs(context).getString(KEY_DEFAULT, null)
         return if (id.isNullOrEmpty()) WidgetProfileChoice.Active else WidgetProfileChoice.Fixed(id)
     }
+
+    fun setDefaultChoice(context: Context, choice: WidgetProfileChoice) {
+        val value = (choice as? WidgetProfileChoice.Fixed)?.profileId.orEmpty()
+        prefs(context).edit().putString(KEY_DEFAULT, value).apply()
+    }
+    // --- End Phase 9 (WP8). ---
 
     fun setChoice(context: Context, appWidgetId: Int, choice: WidgetProfileChoice) {
         val value = when (choice) {
@@ -52,10 +68,25 @@ object WidgetConfig {
         prefs(context).edit().putString(KEY_PROFILE + appWidgetId, value).apply()
     }
 
+    // --- Phase 9 (WP7): the Mixes widget's Mix setting ("" is Next up). ---
+    fun mixChoice(context: Context, appWidgetId: Int): WidgetMixChoice {
+        val id = prefs(context).getString(KEY_MIX + appWidgetId, null)
+        return if (id.isNullOrEmpty()) WidgetMixChoice.NextUp else WidgetMixChoice.Pinned(id)
+    }
+
+    fun setMixChoice(context: Context, appWidgetId: Int, choice: WidgetMixChoice) {
+        val value = when (choice) {
+            WidgetMixChoice.NextUp -> ""
+            is WidgetMixChoice.Pinned -> choice.mixId
+        }
+        prefs(context).edit().putString(KEY_MIX + appWidgetId, value).apply()
+    }
+    // --- End Phase 9 (WP7). ---
+
     /** The widget was removed from the home screen. */
     fun forget(context: Context, appWidgetIds: IntArray) {
         val edit = prefs(context).edit()
-        appWidgetIds.forEach { edit.remove(KEY_PROFILE + it) }
+        appWidgetIds.forEach { edit.remove(KEY_PROFILE + it).remove(KEY_MIX + it) }
         edit.apply()
     }
 

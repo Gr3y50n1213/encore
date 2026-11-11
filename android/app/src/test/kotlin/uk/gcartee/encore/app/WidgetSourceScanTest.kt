@@ -18,6 +18,10 @@ class WidgetSourceScanTest {
         assertTrue("no widgets folder at ${dir.absolutePath}", dir.isDirectory)
         val files = dir.walkTopDown().filter { it.isFile && it.extension == "kt" }.toList()
         assertTrue("found the widget sources", files.any { it.name == "NowPlayingWidget.kt" })
+        // Phase 9 (WP7): the scan covers the Mixes and Recently played widgets too.
+        for (name in listOf("MixesWidget.kt", "RecentWidget.kt", "CollectionUi.kt", "CollectionStates.kt")) {
+            assertTrue("found $name", files.any { it.name == name })
+        }
         val offenders = files
             .filter { it.name != "WidgetSync.kt" }
             .flatMap { file ->

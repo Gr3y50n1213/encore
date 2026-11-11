@@ -52,6 +52,21 @@ object WidgetIntents {
             .putExtra(EXTRA_FROM_WIDGET, true)
             .apply { if (mixId != null) putExtra(EXTRA_MIX_ID, mixId) }
 
+    /**
+     * Phase 9 (WP7): opens [albumId] in the app. [profileId] is the widget's profile: the
+     * app opens the album only when that profile is the one open, and only when the album
+     * is in its library (MainActivity, EncoreRoot). It is not a secret and changes nothing
+     * by itself.
+     */
+    fun openAlbum(context: Context, albumId: Long, profileId: String): Intent =
+        Intent(context, MainActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            // One PendingIntent per album: the extras alone wouldn't tell them apart.
+            .setData(Uri.Builder().scheme(SCHEME).authority("album").appendPath(albumId.toString()).build())
+            .putExtra(MainActivity.EXTRA_OPEN, MainActivity.OPEN_ALBUM)
+            .putExtra(MainActivity.EXTRA_ALBUM_ID, albumId)
+            .putExtra(MainActivity.EXTRA_PROFILE_ID, profileId)
+
     /** Opens the app on Now Playing, the profile switcher, or where it was. */
     fun open(context: Context, target: WidgetTarget): Intent =
         Intent(context, MainActivity::class.java)
