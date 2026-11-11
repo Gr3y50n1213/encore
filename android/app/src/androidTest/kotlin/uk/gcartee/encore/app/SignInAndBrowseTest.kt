@@ -203,7 +203,9 @@ class SignInAndBrowseTest {
         rule.onNodeWithText("Settings").performClick()
         rule.waitUntilAtLeastOneExists(hasText("Appearance"), TIMEOUT)
         shot("10-settings")
-        rule.onNodeWithText("Appearance").performClick()
+        // Phase 9 added "Lock screen and widgets" above it, so on a phone Appearance can sit
+        // at the screen's edge: bring it into view before tapping.
+        rule.onNodeWithText("Appearance").performScrollTo().performClick()
         rule.waitUntilAtLeastOneExists(hasText("Accent color"), TIMEOUT)
         shot("11-appearance")
     }

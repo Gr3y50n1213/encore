@@ -157,17 +157,25 @@ class PlaybackService : MediaLibraryService() {
     /** Start a mix (CORE-API `play_mix`) on the profile already open or the last active one; never another. */
     private fun playMixFromWidget(mixId: String?) {
         val host = CoreHost.get(this)
-        if (!host.ensureProfile()) return
+        if (!host.ensureProfile()) {
+            android.util.Log.w(WIDGET_TAG, "Start a mix: no profile opens without the app (locked or none)")
+            return
+        }
         val ref = if (mixId == null) {
             uk.gcartee.encore.core.MixRef(uk.gcartee.encore.core.MixRefKind.NEXT_UP, null)
         } else {
             uk.gcartee.encore.core.MixRef(uk.gcartee.encore.core.MixRefKind.ID, mixId)
         }
-        if (runCatching { host.core.playMix(ref) }.isFailure) return
+        runCatching { host.core.playMix(ref) }.onFailure {
+            // Nothing to start (no mixes yet) or the mix couldn't load: the service stops
+            // through WidgetStarts. Logged so a quiet tile can be explained.
+            android.util.Log.w(WIDGET_TAG, "Start a mix (${if (mixId == null) "Next up" else "a pinned mix"}) failed: ${it.message}")
+            return
+        }
         // Media3 shows the notification (and goes into the foreground) only for a session
         // it knows; a controller usually adds it, a private action doesn't.
         session?.let { if (!isSessionAdded(it)) addSession(it) }
-        runCatching { playback?.playCurrent() }
+        runCatching { playback?.playCurrent() }.onFailure { android.util.Log.w(WIDGET_TAG, "Start a mix: play failed: ${it.message}") }
     }
     // --- End Phase 9 (WP6). ---
 
@@ -265,6 +273,7 @@ class PlaybackService : MediaLibraryService() {
     }
 
     private companion object {
+        const val WIDGET_TAG = "WidgetStarts"
         const val MEDIA_RETRIES = 2
         val RETRY_DELAYS_MS = longArrayOf(5_000, 15_000).toList()
         const val DEFAULT_CACHE_BYTES = 1_000_000_000L

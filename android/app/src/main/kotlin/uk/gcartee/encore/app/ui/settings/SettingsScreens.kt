@@ -21,6 +21,7 @@ import uk.gcartee.encore.app.ui.components.topBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -228,7 +229,9 @@ fun LazyListScope.group(title: String?, rows: List<Row0>) {
 @Composable
 internal fun Page(title: String, onBack: (() -> Unit)?, contentPadding: PaddingValues, action: Pair<String, () -> Unit>? = null, subtitle: String? = null, content: LazyListScope.() -> Unit) {
     val type = LocalEncoreType.current
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding() + (Grid.base * 3).dp)) {
+    // The tag names the page, so a test can scroll this page's list on a tablet, where the
+    // Settings root list sits beside it.
+    LazyColumn(Modifier.fillMaxSize().testTag("page:$title"), contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding() + (Grid.base * 3).dp)) {
         item {
             Column(Modifier.topBarsPadding().padding(horizontal = (Grid.base * 2).dp)) {
                 Row(Modifier.fillMaxWidth().padding(top = (Grid.base * 2).dp, bottom = Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {

@@ -3,11 +3,11 @@ package uk.gcartee.encore.app
 import android.app.UiAutomation
 import android.os.Build
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -73,7 +73,7 @@ class LockScreenWidgetsPageTest {
                 reach("Live Updates need Android 16 or later.", substring = true)
                 assertFalse(has("Open settings"))
             }
-            rule.onNode(hasScrollAction()).performScrollToNode(hasText("Sleep timer Live Update"))
+            page().performScrollToNode(hasText("Sleep timer Live Update"))
             shot("19-lock-screen-and-widgets")
 
             // The first switch is the sleep timer card: flip it, read the preference back.
@@ -92,9 +92,15 @@ class LockScreenWidgetsPageTest {
     private fun has(text: String, substring: Boolean = false): Boolean =
         rule.onAllNodes(hasText(text, substring = substring)).fetchSemanticsNodes().isNotEmpty()
 
+    /**
+     * This page's own list. On a tablet the Settings root list is beside it, so "the one
+     * scrollable node" would match two (Settings' Page tags its list with its title).
+     */
+    private fun page() = rule.onNodeWithTag("page:Lock screen and widgets")
+
     /** Scrolls the page to [text] and checks it is there. */
     private fun reach(text: String, substring: Boolean = false) {
-        runCatching { rule.onNode(hasScrollAction()).performScrollToNode(hasText(text, substring = substring)) }
+        page().performScrollToNode(hasText(text, substring = substring))
         step("\"$text\" is on the page", TIMEOUT) { has(text, substring) }
     }
 
