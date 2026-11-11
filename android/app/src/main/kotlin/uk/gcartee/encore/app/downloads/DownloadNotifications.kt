@@ -10,6 +10,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import uk.gcartee.encore.app.MainActivity
 import uk.gcartee.encore.app.R
+import uk.gcartee.encore.app.notifications.LiveUpdates
 import uk.gcartee.encore.core.DownloadProgress
 import uk.gcartee.encore.core.DownloadRun
 import uk.gcartee.encore.core.DownloadStop
@@ -17,9 +18,9 @@ import uk.gcartee.encore.core.DownloadStop
 /**
  * Boards 32 and 34: one notification for downloads the person started, updated in
  * place, with no sound: "Downloading Road trip", "15 of 24 songs", a bar and
- * Cancel. When they are done, or something stops them, one line says so. Live
- * Updates (Android 16 QPR1) come with Phase 9; this is the plain ongoing
- * notification the plan names as the fallback.
+ * Cancel. When they are done, or something stops them, one line says so. On
+ * Android 16 QPR1 and later a download the person started is also promoted to a Live
+ * Update (see LiveUpdates); everywhere else this is the plain ongoing notification.
  */
 class DownloadNotifications(private val context: Context) {
     private val manager = NotificationManagerCompat.from(context)
@@ -34,38 +35,62 @@ class DownloadNotifications(private val context: Context) {
         context.getSystemService(NotificationManager::class.java)?.createNotificationChannel(channel)
     }
 
-    private fun base(): NotificationCompat.Builder =
-        NotificationCompat.Builder(context, CHANNEL)
+    /**
+     * With "Hide listening history while locked" on (the default) the lock screen shows
+     * a neutral public version, not the album's name; otherwise the full notification.
+     */
+    private fun base(publicText: String? = null): NotificationCompat.Builder {
+        val b = NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(R.drawable.sym_download)
             .setSilent(true)
             .setOnlyAlertOnce(true)
             .setContentIntent(openDownloads())
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+        if (publicText != null && LiveUpdates.hideHistoryWhileLocked(context)) {
+            val neutral = NotificationCompat.Builder(context, CHANNEL)
+                .setSmallIcon(R.drawable.sym_download)
+                .setContentTitle("Encore")
+                .setContentText(publicText)
+                .build()
+            b.setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setPublicVersion(neutral)
+        } else {
+            b.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+        }
+        return b
+    }
 
-    /** The user-initiated job must show a notification before work starts. */
-    fun starting(): Notification =
-        base()
+    /**
+     * The user-initiated job must show a notification before work starts. [userInitiated]
+     * jobs ask for a Live Update too (Android 16 QPR1 and later); others never do.
+     */
+    fun starting(userInitiated: Boolean = false): Notification {
+        val b = base("Getting downloads ready")
             .setContentTitle("Getting downloads ready")
-            .setProgress(0, 0, true)
+            .setStyle(NotificationCompat.ProgressStyle().setProgressIndeterminate(true))
             .setOngoing(true)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .addAction(0, "Cancel", cancel())
-            .build()
+        LiveUpdates.applyPromotion(context, b, LiveUpdates.Card.DOWNLOADS, userInitiated, LiveUpdates.chipText(0))
+        return b.build()
+    }
 
-    fun progress(p: DownloadProgress) {
+    fun progress(p: DownloadProgress, userInitiated: Boolean = false) {
         val total = p.itemTotal.toInt().coerceAtLeast(1)
         val part = p.bytesTotal?.takeIf { it > 0uL }?.let { (p.bytesDone.toDouble() / it.toDouble()).coerceIn(0.0, 1.0) } ?: 0.0
         val done = (p.itemSaved.toInt() * SCALE + (part * SCALE).toInt()).coerceAtMost(total * SCALE)
-        val n = base()
+        val b = base("Downloading, ${p.itemSaved} of ${p.itemTotal} songs")
             .setContentTitle("Downloading ${p.itemTitle}")
             .setContentText("${p.itemSaved} of ${p.itemTotal} songs")
             .setSubText(if (p.songsTotal > p.itemTotal) "${p.songsDone} of ${p.songsTotal} in all" else null)
-            .setProgress(total * SCALE, done, false)
+            .setStyle(
+                NotificationCompat.ProgressStyle()
+                    .setProgressSegments(listOf(NotificationCompat.ProgressStyle.Segment(total * SCALE)))
+                    .setProgress(done),
+            )
             .setOngoing(true)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .addAction(0, "Cancel", cancel())
-            .build()
-        post(PROGRESS_ID, n)
+        LiveUpdates.applyPromotion(context, b, LiveUpdates.Card.DOWNLOADS, userInitiated, LiveUpdates.chipText(done * 100 / (total * SCALE)))
+        post(PROGRESS_ID, b.build())
     }
 
     /** The run ended: say so in one line, or nothing when there is nothing to say. */

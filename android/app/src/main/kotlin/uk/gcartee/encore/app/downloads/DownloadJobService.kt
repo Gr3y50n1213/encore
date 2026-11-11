@@ -33,13 +33,13 @@ class DownloadJobService : JobService() {
         val notes = DownloadNotifications(this)
         val userInitiated = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && params.isUserInitiatedJob
         if (userInitiated && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            setNotification(params, DownloadNotifications.PROGRESS_ID, notes.starting(), JOB_END_NOTIFICATION_POLICY_REMOVE)
+            setNotification(params, DownloadNotifications.PROGRESS_ID, notes.starting(userInitiated = true), JOB_END_NOTIFICATION_POLICY_REMOVE)
         }
         // Smart downloads are quiet: no progress notification (board 32).
         val quiet = params.jobId == DownloadScheduler.JOB_SMART
         val watch = scope.launch(Dispatchers.Main) {
             host.events.collect { e ->
-                if (e.kind == EventKind.DOWNLOAD_PROGRESS && !quiet) e.download?.let(notes::progress)
+                if (e.kind == EventKind.DOWNLOAD_PROGRESS && !quiet) e.download?.let { notes.progress(it, userInitiated) }
             }
         }
         running[params.jobId] = scope.launch {

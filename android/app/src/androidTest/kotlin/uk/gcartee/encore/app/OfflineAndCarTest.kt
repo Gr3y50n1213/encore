@@ -1,5 +1,7 @@
 package uk.gcartee.encore.app
 
+import android.app.Notification
+import android.app.NotificationManager
 import android.app.UiAutomation
 import android.content.ComponentName
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -23,6 +25,8 @@ import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -32,6 +36,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import uk.gcartee.encore.app.core.CoreHost
+import uk.gcartee.encore.app.downloads.DownloadNotifications
+import uk.gcartee.encore.app.notifications.LiveUpdates
 import uk.gcartee.encore.app.playback.PlaybackHub
 import uk.gcartee.encore.app.playback.PlaybackService
 import uk.gcartee.encore.core.AlbumSort
@@ -70,6 +76,17 @@ class OfflineAndCarTest {
         rule.waitUntilAtLeastOneExists(hasText("Downloaded"), TIMEOUT)
         tap("Albums")
         openAlbum(album.title)
+        // Phase 9: watch for the download's notification while the job runs; it may be gone
+        // quickly in CI, so the poller keeps the first one it sees.
+        val seen = AtomicReference<Notification?>(null)
+        val watching = AtomicBoolean(true)
+        val watcher = Thread {
+            val nm = InstrumentationRegistry.getInstrumentation().targetContext.getSystemService(NotificationManager::class.java)
+            while (watching.get()) {
+                nm.activeNotifications.firstOrNull { it.id == DownloadNotifications.PROGRESS_ID }?.let { seen.compareAndSet(null, it.notification) }
+                Thread.sleep(100)
+            }
+        }.apply { isDaemon = true; start() }
         rule.onNodeWithContentDescription("Download").performClick()
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             // Board 25: the first download asks, in the app's own words, before Android does.
@@ -77,10 +94,16 @@ class OfflineAndCarTest {
             shot("11-notification-primer")
             rule.onNodeWithText("Not now").performClick()
             rule.waitUntilDoesNotExist(hasText("Show download progress?"), TIMEOUT)
+            // "Not now" leaves notifications off, so nothing would post: grant it from the
+            // shell so the notification can be read (the next progress update posts it).
+            shell("pm grant ${rule.activity.packageName} android.permission.POST_NOTIFICATIONS")
         }
         step("every song of the album downloaded (the job ran)", DOWNLOAD_TIMEOUT) {
             host.core.downloadMarks().items.any { it.target.id == album.id && it.state == DownloadState.SAVED }
         }
+        watching.set(false)
+        watcher.join(2_000)
+        assertDownloadNotification(seen.get())
         val saved = host.core.downloadMarks().savedSongIds.toSet()
         assertTrue("the album's songs are saved", songs.all { it.id in saved })
         assertTrue("a saved song plays from its file", host.core.streamFor(songs[0].id, host.network()).local)
@@ -196,6 +219,28 @@ class OfflineAndCarTest {
         rule.waitUntilAtLeastOneExists(hasText(title), TIMEOUT)
         tap(title)
         rule.waitUntilAtLeastOneExists(hasText("Play"), TIMEOUT)
+    }
+
+    /**
+     * Phase 9: the download is an ongoing notification everywhere, and a promoted Live Update
+     * only on Android 16 QPR1 and later (the person started it, so it may be). A fast CI
+     * download can finish before the grant above lets anything post, so none seen is logged,
+     * not failed.
+     */
+    @android.annotation.SuppressLint("NewApi")
+    private fun assertDownloadNotification(n: Notification?) {
+        if (n == null) {
+            android.util.Log.i("OfflineAndCarTest", "no download notification was seen (the download was quick)")
+            return
+        }
+        assertTrue("the download notification is ongoing", n.flags and Notification.FLAG_ONGOING_EVENT != 0)
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val promoted = android.os.Build.VERSION.SDK_INT >= 36 && n.flags and Notification.FLAG_PROMOTED_ONGOING != 0
+        if (LiveUpdates.canPromote(context)) {
+            assertTrue("a download the person started is promoted on Android 16 QPR1 and later", promoted)
+        } else if (!LiveUpdates.apiAllows()) {
+            assertTrue("older Android keeps the plain ongoing notification", !promoted)
+        }
     }
 
     private fun shell(command: String) {

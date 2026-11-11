@@ -140,6 +140,11 @@ jobs:
           - api: 36
             target: google_apis_ps16k
             profile: pixel_7
+          # Android 17 (API 37.0): the newest, where Live Updates are promoted. The image
+          # package is system-images;android-37.0;google_apis;x86_64. Settings copy the API 36 row.
+          - api: "37.0"
+            target: google_apis
+            profile: pixel_7
           # Board 29: a tablet, for the rail, the panes and the player bar.
           - api: 36
             target: google_apis
