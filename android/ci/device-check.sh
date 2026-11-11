@@ -47,7 +47,11 @@ shot() { # name
 # 43058504996). Wait for the package service to answer, then retry an install a few times.
 wait_for_packages() {
   for _ in $(seq 1 60); do
-    if [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1" ] && adb shell pm path android >/dev/null 2>&1; then
+    # The user's credential-encrypted storage must be unlocked too: on API 37 the first
+    # test hit "SharedPreferences in credential encrypted storage are not available until
+    # after user (id 0) is unlocked" (run 43076243663).
+    if [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1" ] && adb shell pm path android >/dev/null 2>&1 &&
+      adb shell dumpsys activity users 2>/dev/null | grep -q RUNNING_UNLOCKED; then
       return 0
     fi
     sleep 2

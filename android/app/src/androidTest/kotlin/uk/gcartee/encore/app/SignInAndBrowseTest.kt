@@ -203,9 +203,10 @@ class SignInAndBrowseTest {
         rule.onNodeWithText("Settings").performClick()
         rule.waitUntilAtLeastOneExists(hasText("Appearance"), TIMEOUT)
         shot("10-settings")
-        // Phase 9 added "Lock screen and widgets" above it, so on a phone Appearance can sit
-        // at the screen's edge: bring it into view before tapping.
-        rule.onNodeWithText("Appearance").performScrollTo().performClick()
+        // Phase 9 added "Lock screen and widgets" above it, so Appearance now sits under the
+        // floating bottom bar, where a touch lands on the bar: run the row's click action, as
+        // the Quick Connect step above does for the same reason.
+        rule.onNodeWithText("Appearance").performScrollTo().performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
         rule.waitUntilAtLeastOneExists(hasText("Accent color"), TIMEOUT)
         shot("11-appearance")
     }
