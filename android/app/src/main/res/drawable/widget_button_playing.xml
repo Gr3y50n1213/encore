@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phase 9, board 34: the widgets' play button while playing, a rounded square: a 24 dp
+     corner on 72 dp. A vector, so the corner scales with the button. Tinted by the widget. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="72dp"
+    android:height="72dp"
+    android:viewportWidth="72"
+    android:viewportHeight="72">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M24,0 H48 A24,24 0 0 1 72,24 V48 A24,24 0 0 1 48,72 H24 A24,24 0 0 1 0,48 V24 A24,24 0 0 1 24,0 Z" />
+</vector>

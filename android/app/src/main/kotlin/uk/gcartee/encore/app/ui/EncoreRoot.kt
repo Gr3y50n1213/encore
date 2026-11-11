@@ -229,6 +229,22 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
             host.openRequest.value = null
         }
     }
+    // Phase 9: the Now Playing widget opens the player from its cover or text, and the
+    // profile switcher when it belongs to another profile or one with a PIN.
+    LaunchedEffect(openRequest) {
+        when (openRequest) {
+            MainActivity.OPEN_NOW_PLAYING -> {
+                profiles = false
+                nowPlaying = true
+                host.openRequest.value = null
+            }
+            MainActivity.OPEN_PROFILES -> {
+                nowPlaying = false
+                profiles = true
+                host.openRequest.value = null
+            }
+        }
+    }
     LaunchedEffect(openRequest) {
         if (openRequest == MainActivity.OPEN_DOWNLOADS) {
             nowPlaying = false

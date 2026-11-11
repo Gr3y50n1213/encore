@@ -73,9 +73,13 @@ signin=uk.gcartee.encore.app.SignInAndBrowseTest
 offline=uk.gcartee.encore.app.OfflineAndCarTest
 playback=uk.gcartee.encore.app.PlaybackFlowTest
 sleep_sheet=uk.gcartee.encore.app.SleepTimerSheetTest
+widget=uk.gcartee.encore.app.NowPlayingWidgetTest
 # First on a fresh install (no profile yet), everything but the replay tests.
-adb shell am instrument -w -r -e notClass "$signin,$offline,$playback,$sleep_sheet" "$runner" | tee "$out/instrument.txt"
+adb shell am instrument -w -r -e notClass "$signin,$offline,$playback,$sleep_sheet,$widget" "$runner" | tee "$out/instrument.txt"
 grep -q '^OK (' "$out/instrument.txt" || { echo "instrumented tests failed" >&2; exit 1; }
+# Phase 9 (WP6): in a process of its own, so "a widget update never starts the core" is checked.
+adb shell am instrument -w -r -e class "$widget" "$runner" | tee "$out/instrument-widget.txt"
+grep -q '^OK (' "$out/instrument-widget.txt" || { echo "the widget test failed" >&2; exit 1; }
 
 echo "== 1b. Sign in to the Jellyfin replay, browse, play"
 # The owner's anonymized recording, served on this host and reached from the device
@@ -97,6 +101,8 @@ echo "== 1d. A song that ends plays the next one, which was already loaded"
 adb shell am instrument -w -r -e class "$playback" -e replayUrl "$replay" "$runner" | tee "$out/instrument-playback.txt"
 echo "== 1e. Phase 9: the sleep timer sheet (set, cancel, Undo)"
 adb shell am instrument -w -r -e class "$sleep_sheet" -e replayUrl "$replay" "$runner" | tee "$out/instrument-sleep-sheet.txt"
+echo "== 1f. Phase 9 (WP6): the Now Playing widget's buttons with no activity open"
+adb shell am instrument -w -r -e class "$widget" -e replayUrl "$replay" "$runner" | tee "$out/instrument-widget-play.txt"
 # The player's story for the review: the app's decisions and Media3's events.
 adb logcat -d -s CorePlayback:V EncorePlayer:V > "$out/logcat-playback.txt" 2>/dev/null || true
 adb reverse --remove "tcp:$port" || true
@@ -111,6 +117,7 @@ grep -q '^OK (1 test)' "$out/instrument-signin.txt" || { echo "the sign-in test 
 grep -q '^OK (1 test)' "$out/instrument-offline.txt" || { echo "the offline and car test failed" >&2; exit 1; }
 grep -q '^OK (' "$out/instrument-playback.txt" || { echo "the playback flow test failed" >&2; exit 1; }
 grep -q '^OK (' "$out/instrument-sleep-sheet.txt" || { echo "the sleep timer sheet test failed" >&2; exit 1; }
+grep -q '^OK (' "$out/instrument-widget-play.txt" || { echo "the widget play test failed" >&2; exit 1; }
 # The release build below must start fresh again, on Welcome.
 adb uninstall uk.gcartee.encore.debug > /dev/null || true
 

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phase 9: the Now Playing widget's picker image before Android 12 (previewImage); from
+     Android 12 the picker draws layout/now_playing_widget_preview.xml. Demo art only. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="250dp"
+    android:height="110dp"
+    android:viewportWidth="250"
+    android:viewportHeight="110">
+    <!-- The tile. -->
+    <path android:fillColor="#FFF3EFFA" android:pathData="M16,0 H234 A16,16 0 0 1 250,16 V94 A16,16 0 0 1 234,110 H16 A16,16 0 0 1 0,94 V16 A16,16 0 0 1 16,0 Z" />
+    <!-- The made-up cover. -->
+    <path android:fillColor="#FFE8553B" android:pathData="M12,12 H98 V98 H12 Z" />
+    <path android:fillColor="#FFF08A3C" android:pathData="M12,38 H98 V98 H12 Z" />
+    <path android:fillColor="#FFFFD25A" android:pathData="M55,38 A20,20 0 1 1 55,78 A20,20 0 1 1 55,38 Z" />
+    <path android:fillColor="#FF3B2A6B" android:pathData="M12,72 H98 V98 H12 Z" />
+    <!-- Title and artist. -->
+    <path android:fillColor="#FF1D1B20" android:pathData="M112,20 H190 V30 H112 Z" />
+    <path android:fillColor="#FF49454F" android:pathData="M112,36 H170 V44 H112 Z" />
+    <!-- Previous, pause (a rounded square while playing), next. -->
+    <path android:fillColor="#FF49454F" android:pathData="M128,60 V76 L118,68 Z" />
+    <path android:fillColor="#FF5B3FC4" android:pathData="M164,52 H174 A8,8 0 0 1 182,60 V76 A8,8 0 0 1 174,84 H164 A8,8 0 0 1 156,76 V60 A8,8 0 0 1 164,52 Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M163,61 H167 V75 H163 Z M171,61 H175 V75 H171 Z" />
+    <path android:fillColor="#FF49454F" android:pathData="M210,60 V76 L220,68 Z" />
+    <!-- The bar. -->
+    <path android:fillColor="#FFE6E0E9" android:pathData="M112,94 H238 V98 H112 Z" />
+    <path android:fillColor="#FF5B3FC4" android:pathData="M112,94 H160 V98 H112 Z" />
+</vector>

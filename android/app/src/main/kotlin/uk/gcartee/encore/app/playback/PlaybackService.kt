@@ -144,6 +144,33 @@ class PlaybackService : MediaLibraryService() {
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session
 
+    // --- Phase 9 (WP6): widget and tile starts (WidgetStarts.kt). Media buttons go on to
+    // Media3 as before; the private Start a mix action needs this install's token; every
+    // start that names an action reaches startForeground in time, or stops. ---
+    private val widgetStarts = WidgetStarts(this) { session?.player }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        widgetStarts.onStart(intent, ::playMixFromWidget)
+        return super.onStartCommand(intent, flags, startId)
+    }
+
+    /** Start a mix (CORE-API `play_mix`) on the profile already open or the last active one; never another. */
+    private fun playMixFromWidget(mixId: String?) {
+        val host = CoreHost.get(this)
+        if (!host.ensureProfile()) return
+        val ref = if (mixId == null) {
+            uk.gcartee.encore.core.MixRef(uk.gcartee.encore.core.MixRefKind.NEXT_UP, null)
+        } else {
+            uk.gcartee.encore.core.MixRef(uk.gcartee.encore.core.MixRefKind.ID, mixId)
+        }
+        if (runCatching { host.core.playMix(ref) }.isFailure) return
+        // Media3 shows the notification (and goes into the foreground) only for a session
+        // it knows; a controller usually adds it, a private action doesn't.
+        session?.let { if (!isSessionAdded(it)) addSession(it) }
+        runCatching { playback?.playCurrent() }
+    }
+    // --- End Phase 9 (WP6). ---
+
     override fun onTaskRemoved(rootIntent: Intent?) {
         // Swiped away from Recents while paused: nothing should keep running.
         val player = session?.player
@@ -151,6 +178,7 @@ class PlaybackService : MediaLibraryService() {
     }
 
     override fun onDestroy() {
+        widgetStarts.release() // Phase 9 (WP6)
         PlaybackHub.detach()
         playback?.stop()
         session?.run {

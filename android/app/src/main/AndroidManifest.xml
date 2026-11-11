@@ -98,6 +98,33 @@
             android:exported="false"
             android:grantUriPermissions="true" />
 
+        <!-- Phase 9 (WP6): the Now Playing widget (Glance). App widget receivers must be
+             exported for the launcher; it only redraws from the snapshot file and never
+             starts the core. -->
+        <receiver
+            android:name=".widgets.NowPlayingWidgetReceiver"
+            android:exported="true"
+            android:label="@string/now_playing_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/now_playing_widget_info" />
+        </receiver>
+
+        <!-- Phase 9 (WP6): a widget's Profile setting. Exported for the widget host; it
+             checks the widget ID is one of ours before doing anything. -->
+        <activity
+            android:name=".widgets.WidgetConfigActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.Encore">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <!-- Android Auto: a media app (res/xml/automotive_app_desc.xml). -->
         <meta-data
             android:name="com.google.android.gms.car.application"

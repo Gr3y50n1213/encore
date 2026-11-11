@@ -21,6 +21,9 @@ coroutines = "1.11.0"
 rustlsPlatformVerifier = "0.2.0"
 # Playback (plan section 18): ExoPlayer and the media session. Stable line.
 media3 = "1.11.1"
+# Phase 9 (WP6, approved by the owner): home-screen widgets. Glance 1.2.0 is the latest
+# stable line; it brings WorkManager, Room and DataStore with it (THIRD_PARTY_LICENSES.md).
+glance = "1.2.0"
 junit = "4.13.2"
 androidxTestExt = "1.3.0"
 androidxTestRunner = "1.7.0"
@@ -42,6 +45,8 @@ rustls-platform-verifier = { group = "org.rustls", name = "rustls-platform-verif
 media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
 media3-session = { group = "androidx.media3", name = "media3-session", version.ref = "media3" }
 media3-datasource = { group = "androidx.media3", name = "media3-datasource", version.ref = "media3" }
+glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
+glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestExt" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }

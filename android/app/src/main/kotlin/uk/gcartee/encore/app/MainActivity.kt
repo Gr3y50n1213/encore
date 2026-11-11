@@ -28,6 +28,7 @@ class MainActivity : ComponentActivity() {
         if (!host.profileOpen.value) host.openLastProfile()
         if (intent?.getStringExtra(EXTRA_OPEN) == OPEN_DOWNLOADS) host.openRequest.value = OPEN_DOWNLOADS
         if (intent?.getStringExtra(EXTRA_OPEN) == OPEN_SLEEP_TIMER) host.openRequest.value = OPEN_SLEEP_TIMER
+        openFromWidget(intent) // Phase 9 (WP6)
         playFromSearch(intent)
         setContent {
             EncoreTheme {
@@ -60,8 +61,19 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         if (intent.getStringExtra(EXTRA_OPEN) == OPEN_DOWNLOADS) host.openRequest.value = OPEN_DOWNLOADS
         if (intent.getStringExtra(EXTRA_OPEN) == OPEN_SLEEP_TIMER) host.openRequest.value = OPEN_SLEEP_TIMER
+        openFromWidget(intent) // Phase 9 (WP6)
         playFromSearch(intent)
     }
+
+    // --- Phase 9 (WP6): a widget's cover or text opens Now Playing; a widget set to
+    // another profile, or one with a PIN, opens the profile switcher (EncoreRoot handles
+    // both requests). ---
+    private fun openFromWidget(intent: android.content.Intent?) {
+        when (val open = intent?.getStringExtra(EXTRA_OPEN)) {
+            OPEN_NOW_PLAYING, OPEN_PROFILES -> host.openRequest.value = open
+        }
+    }
+    // --- End Phase 9 (WP6). ---
 
     /** "Play <name> on Encore" from the assistant (Phase 8): the core queues it, then it plays. */
     private fun playFromSearch(intent: android.content.Intent?) {
@@ -77,6 +89,12 @@ class MainActivity : ComponentActivity() {
 
         /** The sleep timer's notification opens the sleep timer sheet (EncoreRoot). */
         const val OPEN_SLEEP_TIMER = "sleep-timer"
+
+        /** Phase 9 (WP6): the Now Playing widget's cover or text. */
+        const val OPEN_NOW_PLAYING = "now-playing"
+
+        /** Phase 9 (WP6): a widget set to another profile or one with a PIN. */
+        const val OPEN_PROFILES = "profiles"
     }
 
     override fun onStop() {

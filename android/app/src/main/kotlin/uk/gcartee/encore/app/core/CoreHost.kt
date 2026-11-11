@@ -101,6 +101,13 @@ class CoreHost private constructor(val context: Context) {
         uk.gcartee.encore.app.playback.SleepTimerNotifier.start(context, this)
     }
 
+    // Phase 9 (WP6): widgets redraw from their files when the core rewrites them, and learn
+    // the open and last active profile here, so a widget never has to start the core
+    // (widgets/WidgetSync.kt).
+    init {
+        uk.gcartee.encore.app.widgets.WidgetSync.attach(this)
+    }
+
     /** At launch: opens the last profile with its tokens from the Keystore. */
     fun openLastProfile(): Boolean {
         val id = core.lastActiveProfile() ?: return false

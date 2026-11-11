@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phase 9: the widgets' words (board 34). States are always words, never error icons.
+     %1$s is the app's name (app_name, from the core's brand constant). -->
+<resources>
+    <string name="now_playing_widget_label">Now Playing</string>
+    <string name="now_playing_widget_description">The song that\'s playing, with play, pause and skip</string>
+
+    <string name="widget_nothing_yet">Nothing yet</string>
+    <string name="widget_mixes_build">Mixes build as you listen</string>
+    <string name="widget_next_up">Next up</string>
+    <string name="widget_saved_mixes">Saved mixes</string>
+    <string name="widget_server_not_reachable">Server not reachable</string>
+    <string name="widget_open_app">Open %1$s</string>
+    <string name="widget_profile_locked">Profile is locked</string>
+    <string name="widget_profile_removed">Profile removed</string>
+    <string name="widget_choose_profile">Choose a profile</string>
+    <string name="widget_open_to_refresh">Open %1$s to refresh</string>
+    <string name="widget_artist_and_album">%1$s · %2$s</string>
+
+    <string name="widget_play">Play</string>
+    <string name="widget_pause">Pause</string>
+    <string name="widget_next">Next song</string>
+    <string name="widget_previous">Previous song</string>
+
+    <!-- The picker's preview: made-up demo names, never the person's library. -->
+    <string name="widget_preview_title">Slow Tide</string>
+    <string name="widget_preview_artist">Ember Cove</string>
+
+    <!-- The configuration screen. -->
+    <string name="widget_config_title">Widget profile</string>
+    <string name="widget_config_explainer">A widget set to one profile keeps showing it after you switch.</string>
+    <string name="widget_config_active">Active profile</string>
+    <string name="widget_config_locked">Has a PIN</string>
+    <string name="widget_config_save">Save</string>
+    <string name="widget_config_cancel">Cancel</string>
+
+    <!-- A start from a widget that didn't end up playing: shown for an instant at most. -->
+    <string name="playback_start_channel">Starting playback</string>
+    <string name="playback_starting">Starting playback</string>
+</resources>
