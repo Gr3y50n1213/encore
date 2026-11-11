@@ -114,6 +114,10 @@ object SleepTimerNotifier {
         LiveUpdates.applyPromotion(context, b, LiveUpdates.Card.SLEEP_TIMER, userInitiated = true, chip = chipText(left))
         // Without the permission (Android 13+, declined) nothing shows; the timer goes on.
         if (!manager.areNotificationsEnabled()) return
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+            androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) return
         runCatching { manager.notify(ID, b.build()) }
         scheduleRefresh(context, left)
     }
