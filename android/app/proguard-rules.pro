@@ -15,3 +15,13 @@
 
 # Appearance reads the accent schemes from the generated token constants by name.
 -keep class uk.gcartee.encore.tokens.** { *; }
+
+# Phase 9: Glance runs its widget sessions on WorkManager, which makes its Room database
+# (WorkDatabase_Impl) and its workers by name. R8's full mode drops constructors that only
+# reflection calls, and the release build crashed at start with "Failed to create an
+# instance of androidx.work.impl.WorkDatabase" (CI run 43079181530).
+-keep class * extends androidx.room.RoomDatabase { <init>(); }
+-keep class * extends androidx.work.ListenableWorker {
+    public <init>(android.content.Context, androidx.work.WorkerParameters);
+}
+-keep class * extends androidx.work.InputMerger { public <init>(); }
