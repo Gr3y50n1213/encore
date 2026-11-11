@@ -46,13 +46,20 @@ shot() { # name
 # install right away failed with "Failure calling service package: Broken pipe" (run
 # 43058504996). Wait for the package service to answer, then retry an install a few times.
 wait_for_packages() {
+  ready=0
   for _ in $(seq 1 60); do
-    # The user's credential-encrypted storage must be unlocked too: on API 37 the first
-    # test hit "SharedPreferences in credential encrypted storage are not available until
-    # after user (id 0) is unlocked" (run 43076243663).
-    if [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1" ] && adb shell pm path android >/dev/null 2>&1 &&
-      adb shell dumpsys activity users 2>/dev/null | grep -q RUNNING_UNLOCKED; then
-      return 0
+    if [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1" ] && adb shell pm path android >/dev/null 2>&1; then
+      # The user's credential-encrypted storage must be unlocked too: on API 37 the first
+      # test hit "SharedPreferences in credential encrypted storage are not available until
+      # after user (id 0) is unlocked" (run 43076243663). Older images don't report the
+      # state this way (API 28 never matched, run 43082455400), so after 30 s of a ready
+      # package service, go on.
+      if adb shell dumpsys activity users 2>/dev/null | grep -q RUNNING_UNLOCKED; then return 0; fi
+      ready=$((ready + 1))
+      if [ "$ready" -ge 15 ]; then
+        echo "the user's unlock state isn't reported here; going on" >&2
+        return 0
+      fi
     fi
     sleep 2
   done
