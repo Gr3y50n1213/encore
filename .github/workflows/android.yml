@@ -145,6 +145,10 @@ jobs:
           - api: "37.0"
             target: google_apis
             profile: pixel_7
+            # With swiftshader_indirect its SurfaceFlinger aborted ("Assertion failed:
+            # !rcEnc->featureInfo()->hasReadColorBufferDma") and the system restarted under
+            # the tests (run 43065949636); swangle_indirect is the other software renderer.
+            gpu: swangle_indirect
           # Board 29: a tablet, for the rail, the panes and the player bar.
           - api: 36
             target: google_apis
@@ -176,7 +180,7 @@ jobs:
           # ("Requested internal only, but not enough space", run 43055425796).
           disk-size: 6G
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          emulator-options: -no-window -gpu ${{ matrix.gpu || 'swiftshader_indirect' }} -noaudio -no-boot-anim -no-snapshot
           script: bash android/ci/device-check.sh apks
 
       - name: Upload screenshots and logs
