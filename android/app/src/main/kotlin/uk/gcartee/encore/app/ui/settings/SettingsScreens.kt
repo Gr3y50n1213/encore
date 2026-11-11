@@ -445,7 +445,13 @@ private fun PlaybackPage(host: CoreHost, onBack: () -> Unit, contentPadding: Pad
     )
     var wifi by remember { mutableStateOf(runCatching { host.core.streamQuality(Network.WIFI) }.getOrDefault(StreamQuality.ORIGINAL)) }
     var cell by remember { mutableStateOf(runCatching { host.core.streamQuality(Network.CELLULAR) }.getOrDefault(StreamQuality.HIGH)) }
+    val context = LocalContext.current
+    val sleep by uk.gcartee.encore.app.ui.player.rememberSleepTimer(host)
     Page("Playback and quality", onBack, contentPadding) {
+        // Phase 9: the sleep timer's sheet (board 31) opens from here too.
+        group(null, listOf(Row0("Sleep timer", right = uk.gcartee.encore.app.ui.player.sleepSummary(context, sleep), icon = { Icons.sleepTimer() }) {
+            host.openRequest.value = uk.gcartee.encore.app.MainActivity.OPEN_SLEEP_TIMER
+        }))
         item { Label("Streaming on Wi-Fi") }
         item { RadioRows(qualities, wifi, { q -> runCatching { host.core.setStreamQuality(Network.WIFI, q) }.onSuccess { wifi = q } }) }
         item { Label("Streaming on cellular") }

@@ -109,6 +109,8 @@ fun NowPlayingScreen(
     onOpen: (Route) -> Unit,
     // Output was tapped; the sheet is EncoreRoot's and is drawn in these colours.
     onOutput: (FieldColours) -> Unit,
+    // More > Sleep timer was tapped; the sheet is EncoreRoot's and is drawn in these colours.
+    onSleepTimer: (FieldColours) -> Unit = {},
     // Where the artwork is on screen, for the morph into the mini player (EncoreRoot), and
     // whether it is the big cover (which shrinks while paused) or the small one over a panel.
     onArtBounds: (androidx.compose.ui.geometry.Rect, Boolean) -> Unit = { _, _ -> },
@@ -170,6 +172,11 @@ fun NowPlayingScreen(
                     chosenBy = entry.chosenBy,
                     extra = listOf(
                         uk.gcartee.encore.app.ui.components.MenuExtra(
+                            "Sleep timer",
+                            destructive = false,
+                            icon = { Icons.sleepTimer() },
+                        ) { onSleepTimer(colours) },
+                        uk.gcartee.encore.app.ui.components.MenuExtra(
                             if (privateOn) "Turn off Private listening" else "Private listening",
                             destructive = false,
                             icon = { if (privateOn) Icons.visibility() else Icons.visibilityOff() },
@@ -223,7 +230,7 @@ fun NowPlayingScreen(
                 }
                 Box {
                     MoreButton(moreMenu, content) { moreMenu = true }
-                    // Item 4: the artwork's menu plus Private listening (Sleep Timer is Phase 9).
+                    // Item 4: the artwork's menu plus Sleep timer and Private listening.
                     moreSheet()
                 }
             }

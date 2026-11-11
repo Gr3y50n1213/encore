@@ -27,6 +27,7 @@ class MainActivity : ComponentActivity() {
         // Later launches go straight to the library (board 22, "First launch only").
         if (!host.profileOpen.value) host.openLastProfile()
         if (intent?.getStringExtra(EXTRA_OPEN) == OPEN_DOWNLOADS) host.openRequest.value = OPEN_DOWNLOADS
+        if (intent?.getStringExtra(EXTRA_OPEN) == OPEN_SLEEP_TIMER) host.openRequest.value = OPEN_SLEEP_TIMER
         playFromSearch(intent)
         setContent {
             EncoreTheme {
@@ -58,6 +59,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         if (intent.getStringExtra(EXTRA_OPEN) == OPEN_DOWNLOADS) host.openRequest.value = OPEN_DOWNLOADS
+        if (intent.getStringExtra(EXTRA_OPEN) == OPEN_SLEEP_TIMER) host.openRequest.value = OPEN_SLEEP_TIMER
         playFromSearch(intent)
     }
 
@@ -72,6 +74,9 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val EXTRA_OPEN = "uk.gcartee.encore.app.OPEN"
         const val OPEN_DOWNLOADS = "downloads"
+
+        /** The sleep timer's notification opens the sleep timer sheet (EncoreRoot). */
+        const val OPEN_SLEEP_TIMER = "sleep-timer"
     }
 
     override fun onStop() {

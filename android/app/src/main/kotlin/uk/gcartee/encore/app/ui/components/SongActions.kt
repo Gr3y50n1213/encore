@@ -224,7 +224,7 @@ class AppActions(
     }
 
     /** Board 25: notifications are asked for once, in context, after the primer. */
-    private fun askForNotificationsOnce() {
+    fun askForNotificationsOnce(forSleepTimer: Boolean = false) {
         if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) return
         val granted = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) ==
             android.content.pm.PackageManager.PERMISSION_GRANTED
@@ -232,6 +232,8 @@ class AppActions(
         val prefs = context.getSharedPreferences("notifications", Context.MODE_PRIVATE)
         if (prefs.getBoolean("primer-shown", false)) return
         prefs.edit().putBoolean("primer-shown", true).apply()
+        // The primer's words: downloads' (EncoreRoot) unless the sleep timer asked.
+        uk.gcartee.encore.app.ui.player.PrimerCopy.sleepTimer.value = forSleepTimer
         host.notificationPrimer.value = true
     }
 

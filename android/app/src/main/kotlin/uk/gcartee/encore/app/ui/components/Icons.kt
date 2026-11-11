@@ -79,4 +79,6 @@ object Icons {
     @Composable fun notifications(): Painter = painterResource(R.drawable.sym_notifications)
     @Composable fun storage(): Painter = painterResource(R.drawable.sym_storage)
     @Composable fun wifi(): Painter = painterResource(R.drawable.sym_wifi)
+    // Phase 9: the sleep timer.
+    @Composable fun sleepTimer(): Painter = painterResource(R.drawable.sym_bedtime)
 }

@@ -39,6 +39,8 @@ import uk.gcartee.encore.core.QueueEntry
 import uk.gcartee.encore.core.QueueState
 import uk.gcartee.encore.core.RepeatMode
 import uk.gcartee.encore.core.SkipOrigin
+import uk.gcartee.encore.core.SleepTimer
+import uk.gcartee.encore.core.SleepTimerMode
 
 /** What the mini player and Now Playing draw. */
 data class PlayerState(
@@ -99,6 +101,19 @@ class CorePlayback(
     var falseEnds = 0
         private set
 
+    // --- Phase 9: the sleep timer (CORE-API "Sleep timer"). ---
+    /** The device's timer as the core last said (`SleepTimerChanged`); null: none. */
+    private var sleepTimer: SleepTimer? = null
+    private val sleepFade = SleepFade { SystemClock.elapsedRealtime() }
+    /** The player's volume before the fade, put back after it; null while not fading. */
+    private var fadeBase: Float? = null
+    private var fadeJob: Job? = null
+
+    /** The player's own volume (tests read it to see the fade). */
+    @VisibleForTesting
+    val playerVolume: Float
+        get() = exo.volume
+
     private val _state = MutableStateFlow(PlayerState())
     val state: StateFlow<PlayerState> = _state.asStateFlow()
 
@@ -111,6 +126,8 @@ class CorePlayback(
                 tick()
             }
         }
+        // Phase 9: a timer set before the service started (or before a restart).
+        sleepTimer = runCatching { core.sleepTimer() }.getOrNull()
         // open_profile loads the last queue, paused.
         runCatching { core.queue() }.getOrNull()?.current?.let { load(it, play = false) }
     }
@@ -247,8 +264,11 @@ class CorePlayback(
     }
 
     fun setVolume(level: Float) {
-        exo.volume = level.coerceIn(0f, 1f)
-        runCatching { core.setVolumeLevel(exo.volume.toDouble()) }
+        val volume = level.coerceIn(0f, 1f)
+        // Phase 9: during the sleep timer's fade the new volume is what the fade starts
+        // from and what comes back after it; the fade applies it.
+        if (fadeBase != null) fadeBase = volume else exo.volume = volume
+        runCatching { core.setVolumeLevel(volume.toDouble()) }
     }
 
     /**
@@ -341,8 +361,13 @@ class CorePlayback(
             EventKind.PRELOAD -> tidy()
             EventKind.QUEUE_CHANGED -> event.queue?.let(::queueChanged)
             EventKind.HANDOFF_INCOMING -> event.handoff?.let(::handoffIncoming)
-            EventKind.HANDOFF_CONFIRMED -> fadeOutAndPause()
+            EventKind.HANDOFF_CONFIRMED -> {
+                // Phase 9: a handoff ends the sleep timer; its fade stops first.
+                abortFade()
+                fadeOutAndPause()
+            }
             EventKind.REMOTE_COMMAND -> event.remoteCommand?.let(::remote)
+            EventKind.SLEEP_TIMER_CHANGED -> sleepTimerChanged(event.sleepTimer)
             else -> Unit
         }
     }
@@ -513,6 +538,9 @@ class CorePlayback(
 
     /** What plays when the current song ends by itself: the next one, or itself on Repeat One. */
     private fun songAfterThis(): QueueEntry? {
+        // Phase 9: the sleep timer stops after this song: nothing is loaded behind it, so
+        // it ends by itself (STATE_ENDED) and never runs on into the next one gaplessly.
+        if (sleepStopsAfter(currentUid())) return null
         val queue = runCatching { core.queue() }.getOrNull() ?: return null
         if (queue.repeat == RepeatMode.ONE) return queue.current
         return runCatching { core.nextTarget().song }.getOrNull()
@@ -548,6 +576,11 @@ class CorePlayback(
     override fun onIsPlayingChanged(isPlaying: Boolean) {
         clock.playing(isPlaying)
         val uid = currentUid()
+        // Phase 9: a sleep timer that ran out while paused closes that play first, so
+        // Play now starts a new one (`playback_started`, not `playback_resumed`).
+        if (isPlaying && uid != null && startedUid == uid) endSleepTimerIfRunOut()
+        // Phase 9: a pause during the fade stops it and puts the volume back.
+        if (!isPlaying && !exo.playWhenReady && fadeBase != null) abortFade()
         if (isPlaying && uid != null && startedUid != uid) {
             started(uid)
         } else if (startedUid == uid && uid != null) {
@@ -572,9 +605,15 @@ class CorePlayback(
             }
             // The last loaded song finished with nothing after it in the player.
             Log.i(TAG, "uid $startedUid finished (end of the player's list)")
+            // Phase 9: decided on the stop point held before `playback_ended` moves it.
+            val sleepStop = sleepStopsAfter(startedUid)
             val next = core.playbackEnded(EndReason.FINISHED, clock.listenedMs)
             startedUid = null
-            next?.let { load(it, play = true) }
+            if (sleepStop) {
+                stoppedAtSongEnd(next)
+            } else {
+                next?.let { load(it, play = true) }
+            }
         }
         publish()
     }
@@ -618,10 +657,26 @@ class CorePlayback(
         }
         // Gapless into the next song: the previous one finished. The finished item stays
         // in the player's list until tidy() runs, after this callback.
+        // Phase 9: the sleep timer stops after the song that just finished. Nothing should
+        // have been loaded behind it (songAfterThis), but if it was, stop here at once.
+        val sleepStop = sleepStopsAfter(startedUid)
+        if (sleepStop) exo.pause()
         val heard = clock.listenedMs
         val next = core.playbackEnded(EndReason.FINISHED, heard)
         startedUid = null
         val arrived = mediaItem?.mediaId?.toUidOrNull()
+        if (sleepStop) {
+            if (next != null && next.uid == arrived) {
+                ownSeek = true
+                exo.seekTo(currentIndex(), 0)
+                stoppedAtSongEnd(null)
+            } else {
+                if (next == null) exo.stop()
+                stoppedAtSongEnd(next)
+            }
+            publish()
+            return
+        }
         Log.i(TAG, "moved on by itself to uid $arrived; the core says uid ${next?.uid}")
         when {
             next == null -> exo.stop()
@@ -688,8 +743,162 @@ class CorePlayback(
         if (exo.isPlaying && startedUid != null) {
             core.playbackProgress(exo.currentPosition, clock.listenedMs)
         }
+        // Phase 9: the sleep timer's fade while playing; its end while paused.
+        if (exo.isPlaying) sleepTick() else if (!exo.playWhenReady) endSleepTimerIfRunOut()
         if (transcodeKeys.isNotEmpty() && exo.mediaItemCount > 0) useWholeSongs()
         publish()
+    }
+
+    // --- Phase 9: the sleep timer (CORE-API "Sleep timer"; board 31). The core owns the
+    // timer, its stop point and the fade rule; this runs the clock and the fade on the
+    // player's own volume (never setVolume, which tells other devices), and reports the
+    // end so the play log reads "ended by the system", never a skip. ---
+
+    /** Set, extended, cancelled, put back or ended, or its stop point moved with the queue. */
+    private fun sleepTimerChanged(timer: SleepTimer?) {
+        val before = sleepTimer
+        sleepTimer = timer
+        if (timer == null) {
+            // It ran out while paused and the core found it (`sleep_timer()` closes that
+            // paused play as ended by the system): the next Play is a new play.
+            if (before != null && ranOut(before) && !exo.playWhenReady) startedUid = null
+            // Cancelled, or ended by a handoff: no fade.
+            abortFade()
+        } else if (fadeBase != null && exo.isPlaying) {
+            // Add 15 min during the fade: the core now says KeepPlaying and the fade stops.
+            sleepTick()
+        }
+        // Where preloading stops may have moved: drop, or load again, the song behind.
+        tidy()
+    }
+
+    /** A Minutes timer whose end has passed. */
+    private fun ranOut(timer: SleepTimer): Boolean =
+        timer.mode == SleepTimerMode.MINUTES && timer.endsAtUtcMs <= System.currentTimeMillis()
+
+    /** From the 1 s tick while playing: ask the core's fade rule and follow it. */
+    private fun sleepTick() {
+        if (sleepTimer == null && fadeBase == null) return
+        val position = exo.currentPosition.coerceAtLeast(0L)
+        val plan = runCatching { core.sleepFadePlan(position, songDurationMs()) }.getOrNull() ?: return
+        sleepFade.update(plan, position)
+        when {
+            sleepFade.timeIsUp(position) -> endBySleepTimer()
+            sleepFade.fading -> beginFade()
+            fadeBase != null -> abortFade()
+        }
+    }
+
+    /** The current song's length (0: unknown), the library's when the stream has none. */
+    private fun songDurationMs(): Long {
+        val duration = exo.duration
+        if (duration != C.TIME_UNSET && duration > 0) return duration
+        return _state.value.entry?.takeIf { it.uid == currentUid() }?.song?.durationMs ?: 0L
+    }
+
+    /** Ramps the player's own volume about 16 times a second until the fade ends or stops. */
+    private fun beginFade() {
+        if (fadeBase == null) {
+            fadeBase = exo.volume
+            Log.i(TAG, "sleep timer: fading out")
+            // A song that ends during the fade is where the music stops: nothing behind it.
+            tidy()
+        }
+        if (fadeJob?.isActive == true) return
+        fadeJob = scope.launch {
+            while (isActive) {
+                val base = fadeBase ?: break
+                if (!sleepFade.fading) break
+                val position = exo.currentPosition.coerceAtLeast(0L)
+                if (sleepFade.timeIsUp(position)) {
+                    endBySleepTimer()
+                    break
+                }
+                exo.volume = base * sleepFade.level(position)
+                delay(FADE_STEP_MS)
+            }
+        }
+    }
+
+    /**
+     * Silence reached (FadeNow): pause, then close the play as ended by the system with
+     * what was heard (`sleep_timer_ended`), and put the volume back. The play is closed,
+     * so the next Play reports `playback_started` (startedUid is cleared), not a resume.
+     */
+    private fun endBySleepTimer() {
+        val base = fadeBase
+        fadeJob?.cancel()
+        fadeJob = null
+        fadeBase = null
+        sleepFade.clear()
+        // Reported as an ordinary pause (`playback_paused`), which never logs a skip.
+        exo.pause()
+        val open = startedUid != null
+        val listened = if (open) clock.listenedMs else 0L
+        startedUid = null
+        sleepTimer = null
+        runCatching { core.sleepTimerEnded(listened) }
+        if (base != null) exo.volume = base
+        Log.i(TAG, "sleep timer: ended, paused")
+        tidy()
+        publish()
+    }
+
+    /**
+     * The song the timer stops after has ended and been reported `Finished`: the next one
+     * is loaded and paused, the timer ends with nothing more heard (`sleep_timer_ended(0)`),
+     * and the volume comes back if it was fading.
+     */
+    private fun stoppedAtSongEnd(next: QueueEntry?) {
+        val base = fadeBase
+        fadeJob?.cancel()
+        fadeJob = null
+        fadeBase = null
+        sleepFade.clear()
+        sleepTimer = null
+        next?.let { load(it, play = false) }
+        runCatching { core.sleepTimerEnded(0L) }
+        if (base != null) exo.volume = base
+        Log.i(TAG, "sleep timer: stopped at the end of the song, next one loaded and paused")
+    }
+
+    /** Pause, handoff, cancel or Add 15 min during the fade: it stops, the volume comes back. */
+    private fun abortFade() {
+        fadeJob?.cancel()
+        fadeJob = null
+        sleepFade.clear()
+        val base = fadeBase ?: return
+        fadeBase = null
+        exo.volume = base
+        Log.i(TAG, "sleep timer: fade stopped, volume back")
+        // The song behind this one, dropped for the stop, loads again.
+        tidy()
+    }
+
+    /**
+     * A Minutes timer that ran out while paused (the tick doesn't fade then): close that
+     * play as ended by the system with what was heard, so it never reads as a skip.
+     */
+    private fun endSleepTimerIfRunOut() {
+        val timer = sleepTimer ?: return
+        if (!ranOut(timer)) return
+        val listened = if (startedUid != null) clock.listenedMs else 0L
+        startedUid = null
+        sleepTimer = null
+        abortFade()
+        runCatching { core.sleepTimerEnded(listened) }
+        Log.i(TAG, "sleep timer: ran out while paused")
+    }
+
+    /**
+     * The sleep timer stops after [uid]: a song or album timer's stop point (the uid held
+     * now, before `playback_ended` moves it), or any song that ends while fading.
+     */
+    private fun sleepStopsAfter(uid: Long?): Boolean {
+        if (uid == null) return false
+        if (sleepFade.stopsAtSongEnd) return true
+        val timer = sleepTimer ?: return false
+        return timer.mode != SleepTimerMode.MINUTES && timer.stopAfterUid == uid
     }
 
     // --- Helpers. ---
@@ -773,6 +982,8 @@ class CorePlayback(
         private const val SCAN_SPEED = 4
         private const val FADE_MS = 800L
         private const val FADE_STEPS = 16
+        /** Phase 9: the sleep timer's fade sets the volume about 16 times a second. */
+        private const val FADE_STEP_MS = 62L
 
         fun String.toUidOrNull(): Long? = removePrefix(UID_PREFIX).toLongOrNull()
     }

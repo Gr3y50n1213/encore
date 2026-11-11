@@ -71,6 +71,12 @@
             android:name=".downloads.DownloadActionReceiver"
             android:exported="false" />
 
+        <!-- Phase 9 (WP4): the sleep timer card's Add 15 min and swipe-away
+             (playback/SleepTimerReceiver.kt). Not exported. -->
+        <receiver
+            android:name=".playback.SleepTimerReceiver"
+            android:exported="false" />
+
         <service
             android:name=".playback.PlaybackService"
             android:exported="true"

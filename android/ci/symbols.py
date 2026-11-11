@@ -32,6 +32,8 @@ NAMES = {
     "notifications": False, "storage": False, "wifi": False,
     # Polish round: "This tablet" in Play on.
     "tablet_android": False,
+    # Phase 9: the sleep timer.
+    "bedtime": False,
 }
 BASE = "https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/{n}/materialsymbolsrounded/{n}{f}_24px.svg"
 TEMPLATE = """<?xml version="1.0" encoding="utf-8"?>

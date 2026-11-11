@@ -95,6 +95,12 @@ class CoreHost private constructor(val context: Context) {
         })
     }
 
+    // Phase 9 (WP4): the sleep timer's card follows the timer for the whole process,
+    // whether or not the player or a screen is up (playback/SleepTimerNotifier.kt).
+    init {
+        uk.gcartee.encore.app.playback.SleepTimerNotifier.start(context, this)
+    }
+
     /** At launch: opens the last profile with its tokens from the Keystore. */
     fun openLastProfile(): Boolean {
         val id = core.lastActiveProfile() ?: return false

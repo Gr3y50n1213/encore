@@ -186,6 +186,10 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     var profiles by remember { mutableStateOf(false) }
     // The Play on sheet is open, in the colours of the Now Playing page that opened it.
     var output by remember { mutableStateOf<uk.gcartee.encore.app.ui.player.FieldColours?>(null) }
+    // The sleep timer sheet is open (Now Playing's More, Settings, the notification); the
+    // tint is the album's colours when More opened it, none otherwise.
+    var sleepSheet by remember { mutableStateOf(false) }
+    var sleepTint by remember { mutableStateOf<uk.gcartee.encore.app.ui.player.FieldColours?>(null) }
     var addingAccount by rememberSaveable { mutableStateOf(false) }
     var continueFrom by remember { mutableStateOf<OutputDevice?>(null) }
     var switches by remember { mutableIntStateOf(0) }
@@ -217,6 +221,14 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     actions.onRefused = { haptics.perform(Haptic.Reject) }
     // The download notification opens Settings › Downloads.
     val openRequest by host.openRequest.collectAsState()
+    // Settings and the sleep timer's notification open the sleep timer sheet.
+    LaunchedEffect(openRequest) {
+        if (openRequest == MainActivity.OPEN_SLEEP_TIMER) {
+            sleepTint = null
+            sleepSheet = true
+            host.openRequest.value = null
+        }
+    }
     LaunchedEffect(openRequest) {
         if (openRequest == MainActivity.OPEN_DOWNLOADS) {
             nowPlaying = false
@@ -524,6 +536,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                         nav.push(route)
                     },
                     onOutput = { output = it },
+                    onSleepTimer = { sleepTint = it; sleepSheet = true },
                     onArtBounds = { rect, shrinks ->
                         if (expand.value >= 0.999f && rect.usable()) {
                             val spot = ArtSpot(rect, shrinks)
@@ -557,7 +570,14 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
         }
         if (profiles) ProfileSheet(host, playing = player.isPlaying, onDismiss = { profiles = false }, onSwitched = { nav.reset(); switches++ }, onAddAccount = { addingAccount = true }, showSettings = nav.top !is Route.Settings)
         val primer by host.notificationPrimer.collectAsState()
-        if (primer) NotificationPrimer(onDone = { host.notificationPrimer.value = false })
+        val primerForSleep by uk.gcartee.encore.app.ui.player.PrimerCopy.sleepTimer.collectAsState()
+        if (sleepSheet) {
+            val close = { sleepSheet = false }
+            val tint = sleepTint
+            if (tint != null) uk.gcartee.encore.app.ui.player.FieldSheetTheme(tint) { uk.gcartee.encore.app.ui.player.SleepTimerSheet(host, onDismiss = close) }
+            else uk.gcartee.encore.app.ui.player.SleepTimerSheet(host, onDismiss = close)
+        }
+        if (primer) NotificationPrimer(forSleepTimer = primerForSleep, onDone = { host.notificationPrimer.value = false })
         output?.let { tint ->
             uk.gcartee.encore.app.ui.player.FieldSheetTheme(tint) { OutputSheet(host, playingHere = player.isPlaying, onDismiss = { output = null }) }
         }
@@ -683,7 +703,7 @@ private fun OfflineBanner(visible: Boolean, modifier: Modifier = Modifier, onHei
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun NotificationPrimer(onDone: () -> Unit) {
+private fun NotificationPrimer(forSleepTimer: Boolean, onDone: () -> Unit) {
     val type = LocalEncoreType.current
     val launcher = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { onDone() }
     androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDone, containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
@@ -691,12 +711,16 @@ private fun NotificationPrimer(onDone: () -> Unit) {
             Box(
                 Modifier.size(PRIMER_MARK_DP.dp).clip(uk.gcartee.encore.app.ui.home.PolygonShape(androidx.compose.material3.MaterialShapes.Cookie9Sided)).background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center,
-            ) { Icon(Icons.download(), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(28.dp)) }
+            ) { Icon(if (forSleepTimer) Icons.sleepTimer() else Icons.download(), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(28.dp)) }
             androidx.compose.foundation.layout.Spacer(Modifier.size((Grid.base * 2).dp))
-            Text("Show download progress?", style = type.sheetTitle, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            Text(if (forSleepTimer) "Show the sleep timer?" else "Show download progress?", style = type.sheetTitle, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             androidx.compose.foundation.layout.Spacer(Modifier.size(Grid.base.dp))
             Text(
-                "Allow notifications so downloads can show progress and tell you when they finish. Playback keeps working if you say no.",
+                if (forSleepTimer) {
+                    "See time left and add 15 minutes from your notifications. The timer works if you say no."
+                } else {
+                    "Allow notifications so downloads can show progress and tell you when they finish. Playback keeps working if you say no."
+                },
                 style = type.body,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
