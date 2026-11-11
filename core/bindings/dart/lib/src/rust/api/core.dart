@@ -58,6 +58,9 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
  void  biometricsChanged();
 
 
+ SleepTimer?  cancelSleepTimer();
+
+
  Future<ServerCheck>  checkAddress({required String address });
 
 
@@ -125,6 +128,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
 
 
  Future<ExportSummary>  exportProfile({required String profileId , required String destPath });
+
+
+ SleepTimer  extendSleepTimer({required int minutes });
 
 
  Future<int>  fetchLyricsAhead({required int maxSongs });
@@ -224,6 +230,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
 
 
  QueueState  play({required Int64List songIds , required int startIndex , required StartedFrom startedFrom , String? contextId });
+
+
+ QueueState  playMix({required MixRef mix });
 
 
  QueueState  playNext({required Int64List songIds });
@@ -352,6 +361,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  Future<void>  restoreProfile({required String profileId , required String fromPath });
 
 
+ SleepTimer  restoreSleepTimer({required SleepTimer timer });
+
+
  int  retryFailedDownloads();
 
 
@@ -403,6 +415,13 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  QueueState  setShuffle({required bool on_ });
 
 
+ SleepTimer  setSleepTimer({required SleepTimerSpec spec });
+
+
+/// Testing only: a timer of `seconds`.
+ SleepTimer  setSleepTimerSeconds({required int seconds });
+
+
  void  setStreamQuality({required Network network , required StreamQuality quality });
 
 
@@ -419,6 +438,15 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
 
 
  PreviousResult  skipPrevious({required SkipOrigin origin , required PlatformInt64 positionMs });
+
+
+ SleepFadePlan  sleepFadePlan({required PlatformInt64 positionMs , required PlatformInt64 durationMs });
+
+
+ SleepTimer?  sleepTimer();
+
+
+ void  sleepTimerEnded({required PlatformInt64 listenedMs });
 
 
  QueueState  smartShuffle({required Int64List songIds , required StartedFrom startedFrom , String? contextId });
@@ -484,6 +512,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
 
 
  WhyThisSong  whyThisSong({required PlatformInt64 songId });
+
+
+ WidgetSnapshot  widgetSnapshot();
 
 
 
@@ -779,15 +810,17 @@ final OutputDevice? device;
 final HandoffInfo? handoff;
 final RemoteCommand? remoteCommand;
 final DownloadProgress? download;
+final String? widgetProfileId;
+final SleepTimer? sleepTimer;
 
-                const CoreEvent({required this.kind ,this.queue ,this.nowPlaying ,this.preload ,this.syncSourceId ,required this.syncDone ,required this.syncTotal ,this.syncStatus ,this.remoteChange ,this.credential ,this.outputDevices ,this.device ,this.handoff ,this.remoteCommand ,this.download ,});
+                const CoreEvent({required this.kind ,this.queue ,this.nowPlaying ,this.preload ,this.syncSourceId ,required this.syncDone ,required this.syncTotal ,this.syncStatus ,this.remoteChange ,this.credential ,this.outputDevices ,this.device ,this.handoff ,this.remoteCommand ,this.download ,this.widgetProfileId ,this.sleepTimer ,});
 
 
 
 
 
         @override
-        int get hashCode => kind.hashCode^queue.hashCode^nowPlaying.hashCode^preload.hashCode^syncSourceId.hashCode^syncDone.hashCode^syncTotal.hashCode^syncStatus.hashCode^remoteChange.hashCode^credential.hashCode^outputDevices.hashCode^device.hashCode^handoff.hashCode^remoteCommand.hashCode^download.hashCode;
+        int get hashCode => kind.hashCode^queue.hashCode^nowPlaying.hashCode^preload.hashCode^syncSourceId.hashCode^syncDone.hashCode^syncTotal.hashCode^syncStatus.hashCode^remoteChange.hashCode^credential.hashCode^outputDevices.hashCode^device.hashCode^handoff.hashCode^remoteCommand.hashCode^download.hashCode^widgetProfileId.hashCode^sleepTimer.hashCode;
 
 
 
@@ -796,7 +829,7 @@ final DownloadProgress? download;
             identical(this, other) ||
             other is CoreEvent &&
                 runtimeType == other.runtimeType
-                && kind == other.kind&& queue == other.queue&& nowPlaying == other.nowPlaying&& preload == other.preload&& syncSourceId == other.syncSourceId&& syncDone == other.syncDone&& syncTotal == other.syncTotal&& syncStatus == other.syncStatus&& remoteChange == other.remoteChange&& credential == other.credential&& outputDevices == other.outputDevices&& device == other.device&& handoff == other.handoff&& remoteCommand == other.remoteCommand&& download == other.download;
+                && kind == other.kind&& queue == other.queue&& nowPlaying == other.nowPlaying&& preload == other.preload&& syncSourceId == other.syncSourceId&& syncDone == other.syncDone&& syncTotal == other.syncTotal&& syncStatus == other.syncStatus&& remoteChange == other.remoteChange&& credential == other.credential&& outputDevices == other.outputDevices&& device == other.device&& handoff == other.handoff&& remoteCommand == other.remoteCommand&& download == other.download&& widgetProfileId == other.widgetProfileId&& sleepTimer == other.sleepTimer;
 
             }
 
@@ -1220,6 +1253,8 @@ remoteCommand,
 remoteState,
 downloadsChanged,
 downloadProgress,
+widgetSnapshotChanged,
+sleepTimerChanged,
                     ;
                     
                 }
@@ -1605,6 +1640,37 @@ final List<MixSong> songs;
                 && summary == other.summary&& songs == other.songs;
 
             }
+
+class MixRef  {
+                final MixRefKind kind;
+final String? mixId;
+
+                const MixRef({required this.kind ,this.mixId ,});
+
+
+
+
+
+        @override
+        int get hashCode => kind.hashCode^mixId.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is MixRef &&
+                runtimeType == other.runtimeType
+                && kind == other.kind&& mixId == other.mixId;
+
+            }
+
+enum MixRefKind {
+                    id,
+nextUp,
+                    ;
+                    
+                }
 
 class MixShelf  {
                 final MixState state;
@@ -2482,6 +2548,98 @@ final bool endOfQueue;
 
             }
 
+enum SleepFadeAction {
+                    keepPlaying,
+stopAtSongEnd,
+fadeNow,
+                    ;
+                    
+                }
+
+class SleepFadePlan  {
+                final SleepFadeAction action;
+final PlatformInt64 fadeFromMs;
+final PlatformInt64 fadeMs;
+
+                const SleepFadePlan({required this.action ,required this.fadeFromMs ,required this.fadeMs ,});
+
+
+
+
+
+        @override
+        int get hashCode => action.hashCode^fadeFromMs.hashCode^fadeMs.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is SleepFadePlan &&
+                runtimeType == other.runtimeType
+                && action == other.action&& fadeFromMs == other.fadeFromMs&& fadeMs == other.fadeMs;
+
+            }
+
+class SleepTimer  {
+                final SleepTimerMode mode;
+final PlatformInt64 setUtcMs;
+final PlatformInt64 endsAtUtcMs;
+final PlatformInt64? stopAfterUid;
+final PlatformInt64 fadeMs;
+
+                const SleepTimer({required this.mode ,required this.setUtcMs ,required this.endsAtUtcMs ,this.stopAfterUid ,required this.fadeMs ,});
+
+
+
+
+
+        @override
+        int get hashCode => mode.hashCode^setUtcMs.hashCode^endsAtUtcMs.hashCode^stopAfterUid.hashCode^fadeMs.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is SleepTimer &&
+                runtimeType == other.runtimeType
+                && mode == other.mode&& setUtcMs == other.setUtcMs&& endsAtUtcMs == other.endsAtUtcMs&& stopAfterUid == other.stopAfterUid&& fadeMs == other.fadeMs;
+
+            }
+
+enum SleepTimerMode {
+                    minutes,
+endOfSong,
+endOfAlbum,
+                    ;
+                    
+                }
+
+class SleepTimerSpec  {
+                final SleepTimerMode mode;
+final int minutes;
+
+                const SleepTimerSpec({required this.mode ,required this.minutes ,});
+
+
+
+
+
+        @override
+        int get hashCode => mode.hashCode^minutes.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is SleepTimerSpec &&
+                runtimeType == other.runtimeType
+                && mode == other.mode&& minutes == other.minutes;
+
+            }
+
 class Song  {
                 final PlatformInt64 id;
 final PlatformInt64 sourceId;
@@ -2791,6 +2949,130 @@ final List<Song> soundsLike;
             other is WhyThisSong &&
                 runtimeType == other.runtimeType
                 && reasons == other.reasons&& soundsLike == other.soundsLike;
+
+            }
+
+class WidgetAlbum  {
+                final PlatformInt64 albumId;
+final String title;
+final String artist;
+final String? cover;
+
+                const WidgetAlbum({required this.albumId ,required this.title ,required this.artist ,this.cover ,});
+
+
+
+
+
+        @override
+        int get hashCode => albumId.hashCode^title.hashCode^artist.hashCode^cover.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is WidgetAlbum &&
+                runtimeType == other.runtimeType
+                && albumId == other.albumId&& title == other.title&& artist == other.artist&& cover == other.cover;
+
+            }
+
+class WidgetMix  {
+                final String mixId;
+final String title;
+final String? cover;
+final bool pinned;
+
+                const WidgetMix({required this.mixId ,required this.title ,this.cover ,required this.pinned ,});
+
+
+
+
+
+        @override
+        int get hashCode => mixId.hashCode^title.hashCode^cover.hashCode^pinned.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is WidgetMix &&
+                runtimeType == other.runtimeType
+                && mixId == other.mixId&& title == other.title&& cover == other.cover&& pinned == other.pinned;
+
+            }
+
+enum WidgetPrivacy {
+                    normal,
+locked,
+guest,
+                    ;
+                    
+                }
+
+class WidgetSnapshot  {
+                final int schema;
+final String profileId;
+final WidgetPrivacy privacy;
+final WidgetSong? song;
+final bool isPlaying;
+final PlatformInt64 positionMs;
+final PlatformInt64 positionAtUtcMs;
+final List<WidgetMix> pinnedMixes;
+final WidgetMix? nextUp;
+final List<WidgetAlbum> recentAlbums;
+final bool reachable;
+final PlatformInt64 writtenAtUtcMs;
+
+                const WidgetSnapshot({required this.schema ,required this.profileId ,required this.privacy ,this.song ,required this.isPlaying ,required this.positionMs ,required this.positionAtUtcMs ,required this.pinnedMixes ,this.nextUp ,required this.recentAlbums ,required this.reachable ,required this.writtenAtUtcMs ,});
+
+
+
+
+
+        @override
+        int get hashCode => schema.hashCode^profileId.hashCode^privacy.hashCode^song.hashCode^isPlaying.hashCode^positionMs.hashCode^positionAtUtcMs.hashCode^pinnedMixes.hashCode^nextUp.hashCode^recentAlbums.hashCode^reachable.hashCode^writtenAtUtcMs.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is WidgetSnapshot &&
+                runtimeType == other.runtimeType
+                && schema == other.schema&& profileId == other.profileId&& privacy == other.privacy&& song == other.song&& isPlaying == other.isPlaying&& positionMs == other.positionMs&& positionAtUtcMs == other.positionAtUtcMs&& pinnedMixes == other.pinnedMixes&& nextUp == other.nextUp&& recentAlbums == other.recentAlbums&& reachable == other.reachable&& writtenAtUtcMs == other.writtenAtUtcMs;
+
+            }
+
+class WidgetSong  {
+                final PlatformInt64? songId;
+final String title;
+final String artist;
+final PlatformInt64? albumId;
+final String? albumTitle;
+final String? cover;
+final PlatformInt64 durationMs;
+final bool nowPlaying;
+
+                const WidgetSong({this.songId ,required this.title ,required this.artist ,this.albumId ,this.albumTitle ,this.cover ,required this.durationMs ,required this.nowPlaying ,});
+
+
+
+
+
+        @override
+        int get hashCode => songId.hashCode^title.hashCode^artist.hashCode^albumId.hashCode^albumTitle.hashCode^cover.hashCode^durationMs.hashCode^nowPlaying.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is WidgetSong &&
+                runtimeType == other.runtimeType
+                && songId == other.songId&& title == other.title&& artist == other.artist&& albumId == other.albumId&& albumTitle == other.albumTitle&& cover == other.cover&& durationMs == other.durationMs&& nowPlaying == other.nowPlaying;
 
             }
             

@@ -1018,6 +1018,26 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_why_this_song(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_cancel_sleep_timer(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_extend_sleep_timer(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_restore_sleep_timer(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_set_sleep_timer(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_set_sleep_timer_seconds(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_sleep_fade_plan(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_sleep_timer(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_sleep_timer_ended(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_play_mix(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_widget_snapshot(
+    ): Int
     external fun uniffi_encore_core_checksum_method_corelistener_on_event(
     ): Int
     external fun uniffi_encore_core_checksum_constructor_encorecore_new(
@@ -1356,6 +1376,26 @@ internal object UniffiLib {
     external fun uniffi_encore_core_fn_method_encorecore_suggestion_stats(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_why_this_song(`ptr`: Long,`songId`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_cancel_sleep_timer(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_extend_sleep_timer(`ptr`: Long,`minutes`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_restore_sleep_timer(`ptr`: Long,`timer`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_set_sleep_timer(`ptr`: Long,`spec`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_set_sleep_timer_seconds(`ptr`: Long,`seconds`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_sleep_fade_plan(`ptr`: Long,`positionMs`: Long,`durationMs`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_sleep_timer(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_sleep_timer_ended(`ptr`: Long,`listenedMs`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_play_mix(`ptr`: Long,`mix`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_widget_snapshot(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_clone_corelistener(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Long
@@ -1959,6 +1999,36 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_why_this_song() and 0xFFFF) != 5198) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_cancel_sleep_timer() and 0xFFFF) != 59983) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_extend_sleep_timer() and 0xFFFF) != 50640) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_restore_sleep_timer() and 0xFFFF) != 51894) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_set_sleep_timer() and 0xFFFF) != 2397) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_set_sleep_timer_seconds() and 0xFFFF) != 13879) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_sleep_fade_plan() and 0xFFFF) != 34712) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_sleep_timer() and 0xFFFF) != 55485) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_sleep_timer_ended() and 0xFFFF) != 36852) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_play_mix() and 0xFFFF) != 28226) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_widget_snapshot() and 0xFFFF) != 10646) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_corelistener_on_event() and 0xFFFF) != 61302) {
@@ -3655,6 +3725,93 @@ public interface EncoreCoreInterface {
      * Why this song (board 38): one or two reasons and up to two "sounds like".
      */
     fun `whyThisSong`(`songId`: kotlin.Long): WhyThisSong
+    
+    /**
+     * Cancel timer (no confirmation): returns the timer it cancelled, for the
+     * "Timer cancelled" toast's Undo (`restore_sleep_timer`); None when none ran.
+     */
+    fun `cancelSleepTimer`(): SleepTimer?
+    
+    /**
+     * Add 15 min (or any `minutes`): the end moves on that much. A song or album
+     * timer becomes a timer of minutes ending that long after the song or album
+     * would have ended. `NotFound` when no timer runs.
+     */
+    fun `extendSleepTimer`(`minutes`: kotlin.UInt): SleepTimer
+    
+    /**
+     * Undo a cancel: the timer `cancel_sleep_timer` returned comes back as it
+     * was. The 5 s Undo window is the app's. A timer whose end has passed is
+     * refused (`NotAllowed`).
+     */
+    fun `restoreSleepTimer`(`timer`: SleepTimer): SleepTimer
+    
+    /**
+     * Start the sleep timer, replacing any other (board 31). Minutes: it ends
+     * `spec.minutes` from now (1 to 1,440), fading out over the last `fade_ms`.
+     * EndOfSong and EndOfAlbum: the music plays to the end of the song or album,
+     * then pauses, with no fade; they need something in the queue (`NotAllowed`)
+     * and an open profile. `SleepTimerChanged` follows.
+     */
+    fun `setSleepTimer`(`spec`: SleepTimerSpec): SleepTimer
+    
+    /**
+     * Testing only: a timer of `seconds` (Minutes mode), so emulator and device
+     * tests can run a 15 s timer. Apps never offer it.
+     */
+    fun `setSleepTimerSeconds`(`seconds`: kotlin.UInt): SleepTimer
+    
+    /**
+     * The fade rule, the same on every platform. Call it from the player's tick
+     * (about once a second) with the current song's position and length; it says
+     * whether to play on, fade now, or fade into the song's end and stop there.
+     * Song and album timers never fade (KeepPlaying).
+     */
+    fun `sleepFadePlan`(`positionMs`: kotlin.Long, `durationMs`: kotlin.Long): SleepFadePlan
+    
+    /**
+     * The running timer, or None. A timer of minutes that ended over a minute ago
+     * is cleared here (it ran out while the app was closed). No profile needed.
+     */
+    fun `sleepTimer`(): SleepTimer?
+    
+    /**
+     * The player faded out and paused at the timer's end (or a song or album
+     * timer's last song finished). The open play is closed as ended by the system
+     * with `listened_ms` (0 when it was already reported finished), never as a
+     * skip; the queue stays where it is; the timer is cleared. When the person
+     * plays again, report `playback_started` for the song (a new play), not
+     * `playback_resumed`.
+     */
+    fun `sleepTimerEnded`(`listenedMs`: kotlin.Long)
+    
+    /**
+     * Start a mix from a widget, the Quick Settings tile or a shortcut: the same
+     * as the app's Play on a mix card (`mix(id).songs` played from the first, as
+     * `StartedFrom::Mix` with the mix's ID as context, shuffle off).
+     *
+     * `MixRef { kind: Id, mix_id }` plays that mix, pinned or in today's set. When
+     * it is gone (the daily set rotated, it was hidden or unpinned) it falls back
+     * to Next up.
+     *
+     * **Next up** is the first mix of today's set, in the set's order, that no
+     * play was started from since the set was made and that isn't the one
+     * playing now; when every mix was played, the set's first. "Today's set" is
+     * the one Home last built or fetched: this call never builds one and never
+     * calls the network. Under Learning off there is no set (as on Home). With no
+     * Next up, the first pinned mix plays; with none either, `NotFound`.
+     * Offline, only songs that can play join the queue (as `play`). Synchronous.
+     */
+    fun `playMix`(`mix`: MixRef): QueueState
+    
+    /**
+     * The open profile's widget snapshot, built now from local state: the same
+     * thing `<data_dir>/widgets/<profile_id>/snapshot.json` holds (the file may
+     * lag by about a second, and names only covers already saved). No network.
+     * There is no call for another profile's: the core never reads a profile that
+     * isn't open. Synchronous.
+     */
+    fun `widgetSnapshot`(): WidgetSnapshot
     
     companion object
 }
@@ -6755,6 +6912,220 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
     
 
     
+    /**
+     * Cancel timer (no confirmation): returns the timer it cancelled, for the
+     * "Timer cancelled" toast's Undo (`restore_sleep_timer`); None when none ran.
+     */
+    @Throws(EncoreException::class)override fun `cancelSleepTimer`(): SleepTimer? {
+            return FfiConverterOptionalTypeSleepTimer.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_cancel_sleep_timer(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Add 15 min (or any `minutes`): the end moves on that much. A song or album
+     * timer becomes a timer of minutes ending that long after the song or album
+     * would have ended. `NotFound` when no timer runs.
+     */
+    @Throws(EncoreException::class)override fun `extendSleepTimer`(`minutes`: kotlin.UInt): SleepTimer {
+            return FfiConverterTypeSleepTimer.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_extend_sleep_timer(
+        it,
+        
+        FfiConverterUInt.lower(`minutes`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Undo a cancel: the timer `cancel_sleep_timer` returned comes back as it
+     * was. The 5 s Undo window is the app's. A timer whose end has passed is
+     * refused (`NotAllowed`).
+     */
+    @Throws(EncoreException::class)override fun `restoreSleepTimer`(`timer`: SleepTimer): SleepTimer {
+            return FfiConverterTypeSleepTimer.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_restore_sleep_timer(
+        it,
+        
+        FfiConverterTypeSleepTimer.lower(`timer`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Start the sleep timer, replacing any other (board 31). Minutes: it ends
+     * `spec.minutes` from now (1 to 1,440), fading out over the last `fade_ms`.
+     * EndOfSong and EndOfAlbum: the music plays to the end of the song or album,
+     * then pauses, with no fade; they need something in the queue (`NotAllowed`)
+     * and an open profile. `SleepTimerChanged` follows.
+     */
+    @Throws(EncoreException::class)override fun `setSleepTimer`(`spec`: SleepTimerSpec): SleepTimer {
+            return FfiConverterTypeSleepTimer.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_set_sleep_timer(
+        it,
+        
+        FfiConverterTypeSleepTimerSpec.lower(`spec`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Testing only: a timer of `seconds` (Minutes mode), so emulator and device
+     * tests can run a 15 s timer. Apps never offer it.
+     */
+    @Throws(EncoreException::class)override fun `setSleepTimerSeconds`(`seconds`: kotlin.UInt): SleepTimer {
+            return FfiConverterTypeSleepTimer.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_set_sleep_timer_seconds(
+        it,
+        
+        FfiConverterUInt.lower(`seconds`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * The fade rule, the same on every platform. Call it from the player's tick
+     * (about once a second) with the current song's position and length; it says
+     * whether to play on, fade now, or fade into the song's end and stop there.
+     * Song and album timers never fade (KeepPlaying).
+     */
+    @Throws(EncoreException::class)override fun `sleepFadePlan`(`positionMs`: kotlin.Long, `durationMs`: kotlin.Long): SleepFadePlan {
+            return FfiConverterTypeSleepFadePlan.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_sleep_fade_plan(
+        it,
+        
+        FfiConverterLong.lower(`positionMs`),
+        FfiConverterLong.lower(`durationMs`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * The running timer, or None. A timer of minutes that ended over a minute ago
+     * is cleared here (it ran out while the app was closed). No profile needed.
+     */
+    @Throws(EncoreException::class)override fun `sleepTimer`(): SleepTimer? {
+            return FfiConverterOptionalTypeSleepTimer.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_sleep_timer(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * The player faded out and paused at the timer's end (or a song or album
+     * timer's last song finished). The open play is closed as ended by the system
+     * with `listened_ms` (0 when it was already reported finished), never as a
+     * skip; the queue stays where it is; the timer is cleared. When the person
+     * plays again, report `playback_started` for the song (a new play), not
+     * `playback_resumed`.
+     */
+    @Throws(EncoreException::class)override fun `sleepTimerEnded`(`listenedMs`: kotlin.Long)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_sleep_timer_ended(
+        it,
+        
+        FfiConverterLong.lower(`listenedMs`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Start a mix from a widget, the Quick Settings tile or a shortcut: the same
+     * as the app's Play on a mix card (`mix(id).songs` played from the first, as
+     * `StartedFrom::Mix` with the mix's ID as context, shuffle off).
+     *
+     * `MixRef { kind: Id, mix_id }` plays that mix, pinned or in today's set. When
+     * it is gone (the daily set rotated, it was hidden or unpinned) it falls back
+     * to Next up.
+     *
+     * **Next up** is the first mix of today's set, in the set's order, that no
+     * play was started from since the set was made and that isn't the one
+     * playing now; when every mix was played, the set's first. "Today's set" is
+     * the one Home last built or fetched: this call never builds one and never
+     * calls the network. Under Learning off there is no set (as on Home). With no
+     * Next up, the first pinned mix plays; with none either, `NotFound`.
+     * Offline, only songs that can play join the queue (as `play`). Synchronous.
+     */
+    @Throws(EncoreException::class)override fun `playMix`(`mix`: MixRef): QueueState {
+            return FfiConverterTypeQueueState.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_play_mix(
+        it,
+        
+        FfiConverterTypeMixRef.lower(`mix`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * The open profile's widget snapshot, built now from local state: the same
+     * thing `<data_dir>/widgets/<profile_id>/snapshot.json` holds (the file may
+     * lag by about a second, and names only covers already saved). No network.
+     * There is no call for another profile's: the core never reads a profile that
+     * isn't open. Synchronous.
+     */
+    @Throws(EncoreException::class)override fun `widgetSnapshot`(): WidgetSnapshot {
+            return FfiConverterTypeWidgetSnapshot.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_widget_snapshot(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
 
     
 
@@ -7259,6 +7630,16 @@ data class CoreEvent (
     var `remoteCommand`: RemoteCommand?
     , 
     var `download`: DownloadProgress?
+    , 
+    /**
+     * Phase 9, WP2: `WidgetSnapshotChanged`'s profile.
+     */
+    var `widgetProfileId`: kotlin.String?
+    , 
+    /**
+     * Phase 9, WP1: `SleepTimerChanged`'s timer (None: no timer now).
+     */
+    var `sleepTimer`: SleepTimer?
     
 ){
     
@@ -7290,6 +7671,8 @@ public object FfiConverterTypeCoreEvent: FfiConverterRustBuffer<CoreEvent> {
             FfiConverterOptionalTypeHandoffInfo.read(buf),
             FfiConverterOptionalTypeRemoteCommand.read(buf),
             FfiConverterOptionalTypeDownloadProgress.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalTypeSleepTimer.read(buf),
         )
     }
 
@@ -7308,7 +7691,9 @@ public object FfiConverterTypeCoreEvent: FfiConverterRustBuffer<CoreEvent> {
             FfiConverterOptionalTypeOutputDevice.allocationSize(value.`device`) +
             FfiConverterOptionalTypeHandoffInfo.allocationSize(value.`handoff`) +
             FfiConverterOptionalTypeRemoteCommand.allocationSize(value.`remoteCommand`) +
-            FfiConverterOptionalTypeDownloadProgress.allocationSize(value.`download`)
+            FfiConverterOptionalTypeDownloadProgress.allocationSize(value.`download`) +
+            FfiConverterOptionalString.allocationSize(value.`widgetProfileId`) +
+            FfiConverterOptionalTypeSleepTimer.allocationSize(value.`sleepTimer`)
     )
 
     override fun write(value: CoreEvent, buf: ByteBuffer) {
@@ -7327,6 +7712,8 @@ public object FfiConverterTypeCoreEvent: FfiConverterRustBuffer<CoreEvent> {
             FfiConverterOptionalTypeHandoffInfo.write(value.`handoff`, buf)
             FfiConverterOptionalTypeRemoteCommand.write(value.`remoteCommand`, buf)
             FfiConverterOptionalTypeDownloadProgress.write(value.`download`, buf)
+            FfiConverterOptionalString.write(value.`widgetProfileId`, buf)
+            FfiConverterOptionalTypeSleepTimer.write(value.`sleepTimer`, buf)
     }
 }
 
@@ -8743,6 +9130,47 @@ public object FfiConverterTypeMixPage: FfiConverterRustBuffer<MixPage> {
     override fun write(value: MixPage, buf: ByteBuffer) {
             FfiConverterTypeMixSummary.write(value.`summary`, buf)
             FfiConverterSequenceTypeMixSong.write(value.`songs`, buf)
+    }
+}
+
+
+
+/**
+ * A mix chosen on a widget or a tile: `mix_id` is set for `Id`.
+ */
+data class MixRef (
+    var `kind`: MixRefKind
+    , 
+    var `mixId`: kotlin.String?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeMixRef: FfiConverterRustBuffer<MixRef> {
+    override fun read(buf: ByteBuffer): MixRef {
+        return MixRef(
+            FfiConverterTypeMixRefKind.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: MixRef) = (
+            FfiConverterTypeMixRefKind.allocationSize(value.`kind`) +
+            FfiConverterOptionalString.allocationSize(value.`mixId`)
+    )
+
+    override fun write(value: MixRef, buf: ByteBuffer) {
+            FfiConverterTypeMixRefKind.write(value.`kind`, buf)
+            FfiConverterOptionalString.write(value.`mixId`, buf)
     }
 }
 
@@ -10399,6 +10827,178 @@ public object FfiConverterTypeSkipTarget: FfiConverterRustBuffer<SkipTarget> {
 
 
 
+/**
+ * The fade rule, the same on every platform: what to do at this moment.
+ */
+data class SleepFadePlan (
+    var `action`: SleepFadeAction
+    , 
+    /**
+     * Where in the song the fade starts: StopAtSongEnd, possibly ahead of the
+     * position; FadeNow, the position given. 0 with KeepPlaying.
+     */
+    var `fadeFromMs`: kotlin.Long
+    , 
+    /**
+     * How long the fade lasts: the timer's `fade_ms` at most, less when the song
+     * or the timer ends sooner. 0 with KeepPlaying, and 0 (stop now) once the end
+     * has passed.
+     */
+    var `fadeMs`: kotlin.Long
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSleepFadePlan: FfiConverterRustBuffer<SleepFadePlan> {
+    override fun read(buf: ByteBuffer): SleepFadePlan {
+        return SleepFadePlan(
+            FfiConverterTypeSleepFadeAction.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterLong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: SleepFadePlan) = (
+            FfiConverterTypeSleepFadeAction.allocationSize(value.`action`) +
+            FfiConverterLong.allocationSize(value.`fadeFromMs`) +
+            FfiConverterLong.allocationSize(value.`fadeMs`)
+    )
+
+    override fun write(value: SleepFadePlan, buf: ByteBuffer) {
+            FfiConverterTypeSleepFadeAction.write(value.`action`, buf)
+            FfiConverterLong.write(value.`fadeFromMs`, buf)
+            FfiConverterLong.write(value.`fadeMs`, buf)
+    }
+}
+
+
+
+/**
+ * The sleep timer. One per device, not per profile: it carries on through a
+ * profile switch, survives the app being closed, and ends when playback is
+ * handed to another device.
+ */
+data class SleepTimer (
+    var `mode`: SleepTimerMode
+    , 
+    /**
+     * When it was set; Add 15 min keeps it (the sheet's bar runs from here to
+     * `ends_at_utc_ms`).
+     */
+    var `setUtcMs`: kotlin.Long
+    , 
+    /**
+     * When the music stops. Exact for Minutes. For EndOfSong and EndOfAlbum an
+     * estimate from the player's position and the songs' lengths, worked out
+     * again on every read.
+     */
+    var `endsAtUtcMs`: kotlin.Long
+    , 
+    /**
+     * EndOfSong and EndOfAlbum: the queue entry after which playback pauses, so
+     * don't preload past it. None for Minutes, or when nothing is queued.
+     */
+    var `stopAfterUid`: kotlin.Long?
+    , 
+    /**
+     * How long the fade lasts (`motion.timing.sleepTimerFadeOutMs`, 10 s).
+     */
+    var `fadeMs`: kotlin.Long
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSleepTimer: FfiConverterRustBuffer<SleepTimer> {
+    override fun read(buf: ByteBuffer): SleepTimer {
+        return SleepTimer(
+            FfiConverterTypeSleepTimerMode.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterOptionalLong.read(buf),
+            FfiConverterLong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: SleepTimer) = (
+            FfiConverterTypeSleepTimerMode.allocationSize(value.`mode`) +
+            FfiConverterLong.allocationSize(value.`setUtcMs`) +
+            FfiConverterLong.allocationSize(value.`endsAtUtcMs`) +
+            FfiConverterOptionalLong.allocationSize(value.`stopAfterUid`) +
+            FfiConverterLong.allocationSize(value.`fadeMs`)
+    )
+
+    override fun write(value: SleepTimer, buf: ByteBuffer) {
+            FfiConverterTypeSleepTimerMode.write(value.`mode`, buf)
+            FfiConverterLong.write(value.`setUtcMs`, buf)
+            FfiConverterLong.write(value.`endsAtUtcMs`, buf)
+            FfiConverterOptionalLong.write(value.`stopAfterUid`, buf)
+            FfiConverterLong.write(value.`fadeMs`, buf)
+    }
+}
+
+
+
+/**
+ * What `set_sleep_timer` starts. `minutes` counts for Minutes only (the sheet
+ * offers 5, 10, 15, 30, 45 and 60; 1 to 1,440 is accepted). A record, not an
+ * enum with data, so Dart gets the same shape.
+ */
+data class SleepTimerSpec (
+    var `mode`: SleepTimerMode
+    , 
+    var `minutes`: kotlin.UInt
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSleepTimerSpec: FfiConverterRustBuffer<SleepTimerSpec> {
+    override fun read(buf: ByteBuffer): SleepTimerSpec {
+        return SleepTimerSpec(
+            FfiConverterTypeSleepTimerMode.read(buf),
+            FfiConverterUInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: SleepTimerSpec) = (
+            FfiConverterTypeSleepTimerMode.allocationSize(value.`mode`) +
+            FfiConverterUInt.allocationSize(value.`minutes`)
+    )
+
+    override fun write(value: SleepTimerSpec, buf: ByteBuffer) {
+            FfiConverterTypeSleepTimerMode.write(value.`mode`, buf)
+            FfiConverterUInt.write(value.`minutes`, buf)
+    }
+}
+
+
+
 data class Song (
     var `id`: kotlin.Long
     , 
@@ -10958,6 +11558,314 @@ public object FfiConverterTypeWhyThisSong: FfiConverterRustBuffer<WhyThisSong> {
     override fun write(value: WhyThisSong, buf: ByteBuffer) {
             FfiConverterSequenceTypePickReason.write(value.`reasons`, buf)
             FfiConverterSequenceTypeSong.write(value.`soundsLike`, buf)
+    }
+}
+
+
+
+/**
+ * An album of the Recently played widget.
+ */
+data class WidgetAlbum (
+    var `albumId`: kotlin.Long
+    , 
+    var `title`: kotlin.String
+    , 
+    var `artist`: kotlin.String
+    , 
+    /**
+     * A file name in the profile's `art/` folder; None: no cover saved.
+     */
+    var `cover`: kotlin.String?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeWidgetAlbum: FfiConverterRustBuffer<WidgetAlbum> {
+    override fun read(buf: ByteBuffer): WidgetAlbum {
+        return WidgetAlbum(
+            FfiConverterLong.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: WidgetAlbum) = (
+            FfiConverterLong.allocationSize(value.`albumId`) +
+            FfiConverterString.allocationSize(value.`title`) +
+            FfiConverterString.allocationSize(value.`artist`) +
+            FfiConverterOptionalString.allocationSize(value.`cover`)
+    )
+
+    override fun write(value: WidgetAlbum, buf: ByteBuffer) {
+            FfiConverterLong.write(value.`albumId`, buf)
+            FfiConverterString.write(value.`title`, buf)
+            FfiConverterString.write(value.`artist`, buf)
+            FfiConverterOptionalString.write(value.`cover`, buf)
+    }
+}
+
+
+
+/**
+ * A mix tile of the Mixes widget and the Quick Settings tile.
+ */
+data class WidgetMix (
+    var `mixId`: kotlin.String
+    , 
+    var `title`: kotlin.String
+    , 
+    /**
+     * A file name in the profile's `art/` folder; None: no cover saved.
+     */
+    var `cover`: kotlin.String?
+    , 
+    var `pinned`: kotlin.Boolean
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeWidgetMix: FfiConverterRustBuffer<WidgetMix> {
+    override fun read(buf: ByteBuffer): WidgetMix {
+        return WidgetMix(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: WidgetMix) = (
+            FfiConverterString.allocationSize(value.`mixId`) +
+            FfiConverterString.allocationSize(value.`title`) +
+            FfiConverterOptionalString.allocationSize(value.`cover`) +
+            FfiConverterBoolean.allocationSize(value.`pinned`)
+    )
+
+    override fun write(value: WidgetMix, buf: ByteBuffer) {
+            FfiConverterString.write(value.`mixId`, buf)
+            FfiConverterString.write(value.`title`, buf)
+            FfiConverterOptionalString.write(value.`cover`, buf)
+            FfiConverterBoolean.write(value.`pinned`, buf)
+    }
+}
+
+
+
+/**
+ * One profile's widget snapshot: what `<data_dir>/widgets/<profile_id>/
+ * snapshot.json` holds (schema 1; the file format is in CORE-API.md, Widgets).
+ * Under `Locked` and `Guest` everything but the profile ID, `reachable` and the
+ * time is empty.
+ */
+data class WidgetSnapshot (
+    /**
+     * 1. A widget that finds a higher number shows "Open Encore".
+     */
+    var `schema`: kotlin.UInt
+    , 
+    var `profileId`: kotlin.String
+    , 
+    var `privacy`: WidgetPrivacy
+    , 
+    var `song`: WidgetSong?
+    , 
+    /**
+     * The player's state when it last started, paused, resumed, seeked or
+     * changed song (never from progress ticks): the bar is an indicator.
+     */
+    var `isPlaying`: kotlin.Boolean
+    , 
+    var `positionMs`: kotlin.Long
+    , 
+    /**
+     * When `position_ms` was taken; while playing, add the time since. All
+     * three are 0 and false when no song plays now (`song.now_playing` false).
+     */
+    var `positionAtUtcMs`: kotlin.Long
+    , 
+    /**
+     * Newest pin first, up to 10.
+     */
+    var `pinnedMixes`: List<WidgetMix>
+    , 
+    /**
+     * The first mix of today's set not played yet (see `play_mix`).
+     */
+    var `nextUp`: WidgetMix?
+    , 
+    /**
+     * Up to 8, newest first, from this profile's play log.
+     */
+    var `recentAlbums`: List<WidgetAlbum>
+    , 
+    /**
+     * The media server could be reached when this was written: false shows
+     * "Saved mixes / Server not reachable".
+     */
+    var `reachable`: kotlin.Boolean
+    , 
+    var `writtenAtUtcMs`: kotlin.Long
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeWidgetSnapshot: FfiConverterRustBuffer<WidgetSnapshot> {
+    override fun read(buf: ByteBuffer): WidgetSnapshot {
+        return WidgetSnapshot(
+            FfiConverterUInt.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterTypeWidgetPrivacy.read(buf),
+            FfiConverterOptionalTypeWidgetSong.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterSequenceTypeWidgetMix.read(buf),
+            FfiConverterOptionalTypeWidgetMix.read(buf),
+            FfiConverterSequenceTypeWidgetAlbum.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterLong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: WidgetSnapshot) = (
+            FfiConverterUInt.allocationSize(value.`schema`) +
+            FfiConverterString.allocationSize(value.`profileId`) +
+            FfiConverterTypeWidgetPrivacy.allocationSize(value.`privacy`) +
+            FfiConverterOptionalTypeWidgetSong.allocationSize(value.`song`) +
+            FfiConverterBoolean.allocationSize(value.`isPlaying`) +
+            FfiConverterLong.allocationSize(value.`positionMs`) +
+            FfiConverterLong.allocationSize(value.`positionAtUtcMs`) +
+            FfiConverterSequenceTypeWidgetMix.allocationSize(value.`pinnedMixes`) +
+            FfiConverterOptionalTypeWidgetMix.allocationSize(value.`nextUp`) +
+            FfiConverterSequenceTypeWidgetAlbum.allocationSize(value.`recentAlbums`) +
+            FfiConverterBoolean.allocationSize(value.`reachable`) +
+            FfiConverterLong.allocationSize(value.`writtenAtUtcMs`)
+    )
+
+    override fun write(value: WidgetSnapshot, buf: ByteBuffer) {
+            FfiConverterUInt.write(value.`schema`, buf)
+            FfiConverterString.write(value.`profileId`, buf)
+            FfiConverterTypeWidgetPrivacy.write(value.`privacy`, buf)
+            FfiConverterOptionalTypeWidgetSong.write(value.`song`, buf)
+            FfiConverterBoolean.write(value.`isPlaying`, buf)
+            FfiConverterLong.write(value.`positionMs`, buf)
+            FfiConverterLong.write(value.`positionAtUtcMs`, buf)
+            FfiConverterSequenceTypeWidgetMix.write(value.`pinnedMixes`, buf)
+            FfiConverterOptionalTypeWidgetMix.write(value.`nextUp`, buf)
+            FfiConverterSequenceTypeWidgetAlbum.write(value.`recentAlbums`, buf)
+            FfiConverterBoolean.write(value.`reachable`, buf)
+            FfiConverterLong.write(value.`writtenAtUtcMs`, buf)
+    }
+}
+
+
+
+/**
+ * The song a Now Playing widget shows: the one playing (or paused) now, else
+ * the last one played.
+ */
+data class WidgetSong (
+    /**
+     * None when a last-played song has left the library.
+     */
+    var `songId`: kotlin.Long?
+    , 
+    var `title`: kotlin.String
+    , 
+    var `artist`: kotlin.String
+    , 
+    var `albumId`: kotlin.Long?
+    , 
+    var `albumTitle`: kotlin.String?
+    , 
+    /**
+     * A file name in the profile's `art/` folder; None: no cover saved.
+     */
+    var `cover`: kotlin.String?
+    , 
+    var `durationMs`: kotlin.Long
+    , 
+    /**
+     * True: the current song of a play in progress (playing or paused). False:
+     * the last song played; show it with a Play button.
+     */
+    var `nowPlaying`: kotlin.Boolean
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeWidgetSong: FfiConverterRustBuffer<WidgetSong> {
+    override fun read(buf: ByteBuffer): WidgetSong {
+        return WidgetSong(
+            FfiConverterOptionalLong.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalLong.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: WidgetSong) = (
+            FfiConverterOptionalLong.allocationSize(value.`songId`) +
+            FfiConverterString.allocationSize(value.`title`) +
+            FfiConverterString.allocationSize(value.`artist`) +
+            FfiConverterOptionalLong.allocationSize(value.`albumId`) +
+            FfiConverterOptionalString.allocationSize(value.`albumTitle`) +
+            FfiConverterOptionalString.allocationSize(value.`cover`) +
+            FfiConverterLong.allocationSize(value.`durationMs`) +
+            FfiConverterBoolean.allocationSize(value.`nowPlaying`)
+    )
+
+    override fun write(value: WidgetSong, buf: ByteBuffer) {
+            FfiConverterOptionalLong.write(value.`songId`, buf)
+            FfiConverterString.write(value.`title`, buf)
+            FfiConverterString.write(value.`artist`, buf)
+            FfiConverterOptionalLong.write(value.`albumId`, buf)
+            FfiConverterOptionalString.write(value.`albumTitle`, buf)
+            FfiConverterOptionalString.write(value.`cover`, buf)
+            FfiConverterLong.write(value.`durationMs`, buf)
+            FfiConverterBoolean.write(value.`nowPlaying`, buf)
     }
 }
 
@@ -12036,7 +12944,18 @@ enum class EventKind {
      * `download` is set: the transfer moved on (at most every
      * `downloads.progressEveryMs`).
      */
-    DOWNLOAD_PROGRESS;
+    DOWNLOAD_PROGRESS,
+    /**
+     * `widget_profile_id` is set: that profile's widget snapshot was rewritten,
+     * or deleted with the profile: redraw its widgets from the file.
+     */
+    WIDGET_SNAPSHOT_CHANGED,
+    /**
+     * `sleep_timer` is set, or None when no timer runs any more: a timer was set,
+     * extended, cancelled, put back, ended (or went with the music to another
+     * device), or a song or album timer's stop point moved with the queue.
+     */
+    SLEEP_TIMER_CHANGED;
 
     
 
@@ -12352,6 +13271,49 @@ public object FfiConverterTypeMixKind: FfiConverterRustBuffer<MixKind> {
     override fun allocationSize(value: MixKind) = 4UL
 
     override fun write(value: MixKind, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+/**
+ * Which mix `play_mix` starts.
+ */
+
+enum class MixRefKind {
+    
+    /**
+     * The mix named by `mix_id`; Next up when it is gone.
+     */
+    ID,
+    /**
+     * Next up.
+     */
+    NEXT_UP;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeMixRefKind: FfiConverterRustBuffer<MixRefKind> {
+    override fun read(buf: ByteBuffer) = try {
+        MixRefKind.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: MixRefKind) = 4UL
+
+    override fun write(value: MixRefKind, buf: ByteBuffer) {
         buf.putInt(value.ordinal + 1)
     }
 }
@@ -12940,6 +13902,105 @@ public object FfiConverterTypeSkipOrigin: FfiConverterRustBuffer<SkipOrigin> {
 
 
 
+/**
+ * What the player does now with the volume (`sleep_fade_plan`).
+ */
+
+enum class SleepFadeAction {
+    
+    /**
+     * Full volume: no timer, a song or album timer (they never fade), or the end
+     * isn't near yet.
+     */
+    KEEP_PLAYING,
+    /**
+     * This song ends inside the timer's last `fade_ms`: full volume until
+     * `fade_from_ms` into the song, then down to silence by its end. Don't start
+     * the next song: report this one `Finished` as usual, keep the next loaded
+     * and paused, then call `sleep_timer_ended(0)`.
+     */
+    STOP_AT_SONG_END,
+    /**
+     * The timer ends while this song plays: fade to silence over `fade_ms`
+     * from now, pause, then call `sleep_timer_ended(listened_ms)`.
+     */
+    FADE_NOW;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSleepFadeAction: FfiConverterRustBuffer<SleepFadeAction> {
+    override fun read(buf: ByteBuffer) = try {
+        SleepFadeAction.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: SleepFadeAction) = 4UL
+
+    override fun write(value: SleepFadeAction, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+/**
+ * How a sleep timer ends (PLAN-UX, "Sleep timer"; board 31).
+ */
+
+enum class SleepTimerMode {
+    
+    /**
+     * At a time: the music fades out over the last `fade_ms`, then pauses.
+     */
+    MINUTES,
+    /**
+     * When the current song ends; no fade.
+     */
+    END_OF_SONG,
+    /**
+     * When the current album's last song in a row in the queue ends; no fade.
+     */
+    END_OF_ALBUM;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSleepTimerMode: FfiConverterRustBuffer<SleepTimerMode> {
+    override fun read(buf: ByteBuffer) = try {
+        SleepTimerMode.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: SleepTimerMode) = 4UL
+
+    override fun write(value: SleepTimerMode, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
 
 enum class SongSort {
     
@@ -13179,6 +14240,54 @@ public object FfiConverterTypeTranscodeCodec: FfiConverterRustBuffer<TranscodeCo
     override fun allocationSize(value: TranscodeCodec) = 4UL
 
     override fun write(value: TranscodeCodec, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+/**
+ * What a profile's widgets may show (PLAN-UX section 20; board 34, item 10).
+ */
+
+enum class WidgetPrivacy {
+    
+    /**
+     * The song, the mixes and the recent albums.
+     */
+    NORMAL,
+    /**
+     * The profile has a PIN: "Profile is locked". No titles and no covers.
+     */
+    LOCKED,
+    /**
+     * A Guest session is on: the neutral "Open Encore" card. No titles and no
+     * covers.
+     */
+    GUEST;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeWidgetPrivacy: FfiConverterRustBuffer<WidgetPrivacy> {
+    override fun read(buf: ByteBuffer) = try {
+        WidgetPrivacy.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: WidgetPrivacy) = 4UL
+
+    override fun write(value: WidgetPrivacy, buf: ByteBuffer) {
         buf.putInt(value.ordinal + 1)
     }
 }
@@ -13895,6 +15004,38 @@ public object FfiConverterOptionalTypeRemoteSong: FfiConverterRustBuffer<RemoteS
 /**
  * @suppress
  */
+public object FfiConverterOptionalTypeSleepTimer: FfiConverterRustBuffer<SleepTimer?> {
+    override fun read(buf: ByteBuffer): SleepTimer? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeSleepTimer.read(buf)
+    }
+
+    override fun allocationSize(value: SleepTimer?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeSleepTimer.allocationSize(value)
+        }
+    }
+
+    override fun write(value: SleepTimer?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeSleepTimer.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalTypeSong: FfiConverterRustBuffer<Song?> {
     override fun read(buf: ByteBuffer): Song? {
         if (buf.get().toInt() == 0) {
@@ -14045,6 +15186,70 @@ public object FfiConverterOptionalTypeTopResult: FfiConverterRustBuffer<TopResul
         } else {
             buf.put(1)
             FfiConverterTypeTopResult.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeWidgetMix: FfiConverterRustBuffer<WidgetMix?> {
+    override fun read(buf: ByteBuffer): WidgetMix? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeWidgetMix.read(buf)
+    }
+
+    override fun allocationSize(value: WidgetMix?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeWidgetMix.allocationSize(value)
+        }
+    }
+
+    override fun write(value: WidgetMix?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeWidgetMix.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeWidgetSong: FfiConverterRustBuffer<WidgetSong?> {
+    override fun read(buf: ByteBuffer): WidgetSong? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeWidgetSong.read(buf)
+    }
+
+    override fun allocationSize(value: WidgetSong?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeWidgetSong.allocationSize(value)
+        }
+    }
+
+    override fun write(value: WidgetSong?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeWidgetSong.write(value, buf)
         }
     }
 }
@@ -15065,6 +16270,62 @@ public object FfiConverterSequenceTypeSyncResult: FfiConverterRustBuffer<List<Sy
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeSyncResult.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeWidgetAlbum: FfiConverterRustBuffer<List<WidgetAlbum>> {
+    override fun read(buf: ByteBuffer): List<WidgetAlbum> {
+        val len = buf.getInt()
+        return List<WidgetAlbum>(len) {
+            FfiConverterTypeWidgetAlbum.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<WidgetAlbum>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeWidgetAlbum.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<WidgetAlbum>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeWidgetAlbum.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeWidgetMix: FfiConverterRustBuffer<List<WidgetMix>> {
+    override fun read(buf: ByteBuffer): List<WidgetMix> {
+        val len = buf.getInt()
+        return List<WidgetMix>(len) {
+            FfiConverterTypeWidgetMix.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<WidgetMix>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeWidgetMix.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<WidgetMix>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeWidgetMix.write(it, buf)
         }
     }
 }

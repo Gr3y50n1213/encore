@@ -90,6 +90,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
 
+@protected MixRef dco_decode_box_autoadd_mix_ref(dynamic raw);
+
 @protected NotInterestedItem dco_decode_box_autoadd_not_interested_item(dynamic raw);
 
 @protected OutputDevice dco_decode_box_autoadd_output_device(dynamic raw);
@@ -112,6 +114,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected RemoteSong dco_decode_box_autoadd_remote_song(dynamic raw);
 
+@protected SleepTimer dco_decode_box_autoadd_sleep_timer(dynamic raw);
+
+@protected SleepTimerSpec dco_decode_box_autoadd_sleep_timer_spec(dynamic raw);
+
 @protected Song dco_decode_box_autoadd_song(dynamic raw);
 
 @protected SongLyrics dco_decode_box_autoadd_song_lyrics(dynamic raw);
@@ -129,6 +135,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected int dco_decode_box_autoadd_u_32(dynamic raw);
 
 @protected BigInt dco_decode_box_autoadd_u_64(dynamic raw);
+
+@protected WidgetMix dco_decode_box_autoadd_widget_mix(dynamic raw);
+
+@protected WidgetSong dco_decode_box_autoadd_widget_song(dynamic raw);
 
 @protected ChosenBy dco_decode_chosen_by(dynamic raw);
 
@@ -268,6 +278,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected List<SyncResult> dco_decode_list_sync_result(dynamic raw);
 
+@protected List<WidgetAlbum> dco_decode_list_widget_album(dynamic raw);
+
+@protected List<WidgetMix> dco_decode_list_widget_mix(dynamic raw);
+
 @protected ListeningMode dco_decode_listening_mode(dynamic raw);
 
 @protected LyricBackground dco_decode_lyric_background(dynamic raw);
@@ -291,6 +305,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected MixKind dco_decode_mix_kind(dynamic raw);
 
 @protected MixPage dco_decode_mix_page(dynamic raw);
+
+@protected MixRef dco_decode_mix_ref(dynamic raw);
+
+@protected MixRefKind dco_decode_mix_ref_kind(dynamic raw);
 
 @protected MixShelf dco_decode_mix_shelf(dynamic raw);
 
@@ -350,6 +368,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected RemoteSong? dco_decode_opt_box_autoadd_remote_song(dynamic raw);
 
+@protected SleepTimer? dco_decode_opt_box_autoadd_sleep_timer(dynamic raw);
+
 @protected Song? dco_decode_opt_box_autoadd_song(dynamic raw);
 
 @protected SongLyrics? dco_decode_opt_box_autoadd_song_lyrics(dynamic raw);
@@ -367,6 +387,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected int? dco_decode_opt_box_autoadd_u_32(dynamic raw);
 
 @protected BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw);
+
+@protected WidgetMix? dco_decode_opt_box_autoadd_widget_mix(dynamic raw);
+
+@protected WidgetSong? dco_decode_opt_box_autoadd_widget_song(dynamic raw);
 
 @protected OutputDevice dco_decode_output_device(dynamic raw);
 
@@ -436,6 +460,16 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected SkipTarget dco_decode_skip_target(dynamic raw);
 
+@protected SleepFadeAction dco_decode_sleep_fade_action(dynamic raw);
+
+@protected SleepFadePlan dco_decode_sleep_fade_plan(dynamic raw);
+
+@protected SleepTimer dco_decode_sleep_timer(dynamic raw);
+
+@protected SleepTimerMode dco_decode_sleep_timer_mode(dynamic raw);
+
+@protected SleepTimerSpec dco_decode_sleep_timer_spec(dynamic raw);
+
 @protected Song dco_decode_song(dynamic raw);
 
 @protected SongLyrics dco_decode_song_lyrics(dynamic raw);
@@ -477,6 +511,16 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected BigInt dco_decode_usize(dynamic raw);
 
 @protected WhyThisSong dco_decode_why_this_song(dynamic raw);
+
+@protected WidgetAlbum dco_decode_widget_album(dynamic raw);
+
+@protected WidgetMix dco_decode_widget_mix(dynamic raw);
+
+@protected WidgetPrivacy dco_decode_widget_privacy(dynamic raw);
+
+@protected WidgetSnapshot dco_decode_widget_snapshot(dynamic raw);
+
+@protected WidgetSong dco_decode_widget_song(dynamic raw);
 
 @protected AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
 
@@ -542,6 +586,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
 
+@protected MixRef sse_decode_box_autoadd_mix_ref(SseDeserializer deserializer);
+
 @protected NotInterestedItem sse_decode_box_autoadd_not_interested_item(SseDeserializer deserializer);
 
 @protected OutputDevice sse_decode_box_autoadd_output_device(SseDeserializer deserializer);
@@ -564,6 +610,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected RemoteSong sse_decode_box_autoadd_remote_song(SseDeserializer deserializer);
 
+@protected SleepTimer sse_decode_box_autoadd_sleep_timer(SseDeserializer deserializer);
+
+@protected SleepTimerSpec sse_decode_box_autoadd_sleep_timer_spec(SseDeserializer deserializer);
+
 @protected Song sse_decode_box_autoadd_song(SseDeserializer deserializer);
 
 @protected SongLyrics sse_decode_box_autoadd_song_lyrics(SseDeserializer deserializer);
@@ -581,6 +631,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected int sse_decode_box_autoadd_u_32(SseDeserializer deserializer);
 
 @protected BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer);
+
+@protected WidgetMix sse_decode_box_autoadd_widget_mix(SseDeserializer deserializer);
+
+@protected WidgetSong sse_decode_box_autoadd_widget_song(SseDeserializer deserializer);
 
 @protected ChosenBy sse_decode_chosen_by(SseDeserializer deserializer);
 
@@ -720,6 +774,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected List<SyncResult> sse_decode_list_sync_result(SseDeserializer deserializer);
 
+@protected List<WidgetAlbum> sse_decode_list_widget_album(SseDeserializer deserializer);
+
+@protected List<WidgetMix> sse_decode_list_widget_mix(SseDeserializer deserializer);
+
 @protected ListeningMode sse_decode_listening_mode(SseDeserializer deserializer);
 
 @protected LyricBackground sse_decode_lyric_background(SseDeserializer deserializer);
@@ -743,6 +801,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected MixKind sse_decode_mix_kind(SseDeserializer deserializer);
 
 @protected MixPage sse_decode_mix_page(SseDeserializer deserializer);
+
+@protected MixRef sse_decode_mix_ref(SseDeserializer deserializer);
+
+@protected MixRefKind sse_decode_mix_ref_kind(SseDeserializer deserializer);
 
 @protected MixShelf sse_decode_mix_shelf(SseDeserializer deserializer);
 
@@ -802,6 +864,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected RemoteSong? sse_decode_opt_box_autoadd_remote_song(SseDeserializer deserializer);
 
+@protected SleepTimer? sse_decode_opt_box_autoadd_sleep_timer(SseDeserializer deserializer);
+
 @protected Song? sse_decode_opt_box_autoadd_song(SseDeserializer deserializer);
 
 @protected SongLyrics? sse_decode_opt_box_autoadd_song_lyrics(SseDeserializer deserializer);
@@ -819,6 +883,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected int? sse_decode_opt_box_autoadd_u_32(SseDeserializer deserializer);
 
 @protected BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer);
+
+@protected WidgetMix? sse_decode_opt_box_autoadd_widget_mix(SseDeserializer deserializer);
+
+@protected WidgetSong? sse_decode_opt_box_autoadd_widget_song(SseDeserializer deserializer);
 
 @protected OutputDevice sse_decode_output_device(SseDeserializer deserializer);
 
@@ -888,6 +956,16 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected SkipTarget sse_decode_skip_target(SseDeserializer deserializer);
 
+@protected SleepFadeAction sse_decode_sleep_fade_action(SseDeserializer deserializer);
+
+@protected SleepFadePlan sse_decode_sleep_fade_plan(SseDeserializer deserializer);
+
+@protected SleepTimer sse_decode_sleep_timer(SseDeserializer deserializer);
+
+@protected SleepTimerMode sse_decode_sleep_timer_mode(SseDeserializer deserializer);
+
+@protected SleepTimerSpec sse_decode_sleep_timer_spec(SseDeserializer deserializer);
+
 @protected Song sse_decode_song(SseDeserializer deserializer);
 
 @protected SongLyrics sse_decode_song_lyrics(SseDeserializer deserializer);
@@ -929,6 +1007,16 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected BigInt sse_decode_usize(SseDeserializer deserializer);
 
 @protected WhyThisSong sse_decode_why_this_song(SseDeserializer deserializer);
+
+@protected WidgetAlbum sse_decode_widget_album(SseDeserializer deserializer);
+
+@protected WidgetMix sse_decode_widget_mix(SseDeserializer deserializer);
+
+@protected WidgetPrivacy sse_decode_widget_privacy(SseDeserializer deserializer);
+
+@protected WidgetSnapshot sse_decode_widget_snapshot(SseDeserializer deserializer);
+
+@protected WidgetSong sse_decode_widget_song(SseDeserializer deserializer);
 
 @protected void sse_encode_AnyhowException(AnyhowException self, SseSerializer serializer);
 
@@ -994,6 +1082,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_box_autoadd_i_64(PlatformInt64 self, SseSerializer serializer);
 
+@protected void sse_encode_box_autoadd_mix_ref(MixRef self, SseSerializer serializer);
+
 @protected void sse_encode_box_autoadd_not_interested_item(NotInterestedItem self, SseSerializer serializer);
 
 @protected void sse_encode_box_autoadd_output_device(OutputDevice self, SseSerializer serializer);
@@ -1016,6 +1106,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_box_autoadd_remote_song(RemoteSong self, SseSerializer serializer);
 
+@protected void sse_encode_box_autoadd_sleep_timer(SleepTimer self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_sleep_timer_spec(SleepTimerSpec self, SseSerializer serializer);
+
 @protected void sse_encode_box_autoadd_song(Song self, SseSerializer serializer);
 
 @protected void sse_encode_box_autoadd_song_lyrics(SongLyrics self, SseSerializer serializer);
@@ -1033,6 +1127,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_box_autoadd_u_32(int self, SseSerializer serializer);
 
 @protected void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_widget_mix(WidgetMix self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_widget_song(WidgetSong self, SseSerializer serializer);
 
 @protected void sse_encode_chosen_by(ChosenBy self, SseSerializer serializer);
 
@@ -1172,6 +1270,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_list_sync_result(List<SyncResult> self, SseSerializer serializer);
 
+@protected void sse_encode_list_widget_album(List<WidgetAlbum> self, SseSerializer serializer);
+
+@protected void sse_encode_list_widget_mix(List<WidgetMix> self, SseSerializer serializer);
+
 @protected void sse_encode_listening_mode(ListeningMode self, SseSerializer serializer);
 
 @protected void sse_encode_lyric_background(LyricBackground self, SseSerializer serializer);
@@ -1195,6 +1297,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_mix_kind(MixKind self, SseSerializer serializer);
 
 @protected void sse_encode_mix_page(MixPage self, SseSerializer serializer);
+
+@protected void sse_encode_mix_ref(MixRef self, SseSerializer serializer);
+
+@protected void sse_encode_mix_ref_kind(MixRefKind self, SseSerializer serializer);
 
 @protected void sse_encode_mix_shelf(MixShelf self, SseSerializer serializer);
 
@@ -1254,6 +1360,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_opt_box_autoadd_remote_song(RemoteSong? self, SseSerializer serializer);
 
+@protected void sse_encode_opt_box_autoadd_sleep_timer(SleepTimer? self, SseSerializer serializer);
+
 @protected void sse_encode_opt_box_autoadd_song(Song? self, SseSerializer serializer);
 
 @protected void sse_encode_opt_box_autoadd_song_lyrics(SongLyrics? self, SseSerializer serializer);
@@ -1271,6 +1379,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_opt_box_autoadd_u_32(int? self, SseSerializer serializer);
 
 @protected void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_widget_mix(WidgetMix? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_widget_song(WidgetSong? self, SseSerializer serializer);
 
 @protected void sse_encode_output_device(OutputDevice self, SseSerializer serializer);
 
@@ -1340,6 +1452,16 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_skip_target(SkipTarget self, SseSerializer serializer);
 
+@protected void sse_encode_sleep_fade_action(SleepFadeAction self, SseSerializer serializer);
+
+@protected void sse_encode_sleep_fade_plan(SleepFadePlan self, SseSerializer serializer);
+
+@protected void sse_encode_sleep_timer(SleepTimer self, SseSerializer serializer);
+
+@protected void sse_encode_sleep_timer_mode(SleepTimerMode self, SseSerializer serializer);
+
+@protected void sse_encode_sleep_timer_spec(SleepTimerSpec self, SseSerializer serializer);
+
 @protected void sse_encode_song(Song self, SseSerializer serializer);
 
 @protected void sse_encode_song_lyrics(SongLyrics self, SseSerializer serializer);
@@ -1381,6 +1503,16 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_usize(BigInt self, SseSerializer serializer);
 
 @protected void sse_encode_why_this_song(WhyThisSong self, SseSerializer serializer);
+
+@protected void sse_encode_widget_album(WidgetAlbum self, SseSerializer serializer);
+
+@protected void sse_encode_widget_mix(WidgetMix self, SseSerializer serializer);
+
+@protected void sse_encode_widget_privacy(WidgetPrivacy self, SseSerializer serializer);
+
+@protected void sse_encode_widget_snapshot(WidgetSnapshot self, SseSerializer serializer);
+
+@protected void sse_encode_widget_song(WidgetSong self, SseSerializer serializer);
                 }
                 
 

@@ -40,7 +40,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 79768369;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1571391056;
 
 // Section: executor
 
@@ -753,6 +753,52 @@ fn wire__crate__api__core__Encore_biometrics_changed_impl(
                 }
                 let api_that_guard = api_that_guard.unwrap();
                 let output_ok = crate::api::core::Encore::biometrics_changed(&*api_that_guard)?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__core__Encore_cancel_sleep_timer_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "Encore_cancel_sleep_timer",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Encore>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, crate::api::core::ApiError>((move || {
+                let mut api_that_guard = None;
+                let decode_indices_ =
+                    flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                        flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                            &api_that, 0, false,
+                        ),
+                    ]);
+                for i in decode_indices_ {
+                    match i {
+                        0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                        _ => unreachable!(),
+                    }
+                }
+                let api_that_guard = api_that_guard.unwrap();
+                let output_ok = crate::api::core::Encore::cancel_sleep_timer(&*api_that_guard)?;
                 std::result::Result::Ok(output_ok)
             })())
         },
@@ -1843,6 +1889,54 @@ fn wire__crate__api__core__Encore_export_profile_impl(
                     std::result::Result::Ok(output_ok)
                 })())
             }
+        },
+    )
+}
+fn wire__crate__api__core__Encore_extend_sleep_timer_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "Encore_extend_sleep_timer",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Encore>,
+            >>::sse_decode(&mut deserializer);
+            let api_minutes = <u32>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, crate::api::core::ApiError>((move || {
+                let mut api_that_guard = None;
+                let decode_indices_ =
+                    flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                        flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                            &api_that, 0, false,
+                        ),
+                    ]);
+                for i in decode_indices_ {
+                    match i {
+                        0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                        _ => unreachable!(),
+                    }
+                }
+                let api_that_guard = api_that_guard.unwrap();
+                let output_ok =
+                    crate::api::core::Encore::extend_sleep_timer(&*api_that_guard, api_minutes)?;
+                std::result::Result::Ok(output_ok)
+            })())
         },
     )
 }
@@ -3507,6 +3601,53 @@ fn wire__crate__api__core__Encore_play_impl(
                     api_started_from,
                     api_context_id,
                 )?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__core__Encore_play_mix_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "Encore_play_mix",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Encore>,
+            >>::sse_decode(&mut deserializer);
+            let api_mix = <crate::api::core::MixRef>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, crate::api::core::ApiError>((move || {
+                let mut api_that_guard = None;
+                let decode_indices_ =
+                    flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                        flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                            &api_that, 0, false,
+                        ),
+                    ]);
+                for i in decode_indices_ {
+                    match i {
+                        0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                        _ => unreachable!(),
+                    }
+                }
+                let api_that_guard = api_that_guard.unwrap();
+                let output_ok = crate::api::core::Encore::play_mix(&*api_that_guard, api_mix)?;
                 std::result::Result::Ok(output_ok)
             })())
         },
@@ -5645,6 +5786,54 @@ fn wire__crate__api__core__Encore_restore_profile_impl(
         },
     )
 }
+fn wire__crate__api__core__Encore_restore_sleep_timer_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "Encore_restore_sleep_timer",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Encore>,
+            >>::sse_decode(&mut deserializer);
+            let api_timer = <crate::api::core::SleepTimer>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, crate::api::core::ApiError>((move || {
+                let mut api_that_guard = None;
+                let decode_indices_ =
+                    flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                        flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                            &api_that, 0, false,
+                        ),
+                    ]);
+                for i in decode_indices_ {
+                    match i {
+                        0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                        _ => unreachable!(),
+                    }
+                }
+                let api_that_guard = api_that_guard.unwrap();
+                let output_ok =
+                    crate::api::core::Encore::restore_sleep_timer(&*api_that_guard, api_timer)?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
 fn wire__crate__api__core__Encore_retry_failed_downloads_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -6505,6 +6694,104 @@ fn wire__crate__api__core__Encore_set_shuffle_impl(
         },
     )
 }
+fn wire__crate__api__core__Encore_set_sleep_timer_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "Encore_set_sleep_timer",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Encore>,
+            >>::sse_decode(&mut deserializer);
+            let api_spec = <crate::api::core::SleepTimerSpec>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, crate::api::core::ApiError>((move || {
+                let mut api_that_guard = None;
+                let decode_indices_ =
+                    flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                        flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                            &api_that, 0, false,
+                        ),
+                    ]);
+                for i in decode_indices_ {
+                    match i {
+                        0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                        _ => unreachable!(),
+                    }
+                }
+                let api_that_guard = api_that_guard.unwrap();
+                let output_ok =
+                    crate::api::core::Encore::set_sleep_timer(&*api_that_guard, api_spec)?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__core__Encore_set_sleep_timer_seconds_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "Encore_set_sleep_timer_seconds",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Encore>,
+            >>::sse_decode(&mut deserializer);
+            let api_seconds = <u32>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, crate::api::core::ApiError>((move || {
+                let mut api_that_guard = None;
+                let decode_indices_ =
+                    flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                        flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                            &api_that, 0, false,
+                        ),
+                    ]);
+                for i in decode_indices_ {
+                    match i {
+                        0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                        _ => unreachable!(),
+                    }
+                }
+                let api_that_guard = api_that_guard.unwrap();
+                let output_ok = crate::api::core::Encore::set_sleep_timer_seconds(
+                    &*api_that_guard,
+                    api_seconds,
+                )?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
 fn wire__crate__api__core__Encore_set_stream_quality_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -6821,6 +7108,152 @@ fn wire__crate__api__core__Encore_skip_previous_impl(
                     api_origin,
                     api_position_ms,
                 )?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__core__Encore_sleep_fade_plan_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "Encore_sleep_fade_plan",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Encore>,
+            >>::sse_decode(&mut deserializer);
+            let api_position_ms = <i64>::sse_decode(&mut deserializer);
+            let api_duration_ms = <i64>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, crate::api::core::ApiError>((move || {
+                let mut api_that_guard = None;
+                let decode_indices_ =
+                    flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                        flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                            &api_that, 0, false,
+                        ),
+                    ]);
+                for i in decode_indices_ {
+                    match i {
+                        0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                        _ => unreachable!(),
+                    }
+                }
+                let api_that_guard = api_that_guard.unwrap();
+                let output_ok = crate::api::core::Encore::sleep_fade_plan(
+                    &*api_that_guard,
+                    api_position_ms,
+                    api_duration_ms,
+                )?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__core__Encore_sleep_timer_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "Encore_sleep_timer",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Encore>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, crate::api::core::ApiError>((move || {
+                let mut api_that_guard = None;
+                let decode_indices_ =
+                    flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                        flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                            &api_that, 0, false,
+                        ),
+                    ]);
+                for i in decode_indices_ {
+                    match i {
+                        0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                        _ => unreachable!(),
+                    }
+                }
+                let api_that_guard = api_that_guard.unwrap();
+                let output_ok = crate::api::core::Encore::sleep_timer(&*api_that_guard)?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__core__Encore_sleep_timer_ended_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "Encore_sleep_timer_ended",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Encore>,
+            >>::sse_decode(&mut deserializer);
+            let api_listened_ms = <i64>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, crate::api::core::ApiError>((move || {
+                let mut api_that_guard = None;
+                let decode_indices_ =
+                    flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                        flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                            &api_that, 0, false,
+                        ),
+                    ]);
+                for i in decode_indices_ {
+                    match i {
+                        0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                        _ => unreachable!(),
+                    }
+                }
+                let api_that_guard = api_that_guard.unwrap();
+                let output_ok =
+                    crate::api::core::Encore::sleep_timer_ended(&*api_that_guard, api_listened_ms)?;
                 std::result::Result::Ok(output_ok)
             })())
         },
@@ -7880,6 +8313,52 @@ fn wire__crate__api__core__Encore_why_this_song_impl(
         },
     )
 }
+fn wire__crate__api__core__Encore_widget_snapshot_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "Encore_widget_snapshot",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Encore>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, crate::api::core::ApiError>((move || {
+                let mut api_that_guard = None;
+                let decode_indices_ =
+                    flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                        flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                            &api_that, 0, false,
+                        ),
+                    ]);
+                for i in decode_indices_ {
+                    match i {
+                        0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                        _ => unreachable!(),
+                    }
+                }
+                let api_that_guard = api_that_guard.unwrap();
+                let output_ok = crate::api::core::Encore::widget_snapshot(&*api_that_guard)?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
 fn wire__crate__api__hello__app_name_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -8048,6 +8527,8 @@ const _: fn() = || {
         let _: Option<crate::api::core::HandoffInfo> = CoreEvent.handoff;
         let _: Option<crate::api::core::RemoteCommand> = CoreEvent.remote_command;
         let _: Option<crate::api::core::DownloadProgress> = CoreEvent.download;
+        let _: Option<String> = CoreEvent.widget_profile_id;
+        let _: Option<crate::api::core::SleepTimer> = CoreEvent.sleep_timer;
     }
     {
         let CredentialKey = None::<crate::api::core::CredentialKey>.unwrap();
@@ -8234,6 +8715,11 @@ const _: fn() = || {
         let MixPage = None::<crate::api::core::MixPage>.unwrap();
         let _: crate::api::core::MixSummary = MixPage.summary;
         let _: Vec<crate::api::core::MixSong> = MixPage.songs;
+    }
+    {
+        let MixRef = None::<crate::api::core::MixRef>.unwrap();
+        let _: crate::api::core::MixRefKind = MixRef.kind;
+        let _: Option<String> = MixRef.mix_id;
     }
     {
         let MixShelf = None::<crate::api::core::MixShelf>.unwrap();
@@ -8455,6 +8941,25 @@ const _: fn() = || {
         let _: bool = SkipTarget.end_of_queue;
     }
     {
+        let SleepFadePlan = None::<crate::api::core::SleepFadePlan>.unwrap();
+        let _: crate::api::core::SleepFadeAction = SleepFadePlan.action;
+        let _: i64 = SleepFadePlan.fade_from_ms;
+        let _: i64 = SleepFadePlan.fade_ms;
+    }
+    {
+        let SleepTimer = None::<crate::api::core::SleepTimer>.unwrap();
+        let _: crate::api::core::SleepTimerMode = SleepTimer.mode;
+        let _: i64 = SleepTimer.set_utc_ms;
+        let _: i64 = SleepTimer.ends_at_utc_ms;
+        let _: Option<i64> = SleepTimer.stop_after_uid;
+        let _: i64 = SleepTimer.fade_ms;
+    }
+    {
+        let SleepTimerSpec = None::<crate::api::core::SleepTimerSpec>.unwrap();
+        let _: crate::api::core::SleepTimerMode = SleepTimerSpec.mode;
+        let _: u32 = SleepTimerSpec.minutes;
+    }
+    {
         let Song = None::<crate::api::core::Song>.unwrap();
         let _: i64 = Song.id;
         let _: i64 = Song.source_id;
@@ -8534,6 +9039,46 @@ const _: fn() = || {
         let WhyThisSong = None::<crate::api::core::WhyThisSong>.unwrap();
         let _: Vec<crate::api::core::PickReason> = WhyThisSong.reasons;
         let _: Vec<crate::api::core::Song> = WhyThisSong.sounds_like;
+    }
+    {
+        let WidgetAlbum = None::<crate::api::core::WidgetAlbum>.unwrap();
+        let _: i64 = WidgetAlbum.album_id;
+        let _: String = WidgetAlbum.title;
+        let _: String = WidgetAlbum.artist;
+        let _: Option<String> = WidgetAlbum.cover;
+    }
+    {
+        let WidgetMix = None::<crate::api::core::WidgetMix>.unwrap();
+        let _: String = WidgetMix.mix_id;
+        let _: String = WidgetMix.title;
+        let _: Option<String> = WidgetMix.cover;
+        let _: bool = WidgetMix.pinned;
+    }
+    {
+        let WidgetSnapshot = None::<crate::api::core::WidgetSnapshot>.unwrap();
+        let _: u32 = WidgetSnapshot.schema;
+        let _: String = WidgetSnapshot.profile_id;
+        let _: crate::api::core::WidgetPrivacy = WidgetSnapshot.privacy;
+        let _: Option<crate::api::core::WidgetSong> = WidgetSnapshot.song;
+        let _: bool = WidgetSnapshot.is_playing;
+        let _: i64 = WidgetSnapshot.position_ms;
+        let _: i64 = WidgetSnapshot.position_at_utc_ms;
+        let _: Vec<crate::api::core::WidgetMix> = WidgetSnapshot.pinned_mixes;
+        let _: Option<crate::api::core::WidgetMix> = WidgetSnapshot.next_up;
+        let _: Vec<crate::api::core::WidgetAlbum> = WidgetSnapshot.recent_albums;
+        let _: bool = WidgetSnapshot.reachable;
+        let _: i64 = WidgetSnapshot.written_at_utc_ms;
+    }
+    {
+        let WidgetSong = None::<crate::api::core::WidgetSong>.unwrap();
+        let _: Option<i64> = WidgetSong.song_id;
+        let _: String = WidgetSong.title;
+        let _: String = WidgetSong.artist;
+        let _: Option<i64> = WidgetSong.album_id;
+        let _: Option<String> = WidgetSong.album_title;
+        let _: Option<String> = WidgetSong.cover;
+        let _: i64 = WidgetSong.duration_ms;
+        let _: bool = WidgetSong.now_playing;
     }
 };
 
@@ -8821,6 +9366,8 @@ impl SseDecode for crate::api::core::CoreEvent {
             <Option<crate::api::core::RemoteCommand>>::sse_decode(deserializer);
         let mut var_download =
             <Option<crate::api::core::DownloadProgress>>::sse_decode(deserializer);
+        let mut var_widgetProfileId = <Option<String>>::sse_decode(deserializer);
+        let mut var_sleepTimer = <Option<crate::api::core::SleepTimer>>::sse_decode(deserializer);
         return crate::api::core::CoreEvent {
             kind: var_kind,
             queue: var_queue,
@@ -8837,6 +9384,8 @@ impl SseDecode for crate::api::core::CoreEvent {
             handoff: var_handoff,
             remote_command: var_remoteCommand,
             download: var_download,
+            widget_profile_id: var_widgetProfileId,
+            sleep_timer: var_sleepTimer,
         };
     }
 }
@@ -9215,6 +9764,8 @@ impl SseDecode for crate::api::core::EventKind {
             13 => crate::api::core::EventKind::RemoteState,
             14 => crate::api::core::EventKind::DownloadsChanged,
             15 => crate::api::core::EventKind::DownloadProgress,
+            16 => crate::api::core::EventKind::WidgetSnapshotChanged,
+            17 => crate::api::core::EventKind::SleepTimerChanged,
             _ => unreachable!("Invalid variant for EventKind: {}", inner),
         };
     }
@@ -9773,6 +10324,30 @@ impl SseDecode for Vec<crate::api::core::SyncResult> {
     }
 }
 
+impl SseDecode for Vec<crate::api::core::WidgetAlbum> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::core::WidgetAlbum>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::core::WidgetMix> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::core::WidgetMix>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for crate::api::core::ListeningMode {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -9957,6 +10532,30 @@ impl SseDecode for crate::api::core::MixPage {
         return crate::api::core::MixPage {
             summary: var_summary,
             songs: var_songs,
+        };
+    }
+}
+
+impl SseDecode for crate::api::core::MixRef {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_kind = <crate::api::core::MixRefKind>::sse_decode(deserializer);
+        let mut var_mixId = <Option<String>>::sse_decode(deserializer);
+        return crate::api::core::MixRef {
+            kind: var_kind,
+            mix_id: var_mixId,
+        };
+    }
+}
+
+impl SseDecode for crate::api::core::MixRefKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::core::MixRefKind::Id,
+            1 => crate::api::core::MixRefKind::NextUp,
+            _ => unreachable!("Invalid variant for MixRefKind: {}", inner),
         };
     }
 }
@@ -10325,6 +10924,17 @@ impl SseDecode for Option<crate::api::core::RemoteSong> {
     }
 }
 
+impl SseDecode for Option<crate::api::core::SleepTimer> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::api::core::SleepTimer>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<crate::api::core::Song> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -10418,6 +11028,28 @@ impl SseDecode for Option<u64> {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
             return Some(<u64>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::api::core::WidgetMix> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::api::core::WidgetMix>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::api::core::WidgetSong> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::api::core::WidgetSong>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -10992,6 +11624,76 @@ impl SseDecode for crate::api::core::SkipTarget {
     }
 }
 
+impl SseDecode for crate::api::core::SleepFadeAction {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::core::SleepFadeAction::KeepPlaying,
+            1 => crate::api::core::SleepFadeAction::StopAtSongEnd,
+            2 => crate::api::core::SleepFadeAction::FadeNow,
+            _ => unreachable!("Invalid variant for SleepFadeAction: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::core::SleepFadePlan {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_action = <crate::api::core::SleepFadeAction>::sse_decode(deserializer);
+        let mut var_fadeFromMs = <i64>::sse_decode(deserializer);
+        let mut var_fadeMs = <i64>::sse_decode(deserializer);
+        return crate::api::core::SleepFadePlan {
+            action: var_action,
+            fade_from_ms: var_fadeFromMs,
+            fade_ms: var_fadeMs,
+        };
+    }
+}
+
+impl SseDecode for crate::api::core::SleepTimer {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_mode = <crate::api::core::SleepTimerMode>::sse_decode(deserializer);
+        let mut var_setUtcMs = <i64>::sse_decode(deserializer);
+        let mut var_endsAtUtcMs = <i64>::sse_decode(deserializer);
+        let mut var_stopAfterUid = <Option<i64>>::sse_decode(deserializer);
+        let mut var_fadeMs = <i64>::sse_decode(deserializer);
+        return crate::api::core::SleepTimer {
+            mode: var_mode,
+            set_utc_ms: var_setUtcMs,
+            ends_at_utc_ms: var_endsAtUtcMs,
+            stop_after_uid: var_stopAfterUid,
+            fade_ms: var_fadeMs,
+        };
+    }
+}
+
+impl SseDecode for crate::api::core::SleepTimerMode {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::core::SleepTimerMode::Minutes,
+            1 => crate::api::core::SleepTimerMode::EndOfSong,
+            2 => crate::api::core::SleepTimerMode::EndOfAlbum,
+            _ => unreachable!("Invalid variant for SleepTimerMode: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::core::SleepTimerSpec {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_mode = <crate::api::core::SleepTimerMode>::sse_decode(deserializer);
+        let mut var_minutes = <u32>::sse_decode(deserializer);
+        return crate::api::core::SleepTimerSpec {
+            mode: var_mode,
+            minutes: var_minutes,
+        };
+    }
+}
+
 impl SseDecode for crate::api::core::Song {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -11303,6 +12005,107 @@ impl SseDecode for crate::api::core::WhyThisSong {
     }
 }
 
+impl SseDecode for crate::api::core::WidgetAlbum {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_albumId = <i64>::sse_decode(deserializer);
+        let mut var_title = <String>::sse_decode(deserializer);
+        let mut var_artist = <String>::sse_decode(deserializer);
+        let mut var_cover = <Option<String>>::sse_decode(deserializer);
+        return crate::api::core::WidgetAlbum {
+            album_id: var_albumId,
+            title: var_title,
+            artist: var_artist,
+            cover: var_cover,
+        };
+    }
+}
+
+impl SseDecode for crate::api::core::WidgetMix {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_mixId = <String>::sse_decode(deserializer);
+        let mut var_title = <String>::sse_decode(deserializer);
+        let mut var_cover = <Option<String>>::sse_decode(deserializer);
+        let mut var_pinned = <bool>::sse_decode(deserializer);
+        return crate::api::core::WidgetMix {
+            mix_id: var_mixId,
+            title: var_title,
+            cover: var_cover,
+            pinned: var_pinned,
+        };
+    }
+}
+
+impl SseDecode for crate::api::core::WidgetPrivacy {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::core::WidgetPrivacy::Normal,
+            1 => crate::api::core::WidgetPrivacy::Locked,
+            2 => crate::api::core::WidgetPrivacy::Guest,
+            _ => unreachable!("Invalid variant for WidgetPrivacy: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::core::WidgetSnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_schema = <u32>::sse_decode(deserializer);
+        let mut var_profileId = <String>::sse_decode(deserializer);
+        let mut var_privacy = <crate::api::core::WidgetPrivacy>::sse_decode(deserializer);
+        let mut var_song = <Option<crate::api::core::WidgetSong>>::sse_decode(deserializer);
+        let mut var_isPlaying = <bool>::sse_decode(deserializer);
+        let mut var_positionMs = <i64>::sse_decode(deserializer);
+        let mut var_positionAtUtcMs = <i64>::sse_decode(deserializer);
+        let mut var_pinnedMixes = <Vec<crate::api::core::WidgetMix>>::sse_decode(deserializer);
+        let mut var_nextUp = <Option<crate::api::core::WidgetMix>>::sse_decode(deserializer);
+        let mut var_recentAlbums = <Vec<crate::api::core::WidgetAlbum>>::sse_decode(deserializer);
+        let mut var_reachable = <bool>::sse_decode(deserializer);
+        let mut var_writtenAtUtcMs = <i64>::sse_decode(deserializer);
+        return crate::api::core::WidgetSnapshot {
+            schema: var_schema,
+            profile_id: var_profileId,
+            privacy: var_privacy,
+            song: var_song,
+            is_playing: var_isPlaying,
+            position_ms: var_positionMs,
+            position_at_utc_ms: var_positionAtUtcMs,
+            pinned_mixes: var_pinnedMixes,
+            next_up: var_nextUp,
+            recent_albums: var_recentAlbums,
+            reachable: var_reachable,
+            written_at_utc_ms: var_writtenAtUtcMs,
+        };
+    }
+}
+
+impl SseDecode for crate::api::core::WidgetSong {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_songId = <Option<i64>>::sse_decode(deserializer);
+        let mut var_title = <String>::sse_decode(deserializer);
+        let mut var_artist = <String>::sse_decode(deserializer);
+        let mut var_albumId = <Option<i64>>::sse_decode(deserializer);
+        let mut var_albumTitle = <Option<String>>::sse_decode(deserializer);
+        let mut var_cover = <Option<String>>::sse_decode(deserializer);
+        let mut var_durationMs = <i64>::sse_decode(deserializer);
+        let mut var_nowPlaying = <bool>::sse_decode(deserializer);
+        return crate::api::core::WidgetSong {
+            song_id: var_songId,
+            title: var_title,
+            artist: var_artist,
+            album_id: var_albumId,
+            album_title: var_albumTitle,
+            cover: var_cover,
+            duration_ms: var_durationMs,
+            now_playing: var_nowPlaying,
+        };
+    }
+}
+
 fn pde_ffi_dispatcher_primary_impl(
     func_id: i32,
     port: flutter_rust_bridge::for_generated::MessagePort,
@@ -11314,78 +12117,78 @@ fn pde_ffi_dispatcher_primary_impl(
     match func_id {
         6 => wire__crate__api__core__Encore_album_palette_impl(port, ptr, rust_vec_len, data_len),
         13 => wire__crate__api__core__Encore_backup_profile_impl(port, ptr, rust_vec_len, data_len),
-        15 => wire__crate__api__core__Encore_check_address_impl(port, ptr, rust_vec_len, data_len),
-        21 => {
+        16 => wire__crate__api__core__Encore_check_address_impl(port, ptr, rust_vec_len, data_len),
+        22 => {
             wire__crate__api__core__Encore_companion_devices_impl(port, ptr, rust_vec_len, data_len)
         }
-        22 => {
+        23 => {
             wire__crate__api__core__Encore_connect_companion_impl(port, ptr, rust_vec_len, data_len)
         }
-        26 => wire__crate__api__core__Encore_delete_profile_everywhere_impl(
+        27 => wire__crate__api__core__Encore_delete_profile_everywhere_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        27 => wire__crate__api__core__Encore_disconnect_companion_impl(
+        28 => wire__crate__api__core__Encore_disconnect_companion_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        35 => wire__crate__api__core__Encore_events_impl(port, ptr, rust_vec_len, data_len),
-        36 => wire__crate__api__core__Encore_export_profile_impl(port, ptr, rust_vec_len, data_len),
-        37 => wire__crate__api__core__Encore_fetch_lyrics_ahead_impl(
+        36 => wire__crate__api__core__Encore_events_impl(port, ptr, rust_vec_len, data_len),
+        37 => wire__crate__api__core__Encore_export_profile_impl(port, ptr, rust_vec_len, data_len),
+        39 => wire__crate__api__core__Encore_fetch_lyrics_ahead_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        42 => wire__crate__api__core__Encore_hand_off_to_impl(port, ptr, rust_vec_len, data_len),
-        46 => wire__crate__api__core__Encore_home_impl(port, ptr, rust_vec_len, data_len),
-        52 => wire__crate__api__core__Encore_lyrics_impl(port, ptr, rust_vec_len, data_len),
-        53 => wire__crate__api__core__Encore_lyrics_raw_impl(port, ptr, rust_vec_len, data_len),
-        79 => {
+        44 => wire__crate__api__core__Encore_hand_off_to_impl(port, ptr, rust_vec_len, data_len),
+        48 => wire__crate__api__core__Encore_home_impl(port, ptr, rust_vec_len, data_len),
+        54 => wire__crate__api__core__Encore_lyrics_impl(port, ptr, rust_vec_len, data_len),
+        55 => wire__crate__api__core__Encore_lyrics_raw_impl(port, ptr, rust_vec_len, data_len),
+        82 => {
             wire__crate__api__core__Encore_playlist_palette_impl(port, ptr, rust_vec_len, data_len)
         }
-        84 => wire__crate__api__core__Encore_pull_from_impl(port, ptr, rust_vec_len, data_len),
-        87 => wire__crate__api__core__Encore_quick_connect_start_impl(
+        87 => wire__crate__api__core__Encore_pull_from_impl(port, ptr, rust_vec_len, data_len),
+        90 => wire__crate__api__core__Encore_quick_connect_start_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        88 => wire__crate__api__core__Encore_quick_connect_wait_impl(
+        91 => wire__crate__api__core__Encore_quick_connect_wait_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        92 => {
+        95 => {
             wire__crate__api__core__Encore_regenerate_mixes_impl(port, ptr, rust_vec_len, data_len)
         }
-        93 => wire__crate__api__core__Encore_remote_command_impl(port, ptr, rust_vec_len, data_len),
-        94 => wire__crate__api__core__Encore_remote_queue_impl(port, ptr, rust_vec_len, data_len),
-        100 => wire__crate__api__core__Encore_remove_profile_from_device_impl(
+        96 => wire__crate__api__core__Encore_remote_command_impl(port, ptr, rust_vec_len, data_len),
+        97 => wire__crate__api__core__Encore_remote_queue_impl(port, ptr, rust_vec_len, data_len),
+        103 => wire__crate__api__core__Encore_remove_profile_from_device_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        105 => wire__crate__api__core__Encore_rename_device_impl(port, ptr, rust_vec_len, data_len),
-        111 => {
+        108 => wire__crate__api__core__Encore_rename_device_impl(port, ptr, rust_vec_len, data_len),
+        114 => {
             wire__crate__api__core__Encore_restore_profile_impl(port, ptr, rust_vec_len, data_len)
         }
-        113 => wire__crate__api__core__Encore_revoke_device_impl(port, ptr, rust_vec_len, data_len),
-        114 => wire__crate__api__core__Encore_run_downloads_impl(port, ptr, rust_vec_len, data_len),
-        118 => wire__crate__api__core__Encore_send_edits_impl(port, ptr, rust_vec_len, data_len),
-        131 => wire__crate__api__core__Encore_sign_in_impl(port, ptr, rust_vec_len, data_len),
-        132 => wire__crate__api__core__Encore_sign_out_impl(port, ptr, rust_vec_len, data_len),
-        146 => {
+        117 => wire__crate__api__core__Encore_revoke_device_impl(port, ptr, rust_vec_len, data_len),
+        118 => wire__crate__api__core__Encore_run_downloads_impl(port, ptr, rust_vec_len, data_len),
+        122 => wire__crate__api__core__Encore_send_edits_impl(port, ptr, rust_vec_len, data_len),
+        137 => wire__crate__api__core__Encore_sign_in_impl(port, ptr, rust_vec_len, data_len),
+        138 => wire__crate__api__core__Encore_sign_out_impl(port, ptr, rust_vec_len, data_len),
+        155 => {
             wire__crate__api__core__Encore_switch_profile_impl(port, ptr, rust_vec_len, data_len)
         }
-        147 => wire__crate__api__core__Encore_sync_library_impl(port, ptr, rust_vec_len, data_len),
-        148 => wire__crate__api__core__Encore_sync_now_impl(port, ptr, rust_vec_len, data_len),
+        156 => wire__crate__api__core__Encore_sync_library_impl(port, ptr, rust_vec_len, data_len),
+        157 => wire__crate__api__core__Encore_sync_now_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -11410,146 +12213,160 @@ fn pde_ffi_dispatcher_sync_impl(
         11 => wire__crate__api__core__Encore_artists_impl(ptr, rust_vec_len, data_len),
         12 => wire__crate__api__core__Encore_artwork_impl(ptr, rust_vec_len, data_len),
         14 => wire__crate__api__core__Encore_biometrics_changed_impl(ptr, rust_vec_len, data_len),
-        16 => {
+        15 => wire__crate__api__core__Encore_cancel_sleep_timer_impl(ptr, rust_vec_len, data_len),
+        17 => {
             wire__crate__api__core__Encore_clear_listening_history_impl(ptr, rust_vec_len, data_len)
         }
-        17 => wire__crate__api__core__Encore_clear_not_interested_impl(ptr, rust_vec_len, data_len),
-        18 => {
+        18 => wire__crate__api__core__Encore_clear_not_interested_impl(ptr, rust_vec_len, data_len),
+        19 => {
             wire__crate__api__core__Encore_clear_recent_searches_impl(ptr, rust_vec_len, data_len)
         }
-        19 => wire__crate__api__core__Encore_clear_up_next_impl(ptr, rust_vec_len, data_len),
-        20 => wire__crate__api__core__Encore_close_profile_impl(ptr, rust_vec_len, data_len),
-        23 => wire__crate__api__core__Encore_control_only_impl(ptr, rust_vec_len, data_len),
-        24 => wire__crate__api__core__Encore_create_impl(ptr, rust_vec_len, data_len),
-        25 => wire__crate__api__core__Encore_current_profile_impl(ptr, rust_vec_len, data_len),
-        28 => wire__crate__api__core__Encore_dismiss_continue_impl(ptr, rust_vec_len, data_len),
-        29 => wire__crate__api__core__Encore_download_impl(ptr, rust_vec_len, data_len),
-        30 => wire__crate__api__core__Encore_download_marks_impl(ptr, rust_vec_len, data_len),
-        31 => wire__crate__api__core__Encore_download_settings_impl(ptr, rust_vec_len, data_len),
-        32 => wire__crate__api__core__Encore_downloads_overview_impl(ptr, rust_vec_len, data_len),
-        33 => wire__crate__api__core__Encore_drop_preview_impl(ptr, rust_vec_len, data_len),
-        34 => wire__crate__api__core__Encore_end_guest_impl(ptr, rust_vec_len, data_len),
-        38 => wire__crate__api__core__Encore_fewer_like_this_impl(ptr, rust_vec_len, data_len),
-        39 => wire__crate__api__core__Encore_genre_songs_impl(ptr, rust_vec_len, data_len),
-        40 => wire__crate__api__core__Encore_genres_impl(ptr, rust_vec_len, data_len),
-        41 => wire__crate__api__core__Encore_guest_session_impl(ptr, rust_vec_len, data_len),
-        43 => wire__crate__api__core__Encore_handoff_failed_impl(ptr, rust_vec_len, data_len),
-        44 => wire__crate__api__core__Encore_handoff_ready_impl(ptr, rust_vec_len, data_len),
-        45 => wire__crate__api__core__Encore_hide_mix_impl(ptr, rust_vec_len, data_len),
-        47 => wire__crate__api__core__Encore_jump_to_impl(ptr, rust_vec_len, data_len),
-        48 => wire__crate__api__core__Encore_last_active_profile_impl(ptr, rust_vec_len, data_len),
-        49 => wire__crate__api__core__Encore_like_impl(ptr, rust_vec_len, data_len),
-        50 => wire__crate__api__core__Encore_liked_songs_impl(ptr, rust_vec_len, data_len),
-        51 => wire__crate__api__core__Encore_lyric_line_tapped_impl(ptr, rust_vec_len, data_len),
-        54 => wire__crate__api__core__Encore_mix_impl(ptr, rust_vec_len, data_len),
-        55 => wire__crate__api__core__Encore_more_like_this_impl(ptr, rust_vec_len, data_len),
-        56 => wire__crate__api__core__Encore_move_in_playlist_impl(ptr, rust_vec_len, data_len),
-        57 => wire__crate__api__core__Encore_move_in_queue_impl(ptr, rust_vec_len, data_len),
-        58 => wire__crate__api__core__Encore_next_impl(ptr, rust_vec_len, data_len),
-        59 => wire__crate__api__core__Encore_next_target_impl(ptr, rust_vec_len, data_len),
-        60 => wire__crate__api__core__Encore_not_in_this_mix_impl(ptr, rust_vec_len, data_len),
-        61 => {
+        20 => wire__crate__api__core__Encore_clear_up_next_impl(ptr, rust_vec_len, data_len),
+        21 => wire__crate__api__core__Encore_close_profile_impl(ptr, rust_vec_len, data_len),
+        24 => wire__crate__api__core__Encore_control_only_impl(ptr, rust_vec_len, data_len),
+        25 => wire__crate__api__core__Encore_create_impl(ptr, rust_vec_len, data_len),
+        26 => wire__crate__api__core__Encore_current_profile_impl(ptr, rust_vec_len, data_len),
+        29 => wire__crate__api__core__Encore_dismiss_continue_impl(ptr, rust_vec_len, data_len),
+        30 => wire__crate__api__core__Encore_download_impl(ptr, rust_vec_len, data_len),
+        31 => wire__crate__api__core__Encore_download_marks_impl(ptr, rust_vec_len, data_len),
+        32 => wire__crate__api__core__Encore_download_settings_impl(ptr, rust_vec_len, data_len),
+        33 => wire__crate__api__core__Encore_downloads_overview_impl(ptr, rust_vec_len, data_len),
+        34 => wire__crate__api__core__Encore_drop_preview_impl(ptr, rust_vec_len, data_len),
+        35 => wire__crate__api__core__Encore_end_guest_impl(ptr, rust_vec_len, data_len),
+        38 => wire__crate__api__core__Encore_extend_sleep_timer_impl(ptr, rust_vec_len, data_len),
+        40 => wire__crate__api__core__Encore_fewer_like_this_impl(ptr, rust_vec_len, data_len),
+        41 => wire__crate__api__core__Encore_genre_songs_impl(ptr, rust_vec_len, data_len),
+        42 => wire__crate__api__core__Encore_genres_impl(ptr, rust_vec_len, data_len),
+        43 => wire__crate__api__core__Encore_guest_session_impl(ptr, rust_vec_len, data_len),
+        45 => wire__crate__api__core__Encore_handoff_failed_impl(ptr, rust_vec_len, data_len),
+        46 => wire__crate__api__core__Encore_handoff_ready_impl(ptr, rust_vec_len, data_len),
+        47 => wire__crate__api__core__Encore_hide_mix_impl(ptr, rust_vec_len, data_len),
+        49 => wire__crate__api__core__Encore_jump_to_impl(ptr, rust_vec_len, data_len),
+        50 => wire__crate__api__core__Encore_last_active_profile_impl(ptr, rust_vec_len, data_len),
+        51 => wire__crate__api__core__Encore_like_impl(ptr, rust_vec_len, data_len),
+        52 => wire__crate__api__core__Encore_liked_songs_impl(ptr, rust_vec_len, data_len),
+        53 => wire__crate__api__core__Encore_lyric_line_tapped_impl(ptr, rust_vec_len, data_len),
+        56 => wire__crate__api__core__Encore_mix_impl(ptr, rust_vec_len, data_len),
+        57 => wire__crate__api__core__Encore_more_like_this_impl(ptr, rust_vec_len, data_len),
+        58 => wire__crate__api__core__Encore_move_in_playlist_impl(ptr, rust_vec_len, data_len),
+        59 => wire__crate__api__core__Encore_move_in_queue_impl(ptr, rust_vec_len, data_len),
+        60 => wire__crate__api__core__Encore_next_impl(ptr, rust_vec_len, data_len),
+        61 => wire__crate__api__core__Encore_next_target_impl(ptr, rust_vec_len, data_len),
+        62 => wire__crate__api__core__Encore_not_in_this_mix_impl(ptr, rust_vec_len, data_len),
+        63 => {
             wire__crate__api__core__Encore_not_interested_artist_impl(ptr, rust_vec_len, data_len)
         }
-        62 => wire__crate__api__core__Encore_not_interested_list_impl(ptr, rust_vec_len, data_len),
-        63 => wire__crate__api__core__Encore_not_interested_song_impl(ptr, rust_vec_len, data_len),
-        64 => wire__crate__api__core__Encore_open_profile_impl(ptr, rust_vec_len, data_len),
-        65 => wire__crate__api__core__Encore_output_devices_impl(ptr, rust_vec_len, data_len),
-        66 => wire__crate__api__core__Encore_pause_download_impl(ptr, rust_vec_len, data_len),
-        67 => wire__crate__api__core__Encore_pending_edits_impl(ptr, rust_vec_len, data_len),
-        68 => wire__crate__api__core__Encore_pin_mix_impl(ptr, rust_vec_len, data_len),
-        69 => wire__crate__api__core__Encore_play_impl(ptr, rust_vec_len, data_len),
-        70 => wire__crate__api__core__Encore_play_next_impl(ptr, rust_vec_len, data_len),
-        71 => wire__crate__api__core__Encore_playback_ended_impl(ptr, rust_vec_len, data_len),
-        72 => wire__crate__api__core__Encore_playback_interrupted_impl(ptr, rust_vec_len, data_len),
-        73 => wire__crate__api__core__Encore_playback_paused_impl(ptr, rust_vec_len, data_len),
-        74 => wire__crate__api__core__Encore_playback_progress_impl(ptr, rust_vec_len, data_len),
-        75 => wire__crate__api__core__Encore_playback_resumed_impl(ptr, rust_vec_len, data_len),
-        76 => wire__crate__api__core__Encore_playback_seeked_impl(ptr, rust_vec_len, data_len),
-        77 => wire__crate__api__core__Encore_playback_started_impl(ptr, rust_vec_len, data_len),
-        78 => wire__crate__api__core__Encore_playlist_impl(ptr, rust_vec_len, data_len),
-        80 => wire__crate__api__core__Encore_playlists_impl(ptr, rust_vec_len, data_len),
-        81 => wire__crate__api__core__Encore_previous_impl(ptr, rust_vec_len, data_len),
-        82 => wire__crate__api__core__Encore_previous_target_impl(ptr, rust_vec_len, data_len),
-        83 => wire__crate__api__core__Encore_profiles_impl(ptr, rust_vec_len, data_len),
-        85 => wire__crate__api__core__Encore_queue_impl(ptr, rust_vec_len, data_len),
-        86 => wire__crate__api__core__Encore_quick_connect_cancel_impl(ptr, rust_vec_len, data_len),
-        89 => wire__crate__api__core__Encore_recent_searches_impl(ptr, rust_vec_len, data_len),
-        90 => wire__crate__api__core__Encore_refresh_autoplay_impl(ptr, rust_vec_len, data_len),
-        91 => {
+        64 => wire__crate__api__core__Encore_not_interested_list_impl(ptr, rust_vec_len, data_len),
+        65 => wire__crate__api__core__Encore_not_interested_song_impl(ptr, rust_vec_len, data_len),
+        66 => wire__crate__api__core__Encore_open_profile_impl(ptr, rust_vec_len, data_len),
+        67 => wire__crate__api__core__Encore_output_devices_impl(ptr, rust_vec_len, data_len),
+        68 => wire__crate__api__core__Encore_pause_download_impl(ptr, rust_vec_len, data_len),
+        69 => wire__crate__api__core__Encore_pending_edits_impl(ptr, rust_vec_len, data_len),
+        70 => wire__crate__api__core__Encore_pin_mix_impl(ptr, rust_vec_len, data_len),
+        71 => wire__crate__api__core__Encore_play_impl(ptr, rust_vec_len, data_len),
+        72 => wire__crate__api__core__Encore_play_mix_impl(ptr, rust_vec_len, data_len),
+        73 => wire__crate__api__core__Encore_play_next_impl(ptr, rust_vec_len, data_len),
+        74 => wire__crate__api__core__Encore_playback_ended_impl(ptr, rust_vec_len, data_len),
+        75 => wire__crate__api__core__Encore_playback_interrupted_impl(ptr, rust_vec_len, data_len),
+        76 => wire__crate__api__core__Encore_playback_paused_impl(ptr, rust_vec_len, data_len),
+        77 => wire__crate__api__core__Encore_playback_progress_impl(ptr, rust_vec_len, data_len),
+        78 => wire__crate__api__core__Encore_playback_resumed_impl(ptr, rust_vec_len, data_len),
+        79 => wire__crate__api__core__Encore_playback_seeked_impl(ptr, rust_vec_len, data_len),
+        80 => wire__crate__api__core__Encore_playback_started_impl(ptr, rust_vec_len, data_len),
+        81 => wire__crate__api__core__Encore_playlist_impl(ptr, rust_vec_len, data_len),
+        83 => wire__crate__api__core__Encore_playlists_impl(ptr, rust_vec_len, data_len),
+        84 => wire__crate__api__core__Encore_previous_impl(ptr, rust_vec_len, data_len),
+        85 => wire__crate__api__core__Encore_previous_target_impl(ptr, rust_vec_len, data_len),
+        86 => wire__crate__api__core__Encore_profiles_impl(ptr, rust_vec_len, data_len),
+        88 => wire__crate__api__core__Encore_queue_impl(ptr, rust_vec_len, data_len),
+        89 => wire__crate__api__core__Encore_quick_connect_cancel_impl(ptr, rust_vec_len, data_len),
+        92 => wire__crate__api__core__Encore_recent_searches_impl(ptr, rust_vec_len, data_len),
+        93 => wire__crate__api__core__Encore_refresh_autoplay_impl(ptr, rust_vec_len, data_len),
+        94 => {
             wire__crate__api__core__Encore_refresh_smart_downloads_impl(ptr, rust_vec_len, data_len)
         }
-        95 => wire__crate__api__core__Encore_remove_all_downloads_impl(ptr, rust_vec_len, data_len),
-        96 => wire__crate__api__core__Encore_remove_download_impl(ptr, rust_vec_len, data_len),
-        97 => wire__crate__api__core__Encore_remove_from_playlist_impl(ptr, rust_vec_len, data_len),
-        98 => wire__crate__api__core__Encore_remove_from_queue_impl(ptr, rust_vec_len, data_len),
-        99 => {
+        98 => wire__crate__api__core__Encore_remove_all_downloads_impl(ptr, rust_vec_len, data_len),
+        99 => wire__crate__api__core__Encore_remove_download_impl(ptr, rust_vec_len, data_len),
+        100 => {
+            wire__crate__api__core__Encore_remove_from_playlist_impl(ptr, rust_vec_len, data_len)
+        }
+        101 => wire__crate__api__core__Encore_remove_from_queue_impl(ptr, rust_vec_len, data_len),
+        102 => {
             wire__crate__api__core__Encore_remove_not_interested_impl(ptr, rust_vec_len, data_len)
         }
-        101 => wire__crate__api__core__Encore_remove_profile_pin_impl(ptr, rust_vec_len, data_len),
-        102 => {
+        104 => wire__crate__api__core__Encore_remove_profile_pin_impl(ptr, rust_vec_len, data_len),
+        105 => {
             wire__crate__api__core__Encore_remove_recent_search_impl(ptr, rust_vec_len, data_len)
         }
-        103 => wire__crate__api__core__Encore_remove_server_impl(ptr, rust_vec_len, data_len),
-        104 => wire__crate__api__core__Encore_remove_unplayed_downloads_impl(
+        106 => wire__crate__api__core__Encore_remove_server_impl(ptr, rust_vec_len, data_len),
+        107 => wire__crate__api__core__Encore_remove_unplayed_downloads_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        106 => wire__crate__api__core__Encore_rename_playlist_impl(ptr, rust_vec_len, data_len),
-        107 => wire__crate__api__core__Encore_rename_profile_impl(ptr, rust_vec_len, data_len),
-        108 => wire__crate__api__core__Encore_reorder_profiles_impl(ptr, rust_vec_len, data_len),
-        109 => wire__crate__api__core__Encore_replay_from_history_impl(ptr, rust_vec_len, data_len),
-        110 => wire__crate__api__core__Encore_reset_suggestions_impl(ptr, rust_vec_len, data_len),
-        112 => {
+        109 => wire__crate__api__core__Encore_rename_playlist_impl(ptr, rust_vec_len, data_len),
+        110 => wire__crate__api__core__Encore_rename_profile_impl(ptr, rust_vec_len, data_len),
+        111 => wire__crate__api__core__Encore_reorder_profiles_impl(ptr, rust_vec_len, data_len),
+        112 => wire__crate__api__core__Encore_replay_from_history_impl(ptr, rust_vec_len, data_len),
+        113 => wire__crate__api__core__Encore_reset_suggestions_impl(ptr, rust_vec_len, data_len),
+        115 => wire__crate__api__core__Encore_restore_sleep_timer_impl(ptr, rust_vec_len, data_len),
+        116 => {
             wire__crate__api__core__Encore_retry_failed_downloads_impl(ptr, rust_vec_len, data_len)
         }
-        115 => {
+        119 => {
             wire__crate__api__core__Encore_save_mix_as_playlist_impl(ptr, rust_vec_len, data_len)
         }
-        116 => wire__crate__api__core__Encore_search_impl(ptr, rust_vec_len, data_len),
-        117 => wire__crate__api__core__Encore_search_downloaded_impl(ptr, rust_vec_len, data_len),
-        119 => wire__crate__api__core__Encore_servers_impl(ptr, rust_vec_len, data_len),
-        120 => wire__crate__api__core__Encore_set_adventurousness_impl(ptr, rust_vec_len, data_len),
-        121 => wire__crate__api__core__Encore_set_autoplay_impl(ptr, rust_vec_len, data_len),
-        122 => wire__crate__api__core__Encore_set_connectivity_impl(ptr, rust_vec_len, data_len),
-        123 => {
+        120 => wire__crate__api__core__Encore_search_impl(ptr, rust_vec_len, data_len),
+        121 => wire__crate__api__core__Encore_search_downloaded_impl(ptr, rust_vec_len, data_len),
+        123 => wire__crate__api__core__Encore_servers_impl(ptr, rust_vec_len, data_len),
+        124 => wire__crate__api__core__Encore_set_adventurousness_impl(ptr, rust_vec_len, data_len),
+        125 => wire__crate__api__core__Encore_set_autoplay_impl(ptr, rust_vec_len, data_len),
+        126 => wire__crate__api__core__Encore_set_connectivity_impl(ptr, rust_vec_len, data_len),
+        127 => {
             wire__crate__api__core__Encore_set_download_settings_impl(ptr, rust_vec_len, data_len)
         }
-        124 => wire__crate__api__core__Encore_set_listening_mode_impl(ptr, rust_vec_len, data_len),
-        125 => wire__crate__api__core__Encore_set_playback_capabilities_impl(
+        128 => wire__crate__api__core__Encore_set_listening_mode_impl(ptr, rust_vec_len, data_len),
+        129 => wire__crate__api__core__Encore_set_playback_capabilities_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        126 => wire__crate__api__core__Encore_set_profile_pin_impl(ptr, rust_vec_len, data_len),
-        127 => wire__crate__api__core__Encore_set_repeat_impl(ptr, rust_vec_len, data_len),
-        128 => wire__crate__api__core__Encore_set_shuffle_impl(ptr, rust_vec_len, data_len),
-        129 => wire__crate__api__core__Encore_set_stream_quality_impl(ptr, rust_vec_len, data_len),
-        130 => wire__crate__api__core__Encore_set_volume_level_impl(ptr, rust_vec_len, data_len),
-        133 => wire__crate__api__core__Encore_skip_next_impl(ptr, rust_vec_len, data_len),
-        134 => wire__crate__api__core__Encore_skip_previous_impl(ptr, rust_vec_len, data_len),
-        135 => wire__crate__api__core__Encore_smart_shuffle_impl(ptr, rust_vec_len, data_len),
-        136 => wire__crate__api__core__Encore_song_impl(ptr, rust_vec_len, data_len),
-        137 => wire__crate__api__core__Encore_songs_impl(ptr, rust_vec_len, data_len),
-        138 => wire__crate__api__core__Encore_start_guest_impl(ptr, rust_vec_len, data_len),
-        139 => wire__crate__api__core__Encore_start_radio_impl(ptr, rust_vec_len, data_len),
-        140 => wire__crate__api__core__Encore_stop_downloads_impl(ptr, rust_vec_len, data_len),
-        141 => wire__crate__api__core__Encore_stop_events_impl(ptr, rust_vec_len, data_len),
-        142 => wire__crate__api__core__Encore_stop_remote_control_impl(ptr, rust_vec_len, data_len),
-        143 => wire__crate__api__core__Encore_stream_for_impl(ptr, rust_vec_len, data_len),
-        144 => wire__crate__api__core__Encore_stream_quality_impl(ptr, rust_vec_len, data_len),
-        145 => wire__crate__api__core__Encore_suggestion_stats_impl(ptr, rust_vec_len, data_len),
-        149 => wire__crate__api__core__Encore_sync_status_impl(ptr, rust_vec_len, data_len),
-        150 => wire__crate__api__core__Encore_trust_certificate_impl(ptr, rust_vec_len, data_len),
-        151 => wire__crate__api__core__Encore_undo_impl(ptr, rust_vec_len, data_len),
-        152 => wire__crate__api__core__Encore_undo_queue_impl(ptr, rust_vec_len, data_len),
-        153 => wire__crate__api__core__Encore_unlike_impl(ptr, rust_vec_len, data_len),
-        154 => wire__crate__api__core__Encore_unlock_profile_impl(ptr, rust_vec_len, data_len),
-        155 => wire__crate__api__core__Encore_why_this_song_impl(ptr, rust_vec_len, data_len),
-        156 => wire__crate__api__hello__app_name_impl(ptr, rust_vec_len, data_len),
-        157 => wire__crate__api__hello__core_version_impl(ptr, rust_vec_len, data_len),
-        158 => wire__crate__api__hello__hello_impl(ptr, rust_vec_len, data_len),
+        130 => wire__crate__api__core__Encore_set_profile_pin_impl(ptr, rust_vec_len, data_len),
+        131 => wire__crate__api__core__Encore_set_repeat_impl(ptr, rust_vec_len, data_len),
+        132 => wire__crate__api__core__Encore_set_shuffle_impl(ptr, rust_vec_len, data_len),
+        133 => wire__crate__api__core__Encore_set_sleep_timer_impl(ptr, rust_vec_len, data_len),
+        134 => {
+            wire__crate__api__core__Encore_set_sleep_timer_seconds_impl(ptr, rust_vec_len, data_len)
+        }
+        135 => wire__crate__api__core__Encore_set_stream_quality_impl(ptr, rust_vec_len, data_len),
+        136 => wire__crate__api__core__Encore_set_volume_level_impl(ptr, rust_vec_len, data_len),
+        139 => wire__crate__api__core__Encore_skip_next_impl(ptr, rust_vec_len, data_len),
+        140 => wire__crate__api__core__Encore_skip_previous_impl(ptr, rust_vec_len, data_len),
+        141 => wire__crate__api__core__Encore_sleep_fade_plan_impl(ptr, rust_vec_len, data_len),
+        142 => wire__crate__api__core__Encore_sleep_timer_impl(ptr, rust_vec_len, data_len),
+        143 => wire__crate__api__core__Encore_sleep_timer_ended_impl(ptr, rust_vec_len, data_len),
+        144 => wire__crate__api__core__Encore_smart_shuffle_impl(ptr, rust_vec_len, data_len),
+        145 => wire__crate__api__core__Encore_song_impl(ptr, rust_vec_len, data_len),
+        146 => wire__crate__api__core__Encore_songs_impl(ptr, rust_vec_len, data_len),
+        147 => wire__crate__api__core__Encore_start_guest_impl(ptr, rust_vec_len, data_len),
+        148 => wire__crate__api__core__Encore_start_radio_impl(ptr, rust_vec_len, data_len),
+        149 => wire__crate__api__core__Encore_stop_downloads_impl(ptr, rust_vec_len, data_len),
+        150 => wire__crate__api__core__Encore_stop_events_impl(ptr, rust_vec_len, data_len),
+        151 => wire__crate__api__core__Encore_stop_remote_control_impl(ptr, rust_vec_len, data_len),
+        152 => wire__crate__api__core__Encore_stream_for_impl(ptr, rust_vec_len, data_len),
+        153 => wire__crate__api__core__Encore_stream_quality_impl(ptr, rust_vec_len, data_len),
+        154 => wire__crate__api__core__Encore_suggestion_stats_impl(ptr, rust_vec_len, data_len),
+        158 => wire__crate__api__core__Encore_sync_status_impl(ptr, rust_vec_len, data_len),
+        159 => wire__crate__api__core__Encore_trust_certificate_impl(ptr, rust_vec_len, data_len),
+        160 => wire__crate__api__core__Encore_undo_impl(ptr, rust_vec_len, data_len),
+        161 => wire__crate__api__core__Encore_undo_queue_impl(ptr, rust_vec_len, data_len),
+        162 => wire__crate__api__core__Encore_unlike_impl(ptr, rust_vec_len, data_len),
+        163 => wire__crate__api__core__Encore_unlock_profile_impl(ptr, rust_vec_len, data_len),
+        164 => wire__crate__api__core__Encore_why_this_song_impl(ptr, rust_vec_len, data_len),
+        165 => wire__crate__api__core__Encore_widget_snapshot_impl(ptr, rust_vec_len, data_len),
+        166 => wire__crate__api__hello__app_name_impl(ptr, rust_vec_len, data_len),
+        167 => wire__crate__api__hello__core_version_impl(ptr, rust_vec_len, data_len),
+        168 => wire__crate__api__hello__hello_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -11884,6 +12701,8 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::CoreEvent> {
             self.0.handoff.into_into_dart().into_dart(),
             self.0.remote_command.into_into_dart().into_dart(),
             self.0.download.into_into_dart().into_dart(),
+            self.0.widget_profile_id.into_into_dart().into_dart(),
+            self.0.sleep_timer.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -12404,6 +13223,8 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::EventKind> {
             crate::api::core::EventKind::RemoteState => 13.into_dart(),
             crate::api::core::EventKind::DownloadsChanged => 14.into_dart(),
             crate::api::core::EventKind::DownloadProgress => 15.into_dart(),
+            crate::api::core::EventKind::WidgetSnapshotChanged => 16.into_dart(),
+            crate::api::core::EventKind::SleepTimerChanged => 17.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -12860,6 +13681,48 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<crate::api::core::MixPage>>
     for crate::api::core::MixPage
 {
     fn into_into_dart(self) -> FrbWrapper<crate::api::core::MixPage> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::MixRef> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.kind.into_into_dart().into_dart(),
+            self.0.mix_id.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<crate::api::core::MixRef>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<crate::api::core::MixRef>>
+    for crate::api::core::MixRef
+{
+    fn into_into_dart(self) -> FrbWrapper<crate::api::core::MixRef> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::MixRefKind> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self.0 {
+            crate::api::core::MixRefKind::Id => 0.into_dart(),
+            crate::api::core::MixRefKind::NextUp => 1.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<crate::api::core::MixRefKind>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<crate::api::core::MixRefKind>>
+    for crate::api::core::MixRefKind
+{
+    fn into_into_dart(self) -> FrbWrapper<crate::api::core::MixRefKind> {
         self.into()
     }
 }
@@ -13841,6 +14704,117 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<crate::api::core::SkipTarget>>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::SleepFadeAction> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self.0 {
+            crate::api::core::SleepFadeAction::KeepPlaying => 0.into_dart(),
+            crate::api::core::SleepFadeAction::StopAtSongEnd => 1.into_dart(),
+            crate::api::core::SleepFadeAction::FadeNow => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<crate::api::core::SleepFadeAction>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<crate::api::core::SleepFadeAction>>
+    for crate::api::core::SleepFadeAction
+{
+    fn into_into_dart(self) -> FrbWrapper<crate::api::core::SleepFadeAction> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::SleepFadePlan> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.action.into_into_dart().into_dart(),
+            self.0.fade_from_ms.into_into_dart().into_dart(),
+            self.0.fade_ms.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<crate::api::core::SleepFadePlan>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<crate::api::core::SleepFadePlan>>
+    for crate::api::core::SleepFadePlan
+{
+    fn into_into_dart(self) -> FrbWrapper<crate::api::core::SleepFadePlan> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::SleepTimer> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.mode.into_into_dart().into_dart(),
+            self.0.set_utc_ms.into_into_dart().into_dart(),
+            self.0.ends_at_utc_ms.into_into_dart().into_dart(),
+            self.0.stop_after_uid.into_into_dart().into_dart(),
+            self.0.fade_ms.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<crate::api::core::SleepTimer>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<crate::api::core::SleepTimer>>
+    for crate::api::core::SleepTimer
+{
+    fn into_into_dart(self) -> FrbWrapper<crate::api::core::SleepTimer> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::SleepTimerMode> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self.0 {
+            crate::api::core::SleepTimerMode::Minutes => 0.into_dart(),
+            crate::api::core::SleepTimerMode::EndOfSong => 1.into_dart(),
+            crate::api::core::SleepTimerMode::EndOfAlbum => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<crate::api::core::SleepTimerMode>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<crate::api::core::SleepTimerMode>>
+    for crate::api::core::SleepTimerMode
+{
+    fn into_into_dart(self) -> FrbWrapper<crate::api::core::SleepTimerMode> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::SleepTimerSpec> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.mode.into_into_dart().into_dart(),
+            self.0.minutes.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<crate::api::core::SleepTimerSpec>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<crate::api::core::SleepTimerSpec>>
+    for crate::api::core::SleepTimerSpec
+{
+    fn into_into_dart(self) -> FrbWrapper<crate::api::core::SleepTimerSpec> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::Song> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -14209,6 +15183,132 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<crate::api::core::WhyThisSong>
         self.into()
     }
 }
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::WidgetAlbum> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.album_id.into_into_dart().into_dart(),
+            self.0.title.into_into_dart().into_dart(),
+            self.0.artist.into_into_dart().into_dart(),
+            self.0.cover.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<crate::api::core::WidgetAlbum>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<crate::api::core::WidgetAlbum>>
+    for crate::api::core::WidgetAlbum
+{
+    fn into_into_dart(self) -> FrbWrapper<crate::api::core::WidgetAlbum> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::WidgetMix> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.mix_id.into_into_dart().into_dart(),
+            self.0.title.into_into_dart().into_dart(),
+            self.0.cover.into_into_dart().into_dart(),
+            self.0.pinned.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<crate::api::core::WidgetMix>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<crate::api::core::WidgetMix>>
+    for crate::api::core::WidgetMix
+{
+    fn into_into_dart(self) -> FrbWrapper<crate::api::core::WidgetMix> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::WidgetPrivacy> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self.0 {
+            crate::api::core::WidgetPrivacy::Normal => 0.into_dart(),
+            crate::api::core::WidgetPrivacy::Locked => 1.into_dart(),
+            crate::api::core::WidgetPrivacy::Guest => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<crate::api::core::WidgetPrivacy>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<crate::api::core::WidgetPrivacy>>
+    for crate::api::core::WidgetPrivacy
+{
+    fn into_into_dart(self) -> FrbWrapper<crate::api::core::WidgetPrivacy> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::WidgetSnapshot> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.schema.into_into_dart().into_dart(),
+            self.0.profile_id.into_into_dart().into_dart(),
+            self.0.privacy.into_into_dart().into_dart(),
+            self.0.song.into_into_dart().into_dart(),
+            self.0.is_playing.into_into_dart().into_dart(),
+            self.0.position_ms.into_into_dart().into_dart(),
+            self.0.position_at_utc_ms.into_into_dart().into_dart(),
+            self.0.pinned_mixes.into_into_dart().into_dart(),
+            self.0.next_up.into_into_dart().into_dart(),
+            self.0.recent_albums.into_into_dart().into_dart(),
+            self.0.reachable.into_into_dart().into_dart(),
+            self.0.written_at_utc_ms.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<crate::api::core::WidgetSnapshot>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<crate::api::core::WidgetSnapshot>>
+    for crate::api::core::WidgetSnapshot
+{
+    fn into_into_dart(self) -> FrbWrapper<crate::api::core::WidgetSnapshot> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::WidgetSong> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.song_id.into_into_dart().into_dart(),
+            self.0.title.into_into_dart().into_dart(),
+            self.0.artist.into_into_dart().into_dart(),
+            self.0.album_id.into_into_dart().into_dart(),
+            self.0.album_title.into_into_dart().into_dart(),
+            self.0.cover.into_into_dart().into_dart(),
+            self.0.duration_ms.into_into_dart().into_dart(),
+            self.0.now_playing.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<crate::api::core::WidgetSong>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<crate::api::core::WidgetSong>>
+    for crate::api::core::WidgetSong
+{
+    fn into_into_dart(self) -> FrbWrapper<crate::api::core::WidgetSong> {
+        self.into()
+    }
+}
 
 impl SseEncode for flutter_rust_bridge::for_generated::anyhow::Error {
     // Codec=Sse (Serialization based), see doc to use other codecs
@@ -14436,6 +15536,8 @@ impl SseEncode for crate::api::core::CoreEvent {
         <Option<crate::api::core::HandoffInfo>>::sse_encode(self.handoff, serializer);
         <Option<crate::api::core::RemoteCommand>>::sse_encode(self.remote_command, serializer);
         <Option<crate::api::core::DownloadProgress>>::sse_encode(self.download, serializer);
+        <Option<String>>::sse_encode(self.widget_profile_id, serializer);
+        <Option<crate::api::core::SleepTimer>>::sse_encode(self.sleep_timer, serializer);
     }
 }
 
@@ -14759,6 +15861,8 @@ impl SseEncode for crate::api::core::EventKind {
                 crate::api::core::EventKind::RemoteState => 13,
                 crate::api::core::EventKind::DownloadsChanged => 14,
                 crate::api::core::EventKind::DownloadProgress => 15,
+                crate::api::core::EventKind::WidgetSnapshotChanged => 16,
+                crate::api::core::EventKind::SleepTimerChanged => 17,
                 _ => {
                     unimplemented!("");
                 }
@@ -15209,6 +16313,26 @@ impl SseEncode for Vec<crate::api::core::SyncResult> {
     }
 }
 
+impl SseEncode for Vec<crate::api::core::WidgetAlbum> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::core::WidgetAlbum>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::core::WidgetMix> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::core::WidgetMix>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for crate::api::core::ListeningMode {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -15379,6 +16503,30 @@ impl SseEncode for crate::api::core::MixPage {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <crate::api::core::MixSummary>::sse_encode(self.summary, serializer);
         <Vec<crate::api::core::MixSong>>::sse_encode(self.songs, serializer);
+    }
+}
+
+impl SseEncode for crate::api::core::MixRef {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::core::MixRefKind>::sse_encode(self.kind, serializer);
+        <Option<String>>::sse_encode(self.mix_id, serializer);
+    }
+}
+
+impl SseEncode for crate::api::core::MixRefKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::core::MixRefKind::Id => 0,
+                crate::api::core::MixRefKind::NextUp => 1,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
     }
 }
 
@@ -15700,6 +16848,16 @@ impl SseEncode for Option<crate::api::core::RemoteSong> {
     }
 }
 
+impl SseEncode for Option<crate::api::core::SleepTimer> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::core::SleepTimer>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<crate::api::core::Song> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -15786,6 +16944,26 @@ impl SseEncode for Option<u64> {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <u64>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::api::core::WidgetMix> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::core::WidgetMix>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::api::core::WidgetSong> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::core::WidgetSong>::sse_encode(value, serializer);
         }
     }
 }
@@ -16237,6 +17415,68 @@ impl SseEncode for crate::api::core::SkipTarget {
     }
 }
 
+impl SseEncode for crate::api::core::SleepFadeAction {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::core::SleepFadeAction::KeepPlaying => 0,
+                crate::api::core::SleepFadeAction::StopAtSongEnd => 1,
+                crate::api::core::SleepFadeAction::FadeNow => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::core::SleepFadePlan {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::core::SleepFadeAction>::sse_encode(self.action, serializer);
+        <i64>::sse_encode(self.fade_from_ms, serializer);
+        <i64>::sse_encode(self.fade_ms, serializer);
+    }
+}
+
+impl SseEncode for crate::api::core::SleepTimer {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::core::SleepTimerMode>::sse_encode(self.mode, serializer);
+        <i64>::sse_encode(self.set_utc_ms, serializer);
+        <i64>::sse_encode(self.ends_at_utc_ms, serializer);
+        <Option<i64>>::sse_encode(self.stop_after_uid, serializer);
+        <i64>::sse_encode(self.fade_ms, serializer);
+    }
+}
+
+impl SseEncode for crate::api::core::SleepTimerMode {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::core::SleepTimerMode::Minutes => 0,
+                crate::api::core::SleepTimerMode::EndOfSong => 1,
+                crate::api::core::SleepTimerMode::EndOfAlbum => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::core::SleepTimerSpec {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::core::SleepTimerMode>::sse_encode(self.mode, serializer);
+        <u32>::sse_encode(self.minutes, serializer);
+    }
+}
+
 impl SseEncode for crate::api::core::Song {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -16499,6 +17739,75 @@ impl SseEncode for crate::api::core::WhyThisSong {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <Vec<crate::api::core::PickReason>>::sse_encode(self.reasons, serializer);
         <Vec<crate::api::core::Song>>::sse_encode(self.sounds_like, serializer);
+    }
+}
+
+impl SseEncode for crate::api::core::WidgetAlbum {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i64>::sse_encode(self.album_id, serializer);
+        <String>::sse_encode(self.title, serializer);
+        <String>::sse_encode(self.artist, serializer);
+        <Option<String>>::sse_encode(self.cover, serializer);
+    }
+}
+
+impl SseEncode for crate::api::core::WidgetMix {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.mix_id, serializer);
+        <String>::sse_encode(self.title, serializer);
+        <Option<String>>::sse_encode(self.cover, serializer);
+        <bool>::sse_encode(self.pinned, serializer);
+    }
+}
+
+impl SseEncode for crate::api::core::WidgetPrivacy {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::core::WidgetPrivacy::Normal => 0,
+                crate::api::core::WidgetPrivacy::Locked => 1,
+                crate::api::core::WidgetPrivacy::Guest => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::core::WidgetSnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u32>::sse_encode(self.schema, serializer);
+        <String>::sse_encode(self.profile_id, serializer);
+        <crate::api::core::WidgetPrivacy>::sse_encode(self.privacy, serializer);
+        <Option<crate::api::core::WidgetSong>>::sse_encode(self.song, serializer);
+        <bool>::sse_encode(self.is_playing, serializer);
+        <i64>::sse_encode(self.position_ms, serializer);
+        <i64>::sse_encode(self.position_at_utc_ms, serializer);
+        <Vec<crate::api::core::WidgetMix>>::sse_encode(self.pinned_mixes, serializer);
+        <Option<crate::api::core::WidgetMix>>::sse_encode(self.next_up, serializer);
+        <Vec<crate::api::core::WidgetAlbum>>::sse_encode(self.recent_albums, serializer);
+        <bool>::sse_encode(self.reachable, serializer);
+        <i64>::sse_encode(self.written_at_utc_ms, serializer);
+    }
+}
+
+impl SseEncode for crate::api::core::WidgetSong {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<i64>>::sse_encode(self.song_id, serializer);
+        <String>::sse_encode(self.title, serializer);
+        <String>::sse_encode(self.artist, serializer);
+        <Option<i64>>::sse_encode(self.album_id, serializer);
+        <Option<String>>::sse_encode(self.album_title, serializer);
+        <Option<String>>::sse_encode(self.cover, serializer);
+        <i64>::sse_encode(self.duration_ms, serializer);
+        <bool>::sse_encode(self.now_playing, serializer);
     }
 }
 

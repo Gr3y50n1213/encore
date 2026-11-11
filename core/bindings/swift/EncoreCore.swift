@@ -1667,6 +1667,93 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
      */
     func whyThisSong(songId: Int64) throws  -> WhyThisSong
     
+    /**
+     * Cancel timer (no confirmation): returns the timer it cancelled, for the
+     * "Timer cancelled" toast's Undo (`restore_sleep_timer`); None when none ran.
+     */
+    func cancelSleepTimer() throws  -> SleepTimer?
+    
+    /**
+     * Add 15 min (or any `minutes`): the end moves on that much. A song or album
+     * timer becomes a timer of minutes ending that long after the song or album
+     * would have ended. `NotFound` when no timer runs.
+     */
+    func extendSleepTimer(minutes: UInt32) throws  -> SleepTimer
+    
+    /**
+     * Undo a cancel: the timer `cancel_sleep_timer` returned comes back as it
+     * was. The 5 s Undo window is the app's. A timer whose end has passed is
+     * refused (`NotAllowed`).
+     */
+    func restoreSleepTimer(timer: SleepTimer) throws  -> SleepTimer
+    
+    /**
+     * Start the sleep timer, replacing any other (board 31). Minutes: it ends
+     * `spec.minutes` from now (1 to 1,440), fading out over the last `fade_ms`.
+     * EndOfSong and EndOfAlbum: the music plays to the end of the song or album,
+     * then pauses, with no fade; they need something in the queue (`NotAllowed`)
+     * and an open profile. `SleepTimerChanged` follows.
+     */
+    func setSleepTimer(spec: SleepTimerSpec) throws  -> SleepTimer
+    
+    /**
+     * Testing only: a timer of `seconds` (Minutes mode), so emulator and device
+     * tests can run a 15 s timer. Apps never offer it.
+     */
+    func setSleepTimerSeconds(seconds: UInt32) throws  -> SleepTimer
+    
+    /**
+     * The fade rule, the same on every platform. Call it from the player's tick
+     * (about once a second) with the current song's position and length; it says
+     * whether to play on, fade now, or fade into the song's end and stop there.
+     * Song and album timers never fade (KeepPlaying).
+     */
+    func sleepFadePlan(positionMs: Int64, durationMs: Int64) throws  -> SleepFadePlan
+    
+    /**
+     * The running timer, or None. A timer of minutes that ended over a minute ago
+     * is cleared here (it ran out while the app was closed). No profile needed.
+     */
+    func sleepTimer() throws  -> SleepTimer?
+    
+    /**
+     * The player faded out and paused at the timer's end (or a song or album
+     * timer's last song finished). The open play is closed as ended by the system
+     * with `listened_ms` (0 when it was already reported finished), never as a
+     * skip; the queue stays where it is; the timer is cleared. When the person
+     * plays again, report `playback_started` for the song (a new play), not
+     * `playback_resumed`.
+     */
+    func sleepTimerEnded(listenedMs: Int64) throws 
+    
+    /**
+     * Start a mix from a widget, the Quick Settings tile or a shortcut: the same
+     * as the app's Play on a mix card (`mix(id).songs` played from the first, as
+     * `StartedFrom::Mix` with the mix's ID as context, shuffle off).
+     *
+     * `MixRef { kind: Id, mix_id }` plays that mix, pinned or in today's set. When
+     * it is gone (the daily set rotated, it was hidden or unpinned) it falls back
+     * to Next up.
+     *
+     * **Next up** is the first mix of today's set, in the set's order, that no
+     * play was started from since the set was made and that isn't the one
+     * playing now; when every mix was played, the set's first. "Today's set" is
+     * the one Home last built or fetched: this call never builds one and never
+     * calls the network. Under Learning off there is no set (as on Home). With no
+     * Next up, the first pinned mix plays; with none either, `NotFound`.
+     * Offline, only songs that can play join the queue (as `play`). Synchronous.
+     */
+    func playMix(mix: MixRef) throws  -> QueueState
+    
+    /**
+     * The open profile's widget snapshot, built now from local state: the same
+     * thing `<data_dir>/widgets/<profile_id>/snapshot.json` holds (the file may
+     * lag by about a second, and names only covers already saved). No network.
+     * There is no call for another profile's: the core never reads a profile that
+     * isn't open. Synchronous.
+     */
+    func widgetSnapshot() throws  -> WidgetSnapshot
+    
 }
 /**
  * The Encore core. Create one per app.
@@ -3916,6 +4003,170 @@ open func whyThisSong(songId: Int64)throws  -> WhyThisSong  {
 })
 }
     
+    /**
+     * Cancel timer (no confirmation): returns the timer it cancelled, for the
+     * "Timer cancelled" toast's Undo (`restore_sleep_timer`); None when none ran.
+     */
+open func cancelSleepTimer()throws  -> SleepTimer?  {
+    return try  FfiConverterOptionTypeSleepTimer.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_cancel_sleep_timer(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Add 15 min (or any `minutes`): the end moves on that much. A song or album
+     * timer becomes a timer of minutes ending that long after the song or album
+     * would have ended. `NotFound` when no timer runs.
+     */
+open func extendSleepTimer(minutes: UInt32)throws  -> SleepTimer  {
+    return try  FfiConverterTypeSleepTimer_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_extend_sleep_timer(
+            self.uniffiCloneHandle(),
+        FfiConverterUInt32.lower(minutes),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Undo a cancel: the timer `cancel_sleep_timer` returned comes back as it
+     * was. The 5 s Undo window is the app's. A timer whose end has passed is
+     * refused (`NotAllowed`).
+     */
+open func restoreSleepTimer(timer: SleepTimer)throws  -> SleepTimer  {
+    return try  FfiConverterTypeSleepTimer_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_restore_sleep_timer(
+            self.uniffiCloneHandle(),
+        FfiConverterTypeSleepTimer_lower(timer),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Start the sleep timer, replacing any other (board 31). Minutes: it ends
+     * `spec.minutes` from now (1 to 1,440), fading out over the last `fade_ms`.
+     * EndOfSong and EndOfAlbum: the music plays to the end of the song or album,
+     * then pauses, with no fade; they need something in the queue (`NotAllowed`)
+     * and an open profile. `SleepTimerChanged` follows.
+     */
+open func setSleepTimer(spec: SleepTimerSpec)throws  -> SleepTimer  {
+    return try  FfiConverterTypeSleepTimer_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_set_sleep_timer(
+            self.uniffiCloneHandle(),
+        FfiConverterTypeSleepTimerSpec_lower(spec),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Testing only: a timer of `seconds` (Minutes mode), so emulator and device
+     * tests can run a 15 s timer. Apps never offer it.
+     */
+open func setSleepTimerSeconds(seconds: UInt32)throws  -> SleepTimer  {
+    return try  FfiConverterTypeSleepTimer_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_set_sleep_timer_seconds(
+            self.uniffiCloneHandle(),
+        FfiConverterUInt32.lower(seconds),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * The fade rule, the same on every platform. Call it from the player's tick
+     * (about once a second) with the current song's position and length; it says
+     * whether to play on, fade now, or fade into the song's end and stop there.
+     * Song and album timers never fade (KeepPlaying).
+     */
+open func sleepFadePlan(positionMs: Int64, durationMs: Int64)throws  -> SleepFadePlan  {
+    return try  FfiConverterTypeSleepFadePlan_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_sleep_fade_plan(
+            self.uniffiCloneHandle(),
+        FfiConverterInt64.lower(positionMs),
+        FfiConverterInt64.lower(durationMs),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * The running timer, or None. A timer of minutes that ended over a minute ago
+     * is cleared here (it ran out while the app was closed). No profile needed.
+     */
+open func sleepTimer()throws  -> SleepTimer?  {
+    return try  FfiConverterOptionTypeSleepTimer.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_sleep_timer(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * The player faded out and paused at the timer's end (or a song or album
+     * timer's last song finished). The open play is closed as ended by the system
+     * with `listened_ms` (0 when it was already reported finished), never as a
+     * skip; the queue stays where it is; the timer is cleared. When the person
+     * plays again, report `playback_started` for the song (a new play), not
+     * `playback_resumed`.
+     */
+open func sleepTimerEnded(listenedMs: Int64)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_sleep_timer_ended(
+            self.uniffiCloneHandle(),
+        FfiConverterInt64.lower(listenedMs),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * Start a mix from a widget, the Quick Settings tile or a shortcut: the same
+     * as the app's Play on a mix card (`mix(id).songs` played from the first, as
+     * `StartedFrom::Mix` with the mix's ID as context, shuffle off).
+     *
+     * `MixRef { kind: Id, mix_id }` plays that mix, pinned or in today's set. When
+     * it is gone (the daily set rotated, it was hidden or unpinned) it falls back
+     * to Next up.
+     *
+     * **Next up** is the first mix of today's set, in the set's order, that no
+     * play was started from since the set was made and that isn't the one
+     * playing now; when every mix was played, the set's first. "Today's set" is
+     * the one Home last built or fetched: this call never builds one and never
+     * calls the network. Under Learning off there is no set (as on Home). With no
+     * Next up, the first pinned mix plays; with none either, `NotFound`.
+     * Offline, only songs that can play join the queue (as `play`). Synchronous.
+     */
+open func playMix(mix: MixRef)throws  -> QueueState  {
+    return try  FfiConverterTypeQueueState_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_play_mix(
+            self.uniffiCloneHandle(),
+        FfiConverterTypeMixRef_lower(mix),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * The open profile's widget snapshot, built now from local state: the same
+     * thing `<data_dir>/widgets/<profile_id>/snapshot.json` holds (the file may
+     * lag by about a second, and names only covers already saved). No network.
+     * There is no call for another profile's: the core never reads a profile that
+     * isn't open. Synchronous.
+     */
+open func widgetSnapshot()throws  -> WidgetSnapshot  {
+    return try  FfiConverterTypeWidgetSnapshot_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_widget_snapshot(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
 
     
 }
@@ -4553,10 +4804,24 @@ public struct CoreEvent: Equatable, Hashable {
     public var handoff: HandoffInfo?
     public var remoteCommand: RemoteCommand?
     public var download: DownloadProgress?
+    /**
+     * Phase 9, WP2: `WidgetSnapshotChanged`'s profile.
+     */
+    public var widgetProfileId: String?
+    /**
+     * Phase 9, WP1: `SleepTimerChanged`'s timer (None: no timer now).
+     */
+    public var sleepTimer: SleepTimer?
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(kind: EventKind, queue: QueueState?, nowPlaying: QueueEntry?, preload: QueueEntry?, syncSourceId: Int64?, syncDone: Int64, syncTotal: Int64, syncStatus: SyncStatus?, remoteChange: RemoteChange?, credential: SourceToken?, outputDevices: OutputDevices?, device: OutputDevice?, handoff: HandoffInfo?, remoteCommand: RemoteCommand?, download: DownloadProgress?) {
+    public init(kind: EventKind, queue: QueueState?, nowPlaying: QueueEntry?, preload: QueueEntry?, syncSourceId: Int64?, syncDone: Int64, syncTotal: Int64, syncStatus: SyncStatus?, remoteChange: RemoteChange?, credential: SourceToken?, outputDevices: OutputDevices?, device: OutputDevice?, handoff: HandoffInfo?, remoteCommand: RemoteCommand?, download: DownloadProgress?, 
+        /**
+         * Phase 9, WP2: `WidgetSnapshotChanged`'s profile.
+         */widgetProfileId: String?, 
+        /**
+         * Phase 9, WP1: `SleepTimerChanged`'s timer (None: no timer now).
+         */sleepTimer: SleepTimer?) {
         self.kind = kind
         self.queue = queue
         self.nowPlaying = nowPlaying
@@ -4572,6 +4837,8 @@ public struct CoreEvent: Equatable, Hashable {
         self.handoff = handoff
         self.remoteCommand = remoteCommand
         self.download = download
+        self.widgetProfileId = widgetProfileId
+        self.sleepTimer = sleepTimer
     }
 
     
@@ -4604,7 +4871,9 @@ public struct FfiConverterTypeCoreEvent: FfiConverterRustBuffer {
                 device: FfiConverterOptionTypeOutputDevice.read(from: &buf), 
                 handoff: FfiConverterOptionTypeHandoffInfo.read(from: &buf), 
                 remoteCommand: FfiConverterOptionTypeRemoteCommand.read(from: &buf), 
-                download: FfiConverterOptionTypeDownloadProgress.read(from: &buf)
+                download: FfiConverterOptionTypeDownloadProgress.read(from: &buf), 
+                widgetProfileId: FfiConverterOptionString.read(from: &buf), 
+                sleepTimer: FfiConverterOptionTypeSleepTimer.read(from: &buf)
         )
     }
 
@@ -4624,6 +4893,8 @@ public struct FfiConverterTypeCoreEvent: FfiConverterRustBuffer {
         FfiConverterOptionTypeHandoffInfo.write(value.handoff, into: &buf)
         FfiConverterOptionTypeRemoteCommand.write(value.remoteCommand, into: &buf)
         FfiConverterOptionTypeDownloadProgress.write(value.download, into: &buf)
+        FfiConverterOptionString.write(value.widgetProfileId, into: &buf)
+        FfiConverterOptionTypeSleepTimer.write(value.sleepTimer, into: &buf)
     }
 }
 
@@ -6475,6 +6746,63 @@ public func FfiConverterTypeMixPage_lift(_ buf: RustBuffer) throws -> MixPage {
 #endif
 public func FfiConverterTypeMixPage_lower(_ value: MixPage) -> RustBuffer {
     return FfiConverterTypeMixPage.lower(value)
+}
+
+
+/**
+ * A mix chosen on a widget or a tile: `mix_id` is set for `Id`.
+ */
+public struct MixRef: Equatable, Hashable {
+    public var kind: MixRefKind
+    public var mixId: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(kind: MixRefKind, mixId: String?) {
+        self.kind = kind
+        self.mixId = mixId
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension MixRef: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeMixRef: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> MixRef {
+        return
+            try MixRef(
+                kind: FfiConverterTypeMixRefKind.read(from: &buf), 
+                mixId: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: MixRef, into buf: inout [UInt8]) {
+        FfiConverterTypeMixRefKind.write(value.kind, into: &buf)
+        FfiConverterOptionString.write(value.mixId, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMixRef_lift(_ buf: RustBuffer) throws -> MixRef {
+    return try FfiConverterTypeMixRef.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMixRef_lower(_ value: MixRef) -> RustBuffer {
+    return FfiConverterTypeMixRef.lower(value)
 }
 
 
@@ -8635,6 +8963,247 @@ public func FfiConverterTypeSkipTarget_lower(_ value: SkipTarget) -> RustBuffer 
 }
 
 
+/**
+ * The fade rule, the same on every platform: what to do at this moment.
+ */
+public struct SleepFadePlan: Equatable, Hashable {
+    public var action: SleepFadeAction
+    /**
+     * Where in the song the fade starts: StopAtSongEnd, possibly ahead of the
+     * position; FadeNow, the position given. 0 with KeepPlaying.
+     */
+    public var fadeFromMs: Int64
+    /**
+     * How long the fade lasts: the timer's `fade_ms` at most, less when the song
+     * or the timer ends sooner. 0 with KeepPlaying, and 0 (stop now) once the end
+     * has passed.
+     */
+    public var fadeMs: Int64
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(action: SleepFadeAction, 
+        /**
+         * Where in the song the fade starts: StopAtSongEnd, possibly ahead of the
+         * position; FadeNow, the position given. 0 with KeepPlaying.
+         */fadeFromMs: Int64, 
+        /**
+         * How long the fade lasts: the timer's `fade_ms` at most, less when the song
+         * or the timer ends sooner. 0 with KeepPlaying, and 0 (stop now) once the end
+         * has passed.
+         */fadeMs: Int64) {
+        self.action = action
+        self.fadeFromMs = fadeFromMs
+        self.fadeMs = fadeMs
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension SleepFadePlan: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSleepFadePlan: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SleepFadePlan {
+        return
+            try SleepFadePlan(
+                action: FfiConverterTypeSleepFadeAction.read(from: &buf), 
+                fadeFromMs: FfiConverterInt64.read(from: &buf), 
+                fadeMs: FfiConverterInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: SleepFadePlan, into buf: inout [UInt8]) {
+        FfiConverterTypeSleepFadeAction.write(value.action, into: &buf)
+        FfiConverterInt64.write(value.fadeFromMs, into: &buf)
+        FfiConverterInt64.write(value.fadeMs, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSleepFadePlan_lift(_ buf: RustBuffer) throws -> SleepFadePlan {
+    return try FfiConverterTypeSleepFadePlan.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSleepFadePlan_lower(_ value: SleepFadePlan) -> RustBuffer {
+    return FfiConverterTypeSleepFadePlan.lower(value)
+}
+
+
+/**
+ * The sleep timer. One per device, not per profile: it carries on through a
+ * profile switch, survives the app being closed, and ends when playback is
+ * handed to another device.
+ */
+public struct SleepTimer: Equatable, Hashable {
+    public var mode: SleepTimerMode
+    /**
+     * When it was set; Add 15 min keeps it (the sheet's bar runs from here to
+     * `ends_at_utc_ms`).
+     */
+    public var setUtcMs: Int64
+    /**
+     * When the music stops. Exact for Minutes. For EndOfSong and EndOfAlbum an
+     * estimate from the player's position and the songs' lengths, worked out
+     * again on every read.
+     */
+    public var endsAtUtcMs: Int64
+    /**
+     * EndOfSong and EndOfAlbum: the queue entry after which playback pauses, so
+     * don't preload past it. None for Minutes, or when nothing is queued.
+     */
+    public var stopAfterUid: Int64?
+    /**
+     * How long the fade lasts (`motion.timing.sleepTimerFadeOutMs`, 10 s).
+     */
+    public var fadeMs: Int64
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(mode: SleepTimerMode, 
+        /**
+         * When it was set; Add 15 min keeps it (the sheet's bar runs from here to
+         * `ends_at_utc_ms`).
+         */setUtcMs: Int64, 
+        /**
+         * When the music stops. Exact for Minutes. For EndOfSong and EndOfAlbum an
+         * estimate from the player's position and the songs' lengths, worked out
+         * again on every read.
+         */endsAtUtcMs: Int64, 
+        /**
+         * EndOfSong and EndOfAlbum: the queue entry after which playback pauses, so
+         * don't preload past it. None for Minutes, or when nothing is queued.
+         */stopAfterUid: Int64?, 
+        /**
+         * How long the fade lasts (`motion.timing.sleepTimerFadeOutMs`, 10 s).
+         */fadeMs: Int64) {
+        self.mode = mode
+        self.setUtcMs = setUtcMs
+        self.endsAtUtcMs = endsAtUtcMs
+        self.stopAfterUid = stopAfterUid
+        self.fadeMs = fadeMs
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension SleepTimer: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSleepTimer: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SleepTimer {
+        return
+            try SleepTimer(
+                mode: FfiConverterTypeSleepTimerMode.read(from: &buf), 
+                setUtcMs: FfiConverterInt64.read(from: &buf), 
+                endsAtUtcMs: FfiConverterInt64.read(from: &buf), 
+                stopAfterUid: FfiConverterOptionInt64.read(from: &buf), 
+                fadeMs: FfiConverterInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: SleepTimer, into buf: inout [UInt8]) {
+        FfiConverterTypeSleepTimerMode.write(value.mode, into: &buf)
+        FfiConverterInt64.write(value.setUtcMs, into: &buf)
+        FfiConverterInt64.write(value.endsAtUtcMs, into: &buf)
+        FfiConverterOptionInt64.write(value.stopAfterUid, into: &buf)
+        FfiConverterInt64.write(value.fadeMs, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSleepTimer_lift(_ buf: RustBuffer) throws -> SleepTimer {
+    return try FfiConverterTypeSleepTimer.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSleepTimer_lower(_ value: SleepTimer) -> RustBuffer {
+    return FfiConverterTypeSleepTimer.lower(value)
+}
+
+
+/**
+ * What `set_sleep_timer` starts. `minutes` counts for Minutes only (the sheet
+ * offers 5, 10, 15, 30, 45 and 60; 1 to 1,440 is accepted). A record, not an
+ * enum with data, so Dart gets the same shape.
+ */
+public struct SleepTimerSpec: Equatable, Hashable {
+    public var mode: SleepTimerMode
+    public var minutes: UInt32
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(mode: SleepTimerMode, minutes: UInt32) {
+        self.mode = mode
+        self.minutes = minutes
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension SleepTimerSpec: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSleepTimerSpec: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SleepTimerSpec {
+        return
+            try SleepTimerSpec(
+                mode: FfiConverterTypeSleepTimerMode.read(from: &buf), 
+                minutes: FfiConverterUInt32.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: SleepTimerSpec, into buf: inout [UInt8]) {
+        FfiConverterTypeSleepTimerMode.write(value.mode, into: &buf)
+        FfiConverterUInt32.write(value.minutes, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSleepTimerSpec_lift(_ buf: RustBuffer) throws -> SleepTimerSpec {
+    return try FfiConverterTypeSleepTimerSpec.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSleepTimerSpec_lower(_ value: SleepTimerSpec) -> RustBuffer {
+    return FfiConverterTypeSleepTimerSpec.lower(value)
+}
+
+
 public struct Song: Equatable, Hashable {
     public var id: Int64
     public var sourceId: Int64
@@ -9328,6 +9897,398 @@ public func FfiConverterTypeWhyThisSong_lift(_ buf: RustBuffer) throws -> WhyThi
 #endif
 public func FfiConverterTypeWhyThisSong_lower(_ value: WhyThisSong) -> RustBuffer {
     return FfiConverterTypeWhyThisSong.lower(value)
+}
+
+
+/**
+ * An album of the Recently played widget.
+ */
+public struct WidgetAlbum: Equatable, Hashable {
+    public var albumId: Int64
+    public var title: String
+    public var artist: String
+    /**
+     * A file name in the profile's `art/` folder; None: no cover saved.
+     */
+    public var cover: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(albumId: Int64, title: String, artist: String, 
+        /**
+         * A file name in the profile's `art/` folder; None: no cover saved.
+         */cover: String?) {
+        self.albumId = albumId
+        self.title = title
+        self.artist = artist
+        self.cover = cover
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension WidgetAlbum: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeWidgetAlbum: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> WidgetAlbum {
+        return
+            try WidgetAlbum(
+                albumId: FfiConverterInt64.read(from: &buf), 
+                title: FfiConverterString.read(from: &buf), 
+                artist: FfiConverterString.read(from: &buf), 
+                cover: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: WidgetAlbum, into buf: inout [UInt8]) {
+        FfiConverterInt64.write(value.albumId, into: &buf)
+        FfiConverterString.write(value.title, into: &buf)
+        FfiConverterString.write(value.artist, into: &buf)
+        FfiConverterOptionString.write(value.cover, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeWidgetAlbum_lift(_ buf: RustBuffer) throws -> WidgetAlbum {
+    return try FfiConverterTypeWidgetAlbum.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeWidgetAlbum_lower(_ value: WidgetAlbum) -> RustBuffer {
+    return FfiConverterTypeWidgetAlbum.lower(value)
+}
+
+
+/**
+ * A mix tile of the Mixes widget and the Quick Settings tile.
+ */
+public struct WidgetMix: Equatable, Hashable {
+    public var mixId: String
+    public var title: String
+    /**
+     * A file name in the profile's `art/` folder; None: no cover saved.
+     */
+    public var cover: String?
+    public var pinned: Bool
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(mixId: String, title: String, 
+        /**
+         * A file name in the profile's `art/` folder; None: no cover saved.
+         */cover: String?, pinned: Bool) {
+        self.mixId = mixId
+        self.title = title
+        self.cover = cover
+        self.pinned = pinned
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension WidgetMix: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeWidgetMix: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> WidgetMix {
+        return
+            try WidgetMix(
+                mixId: FfiConverterString.read(from: &buf), 
+                title: FfiConverterString.read(from: &buf), 
+                cover: FfiConverterOptionString.read(from: &buf), 
+                pinned: FfiConverterBool.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: WidgetMix, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.mixId, into: &buf)
+        FfiConverterString.write(value.title, into: &buf)
+        FfiConverterOptionString.write(value.cover, into: &buf)
+        FfiConverterBool.write(value.pinned, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeWidgetMix_lift(_ buf: RustBuffer) throws -> WidgetMix {
+    return try FfiConverterTypeWidgetMix.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeWidgetMix_lower(_ value: WidgetMix) -> RustBuffer {
+    return FfiConverterTypeWidgetMix.lower(value)
+}
+
+
+/**
+ * One profile's widget snapshot: what `<data_dir>/widgets/<profile_id>/
+ * snapshot.json` holds (schema 1; the file format is in CORE-API.md, Widgets).
+ * Under `Locked` and `Guest` everything but the profile ID, `reachable` and the
+ * time is empty.
+ */
+public struct WidgetSnapshot: Equatable, Hashable {
+    /**
+     * 1. A widget that finds a higher number shows "Open Encore".
+     */
+    public var schema: UInt32
+    public var profileId: String
+    public var privacy: WidgetPrivacy
+    public var song: WidgetSong?
+    /**
+     * The player's state when it last started, paused, resumed, seeked or
+     * changed song (never from progress ticks): the bar is an indicator.
+     */
+    public var isPlaying: Bool
+    public var positionMs: Int64
+    /**
+     * When `position_ms` was taken; while playing, add the time since. All
+     * three are 0 and false when no song plays now (`song.now_playing` false).
+     */
+    public var positionAtUtcMs: Int64
+    /**
+     * Newest pin first, up to 10.
+     */
+    public var pinnedMixes: [WidgetMix]
+    /**
+     * The first mix of today's set not played yet (see `play_mix`).
+     */
+    public var nextUp: WidgetMix?
+    /**
+     * Up to 8, newest first, from this profile's play log.
+     */
+    public var recentAlbums: [WidgetAlbum]
+    /**
+     * The media server could be reached when this was written: false shows
+     * "Saved mixes / Server not reachable".
+     */
+    public var reachable: Bool
+    public var writtenAtUtcMs: Int64
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * 1. A widget that finds a higher number shows "Open Encore".
+         */schema: UInt32, profileId: String, privacy: WidgetPrivacy, song: WidgetSong?, 
+        /**
+         * The player's state when it last started, paused, resumed, seeked or
+         * changed song (never from progress ticks): the bar is an indicator.
+         */isPlaying: Bool, positionMs: Int64, 
+        /**
+         * When `position_ms` was taken; while playing, add the time since. All
+         * three are 0 and false when no song plays now (`song.now_playing` false).
+         */positionAtUtcMs: Int64, 
+        /**
+         * Newest pin first, up to 10.
+         */pinnedMixes: [WidgetMix], 
+        /**
+         * The first mix of today's set not played yet (see `play_mix`).
+         */nextUp: WidgetMix?, 
+        /**
+         * Up to 8, newest first, from this profile's play log.
+         */recentAlbums: [WidgetAlbum], 
+        /**
+         * The media server could be reached when this was written: false shows
+         * "Saved mixes / Server not reachable".
+         */reachable: Bool, writtenAtUtcMs: Int64) {
+        self.schema = schema
+        self.profileId = profileId
+        self.privacy = privacy
+        self.song = song
+        self.isPlaying = isPlaying
+        self.positionMs = positionMs
+        self.positionAtUtcMs = positionAtUtcMs
+        self.pinnedMixes = pinnedMixes
+        self.nextUp = nextUp
+        self.recentAlbums = recentAlbums
+        self.reachable = reachable
+        self.writtenAtUtcMs = writtenAtUtcMs
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension WidgetSnapshot: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeWidgetSnapshot: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> WidgetSnapshot {
+        return
+            try WidgetSnapshot(
+                schema: FfiConverterUInt32.read(from: &buf), 
+                profileId: FfiConverterString.read(from: &buf), 
+                privacy: FfiConverterTypeWidgetPrivacy.read(from: &buf), 
+                song: FfiConverterOptionTypeWidgetSong.read(from: &buf), 
+                isPlaying: FfiConverterBool.read(from: &buf), 
+                positionMs: FfiConverterInt64.read(from: &buf), 
+                positionAtUtcMs: FfiConverterInt64.read(from: &buf), 
+                pinnedMixes: FfiConverterSequenceTypeWidgetMix.read(from: &buf), 
+                nextUp: FfiConverterOptionTypeWidgetMix.read(from: &buf), 
+                recentAlbums: FfiConverterSequenceTypeWidgetAlbum.read(from: &buf), 
+                reachable: FfiConverterBool.read(from: &buf), 
+                writtenAtUtcMs: FfiConverterInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: WidgetSnapshot, into buf: inout [UInt8]) {
+        FfiConverterUInt32.write(value.schema, into: &buf)
+        FfiConverterString.write(value.profileId, into: &buf)
+        FfiConverterTypeWidgetPrivacy.write(value.privacy, into: &buf)
+        FfiConverterOptionTypeWidgetSong.write(value.song, into: &buf)
+        FfiConverterBool.write(value.isPlaying, into: &buf)
+        FfiConverterInt64.write(value.positionMs, into: &buf)
+        FfiConverterInt64.write(value.positionAtUtcMs, into: &buf)
+        FfiConverterSequenceTypeWidgetMix.write(value.pinnedMixes, into: &buf)
+        FfiConverterOptionTypeWidgetMix.write(value.nextUp, into: &buf)
+        FfiConverterSequenceTypeWidgetAlbum.write(value.recentAlbums, into: &buf)
+        FfiConverterBool.write(value.reachable, into: &buf)
+        FfiConverterInt64.write(value.writtenAtUtcMs, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeWidgetSnapshot_lift(_ buf: RustBuffer) throws -> WidgetSnapshot {
+    return try FfiConverterTypeWidgetSnapshot.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeWidgetSnapshot_lower(_ value: WidgetSnapshot) -> RustBuffer {
+    return FfiConverterTypeWidgetSnapshot.lower(value)
+}
+
+
+/**
+ * The song a Now Playing widget shows: the one playing (or paused) now, else
+ * the last one played.
+ */
+public struct WidgetSong: Equatable, Hashable {
+    /**
+     * None when a last-played song has left the library.
+     */
+    public var songId: Int64?
+    public var title: String
+    public var artist: String
+    public var albumId: Int64?
+    public var albumTitle: String?
+    /**
+     * A file name in the profile's `art/` folder; None: no cover saved.
+     */
+    public var cover: String?
+    public var durationMs: Int64
+    /**
+     * True: the current song of a play in progress (playing or paused). False:
+     * the last song played; show it with a Play button.
+     */
+    public var nowPlaying: Bool
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * None when a last-played song has left the library.
+         */songId: Int64?, title: String, artist: String, albumId: Int64?, albumTitle: String?, 
+        /**
+         * A file name in the profile's `art/` folder; None: no cover saved.
+         */cover: String?, durationMs: Int64, 
+        /**
+         * True: the current song of a play in progress (playing or paused). False:
+         * the last song played; show it with a Play button.
+         */nowPlaying: Bool) {
+        self.songId = songId
+        self.title = title
+        self.artist = artist
+        self.albumId = albumId
+        self.albumTitle = albumTitle
+        self.cover = cover
+        self.durationMs = durationMs
+        self.nowPlaying = nowPlaying
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension WidgetSong: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeWidgetSong: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> WidgetSong {
+        return
+            try WidgetSong(
+                songId: FfiConverterOptionInt64.read(from: &buf), 
+                title: FfiConverterString.read(from: &buf), 
+                artist: FfiConverterString.read(from: &buf), 
+                albumId: FfiConverterOptionInt64.read(from: &buf), 
+                albumTitle: FfiConverterOptionString.read(from: &buf), 
+                cover: FfiConverterOptionString.read(from: &buf), 
+                durationMs: FfiConverterInt64.read(from: &buf), 
+                nowPlaying: FfiConverterBool.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: WidgetSong, into buf: inout [UInt8]) {
+        FfiConverterOptionInt64.write(value.songId, into: &buf)
+        FfiConverterString.write(value.title, into: &buf)
+        FfiConverterString.write(value.artist, into: &buf)
+        FfiConverterOptionInt64.write(value.albumId, into: &buf)
+        FfiConverterOptionString.write(value.albumTitle, into: &buf)
+        FfiConverterOptionString.write(value.cover, into: &buf)
+        FfiConverterInt64.write(value.durationMs, into: &buf)
+        FfiConverterBool.write(value.nowPlaying, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeWidgetSong_lift(_ buf: RustBuffer) throws -> WidgetSong {
+    return try FfiConverterTypeWidgetSong.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeWidgetSong_lower(_ value: WidgetSong) -> RustBuffer {
+    return FfiConverterTypeWidgetSong.lower(value)
 }
 
 
@@ -10893,6 +11854,17 @@ public enum EventKind: Equatable, Hashable {
      * `downloads.progressEveryMs`).
      */
     case downloadProgress
+    /**
+     * `widget_profile_id` is set: that profile's widget snapshot was rewritten,
+     * or deleted with the profile: redraw its widgets from the file.
+     */
+    case widgetSnapshotChanged
+    /**
+     * `sleep_timer` is set, or None when no timer runs any more: a timer was set,
+     * extended, cancelled, put back, ended (or went with the music to another
+     * device), or a song or album timer's stop point moved with the queue.
+     */
+    case sleepTimerChanged
 
 
 
@@ -10945,6 +11917,10 @@ public struct FfiConverterTypeEventKind: FfiConverterRustBuffer {
         case 15: return .downloadsChanged
         
         case 16: return .downloadProgress
+        
+        case 17: return .widgetSnapshotChanged
+        
+        case 18: return .sleepTimerChanged
         
         default: throw UniffiInternalError.unexpectedEnumCase
         }
@@ -11016,6 +11992,14 @@ public struct FfiConverterTypeEventKind: FfiConverterRustBuffer {
         
         case .downloadProgress:
             writeInt(&buf, Int32(16))
+        
+        
+        case .widgetSnapshotChanged:
+            writeInt(&buf, Int32(17))
+        
+        
+        case .sleepTimerChanged:
+            writeInt(&buf, Int32(18))
         
         }
     }
@@ -11648,6 +12632,81 @@ public func FfiConverterTypeMixKind_lift(_ buf: RustBuffer) throws -> MixKind {
 #endif
 public func FfiConverterTypeMixKind_lower(_ value: MixKind) -> RustBuffer {
     return FfiConverterTypeMixKind.lower(value)
+}
+
+
+
+/**
+ * Which mix `play_mix` starts.
+ */
+
+public enum MixRefKind: Equatable, Hashable {
+    
+    /**
+     * The mix named by `mix_id`; Next up when it is gone.
+     */
+    case id
+    /**
+     * Next up.
+     */
+    case nextUp
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension MixRefKind: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeMixRefKind: FfiConverterRustBuffer {
+    typealias SwiftType = MixRefKind
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> MixRefKind {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .id
+        
+        case 2: return .nextUp
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: MixRefKind, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .id:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .nextUp:
+            writeInt(&buf, Int32(2))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMixRefKind_lift(_ buf: RustBuffer) throws -> MixRefKind {
+    return try FfiConverterTypeMixRefKind.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMixRefKind_lower(_ value: MixRefKind) -> RustBuffer {
+    return FfiConverterTypeMixRefKind.lower(value)
 }
 
 
@@ -12852,6 +13911,181 @@ public func FfiConverterTypeSkipOrigin_lower(_ value: SkipOrigin) -> RustBuffer 
 
 
 
+/**
+ * What the player does now with the volume (`sleep_fade_plan`).
+ */
+
+public enum SleepFadeAction: Equatable, Hashable {
+    
+    /**
+     * Full volume: no timer, a song or album timer (they never fade), or the end
+     * isn't near yet.
+     */
+    case keepPlaying
+    /**
+     * This song ends inside the timer's last `fade_ms`: full volume until
+     * `fade_from_ms` into the song, then down to silence by its end. Don't start
+     * the next song: report this one `Finished` as usual, keep the next loaded
+     * and paused, then call `sleep_timer_ended(0)`.
+     */
+    case stopAtSongEnd
+    /**
+     * The timer ends while this song plays: fade to silence over `fade_ms`
+     * from now, pause, then call `sleep_timer_ended(listened_ms)`.
+     */
+    case fadeNow
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension SleepFadeAction: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSleepFadeAction: FfiConverterRustBuffer {
+    typealias SwiftType = SleepFadeAction
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SleepFadeAction {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .keepPlaying
+        
+        case 2: return .stopAtSongEnd
+        
+        case 3: return .fadeNow
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: SleepFadeAction, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .keepPlaying:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .stopAtSongEnd:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .fadeNow:
+            writeInt(&buf, Int32(3))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSleepFadeAction_lift(_ buf: RustBuffer) throws -> SleepFadeAction {
+    return try FfiConverterTypeSleepFadeAction.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSleepFadeAction_lower(_ value: SleepFadeAction) -> RustBuffer {
+    return FfiConverterTypeSleepFadeAction.lower(value)
+}
+
+
+
+/**
+ * How a sleep timer ends (PLAN-UX, "Sleep timer"; board 31).
+ */
+
+public enum SleepTimerMode: Equatable, Hashable {
+    
+    /**
+     * At a time: the music fades out over the last `fade_ms`, then pauses.
+     */
+    case minutes
+    /**
+     * When the current song ends; no fade.
+     */
+    case endOfSong
+    /**
+     * When the current album's last song in a row in the queue ends; no fade.
+     */
+    case endOfAlbum
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension SleepTimerMode: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSleepTimerMode: FfiConverterRustBuffer {
+    typealias SwiftType = SleepTimerMode
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SleepTimerMode {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .minutes
+        
+        case 2: return .endOfSong
+        
+        case 3: return .endOfAlbum
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: SleepTimerMode, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .minutes:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .endOfSong:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .endOfAlbum:
+            writeInt(&buf, Int32(3))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSleepTimerMode_lift(_ buf: RustBuffer) throws -> SleepTimerMode {
+    return try FfiConverterTypeSleepTimerMode.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSleepTimerMode_lower(_ value: SleepTimerMode) -> RustBuffer {
+    return FfiConverterTypeSleepTimerMode.lower(value)
+}
+
+
+
 
 public enum SongSort: Equatable, Hashable {
     
@@ -13398,6 +14632,92 @@ public func FfiConverterTypeTranscodeCodec_lower(_ value: TranscodeCodec) -> Rus
 }
 
 
+
+/**
+ * What a profile's widgets may show (PLAN-UX section 20; board 34, item 10).
+ */
+
+public enum WidgetPrivacy: Equatable, Hashable {
+    
+    /**
+     * The song, the mixes and the recent albums.
+     */
+    case normal
+    /**
+     * The profile has a PIN: "Profile is locked". No titles and no covers.
+     */
+    case locked
+    /**
+     * A Guest session is on: the neutral "Open Encore" card. No titles and no
+     * covers.
+     */
+    case guest
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension WidgetPrivacy: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeWidgetPrivacy: FfiConverterRustBuffer {
+    typealias SwiftType = WidgetPrivacy
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> WidgetPrivacy {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .normal
+        
+        case 2: return .locked
+        
+        case 3: return .guest
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: WidgetPrivacy, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .normal:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .locked:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .guest:
+            writeInt(&buf, Int32(3))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeWidgetPrivacy_lift(_ buf: RustBuffer) throws -> WidgetPrivacy {
+    return try FfiConverterTypeWidgetPrivacy.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeWidgetPrivacy_lower(_ value: WidgetPrivacy) -> RustBuffer {
+    return FfiConverterTypeWidgetPrivacy.lower(value)
+}
+
+
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
@@ -13929,6 +15249,30 @@ fileprivate struct FfiConverterOptionTypeRemoteSong: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterOptionTypeSleepTimer: FfiConverterRustBuffer {
+    typealias SwiftType = SleepTimer?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeSleepTimer.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeSleepTimer.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterOptionTypeSong: FfiConverterRustBuffer {
     typealias SwiftType = Song?
 
@@ -14041,6 +15385,54 @@ fileprivate struct FfiConverterOptionTypeTopResult: FfiConverterRustBuffer {
         switch try readInt(&buf) as Int8 {
         case 0: return nil
         case 1: return try FfiConverterTypeTopResult.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeWidgetMix: FfiConverterRustBuffer {
+    typealias SwiftType = WidgetMix?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeWidgetMix.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeWidgetMix.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeWidgetSong: FfiConverterRustBuffer {
+    typealias SwiftType = WidgetSong?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeWidgetSong.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeWidgetSong.read(from: &buf)
         default: throw UniffiInternalError.unexpectedOptionalTag
         }
     }
@@ -14942,6 +16334,56 @@ fileprivate struct FfiConverterSequenceTypeSyncResult: FfiConverterRustBuffer {
         return seq
     }
 }
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeWidgetAlbum: FfiConverterRustBuffer {
+    typealias SwiftType = [WidgetAlbum]
+
+    public static func write(_ value: [WidgetAlbum], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeWidgetAlbum.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [WidgetAlbum] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [WidgetAlbum]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeWidgetAlbum.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeWidgetMix: FfiConverterRustBuffer {
+    typealias SwiftType = [WidgetMix]
+
+    public static func write(_ value: [WidgetMix], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeWidgetMix.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [WidgetMix] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [WidgetMix]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeWidgetMix.read(from: &buf))
+        }
+        return seq
+    }
+}
 private let UNIFFI_RUST_FUTURE_POLL_READY: Int8 = 0
 private let UNIFFI_RUST_FUTURE_POLL_WAKE: Int8 = 1
 
@@ -15510,6 +16952,36 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_why_this_song() != 5198) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_cancel_sleep_timer() != 59983) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_extend_sleep_timer() != 50640) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_restore_sleep_timer() != 51894) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_set_sleep_timer() != 2397) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_set_sleep_timer_seconds() != 13879) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_sleep_fade_plan() != 34712) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_sleep_timer() != 55485) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_sleep_timer_ended() != 36852) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_play_mix() != 28226) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_widget_snapshot() != 10646) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_corelistener_on_event() != 61302) {
