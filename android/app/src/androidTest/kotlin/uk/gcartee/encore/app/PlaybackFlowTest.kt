@@ -15,7 +15,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.After
 import org.junit.Assume.assumeTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -60,7 +62,9 @@ class PlaybackFlowTest {
         val network = host.network()
         val quality = host.core.streamQuality(network)
         host.core.setStreamQuality(network, StreamQuality.ORIGINAL)
-        host.core.play(songs.map { it.id }, 0u, StartedFrom.ALBUM, null)
+        // History keeps what earlier tests played (play() moves the current song there), so
+        // only this run's entries count: play() gives the list new uids from here up.
+        val firstUid = host.core.play(songs.map { it.id }, 0u, StartedFrom.ALBUM, null).current!!.uid
         rule.runOnUiThread { PlaybackHub.playCurrent(rule.activity) }
         step("the first song plays", TIMEOUT) { host.core.queue().current?.song?.id == songs[0].id && playing() }
 
@@ -84,7 +88,7 @@ class PlaybackFlowTest {
             val queue = host.core.queue()
             assertEquals("still the second song: the queue didn't move on twice", songs[1].id, queue.current?.song?.id)
             assertEquals("the first song is the last one in History", songs[0].id, queue.history.last().song.id)
-            assertFalse("the second song isn't in History", queue.history.any { it.song.id == songs[1].id })
+            assertFalse("the second song isn't in History", queue.history.any { it.uid >= firstUid && it.song.id == songs[1].id })
             assertEquals("the player never said a song ended when it hadn't", 0, onMain { PlaybackHub.isConnected.value?.falseEnds ?: -1 })
 
             // The third song is already loaded, and Next goes to it.
@@ -179,7 +183,7 @@ class PlaybackFlowTest {
             assertEquals("Play started a new play", log.length() + 1, after.length())
             val ended = after.getJSONObject(after.length() - 2)
             assertEquals("still ended by the system after Play", "endedBySystem", ended.optString("end_reason"))
-            assertTrue("the new play is open", after.getJSONObject(after.length() - 1).isNull("end_reason"))
+            assertTrue("the new play is open", isOpen(after.getJSONObject(after.length() - 1)))
             rule.runOnUiThread { PlaybackHub.togglePlay(rule.activity) }
             step("paused again", TIMEOUT) { !playing() }
         } finally {
@@ -236,6 +240,32 @@ class PlaybackFlowTest {
             host.core.setStreamQuality(network, quality)
             onMain { controller.release() }
         }
+    }
+
+    /**
+     * A play still going. EXPORT-FORMAT.md says `end_reason` is null then, but the export
+     * writes the stored value, "inProgress" (encore-store export.rs reads the column as is).
+     */
+    private fun isOpen(play: org.json.JSONObject): Boolean =
+        play.isNull("end_reason") || play.optString("end_reason") == "inProgress"
+
+    /**
+     * Each test starts and ends quiet, whatever the one before left: no sleep timer, the
+     * player paused (a pause also stops any fade and puts the volume back).
+     */
+    @Before
+    fun startQuiet() = quiet()
+
+    @After
+    fun endQuiet() = quiet()
+
+    private fun quiet() {
+        if (replayUrl == null) return
+        val host = CoreHost.get(rule.activity)
+        runCatching { host.core.cancelSleepTimer() }
+        onMain { PlaybackHub.isConnected.value?.pause() }
+        runCatching { rule.waitUntil(TIMEOUT) { !playing() } }
+        runCatching { rule.waitUntil(TIMEOUT) { volume().let { it == 1f || it < 0f } } }
     }
 
     /** An album that streams, three songs or more (as the test above picks). */

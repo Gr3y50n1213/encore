@@ -32,7 +32,7 @@ Times are milliseconds since 1970 in UTC (`*_utc_ms`). A field the profile doesn
 | `title`, `artist`, `album`, `duration_ms` | The song as it was when played. |
 | `started_utc_ms`, `utc_offset_minutes` | When it started, and the clock's offset from UTC there and then. |
 | `listened_ms` | How much was actually heard. |
-| `end_reason` | `finished`, `skipped`, `pausedAbandoned`, `interrupted`, `error`, `endedBySystem`, or `null` while playing. |
+| `end_reason` | `finished`, `skipped`, `pausedAbandoned`, `interrupted`, `error`, `endedBySystem`, or `inProgress` while the play is still open (as stored; the import reads it back unchanged). |
 | `signal` | How a skip counts for smart picks (PLAN-PRODUCT section 21), one of `finished`, `skippedLate`, `skippedMid`, `skippedEarly`, `skippedUserPick`, `interruption`, `error`, `accident`, `tooSoon`, `system`, `pausedAbandoned`; `null` when not classified (plays from before Phase 3, or still playing). |
 | `origin` | What skipped it: `button`, `swipe`, `headset`, `car`, `lockScreen`, `keyboard`, `auto`, or `null`. |
 | `seeks` | How many times the listener moved within the song. |

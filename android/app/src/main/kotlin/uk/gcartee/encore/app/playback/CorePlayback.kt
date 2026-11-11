@@ -607,6 +607,10 @@ class CorePlayback(
             Log.i(TAG, "uid $startedUid finished (end of the player's list)")
             // Phase 9: decided on the stop point held before `playback_ended` moves it.
             val sleepStop = sleepStopsAfter(startedUid)
+            // Paused before the report: its NowPlaying can arrive inside the call (the
+            // collector runs on Main.immediate), and show() then loads the next song paused
+            // instead of playing it and having it loaded a second time just after.
+            if (sleepStop) exo.pause()
             val next = core.playbackEnded(EndReason.FINISHED, clock.listenedMs)
             startedUid = null
             if (sleepStop) {
@@ -856,7 +860,10 @@ class CorePlayback(
         fadeBase = null
         sleepFade.clear()
         sleepTimer = null
-        next?.let { load(it, play = false) }
+        // NowPlaying may have loaded it already (paused): load it only if it isn't.
+        next?.let {
+            if (currentUid() != it.uid) load(it, play = false) else if (exo.playWhenReady) exo.pause()
+        }
         runCatching { core.sleepTimerEnded(0L) }
         if (base != null) exo.volume = base
         Log.i(TAG, "sleep timer: stopped at the end of the song, next one loaded and paused")
