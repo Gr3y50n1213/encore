@@ -1623,6 +1623,8 @@ impl EncoreCore {
         }
         if changed {
             self.inner.emit_downloads_changed();
+            // Phase 9, WP2: the widgets' "Server not reachable" follows.
+            self.inner.widgets_soon();
         }
         Ok(())
     }

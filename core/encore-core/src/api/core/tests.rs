@@ -9,6 +9,10 @@ use encore_sources::{FixtureTransport, Transport};
 use super::*;
 
 mod downloads;
+// Phase 9, WP1.
+mod sleep;
+// Phase 9, WP2.
+mod widgets;
 
 const RECORDED: &str = include_str!("../../../../../tools/fixtures/jellyfin/recorded.json");
 

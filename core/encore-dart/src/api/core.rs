@@ -40,6 +40,12 @@ pub use encore_core::api::{
     DownloadKind, DownloadMarks, DownloadProgress, DownloadRun, DownloadSettings, DownloadState,
     DownloadStop, DownloadTarget, DownloadedItem, DownloadsOverview,
 };
+pub use encore_core::api::{
+    MixRef, MixRefKind, WidgetAlbum, WidgetMix, WidgetPrivacy, WidgetSnapshot, WidgetSong,
+};
+pub use encore_core::api::{
+    SleepFadeAction, SleepFadePlan, SleepTimer, SleepTimerMode, SleepTimerSpec,
+};
 
 use crate::frb_generated::StreamSink;
 
@@ -453,6 +459,8 @@ pub struct _CoreEvent {
     pub handoff: Option<HandoffInfo>,
     pub remote_command: Option<RemoteCommand>,
     pub download: Option<DownloadProgress>,
+    pub widget_profile_id: Option<String>,
+    pub sleep_timer: Option<SleepTimer>,
 }
 
 // Phase 8: downloads and offline.
@@ -827,6 +835,8 @@ pub enum _EventKind {
     RemoteState,
     DownloadsChanged,
     DownloadProgress,
+    WidgetSnapshotChanged,
+    SleepTimerChanged,
 }
 
 #[frb(mirror(ErrorKind))]
@@ -1044,6 +1054,109 @@ pub struct _SentEdits {
     pub waiting: u32,
 }
 
+// Phase 9, WP1: the sleep timer.
+
+#[frb(mirror(SleepTimerMode))]
+pub enum _SleepTimerMode {
+    Minutes,
+    EndOfSong,
+    EndOfAlbum,
+}
+
+#[frb(mirror(SleepTimerSpec))]
+pub struct _SleepTimerSpec {
+    pub mode: SleepTimerMode,
+    pub minutes: u32,
+}
+
+#[frb(mirror(SleepTimer))]
+pub struct _SleepTimer {
+    pub mode: SleepTimerMode,
+    pub set_utc_ms: i64,
+    pub ends_at_utc_ms: i64,
+    pub stop_after_uid: Option<i64>,
+    pub fade_ms: i64,
+}
+
+#[frb(mirror(SleepFadeAction))]
+pub enum _SleepFadeAction {
+    KeepPlaying,
+    StopAtSongEnd,
+    FadeNow,
+}
+
+#[frb(mirror(SleepFadePlan))]
+pub struct _SleepFadePlan {
+    pub action: SleepFadeAction,
+    pub fade_from_ms: i64,
+    pub fade_ms: i64,
+}
+
+// Phase 9, WP2: widgets and play_mix.
+
+#[frb(mirror(WidgetPrivacy))]
+pub enum _WidgetPrivacy {
+    Normal,
+    Locked,
+    Guest,
+}
+
+#[frb(mirror(WidgetSong))]
+pub struct _WidgetSong {
+    pub song_id: Option<i64>,
+    pub title: String,
+    pub artist: String,
+    pub album_id: Option<i64>,
+    pub album_title: Option<String>,
+    pub cover: Option<String>,
+    pub duration_ms: i64,
+    pub now_playing: bool,
+}
+
+#[frb(mirror(WidgetMix))]
+pub struct _WidgetMix {
+    pub mix_id: String,
+    pub title: String,
+    pub cover: Option<String>,
+    pub pinned: bool,
+}
+
+#[frb(mirror(WidgetAlbum))]
+pub struct _WidgetAlbum {
+    pub album_id: i64,
+    pub title: String,
+    pub artist: String,
+    pub cover: Option<String>,
+}
+
+#[frb(mirror(WidgetSnapshot))]
+pub struct _WidgetSnapshot {
+    pub schema: u32,
+    pub profile_id: String,
+    pub privacy: WidgetPrivacy,
+    pub song: Option<WidgetSong>,
+    pub is_playing: bool,
+    pub position_ms: i64,
+    pub position_at_utc_ms: i64,
+    pub pinned_mixes: Vec<WidgetMix>,
+    pub next_up: Option<WidgetMix>,
+    pub recent_albums: Vec<WidgetAlbum>,
+    pub reachable: bool,
+    pub written_at_utc_ms: i64,
+}
+
+#[frb(mirror(MixRefKind))]
+pub enum _MixRefKind {
+    Id,
+    NextUp,
+}
+
+#[frb(mirror(MixRef))]
+pub struct _MixRef {
+    pub kind: MixRefKind,
+    pub mix_id: Option<String>,
+}
+
 // ---------------------------------------------------------------- errors
 
 /// Every failure, flattened for Dart. `message` is the user-facing sentence;
@@ -1257,6 +1370,16 @@ impl Encore {
     #[frb(sync)]
     pub fn suggestion_stats(&self) -> Result<SuggestionStats, ApiError> {
         Ok(self.core.suggestion_stats()?)
+    }
+
+    // Phase 9, WP2: widgets
+    #[frb(sync)]
+    pub fn widget_snapshot(&self) -> Result<WidgetSnapshot, ApiError> {
+        Ok(self.core.widget_snapshot()?)
+    }
+    #[frb(sync)]
+    pub fn play_mix(&self, mix: MixRef) -> Result<QueueState, ApiError> {
+        Ok(self.core.play_mix(mix)?)
     }
 
     // Phase 4: profiles on this device (board 14)
@@ -1586,6 +1709,45 @@ impl Encore {
     #[frb(sync)]
     pub fn set_volume_level(&self, level: f64) -> Result<(), ApiError> {
         Ok(self.core.set_volume_level(level)?)
+    }
+
+    // Phase 9, WP1: the sleep timer (board 31)
+    #[frb(sync)]
+    pub fn set_sleep_timer(&self, spec: SleepTimerSpec) -> Result<SleepTimer, ApiError> {
+        Ok(self.core.set_sleep_timer(spec)?)
+    }
+    #[frb(sync)]
+    pub fn extend_sleep_timer(&self, minutes: u32) -> Result<SleepTimer, ApiError> {
+        Ok(self.core.extend_sleep_timer(minutes)?)
+    }
+    #[frb(sync)]
+    pub fn cancel_sleep_timer(&self) -> Result<Option<SleepTimer>, ApiError> {
+        Ok(self.core.cancel_sleep_timer()?)
+    }
+    #[frb(sync)]
+    pub fn restore_sleep_timer(&self, timer: SleepTimer) -> Result<SleepTimer, ApiError> {
+        Ok(self.core.restore_sleep_timer(timer)?)
+    }
+    #[frb(sync)]
+    pub fn sleep_timer(&self) -> Result<Option<SleepTimer>, ApiError> {
+        Ok(self.core.sleep_timer()?)
+    }
+    #[frb(sync)]
+    pub fn sleep_timer_ended(&self, listened_ms: i64) -> Result<(), ApiError> {
+        Ok(self.core.sleep_timer_ended(listened_ms)?)
+    }
+    #[frb(sync)]
+    pub fn sleep_fade_plan(
+        &self,
+        position_ms: i64,
+        duration_ms: i64,
+    ) -> Result<SleepFadePlan, ApiError> {
+        Ok(self.core.sleep_fade_plan(position_ms, duration_ms)?)
+    }
+    /// Testing only: a timer of `seconds`.
+    #[frb(sync)]
+    pub fn set_sleep_timer_seconds(&self, seconds: u32) -> Result<SleepTimer, ApiError> {
+        Ok(self.core.set_sleep_timer_seconds(seconds)?)
     }
 
     // playback reports

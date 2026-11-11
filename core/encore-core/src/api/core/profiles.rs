@@ -126,8 +126,9 @@ impl Inner {
         }
         let index = index.min(known.len() - 1);
         let items = Inner::new_items(&known, StartedFrom::Queue, None);
-        let mut pb = lock(&p.playback)?;
-        pb.queue.play(items, index);
+        lock(&p.playback)?.queue.play(items, index);
+        // Phase 9, WP1: the device's sleep timer now follows this queue.
+        self.sleep_queue_changed();
         Ok(())
     }
 
@@ -160,6 +161,8 @@ impl Inner {
     /// After a profile opened: its own queue comes back, paused. A Guest session
     /// doesn't outlive a profile opening (its queue never meets the next listener).
     pub(super) fn after_open(&self) -> Result<(), EncoreError> {
+        // This profile's widget snapshot catches up (Phase 9).
+        self.widgets_soon();
         if lock(&self.registry)?.state(GUEST_STARTED)?.is_some() {
             return self.end_guest_now();
         }
@@ -180,6 +183,8 @@ impl Inner {
         if !guest {
             let _ = self.save_queue();
         }
+        // Its widgets stop showing it as playing (Phase 9).
+        self.widgets_closing();
     }
 
     /// The Guest session, if one is going.
@@ -218,6 +223,8 @@ impl Inner {
                 pb.queue = crate::queue::Queue::new(now_ms() as u64);
             }
             self.restore_queue()?;
+            // Guest is over: the profile's widgets show it again (Phase 9).
+            self.widgets_soon();
         }
         Ok(())
     }
@@ -369,16 +376,24 @@ impl EncoreCore {
             )));
         }
         let salt = pin::new_salt();
-        let reg = lock(&self.inner.registry)?;
-        reg.ensure(&profile_id, now_ms())?;
-        reg.set_pin(&profile_id, &salt, &pin::hash(&salt, &new_pin))?;
+        {
+            let reg = lock(&self.inner.registry)?;
+            reg.ensure(&profile_id, now_ms())?;
+            reg.set_pin(&profile_id, &salt, &pin::hash(&salt, &new_pin))?;
+        }
+        // From now on its widgets say "Profile is locked": the snapshot loses its
+        // titles and covers at once, not a second later (Phase 9).
+        self.inner.widgets_now();
         Ok(())
     }
 
     /// Remove the open profile's PIN.
     pub fn remove_profile_pin(&self, profile_id: String) -> Result<(), EncoreError> {
         self.only_open(&profile_id)?;
-        Ok(lock(&self.inner.registry)?.clear_pin(&profile_id)?)
+        lock(&self.inner.registry)?.clear_pin(&profile_id)?;
+        // Its widgets show the profile again (Phase 9).
+        self.inner.widgets_soon();
+        Ok(())
     }
 
     /// The device's biometrics changed: every PIN is needed once before biometric
@@ -431,6 +446,9 @@ impl EncoreCore {
             // Files only this profile held go too (board 14: lists are per profile).
             let _ = self.inner.collect_download_garbage();
         }
+        // Its widget snapshot and covers go too; its widgets say "Profile removed"
+        // (Phase 9).
+        self.inner.remove_widgets(&profile_id);
         let reg = lock(&self.inner.registry)?;
         reg.remove(&profile_id)?;
         if reg.state(LAST_ACTIVE)?.as_deref() == Some(profile_id.as_str()) {
@@ -467,6 +485,8 @@ impl EncoreCore {
             pb.log.set_mode(&store, LogMode::Guest, listened, now)?;
             pb.queue = crate::queue::Queue::new(now as u64);
         }
+        // The widgets show the neutral "Open Encore" card at once (Phase 9).
+        self.inner.widgets_now();
         self.queue()
     }
 

@@ -1,6 +1,6 @@
 # Encore core API (the contract)
 
-**Version 6** (Phase 8, 8 November 2026). Core crate version `0.1.0`.
+**Version 7** (Phase 9, 11 November 2026). Core crate version `0.1.0`.
 
 This file is the only thing the platform tracks may rely on. Every public call, event and type of the core is listed here before a platform uses it. A change that breaks a platform gets a line under "Changes" and a request in `docs/requests/` that says what to change.
 
@@ -17,6 +17,8 @@ This file is the only thing the platform tracks may rely on. Every public call, 
 | 4 | 5 | Added, nothing removed. Smart picks: autoplay fills itself (`refresh_autoplay`, `set_autoplay`), `start_radio`, `smart_shuffle`, `why_this_song`, `more_like_this` / `fewer_like_this`, Not interested (`not_interested_song`, `not_interested_artist`, `remove_not_interested`, `not_interested_list`, `clear_not_interested`), `set_adventurousness` / `adventurousness`, `reset_suggestions`, `clear_listening_history`, `home`, `regenerate_mixes`, `mix`, `pin_mix`, `hide_mix`, `not_in_this_mix`, `save_mix_as_playlist`, `suggestion_stats`; their types. Private listening ends after 2 hours of silence. Queue entries the app chose (Autoplay, Smart shuffle) have `chosen_by` App. A platform that builds `QueueState` itself is unaffected. |
 | 5 | 7 | Added, nothing removed. Handoff and remote control (board 12): `output_devices`, `rename_device`, `hand_off_to`, `handoff_ready`, `handoff_failed`, `pull_from`, `dismiss_continue`, `remote_command`, `remote_queue`, `control_only`, `stop_remote_control`; the player reports `playback_paused`, `playback_resumed`, `set_volume_level`; types `OutputDevices`, `OutputDevice`, `OutputState`, `DeviceState`, `RemoteSong`, `HandoffInfo`, `RemoteCommand` (+ `RemoteCommandKind`), `RemoteQueue`, `RemoteQueueItem`. `CoreEvent` gains `output_devices`, `device`, `handoff`, `remote_command` and seven kinds (`DevicesChanged`, `ContinueAvailable`, `HandoffIncoming`, `HandoffConfirmed`, `HandoffFailed`, `RemoteCommand`, `RemoteState`). A platform that switches over every `EventKind` adds the seven; one that builds `CoreEvent` itself adds the fields. |
 | 6 | 8 | Added, nothing removed. Downloads and offline (boards 06, 08, 11, 13, 17, 20; docs/adr/core-0017): `download`, `remove_download`, `remove_all_downloads`, `pause_download`, `retry_failed_downloads`, `download_marks`, `downloads_overview`, `download_settings` / `set_download_settings`, `run_downloads` (async) / `stop_downloads`, `refresh_smart_downloads`, `remove_unplayed_downloads`, `set_connectivity`, `search_downloaded`; types `DownloadKind`, `DownloadTarget`, `DownloadState`, `DownloadedItem`, `DownloadMarks`, `DownloadStop`, `DownloadRun`, `DownloadProgress`, `DownloadSettings`, `DownloadsOverview`. `StreamInfo` gains `local` and `cache_key`; `CoreEvent` gains `download` and two kinds (`DownloadsChanged`, `DownloadProgress`). Offline, `play`, `play_next`, `add_to_up_next`, `smart_shuffle`, `jump_to` and `replay_from_history` refuse a song that can't play with `NotAllowed` ("Not downloaded…"), and the queue passes over such songs. A platform that builds `StreamInfo` or `CoreEvent` itself adds the fields; one that switches over every `EventKind` adds the two. |
+| 7 | 9 | Added, nothing removed. The sleep timer (PLAN-UX "Sleep timer"; board 31), one per device: `set_sleep_timer`, `extend_sleep_timer`, `cancel_sleep_timer`, `restore_sleep_timer` (Undo), `sleep_timer`, `sleep_timer_ended`, `sleep_fade_plan`, and `set_sleep_timer_seconds` (testing only); types `SleepTimer`, `SleepTimerSpec`, `SleepTimerMode`, `SleepFadePlan`, `SleepFadeAction`. `CoreEvent` gains `sleep_timer` and the kind `SleepTimerChanged`. The device registry (`device.sqlite`) gains the `sleep_timer` table. A handoff to another device ends this device's timer. A platform that builds `CoreEvent` itself adds the field; one that switches over every `EventKind` adds the kind. |
+| 7 | 9 | Also added, nothing removed. Widgets (PLAN-UX section 20; board 34): the core keeps a per-profile snapshot file, `<data_dir>/widgets/<profile_id>/snapshot.json` (schema 1) with cover thumbnails in `art/`, for widgets that never open the database or call the network; `widget_snapshot()` reads the open profile's; `play_mix(mix)` starts a mix or Next up. Types `WidgetSnapshot`, `WidgetSong`, `WidgetMix`, `WidgetAlbum`, `WidgetPrivacy`, `MixRef`, `MixRefKind`. `CoreEvent` gains `widget_profile_id` and the kind `WidgetSnapshotChanged`. Removing a profile also deletes its widget folder. A platform that builds `CoreEvent` itself adds the field; one that switches over every `EventKind` adds the kind. |
 
 ## How every platform gets the core
 
@@ -323,6 +325,79 @@ The core decides what to keep and fetches it itself, over its own client (pinned
 
 `stream_for` returns the saved file (`local` true, a `file://` URL, no headers) for a downloaded song, online or not; `cache_key` names the song for the player's rolling cache without any token. `artwork` returns the kept cover (a `file://` URL) for a downloaded album and its songs, so covers show offline, on the lock screen and in the car.
 
+### Sleep timer (PLAN-UX "Sleep timer"; board 31; Phase 9)
+
+The core owns the timer: its end, where a song or album timer stops in the queue, the fade rule, and how the play log reads the end (ended by the system, never a skip). The platform runs the clock, the fade (`motion.timing.sleepTimerFadeOutMs`, 10 s) and the card. There is one timer per device, kept in the device registry (`device.sqlite`), not in a profile: it names no profile and nothing played, carries on through a profile switch and with no profile open, and survives the app being closed. A handoff to another device ends it (`SleepTimerChanged` with no timer comes just before `HandoffConfirmed`). Every call is synchronous; none needs the network.
+
+| Call | Returns | Notes |
+| --- | --- | --- |
+| `set_sleep_timer(spec)` | `SleepTimer` | Start one, replacing any other. `SleepTimerSpec { mode, minutes }`: Minutes (5, 10, 15, 30, 45 or 60 on the sheet; 1 to 1,440 accepted, else `NotAllowed`) ends `minutes` from now and fades; EndOfSong and EndOfAlbum play to the end and pause with no fade, and need an open profile (`NoProfile`) with something in the queue (`NotAllowed`, "Play something first"). The sheet's "Music pauses at …" is `ends_at_utc_ms`. |
+| `extend_sleep_timer(minutes)` | `SleepTimer` | Add 15 min: the end moves on `minutes`; `set_utc_ms` stays, so the bar shows it at once. A song or album timer becomes Minutes, ending that long after the song or album would have ended. `NotFound` with no timer; `NotAllowed` past 24 hours from now. |
+| `cancel_sleep_timer()` | `SleepTimer?` | Cancel timer, no confirmation. Returns the cancelled timer for "Timer cancelled" with Undo for 5 s (`undoToastMs`, the app's window); null when none ran. |
+| `restore_sleep_timer(timer)` | `SleepTimer` | Undo: the cancelled timer comes back as it was. A timer whose end has passed is refused (`NotAllowed`). |
+| `sleep_timer()` | `SleepTimer?` | The running timer. A Minutes timer that ended over a minute ago is cleared here (it ran out while the app was closed); a paused play it left open is closed as ended by the system. |
+| `sleep_fade_plan(position_ms, duration_ms)` | `SleepFadePlan` | The fade rule, the same on every platform. Call it from the player's tick (about once a second) with the current song's position and length (0: unknown). `action`: **KeepPlaying** (no timer, a song or album timer, or the end isn't near); **FadeNow**: fade to silence over `fade_ms` from now (10 s, or what is left; 0 once the end has passed: stop now), pause, then `sleep_timer_ended(listened_ms)`; **StopAtSongEnd**: the song ends inside the last 10 s, so keep full volume until `fade_from_ms` into the song, fade over `fade_ms` to its end, don't start the next song (report this one `Finished` as usual, keep the next loaded and paused), then `sleep_timer_ended(0)`. |
+| `sleep_timer_ended(listened_ms)` | – | The music faded out and paused at the end (or a song or album timer's last song finished: pass 0 after reporting it `Finished`). The open play is closed as ended by the system (signal `system`), never a skip, with `listened_ms`; the queue stays where it is; the timer is cleared (`SleepTimerChanged`). When the person presses Play again, report `playback_started` for the song (a new play), not `playback_resumed`. |
+| `set_sleep_timer_seconds(seconds)` | `SleepTimer` | **Testing only**, for emulator and device tests (a 15 s timer). A Minutes timer of `seconds`. Apps never offer it. |
+
+**End of song and End of album.** `stop_after_uid` names the queue entry after which playback pauses: don't preload past it (ignore `Preload` for the entry after it), and when it ends, pause with the next song loaded, report the song `Finished`, then call `sleep_timer_ended(0)`. Act on the uid you held when the song ended: the stop point follows the queue, so it moves once `playback_ended` advances it. End of song is the current entry. End of album is the last of the current album's songs that follow it in a row in the order they will play: Up Next (in the shuffled order when shuffle is on), then Autoplay; with Repeat All it stops at the end of Up Next; with Repeat One, or for a song on no album, it is the current entry; songs that can't play offline are passed over. It is worked out again after every queue change (a skip, an edit, shuffle, repeat, an Autoplay refill, a profile's queue loading, an incoming handoff), and `SleepTimerChanged` says so. Their `ends_at_utc_ms` is an estimate: what is left of the current song from the player's last reported position, plus the songs up to the stop point; read `sleep_timer()` again when you need it fresh.
+
+**When the end comes while paused** (the player's tick doesn't run), call `sleep_timer_ended` with the paused song's listened time, or the next `playback_started` does the same for you: a Minutes timer whose end has passed while the player was paused closes that play as ended by the system before the new one starts.
+
+### Widgets (PLAN-UX section 20; board 34; Phase 9)
+
+A widget never opens the database, never calls the network and never starts the core. It reads one small file per profile that the core keeps up to date while the app runs: `<data_dir>/widgets/<profile_id>/snapshot.json`, with cover thumbnails beside it in `art/`. On Android, Glance reads it from the app's files folder; on Windows the widget provider reads the same file (board 34, item 10). Nothing else in `<data_dir>` is for widgets.
+
+| Call | Returns | Notes |
+| --- | --- | --- |
+| `widget_snapshot()` | `WidgetSnapshot` | The open profile's snapshot, built now from local state (the file may lag by about a second, and names only covers already saved). There is no call for another profile's: the core never reads a profile that isn't open, so a widget set to another profile reads that profile's file. Synchronous. |
+| `play_mix(mix)` | `QueueState` | A widget's or the Quick Settings tile's tap. `MixRef { kind, mix_id? }`: `Id` plays that mix (pinned or in today's set) and falls back to Next up when it is gone (the set rotated, it was hidden or unpinned); `NextUp` plays Next up. With no Next up, the first pinned mix plays; with none either, `NotFound` ("No mix yet: mixes build as you listen"). The same as Play on a mix card: the mix's songs from the first, `StartedFrom::Mix` with the mix ID as context, shuffle off; offline, only songs that can play. Never builds a set, never calls the network. Synchronous. |
+
+**Next up** is the first mix of today's set, in the set's order, that no play was started from since the set was made and that isn't the one playing now; when every mix was played, the set's first. "Today's set" is the one Home last built or fetched (`home`, `regenerate_mixes`). Under Learning off there is no set, as on Home, so no Next up.
+
+**When the file is written.** Within about a second of a change, a burst of changes being one write: the player's reports (`playback_started`, `playback_paused`, `playback_resumed`, `playback_seeked`, `playback_ended`; never `playback_progress`), a queue change that changes the current song, a handoff away, `pin_mix`, `hide_mix`, `not_in_this_mix`, `home` and `regenerate_mixes` (today's set), `reset_suggestions`, `remove_profile_pin`, `end_guest`, `set_listening_mode`, `set_connectivity`, `sign_out` and `remove_server` (reachability), `sync_library`, and a profile opening. **At once**, before the call returns: `set_profile_pin`, `start_guest` (and `set_listening_mode(Guest)`) and `clear_listening_history`, so the history is gone from the file before anything can read it; and a profile closing (a switch, a removal, a restore), written as not playing. Every write is atomic (a temporary file, then a rename) and followed by `WidgetSnapshotChanged` with the profile's ID: redraw that profile's widgets. `remove_profile_from_device` and `delete_profile_everywhere` delete the profile's widget folder and send the same event; the widget then finds no file and says "Profile removed / Choose a profile".
+
+**Covers.** About 256 px, fetched by the core through its own client while the app runs (pinned self-signed servers work), stored as the server sends them (JPEG or PNG; decode by content, not by name), and named by a hash of the album, its artwork tag and the size, so the name says nothing about the album and a changed cover gets a new file. Offline, a downloaded album's kept cover is copied instead. A cover the snapshot no longer names is deleted at the next write. A cover not saved yet is null; the snapshot is written again once it is.
+
+**Privacy.** The file holds nothing a widget may not show:
+
+- **A profile with a PIN**: `privacy` is `locked` from the moment `set_profile_pin` returns, with no song, no mixes, no albums and no covers (the `art/` folder is emptied). Show "Profile is locked" with Open Encore.
+- **Guest**: `privacy` is `guest`, with the same emptiness. Show the neutral Open Encore card.
+- **Private listening and Learning off** record no plays, so the song stays the last one played before them and the recent albums don't change; nothing shows as playing now.
+- **Clear listening history** empties the song and the recent albums at once.
+- The file is the profile's own: another profile's listening is never in it. The lock-screen rules (history never on a locked screen, "Hide listening history while locked") are the platform's, from `privacy`, `song.now_playing` and its own setting.
+
+**Format (schema 1).** UTF-8 JSON, camelCase keys. Covers are file names in `art/` beside the file. `recap` is reserved for the Recap widget (Phase 11) and is always null for now. A widget that finds a `schema` above 1 shows Open Encore. Made-up example:
+
+```json
+{
+  "schema": 1,
+  "profileId": "jf-0123456789abcdef",
+  "privacy": "normal",
+  "song": {
+    "songId": 412, "title": "Slow Tide", "artist": "Ember Cove",
+    "albumId": 37, "albumTitle": "Golden Hour Static",
+    "cover": "5d41402abc4b2a76b9719d911017c592.img",
+    "durationMs": 222000, "nowPlaying": true
+  },
+  "isPlaying": true,
+  "positionMs": 84000,
+  "positionAtUtcMs": 1794470400000,
+  "pinnedMixes": [
+    { "mixId": "mix-20403-strongest", "title": "Evening Drive", "cover": "7d793037a0760186574b0282f2f435e7.img", "pinned": true }
+  ],
+  "nextUp": { "mixId": "mix-20403-timeOfDay", "title": "Rainy Focus", "cover": null, "pinned": false },
+  "recentAlbums": [
+    { "albumId": 37, "title": "Golden Hour Static", "artist": "Ember Cove", "cover": "5d41402abc4b2a76b9719d911017c592.img" }
+  ],
+  "reachable": true,
+  "writtenAtUtcMs": 1794470400120,
+  "recap": null
+}
+```
+
+Under `locked` and `guest`, `song` and `nextUp` are null and the lists empty. `isPlaying`, `positionMs` and `positionAtUtcMs` are written on start, pause, resume, seek and song change only: while playing, the position now is `positionMs + (now - positionAtUtcMs)`, an indicator for the bar, not a clock. `song.nowPlaying` false means the last song played: show it with Play (the position fields are then 0). A snapshot that changed only in its time isn't written again. `pinnedMixes` is newest pin first, up to 10; `recentAlbums` up to 8, newest first, from the profile's play log. `reachable` false (offline, signed out, or the server ended the sign-in) shows "Saved mixes / Server not reachable". A file whose `writtenAtUtcMs` is over 24 hours old dims and says Open Encore to refresh. No song, no mixes and no albums is "Nothing yet / Mixes build as you listen".
+
 ## Events
 
 `set_listener(listener)` in Swift and Kotlin (implement `CoreListener.on_event`), `events()` in Dart (a `Stream<CoreEvent>`). One listener at a time: setting a new one replaces the old. `clear_listener()` (Swift, Kotlin) and `stopEvents()` (Dart) stop events. In Dart, `stopEvents()` is what ends the stream: cancelling a subscription alone does not, because the core still holds the stream. One `CoreEvent` record; only the fields its `kind` names are set.
@@ -345,6 +420,8 @@ The core decides what to keep and fetches it itself, over its own client (pinned
 | `RemoteState` | `device` | The device you control changed |
 | `DownloadsChanged` | – | What is downloaded or playable changed: read `download_marks` again |
 | `DownloadProgress` | `download`: `item_title`, `item_saved`, `item_total`, `song_title`, `songs_done`, `songs_total`, `bytes_done`, `bytes_total?` | The transfer moved on (at most every `downloads.progressEveryMs`): the progress notification and the ring |
+| `SleepTimerChanged` | `sleep_timer` (null: no timer now) | The sleep timer was set, extended, cancelled, put back or ended (also by a handoff, or found run out), or a song or album timer's stop point moved with the queue: update the card, the sheet and where preloading stops |
+| `WidgetSnapshotChanged` | `widget_profile_id` | That profile's widget snapshot was rewritten, or deleted with the profile: redraw its widgets from the file (Phase 9) |
 
 ## Types
 
@@ -383,8 +460,15 @@ All are plain records and enums. IDs and times are 64-bit signed integers (milli
 | `QueueState` | `history`, `current?`, `up_next`, `autoplay`, `shuffle`, `repeat`, `autoplay_enabled`, `can_undo` |
 | `StreamInfo` | `song_id`, `url`, `url_with_api_key`, `headers: [HttpHeader { name, value }]`, `may_transcode`, `local` (a downloaded file), `cache_key` |
 | `DownloadTarget` / `DownloadedItem` / `DownloadMarks` / `DownloadsOverview` / `DownloadSettings` / `DownloadRun` / `DownloadProgress` | see "Downloads and offline" |
+| `SleepTimer` | `mode`, `set_utc_ms`, `ends_at_utc_ms` (exact for Minutes, estimated for EndOfSong and EndOfAlbum), `stop_after_uid?` (EndOfSong and EndOfAlbum), `fade_ms` |
+| `SleepTimerSpec` / `SleepTimerMode` | `mode`, `minutes` (Minutes only) / Minutes, EndOfSong, EndOfAlbum |
+| `SleepFadePlan` / `SleepFadeAction` | `action`, `fade_from_ms`, `fade_ms` / KeepPlaying, StopAtSongEnd, FadeNow |
+| `WidgetSnapshot` | `schema` (1), `profile_id`, `privacy`, `song?`, `is_playing`, `position_ms`, `position_at_utc_ms`, `pinned_mixes`, `next_up?`, `recent_albums`, `reachable`, `written_at_utc_ms`; see "Widgets" (the file has the same fields in camelCase, plus `recap: null`) |
+| `WidgetSong` / `WidgetMix` / `WidgetAlbum` | `song_id?`, `title`, `artist`, `album_id?`, `album_title?`, `cover?`, `duration_ms`, `now_playing` / `mix_id`, `title`, `cover?`, `pinned` / `album_id`, `title`, `artist`, `cover?` (`cover` is a file name in the profile's `art/` folder) |
+| `WidgetPrivacy` | Normal, Locked (a PIN), Guest |
+| `MixRef` / `MixRefKind` | `kind`, `mix_id?` (for Id) / Id, NextUp |
 | `ArtworkRequest` | `url`, `headers` |
-| `CoreEvent` | `kind`, `queue?`, `now_playing?`, `preload?`, `sync_source_id?`, `sync_done`, `sync_total`, `sync_status?`, `remote_change?`, `credential?`, `output_devices?`, `device?`, `handoff?`, `remote_command?`, `download?` |
+| `CoreEvent` | `kind`, `queue?`, `now_playing?`, `preload?`, `sync_source_id?`, `sync_done`, `sync_total`, `sync_status?`, `remote_change?`, `credential?`, `output_devices?`, `device?`, `handoff?`, `remote_command?`, `download?`, `widget_profile_id?`, `sleep_timer?` (the last two from Phase 9) |
 | `SkipTarget` | `song?`, `end_of_queue` |
 | `SongLyrics` / `LyricLine` / `LyricWord` / `LyricBackground` / `LyricGap` / `Singer` | see "Lyrics" |
 | `ArtworkPalette` / `PaletteSwatch` | `scheme`, `base`, `stops`, `text`, `lowest_contrast`, `sampled` / `colour`, `share` |

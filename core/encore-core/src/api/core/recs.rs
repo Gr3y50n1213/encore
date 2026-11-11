@@ -551,6 +551,12 @@ impl Inner {
         Self::stored(store, PINNED_KEY).unwrap_or_default()
     }
 
+    /// Today's set as it was last built or fetched, without building one (None
+    /// before the first build). Widgets and `play_mix` read it (Phase 9).
+    pub(super) fn stored_mix_set(store: &Store) -> Option<recs::MixSet> {
+        Self::stored(store, MIX_SET_KEY)
+    }
+
     fn summary(
         &self,
         ids: &HashMap<String, i64>,
@@ -865,6 +871,8 @@ impl EncoreCore {
             serde_json::json!({ "epochUtcMs": now }),
         )?;
         *lock(&p.recs)? = None;
+        // Today's set is gone, so is Next up (Phase 9).
+        self.inner.widgets_soon();
         self.send_soon();
         Ok(())
     }
@@ -888,6 +896,8 @@ impl EncoreCore {
             serde_json::json!({ "beforeUtcMs": now }),
         )?;
         *lock(&p.recs)? = None;
+        // The widgets lose the history at once, not a second later (Phase 9).
+        self.inner.widgets_now();
         self.send_soon();
         Ok(n)
     }
@@ -899,7 +909,10 @@ impl EncoreCore {
         let inner = self.inner.clone();
         self.spawn(async move {
             let from_server = server_set(&inner, false).await;
-            tokio::task::block_in_place(|| home_of(&inner, false, from_server))
+            let home = tokio::task::block_in_place(|| home_of(&inner, false, from_server));
+            // Today's set may be new: Next up follows it (Phase 9).
+            inner.widgets_soon();
+            home
         })
         .await
     }
@@ -909,7 +922,10 @@ impl EncoreCore {
         let inner = self.inner.clone();
         self.spawn(async move {
             let from_server = server_set(&inner, true).await;
-            tokio::task::block_in_place(|| home_of(&inner, true, from_server))
+            let home = tokio::task::block_in_place(|| home_of(&inner, true, from_server));
+            // A new set: Next up follows it (Phase 9).
+            inner.widgets_soon();
+            home
         })
         .await
     }
@@ -965,7 +981,10 @@ impl EncoreCore {
                     })?;
             list.insert(0, m);
         }
-        Inner::store_json(&store, PINNED_KEY, &list)
+        Inner::store_json(&store, PINNED_KEY, &list)?;
+        // The Mixes widget and the tile show pins (Phase 9).
+        self.inner.widgets_soon();
+        Ok(())
     }
 
     /// Hide a mix from today's set (Undo: `unhide_mix`).
@@ -982,6 +1001,8 @@ impl EncoreCore {
             set.mixes.retain(|m| m.id != mix_id);
             Inner::store_json(&store, MIX_SET_KEY, &set)?;
         }
+        // Next up may have been this one (Phase 9).
+        self.inner.widgets_soon();
         Ok(())
     }
 
@@ -1004,6 +1025,8 @@ impl EncoreCore {
                 Inner::store_json(&store, MIX_SET_KEY, &set)?;
             }
         }
+        // A mix's cover may have been that song's (Phase 9).
+        self.inner.widgets_soon();
         self.feedback(song_id, false)
     }
 

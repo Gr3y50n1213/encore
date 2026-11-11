@@ -13,7 +13,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::{Result, StoreError};
 
-const MIGRATIONS: &[&str] = &[R1, R2];
+const MIGRATIONS: &[&str] = &[R1, R2, R3];
 
 const R1: &str = r#"
 CREATE TABLE profiles (
@@ -52,6 +52,29 @@ CREATE TABLE download_files (
     refs       INTEGER NOT NULL
 );
 "#;
+
+/// The sleep timer (Phase 9; board 31): one per device, not per profile, so it
+/// carries on through a profile switch. It names no profile and nothing that was
+/// played. `ends_at_utc_ms` is set for a timer of minutes; the end of a song or an
+/// album is worked out from the queue by encore-core when it is read.
+const R3: &str = r#"
+CREATE TABLE sleep_timer (
+    id              INTEGER PRIMARY KEY CHECK (id = 1),
+    mode            TEXT    NOT NULL,
+    set_utc_ms      INTEGER NOT NULL,
+    ends_at_utc_ms  INTEGER
+);
+"#;
+
+/// The device's sleep timer as stored (the rules are encore-core's).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SleepTimerRecord {
+    /// "minutes", "endOfSong" or "endOfAlbum".
+    pub mode: String,
+    pub set_utc_ms: i64,
+    /// Set for a timer of minutes.
+    pub ends_at_utc_ms: Option<i64>,
+}
 
 /// A downloaded file as the device knows it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -339,6 +362,40 @@ impl Registry {
         Ok(())
     }
 
+    /// The device's sleep timer, if one is set.
+    pub fn sleep_timer(&self) -> Result<Option<SleepTimerRecord>> {
+        Ok(self
+            .conn
+            .query_row(
+                "SELECT mode, set_utc_ms, ends_at_utc_ms FROM sleep_timer WHERE id = 1",
+                [],
+                |r| {
+                    Ok(SleepTimerRecord {
+                        mode: r.get(0)?,
+                        set_utc_ms: r.get(1)?,
+                        ends_at_utc_ms: r.get(2)?,
+                    })
+                },
+            )
+            .optional()?)
+    }
+
+    /// Set the sleep timer, replacing the one there was.
+    pub fn set_sleep_timer(&self, timer: &SleepTimerRecord) -> Result<()> {
+        self.conn.execute(
+            "INSERT INTO sleep_timer (id, mode, set_utc_ms, ends_at_utc_ms) VALUES (1, ?1, ?2, ?3)
+             ON CONFLICT (id) DO UPDATE SET mode = excluded.mode, set_utc_ms = excluded.set_utc_ms,
+                 ends_at_utc_ms = excluded.ends_at_utc_ms",
+            params![timer.mode, timer.set_utc_ms, timer.ends_at_utc_ms],
+        )?;
+        Ok(())
+    }
+
+    /// Clear the sleep timer. Returns whether there was one.
+    pub fn clear_sleep_timer(&self) -> Result<bool> {
+        Ok(self.conn.execute("DELETE FROM sleep_timer", [])? > 0)
+    }
+
     pub fn set_state(&self, key: &str, value: Option<&str>) -> Result<()> {
         match value {
             Some(v) => self.conn.execute(
@@ -391,6 +448,32 @@ mod tests {
         r.hold_download_file("j", "j.mp3", 5).unwrap();
         r.set_download_refs("j", 0).unwrap();
         assert!(r.download_files().unwrap().is_empty());
+    }
+
+    #[test]
+    fn the_sleep_timer_is_one_row_for_the_device() {
+        let r = Registry::open_in_memory().unwrap();
+        assert_eq!(r.sleep_timer().unwrap(), None);
+        r.set_sleep_timer(&SleepTimerRecord {
+            mode: "minutes".into(),
+            set_utc_ms: 10,
+            ends_at_utc_ms: Some(1_800_010),
+        })
+        .unwrap();
+        let song = SleepTimerRecord {
+            mode: "endOfSong".into(),
+            set_utc_ms: 20,
+            ends_at_utc_ms: None,
+        };
+        r.set_sleep_timer(&song).unwrap();
+        assert_eq!(
+            r.sleep_timer().unwrap(),
+            Some(song),
+            "a new timer replaces the old"
+        );
+        assert!(r.clear_sleep_timer().unwrap());
+        assert!(!r.clear_sleep_timer().unwrap(), "nothing left to clear");
+        assert_eq!(r.sleep_timer().unwrap(), None);
     }
 
     #[test]

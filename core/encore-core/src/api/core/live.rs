@@ -110,6 +110,18 @@ impl Live {
         drift && self.connected
     }
 
+    /// Phase 9, WP2: whether the player plays, the position it last reported and
+    /// when (UTC milliseconds; 0 before any report), for the widget snapshot.
+    pub(super) fn play_state(&self) -> (bool, i64, i64) {
+        (self.playing, self.position_ms, self.position_at_local_ms)
+    }
+
+    /// Phase 9, WP1: where the player is now (estimated since its last report) and
+    /// whether it plays, for the sleep timer.
+    pub(super) fn position_and_playing(&self, now: i64) -> (i64, bool) {
+        (self.position_now(now), self.playing)
+    }
+
     fn name_of(&self, id: &str) -> String {
         self.known
             .get(id)
@@ -259,6 +271,9 @@ impl Inner {
             }
         }
         self.publish_presence();
+        // Phase 9, WP2: the widgets' play state (never from progress ticks, which
+        // go through `note_position`).
+        self.widgets_soon();
     }
 
     fn output_list(&self, p: &Profile) -> OutputDevices {
@@ -509,6 +524,11 @@ impl Inner {
                     live.playing = false;
                 }
                 self.publish_presence();
+                // Phase 9, WP2: the widgets stop showing it as playing here.
+                self.widgets_soon();
+                // Phase 9, WP1: the sleep timer goes with the music (board 31): it
+                // ends here, before the app is told to fade out.
+                let _ = self.sleep_clear();
                 let mut e = CoreEvent::of(EventKind::HandoffConfirmed);
                 e.handoff = Some(self.handoff_info(&transfer_id, &to, name));
                 self.emit(e);
@@ -622,6 +642,8 @@ impl Inner {
         let mut e = CoreEvent::of(EventKind::NowPlaying);
         e.now_playing = state.current.clone();
         self.emit(e);
+        // Phase 9, WP1: a song or album timer here follows the queue that arrived.
+        self.sleep_queue_changed();
         let mut info = self.handoff_info(transfer_id, from, name);
         info.entry = Some(entry);
         info.position_ms = position;

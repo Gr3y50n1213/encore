@@ -531,7 +531,10 @@ fn the_mixes_come_from_the_companion_server_and_the_device_builds_them_without_i
 /// phone, a failed handoff leaves the phone playing, and a rename shows everywhere.
 #[test]
 fn playback_moves_between_devices_and_is_counted_once() {
-    use encore_core::api::{AlbumSort, DeviceState, OutputState, RemoteCommand, RemoteCommandKind};
+    use encore_core::api::{
+        AlbumSort, DeviceState, OutputState, RemoteCommand, RemoteCommandKind, SleepTimerMode,
+        SleepTimerSpec,
+    };
     let server_dir = temp_dir("server-handoff");
     let (addr, _server) = start_server(&server_dir);
     let url = format!("http://127.0.0.1:{}", addr.port());
@@ -632,6 +635,13 @@ fn playback_moves_between_devices_and_is_counted_once() {
             (info, pos)
         })
     };
+    // A sleep timer on the phone (Phase 9) goes with the music.
+    phone
+        .set_sleep_timer(SleepTimerSpec {
+            mode: SleepTimerMode::Minutes,
+            minutes: 30,
+        })
+        .unwrap();
     let mac_player = platform(mac.clone(), mac_events.clone(), 1, false);
     let tapped = Instant::now();
     block(phone.hand_off_to(mac_id.clone())).unwrap();
@@ -651,6 +661,11 @@ fn playback_moves_between_devices_and_is_counted_once() {
                 == EventKind::HandoffConfirmed)
             .is_some(),
         "the phone fades out"
+    );
+    assert_eq!(
+        phone.sleep_timer().unwrap(),
+        None,
+        "the phone's sleep timer ended with the handoff"
     );
     let q = mac.queue().unwrap();
     assert_eq!(q.current.unwrap().song.title, songs[0].title);

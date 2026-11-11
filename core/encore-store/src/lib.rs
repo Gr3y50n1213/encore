@@ -33,7 +33,7 @@ pub use export::{EXPORT_FORMAT, EXPORT_VERSION, ExportCounts, ExportHeader};
 pub use mirror::{ApplyStats, LOCAL_ITEM_PREFIX};
 pub use playlog::*;
 pub use recs::{FeedbackRow, NotInterestedRow, RecsPlayRow, RecsSongRow};
-pub use registry::{DownloadFileRecord, PinRecord, Registry, RegistryProfile};
+pub use registry::{DownloadFileRecord, PinRecord, Registry, RegistryProfile, SleepTimerRecord};
 pub use search::{LyricHit, SearchLimits, SearchResults, TopResult, fold_for_search};
 pub use sync::{Applied, CLEARED_KEY, EPOCH_KEY, InEvent, OutEvent, like_effect};
 

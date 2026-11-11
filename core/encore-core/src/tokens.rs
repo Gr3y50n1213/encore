@@ -46,6 +46,8 @@ pub struct Tokens {
     pub private_ends_after_ms: i64,
     pub confirm_over_songs: u32,
     pub downloads: Downloads,
+    /// The sleep timer's fade (Phase 9; `motion.timing.sleepTimerFadeOutMs`).
+    pub sleep_fade_ms: i64,
 }
 
 /// Downloads and the rolling cache (Phase 8; `downloads` in tokens.json).
@@ -198,6 +200,7 @@ fn parse() -> Tokens {
             too_soon_ms: num(&v, "smartPicks.tooSoonHours") as i64 * 3_600_000,
             coalesce_ms: num(&v, "gestures.playerSwipe.coalesceMs") as i64,
         },
+        sleep_fade_ms: num(&v, "motion.timing.sleepTimerFadeOutMs") as i64,
     }
 }
 

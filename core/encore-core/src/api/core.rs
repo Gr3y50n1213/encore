@@ -160,6 +160,8 @@ struct Inner {
     connectivity: Mutex<downloads::Connectivity>,
     /// The download run in progress, if any (Phase 8).
     transfers: Mutex<downloads::Transfers>,
+    /// Phase 9, WP2: the widget snapshot writer's wake-up and write lock.
+    widgets: widgets::Widgets,
 }
 
 /// The Encore core. Create one per app.
@@ -485,7 +487,11 @@ impl Inner {
             let mut e = CoreEvent::of(EventKind::NowPlaying);
             e.now_playing = state.current.clone();
             self.emit(e);
+            // Phase 9, WP2: now playing changed.
+            self.widgets_soon();
         }
+        // Phase 9, WP1: a song or album timer's stop point moves with the queue.
+        self.sleep_queue_changed();
         Ok((r, state))
     }
 
@@ -862,7 +868,7 @@ impl EncoreCore {
                 reason: format!("couldn't use the data folder ({e})"),
             }
         })?;
-        Ok(Arc::new(EncoreCore {
+        let core = Arc::new(EncoreCore {
             rt: Some(rt),
             inner: Arc::new(Inner {
                 config,
@@ -878,8 +884,12 @@ impl EncoreCore {
                 unlocked: Mutex::new(Default::default()),
                 connectivity: Mutex::new(Default::default()),
                 transfers: Mutex::new(Default::default()),
+                widgets: Default::default(),
             }),
-        }))
+        });
+        // Phase 9, WP2: the debounced widget snapshot writer.
+        widgets::start_writer(&core);
+        Ok(core)
     }
 }
 
@@ -1322,6 +1332,8 @@ impl EncoreCore {
             })?;
             // Files only this profile held go too.
             let _ = inner.collect_download_garbage();
+            // Phase 9, WP2: and its widget snapshot.
+            inner.remove_widgets(&profile_id);
             sync_loop::credential(&inner, String::new());
             Ok(())
         })
@@ -1551,6 +1563,8 @@ impl EncoreCore {
             }
             // Downloaded albums and playlists follow the library (Phase 8).
             let _ = inner.reconcile_downloads(&p, None);
+            // Phase 9, WP2: titles, covers and the server's reach may have changed.
+            inner.widgets_soon();
             Ok(results)
         })
         .await
@@ -1563,6 +1577,8 @@ impl EncoreCore {
         self.spawn(async move {
             let p = inner.profile()?;
             let source = lock(&p.sources)?.remove(&source_id);
+            // Phase 9, WP2: the widgets' "Server not reachable" follows.
+            inner.widgets_soon();
             if let Some(s) = source {
                 s.client.sign_out().await?;
             }
@@ -1579,6 +1595,8 @@ impl EncoreCore {
         lock(&p.store)?.remove_source(source_id)?;
         // Its downloads go with its index (board 18, item 2).
         self.inner.reconcile_downloads(&p, None)?;
+        // Phase 9, WP2: its songs and covers leave the widgets.
+        self.inner.widgets_soon();
         Ok(())
     }
 
@@ -2057,6 +2075,9 @@ impl EncoreCore {
     /// right now (east positive).
     pub fn playback_started(&self, uid: i64, utc_offset_minutes: i32) -> Result<(), EncoreError> {
         self.inner.guest_tick(true)?;
+        // Phase 9, WP1: a sleep timer that ran out while paused closes that play
+        // as ended by the system first, so this start can't make it a skip.
+        self.inner.sleep_before_start();
         let p = self.inner.profile()?;
         let mut pb = lock(&p.playback)?;
         let store = lock(&p.store)?;
@@ -2236,6 +2257,15 @@ impl EncoreCore {
         let listened = pb.last_listened_ms;
         pb.log.set_mode(&store, mode.into(), listened, now_ms())?;
         pb.private_last_activity_utc_ms = (mode == ListeningMode::Private).then(now_ms);
+        drop(store);
+        drop(pb);
+        // Phase 9, WP2: Guest empties the widgets at once; Private and Learning
+        // off stop updating now playing and last played.
+        if mode == ListeningMode::Guest {
+            self.inner.widgets_now();
+        } else {
+            self.inner.widgets_soon();
+        }
         Ok(())
     }
 
@@ -2772,9 +2802,13 @@ mod downloads;
 mod live;
 mod profiles;
 mod recs;
+// Phase 9, WP1: the sleep timer.
+mod sleep;
 mod sync_loop;
 #[cfg(test)]
 mod tests;
+// Phase 9, WP2: the widget snapshot and `play_mix`.
+mod widgets;
 
 /// A local path as a `file://` address for the player and the image loader.
 fn downloads_file_url(path: &Path) -> String {

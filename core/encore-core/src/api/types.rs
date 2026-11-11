@@ -1283,6 +1283,187 @@ pub struct DownloadsOverview {
     pub settings: DownloadSettings,
 }
 
+// ---------------------------------------------------------------- sleep timer (Phase 9, WP1)
+
+/// How a sleep timer ends (PLAN-UX, "Sleep timer"; board 31).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum SleepTimerMode {
+    /// At a time: the music fades out over the last `fade_ms`, then pauses.
+    Minutes,
+    /// When the current song ends; no fade.
+    EndOfSong,
+    /// When the current album's last song in a row in the queue ends; no fade.
+    EndOfAlbum,
+}
+
+/// What `set_sleep_timer` starts. `minutes` counts for Minutes only (the sheet
+/// offers 5, 10, 15, 30, 45 and 60; 1 to 1,440 is accepted). A record, not an
+/// enum with data, so Dart gets the same shape.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct SleepTimerSpec {
+    pub mode: SleepTimerMode,
+    pub minutes: u32,
+}
+
+/// The sleep timer. One per device, not per profile: it carries on through a
+/// profile switch, survives the app being closed, and ends when playback is
+/// handed to another device.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct SleepTimer {
+    pub mode: SleepTimerMode,
+    /// When it was set; Add 15 min keeps it (the sheet's bar runs from here to
+    /// `ends_at_utc_ms`).
+    pub set_utc_ms: i64,
+    /// When the music stops. Exact for Minutes. For EndOfSong and EndOfAlbum an
+    /// estimate from the player's position and the songs' lengths, worked out
+    /// again on every read.
+    pub ends_at_utc_ms: i64,
+    /// EndOfSong and EndOfAlbum: the queue entry after which playback pauses, so
+    /// don't preload past it. None for Minutes, or when nothing is queued.
+    pub stop_after_uid: Option<i64>,
+    /// How long the fade lasts (`motion.timing.sleepTimerFadeOutMs`, 10 s).
+    pub fade_ms: i64,
+}
+
+/// What the player does now with the volume (`sleep_fade_plan`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum SleepFadeAction {
+    /// Full volume: no timer, a song or album timer (they never fade), or the end
+    /// isn't near yet.
+    KeepPlaying,
+    /// This song ends inside the timer's last `fade_ms`: full volume until
+    /// `fade_from_ms` into the song, then down to silence by its end. Don't start
+    /// the next song: report this one `Finished` as usual, keep the next loaded
+    /// and paused, then call `sleep_timer_ended(0)`.
+    StopAtSongEnd,
+    /// The timer ends while this song plays: fade to silence over `fade_ms`
+    /// from now, pause, then call `sleep_timer_ended(listened_ms)`.
+    FadeNow,
+}
+
+/// The fade rule, the same on every platform: what to do at this moment.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct SleepFadePlan {
+    pub action: SleepFadeAction,
+    /// Where in the song the fade starts: StopAtSongEnd, possibly ahead of the
+    /// position; FadeNow, the position given. 0 with KeepPlaying.
+    pub fade_from_ms: i64,
+    /// How long the fade lasts: the timer's `fade_ms` at most, less when the song
+    /// or the timer ends sooner. 0 with KeepPlaying, and 0 (stop now) once the end
+    /// has passed.
+    pub fade_ms: i64,
+}
+
+// ---------------------------------------------------------------- widgets (Phase 9, WP2)
+
+/// What a profile's widgets may show (PLAN-UX section 20; board 34, item 10).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum WidgetPrivacy {
+    /// The song, the mixes and the recent albums.
+    Normal,
+    /// The profile has a PIN: "Profile is locked". No titles and no covers.
+    Locked,
+    /// A Guest session is on: the neutral "Open Encore" card. No titles and no
+    /// covers.
+    Guest,
+}
+
+/// The song a Now Playing widget shows: the one playing (or paused) now, else
+/// the last one played.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct WidgetSong {
+    /// None when a last-played song has left the library.
+    pub song_id: Option<i64>,
+    pub title: String,
+    pub artist: String,
+    pub album_id: Option<i64>,
+    pub album_title: Option<String>,
+    /// A file name in the profile's `art/` folder; None: no cover saved.
+    pub cover: Option<String>,
+    pub duration_ms: i64,
+    /// True: the current song of a play in progress (playing or paused). False:
+    /// the last song played; show it with a Play button.
+    pub now_playing: bool,
+}
+
+/// A mix tile of the Mixes widget and the Quick Settings tile.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct WidgetMix {
+    pub mix_id: String,
+    pub title: String,
+    /// A file name in the profile's `art/` folder; None: no cover saved.
+    pub cover: Option<String>,
+    pub pinned: bool,
+}
+
+/// An album of the Recently played widget.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct WidgetAlbum {
+    pub album_id: i64,
+    pub title: String,
+    pub artist: String,
+    /// A file name in the profile's `art/` folder; None: no cover saved.
+    pub cover: Option<String>,
+}
+
+/// One profile's widget snapshot: what `<data_dir>/widgets/<profile_id>/
+/// snapshot.json` holds (schema 1; the file format is in CORE-API.md, Widgets).
+/// Under `Locked` and `Guest` everything but the profile ID, `reachable` and the
+/// time is empty.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct WidgetSnapshot {
+    /// 1. A widget that finds a higher number shows "Open Encore".
+    pub schema: u32,
+    pub profile_id: String,
+    pub privacy: WidgetPrivacy,
+    pub song: Option<WidgetSong>,
+    /// The player's state when it last started, paused, resumed, seeked or
+    /// changed song (never from progress ticks): the bar is an indicator.
+    pub is_playing: bool,
+    pub position_ms: i64,
+    /// When `position_ms` was taken; while playing, add the time since. All
+    /// three are 0 and false when no song plays now (`song.now_playing` false).
+    pub position_at_utc_ms: i64,
+    /// Newest pin first, up to 10.
+    pub pinned_mixes: Vec<WidgetMix>,
+    /// The first mix of today's set not played yet (see `play_mix`).
+    pub next_up: Option<WidgetMix>,
+    /// Up to 8, newest first, from this profile's play log.
+    pub recent_albums: Vec<WidgetAlbum>,
+    /// The media server could be reached when this was written: false shows
+    /// "Saved mixes / Server not reachable".
+    pub reachable: bool,
+    pub written_at_utc_ms: i64,
+}
+
+/// Which mix `play_mix` starts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum MixRefKind {
+    /// The mix named by `mix_id`; Next up when it is gone.
+    Id,
+    /// Next up.
+    NextUp,
+}
+
+/// A mix chosen on a widget or a tile: `mix_id` is set for `Id`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct MixRef {
+    pub kind: MixRefKind,
+    pub mix_id: Option<String>,
+}
+
 // ---------------------------------------------------------------- events
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1332,6 +1513,15 @@ pub enum EventKind {
     /// `download` is set: the transfer moved on (at most every
     /// `downloads.progressEveryMs`).
     DownloadProgress,
+    // Phase 9, WP2 (widgets).
+    /// `widget_profile_id` is set: that profile's widget snapshot was rewritten,
+    /// or deleted with the profile: redraw its widgets from the file.
+    WidgetSnapshotChanged,
+    // Phase 9, WP1 (sleep timer).
+    /// `sleep_timer` is set, or None when no timer runs any more: a timer was set,
+    /// extended, cancelled, put back, ended (or went with the music to another
+    /// device), or a song or album timer's stop point moved with the queue.
+    SleepTimerChanged,
 }
 
 /// One event. Only the fields its `kind` names are set.
@@ -1353,6 +1543,10 @@ pub struct CoreEvent {
     pub handoff: Option<HandoffInfo>,
     pub remote_command: Option<RemoteCommand>,
     pub download: Option<DownloadProgress>,
+    /// Phase 9, WP2: `WidgetSnapshotChanged`'s profile.
+    pub widget_profile_id: Option<String>,
+    /// Phase 9, WP1: `SleepTimerChanged`'s timer (None: no timer now).
+    pub sleep_timer: Option<SleepTimer>,
 }
 
 impl CoreEvent {
@@ -1373,6 +1567,8 @@ impl CoreEvent {
             handoff: None,
             remote_command: None,
             download: None,
+            widget_profile_id: None,
+            sleep_timer: None,
         }
     }
 }

@@ -231,6 +231,17 @@ impl Store {
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
 
+    /// The mixes played from since `since_utc_ms`: the `context_id` of every play
+    /// started from a mix at or after it (Next up, Phase 9).
+    pub fn mixes_played_since(&self, since_utc_ms: i64) -> Result<Vec<String>> {
+        let mut st = self.conn.prepare_cached(
+            "SELECT DISTINCT context_id FROM play_events
+             WHERE started_from = 'mix' AND context_id IS NOT NULL AND started_utc_ms >= ?1",
+        )?;
+        let rows = st.query_map([since_utc_ms], |r| r.get::<_, String>(0))?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
     pub fn insert_lyric_jump(&self, j: &LyricJumpRecord) -> Result<()> {
         self.conn.execute(
             "INSERT INTO lyric_jumps (id, play_event_id, device_id, hlc, line_index, line_start_ms, at_utc_ms)
@@ -458,5 +469,31 @@ mod tests {
             .map(|e| e.id)
             .collect();
         assert_eq!(ids, ["B", "A"]);
+    }
+
+    #[test]
+    fn mixes_played_since_reads_only_mix_plays_in_the_window() {
+        let s = Store::open_in_memory().unwrap();
+        let mut a = event("A", "1762400000000-00000");
+        a.started_from = "mix".into();
+        a.context_id = Some("mix-1".into());
+        s.insert_play_event(&a).unwrap();
+        let mut b = event("B", "1762400300000-00000");
+        b.started_from = "mix".into();
+        b.context_id = Some("mix-2".into());
+        b.started_utc_ms = a.started_utc_ms + 300_000;
+        s.insert_play_event(&b).unwrap();
+        // An album play is not a mix play, whatever its context.
+        let mut c = event("C", "1762400600000-00000");
+        c.context_id = Some("mix-3".into());
+        c.started_utc_ms = a.started_utc_ms + 600_000;
+        s.insert_play_event(&c).unwrap();
+        let mut all = s.mixes_played_since(a.started_utc_ms).unwrap();
+        all.sort();
+        assert_eq!(all, ["mix-1", "mix-2"]);
+        assert_eq!(
+            s.mixes_played_since(a.started_utc_ms + 1).unwrap(),
+            ["mix-2"]
+        );
     }
 }
