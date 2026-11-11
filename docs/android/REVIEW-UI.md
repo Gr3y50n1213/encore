@@ -34,7 +34,7 @@
 | Track swipe end to start | Likes, past 40 % | Add to Queue, past 25 % | Board 42 |
 | Facing corners in a button group | 8 dp | 10 dp (tokens) | The tokens |
 | Queue toggles (board 11 render) | Shuffle on drawn as a circle, off as rounded squares | On is the rounded square, off round | Section 22 |
-| Search "Browse by mood" and Settings "Lyrics", "Downloads", "Lock screen and widgets", "Crossfade" (boards 07, 17) | Drawn | No core behind them yet (Phases 8 to 10) | Left out rather than shown doing nothing |
+| Search "Browse by mood" and Settings "Lyrics", "Downloads", "Lock screen and widgets", "Crossfade" (boards 07, 17) | Drawn | No core behind them yet (Phases 8 to 10) | Left out rather than shown doing nothing. Since then, Downloads (Phase 8) and Lock screen and widgets (Phase 9) are built |
 
 ## Second review against every board (7 November 2026)
 
@@ -96,9 +96,28 @@ Decisions the owner made after using the app with their own library, which overr
 | Dragging a song in the queue can't go further than the screen | The list scrolls on its own when the held row nears the top or bottom, faster the nearer it is, and a second finger can scroll the list while the first holds the row | Board 11, item 4 |
 | A real app icon | The repeat sign with round dots and pill bars, in Iris (ADR android-0004) | The placeholder note |
 
+## Phase 9 (widgets, controls and live surfaces), 11 November 2026
+
+| What | Decision | Against |
+| --- | --- | --- |
+| The sleep timer sheet, not running | Presets in rows (5, 10, 15, 30, 45, 60 minutes, then End of this song and End of this album), one line saying what will happen ("Music fades out over the last 10 seconds" or "Music stops after this song"), a Start button, and "Music pauses at ..." beneath it | Board 31's Android panel |
+| The sleep timer sheet, running | The time left, "Music fades out at ...", a wavy bar from when it was set to when it ends, Add 15 min and Cancel timer, and Change time with 15, 30, 45 and 60 minutes, End of song and End of album | Board 31's Android panel |
+| Cancel | No confirmation. The sheet closes, then "Timer cancelled" with Undo for 5 seconds | PLAN-UX section 20 and board 31, both satisfied |
+| The sheet opened from Now Playing | Takes the album's colors, like the other sheets opened there | The polish round's rule (9 November) |
+| Where the timer is set | Now Playing's More, Settings > Playback and quality (a row showing Off or "Ends at ..."), and a tap on the card | Board 31 |
+| Per device or per profile | Per device; it carries on through a profile switch | Board 31 item 5 says per profile; item 7 says switching needs no change |
+| Mixes widget and tile order | Next up first, then the pinned mixes, four at most, no mix twice. The tile starts the first pinned mix, else Next up | Board 34, which doesn't say what comes first |
+| "Hide listening history while locked" | On by default. On Android it decides whether Now Playing on the lock screen shows the last played song (on: only Play and the mix name) and whether the download notification is private on the lock screen. Mixes and Recently played never go on the lock screen either way | Board 31's row, which names only widgets and notifications |
+| The root Settings row | "Lock screen and widgets" is the fourth row of the first group, after Mixes and suggestions | Board 17's list |
+| The page's Live Update toggles | Turning one off stops promotion only. The timer or download goes on with a normal notification | Board 31 |
+| A widget set to another profile | Tapping opens the profile switcher instead of playing | Board 34 |
+| Quick Settings tile "Add" | A button on the page from Android 13; below that, a line saying where to add it | Board 31 |
+
 ## Not built yet, and why
 
-- Android Auto on a real head unit (built, checked as a media browser); the sleep timer, widgets, Quick Settings tile and Live Updates (9); the year recap (11).
+- Android Auto on a real head unit (built, checked as a media browser); the year recap (11).
+- The first-sync Live Update (not on PLAN-ANDROID's list; sync doesn't run as a job) and the Recap widget (Phase 11).
+- Lock-screen widgets on a real Android 16 QPR1 phone: built, but nothing available to check them on.
 - Browse by mood: moods come from audio analysis (Phase 10).
 - The demo library (bundled tracks), multi-select, drag and drop onto playlists on tablets (board 43), the Large supporting pane, fold postures (tabletop and book), and the "Playing on ..." remote-control capsule.
 - Settings with no core behind them yet: crossfade, normalisation, equaliser, lyrics options, Hide explicit.
