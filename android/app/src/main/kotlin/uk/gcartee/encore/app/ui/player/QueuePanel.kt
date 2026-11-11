@@ -47,13 +47,16 @@ import androidx.compose.runtime.mutableIntStateOf
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.foundation.background
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
@@ -511,11 +514,26 @@ private fun LazyListScope.reorderable(
                 .onSizeChanged { rowH = it.height.toFloat().coerceAtLeast(1f) }
                 .graphicsLayer {
                     translationY = if (held) drag.offset else 0f
-                    val s = 1f + LIFT_SCALE * lift
+                    val s = liftScale(lift)
                     scaleX = s
                     scaleY = s
                 }
-                .background(colour.copy(alpha = HELD_ALPHA * lift), RoundedCornerShape(HELD_RADIUS_DP.dp))
+                // The lifted tint is drawn inside the grown row, but the list (and the fading
+                // layer around it) clips at its own width, so a tint as wide as the row would
+                // have its rounded ends sliced flat once scaled. Inset it by exactly the
+                // growth: at full lift it ends on the list's edge with both ends round, and
+                // at rest (lift 0) the inset is nil. The song content sits inside the row's
+                // own padding, so its slight growth stays visible.
+                .drawBehind {
+                    if (lift <= 0f) return@drawBehind
+                    val inset = size.width / 2f * (1f - 1f / liftScale(lift))
+                    drawRoundRect(
+                        color = colour.copy(alpha = HELD_ALPHA * lift),
+                        topLeft = Offset(inset, 0f),
+                        size = Size(size.width - 2f * inset, size.height),
+                        cornerRadius = CornerRadius(HELD_RADIUS_DP.dp.toPx()),
+                    )
+                }
                 .semantics {
                     customActions = listOf(
                         CustomAccessibilityAction("Move up") { edit(null, true) { host.core.moveInQueue(e.uid, (index - 1).coerceAtLeast(0).toUInt()) }; true },
@@ -587,6 +605,9 @@ private fun LazyListScope.reorderable(
         }
     }
 }
+/** The held row's scale at a given [lift] (0 at rest, 1 fully lifted). */
+private fun liftScale(lift: Float): Float = 1f + LIFT_SCALE * lift
+
 private const val HIGHLIGHT_ALPHA = 0.14f
 private const val TONAL_ALPHA = 0.16f
 private const val AUTOPLAY_FILLS_BELOW = 5

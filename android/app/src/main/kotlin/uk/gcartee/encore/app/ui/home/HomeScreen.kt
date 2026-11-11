@@ -396,13 +396,17 @@ private fun QuickPicks(songs: List<Song>) {
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Artwork(uk.gcartee.encore.core.ArtworkOf.ALBUM, albumId, QUICK_HEIGHT_DP.dp, Modifier.size(QUICK_HEIGHT_DP.dp), cornerRadius = 0.dp)
-                            Text(
-                                s.albumTitle ?: s.title,
-                                style = type.tileTitle.copy(fontSize = 14.sp, lineHeight = 18.sp),
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
+                            val (title, kind) = releaseTitle(s.albumTitle ?: s.title)
+                            val second = listOfNotNull(kind, s.albumArtist.ifBlank { s.artist }.takeIf { it.isNotBlank() }).joinToString(" · ")
+                            Column(
                                 modifier = Modifier.weight(1f).padding(horizontal = (Grid.base * 1.5f).dp),
-                            )
+                                verticalArrangement = Arrangement.Center,
+                            ) {
+                                Text(title, style = type.songRowTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                if (second.isNotEmpty()) {
+                                    Text(second, style = type.body, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                            }
                         }
                     }
                 }
@@ -655,6 +659,23 @@ private const val PLAY_PRESSED_RADIUS_DP = 14
 private const val SHELF_TILE_DP = 132
 private const val LARGE_TILE_DP = 160
 private const val QUICK_PICKS = 6
+
+private val RELEASE_TAG = Regex("""(?:\s*[-–—]\s*|\s*[(\[]\s*)(single|ep)\s*[)\]]?\s*$""", RegexOption.IGNORE_CASE)
+
+/**
+ * Splits a trailing release-type tag off an album name: "Title - Single" gives ("Title", "Single").
+ * Anything else is left alone, and a name that would end up empty is kept whole.
+ */
+internal fun releaseTitle(album: String): Pair<String, String?> {
+    val m = RELEASE_TAG.find(album) ?: return album to null
+    val opener = m.value.trimStart().firstOrNull()
+    val closed = m.value.trimEnd().let { it.endsWith(")") || it.endsWith("]") }
+    // A bracket tag must be closed, and a dash tag must not be.
+    if ((opener == '(' || opener == '[') != closed) return album to null
+    val clean = album.substring(0, m.range.first).trim()
+    if (clean.isEmpty()) return album to null
+    return clean to if (m.groupValues[1].equals("ep", ignoreCase = true)) "EP" else "Single"
+}
 private const val QUICK_HEIGHT_DP = 60
 private const val QUICK_RADIUS_DP = 16
 private const val HERO_RADIUS_DP = 28
