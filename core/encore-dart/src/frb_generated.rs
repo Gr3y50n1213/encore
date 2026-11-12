@@ -9046,13 +9046,22 @@ const _: fn() = || {
         let _: String = WidgetAlbum.title;
         let _: String = WidgetAlbum.artist;
         let _: Option<String> = WidgetAlbum.cover;
+        let _: Option<crate::api::core::WidgetPalette> = WidgetAlbum.palette;
     }
     {
         let WidgetMix = None::<crate::api::core::WidgetMix>.unwrap();
         let _: String = WidgetMix.mix_id;
         let _: String = WidgetMix.title;
         let _: Option<String> = WidgetMix.cover;
+        let _: Option<crate::api::core::WidgetPalette> = WidgetMix.palette;
         let _: bool = WidgetMix.pinned;
+    }
+    {
+        let WidgetPalette = None::<crate::api::core::WidgetPalette>.unwrap();
+        let _: crate::api::core::PaletteScheme = WidgetPalette.scheme;
+        let _: String = WidgetPalette.base;
+        let _: Vec<String> = WidgetPalette.stops;
+        let _: String = WidgetPalette.text;
     }
     {
         let WidgetSnapshot = None::<crate::api::core::WidgetSnapshot>.unwrap();
@@ -9077,6 +9086,7 @@ const _: fn() = || {
         let _: Option<i64> = WidgetSong.album_id;
         let _: Option<String> = WidgetSong.album_title;
         let _: Option<String> = WidgetSong.cover;
+        let _: Option<crate::api::core::WidgetPalette> = WidgetSong.palette;
         let _: i64 = WidgetSong.duration_ms;
         let _: bool = WidgetSong.now_playing;
     }
@@ -11045,6 +11055,17 @@ impl SseDecode for Option<crate::api::core::WidgetMix> {
     }
 }
 
+impl SseDecode for Option<crate::api::core::WidgetPalette> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::api::core::WidgetPalette>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<crate::api::core::WidgetSong> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -12012,11 +12033,13 @@ impl SseDecode for crate::api::core::WidgetAlbum {
         let mut var_title = <String>::sse_decode(deserializer);
         let mut var_artist = <String>::sse_decode(deserializer);
         let mut var_cover = <Option<String>>::sse_decode(deserializer);
+        let mut var_palette = <Option<crate::api::core::WidgetPalette>>::sse_decode(deserializer);
         return crate::api::core::WidgetAlbum {
             album_id: var_albumId,
             title: var_title,
             artist: var_artist,
             cover: var_cover,
+            palette: var_palette,
         };
     }
 }
@@ -12027,12 +12050,30 @@ impl SseDecode for crate::api::core::WidgetMix {
         let mut var_mixId = <String>::sse_decode(deserializer);
         let mut var_title = <String>::sse_decode(deserializer);
         let mut var_cover = <Option<String>>::sse_decode(deserializer);
+        let mut var_palette = <Option<crate::api::core::WidgetPalette>>::sse_decode(deserializer);
         let mut var_pinned = <bool>::sse_decode(deserializer);
         return crate::api::core::WidgetMix {
             mix_id: var_mixId,
             title: var_title,
             cover: var_cover,
+            palette: var_palette,
             pinned: var_pinned,
+        };
+    }
+}
+
+impl SseDecode for crate::api::core::WidgetPalette {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_scheme = <crate::api::core::PaletteScheme>::sse_decode(deserializer);
+        let mut var_base = <String>::sse_decode(deserializer);
+        let mut var_stops = <Vec<String>>::sse_decode(deserializer);
+        let mut var_text = <String>::sse_decode(deserializer);
+        return crate::api::core::WidgetPalette {
+            scheme: var_scheme,
+            base: var_base,
+            stops: var_stops,
+            text: var_text,
         };
     }
 }
@@ -12091,6 +12132,7 @@ impl SseDecode for crate::api::core::WidgetSong {
         let mut var_albumId = <Option<i64>>::sse_decode(deserializer);
         let mut var_albumTitle = <Option<String>>::sse_decode(deserializer);
         let mut var_cover = <Option<String>>::sse_decode(deserializer);
+        let mut var_palette = <Option<crate::api::core::WidgetPalette>>::sse_decode(deserializer);
         let mut var_durationMs = <i64>::sse_decode(deserializer);
         let mut var_nowPlaying = <bool>::sse_decode(deserializer);
         return crate::api::core::WidgetSong {
@@ -12100,6 +12142,7 @@ impl SseDecode for crate::api::core::WidgetSong {
             album_id: var_albumId,
             album_title: var_albumTitle,
             cover: var_cover,
+            palette: var_palette,
             duration_ms: var_durationMs,
             now_playing: var_nowPlaying,
         };
@@ -15191,6 +15234,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::WidgetAlbum>
             self.0.title.into_into_dart().into_dart(),
             self.0.artist.into_into_dart().into_dart(),
             self.0.cover.into_into_dart().into_dart(),
+            self.0.palette.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -15213,6 +15257,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::WidgetMix> {
             self.0.mix_id.into_into_dart().into_dart(),
             self.0.title.into_into_dart().into_dart(),
             self.0.cover.into_into_dart().into_dart(),
+            self.0.palette.into_into_dart().into_dart(),
             self.0.pinned.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -15226,6 +15271,29 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<crate::api::core::WidgetMix>>
     for crate::api::core::WidgetMix
 {
     fn into_into_dart(self) -> FrbWrapper<crate::api::core::WidgetMix> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::WidgetPalette> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.scheme.into_into_dart().into_dart(),
+            self.0.base.into_into_dart().into_dart(),
+            self.0.stops.into_into_dart().into_dart(),
+            self.0.text.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<crate::api::core::WidgetPalette>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<crate::api::core::WidgetPalette>>
+    for crate::api::core::WidgetPalette
+{
+    fn into_into_dart(self) -> FrbWrapper<crate::api::core::WidgetPalette> {
         self.into()
     }
 }
@@ -15292,6 +15360,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::WidgetSong> 
             self.0.album_id.into_into_dart().into_dart(),
             self.0.album_title.into_into_dart().into_dart(),
             self.0.cover.into_into_dart().into_dart(),
+            self.0.palette.into_into_dart().into_dart(),
             self.0.duration_ms.into_into_dart().into_dart(),
             self.0.now_playing.into_into_dart().into_dart(),
         ]
@@ -16958,6 +17027,16 @@ impl SseEncode for Option<crate::api::core::WidgetMix> {
     }
 }
 
+impl SseEncode for Option<crate::api::core::WidgetPalette> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::core::WidgetPalette>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<crate::api::core::WidgetSong> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -17749,6 +17828,7 @@ impl SseEncode for crate::api::core::WidgetAlbum {
         <String>::sse_encode(self.title, serializer);
         <String>::sse_encode(self.artist, serializer);
         <Option<String>>::sse_encode(self.cover, serializer);
+        <Option<crate::api::core::WidgetPalette>>::sse_encode(self.palette, serializer);
     }
 }
 
@@ -17758,7 +17838,18 @@ impl SseEncode for crate::api::core::WidgetMix {
         <String>::sse_encode(self.mix_id, serializer);
         <String>::sse_encode(self.title, serializer);
         <Option<String>>::sse_encode(self.cover, serializer);
+        <Option<crate::api::core::WidgetPalette>>::sse_encode(self.palette, serializer);
         <bool>::sse_encode(self.pinned, serializer);
+    }
+}
+
+impl SseEncode for crate::api::core::WidgetPalette {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::core::PaletteScheme>::sse_encode(self.scheme, serializer);
+        <String>::sse_encode(self.base, serializer);
+        <Vec<String>>::sse_encode(self.stops, serializer);
+        <String>::sse_encode(self.text, serializer);
     }
 }
 
@@ -17806,6 +17897,7 @@ impl SseEncode for crate::api::core::WidgetSong {
         <Option<i64>>::sse_encode(self.album_id, serializer);
         <Option<String>>::sse_encode(self.album_title, serializer);
         <Option<String>>::sse_encode(self.cover, serializer);
+        <Option<crate::api::core::WidgetPalette>>::sse_encode(self.palette, serializer);
         <i64>::sse_encode(self.duration_ms, serializer);
         <bool>::sse_encode(self.now_playing, serializer);
     }

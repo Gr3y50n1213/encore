@@ -11577,6 +11577,11 @@ data class WidgetAlbum (
      * A file name in the profile's `art/` folder; None: no cover saved.
      */
     var `cover`: kotlin.String?
+    , 
+    /**
+     * This album's colours; see `WidgetSong::palette`.
+     */
+    var `palette`: WidgetPalette?
     
 ){
     
@@ -11597,6 +11602,7 @@ public object FfiConverterTypeWidgetAlbum: FfiConverterRustBuffer<WidgetAlbum> {
             FfiConverterString.read(buf),
             FfiConverterString.read(buf),
             FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalTypeWidgetPalette.read(buf),
         )
     }
 
@@ -11604,7 +11610,8 @@ public object FfiConverterTypeWidgetAlbum: FfiConverterRustBuffer<WidgetAlbum> {
             FfiConverterLong.allocationSize(value.`albumId`) +
             FfiConverterString.allocationSize(value.`title`) +
             FfiConverterString.allocationSize(value.`artist`) +
-            FfiConverterOptionalString.allocationSize(value.`cover`)
+            FfiConverterOptionalString.allocationSize(value.`cover`) +
+            FfiConverterOptionalTypeWidgetPalette.allocationSize(value.`palette`)
     )
 
     override fun write(value: WidgetAlbum, buf: ByteBuffer) {
@@ -11612,6 +11619,7 @@ public object FfiConverterTypeWidgetAlbum: FfiConverterRustBuffer<WidgetAlbum> {
             FfiConverterString.write(value.`title`, buf)
             FfiConverterString.write(value.`artist`, buf)
             FfiConverterOptionalString.write(value.`cover`, buf)
+            FfiConverterOptionalTypeWidgetPalette.write(value.`palette`, buf)
     }
 }
 
@@ -11629,6 +11637,11 @@ data class WidgetMix (
      * A file name in the profile's `art/` folder; None: no cover saved.
      */
     var `cover`: kotlin.String?
+    , 
+    /**
+     * The colours of the album the cover comes from; see `WidgetSong::palette`.
+     */
+    var `palette`: WidgetPalette?
     , 
     var `pinned`: kotlin.Boolean
     
@@ -11650,6 +11663,7 @@ public object FfiConverterTypeWidgetMix: FfiConverterRustBuffer<WidgetMix> {
             FfiConverterString.read(buf),
             FfiConverterString.read(buf),
             FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalTypeWidgetPalette.read(buf),
             FfiConverterBoolean.read(buf),
         )
     }
@@ -11658,6 +11672,7 @@ public object FfiConverterTypeWidgetMix: FfiConverterRustBuffer<WidgetMix> {
             FfiConverterString.allocationSize(value.`mixId`) +
             FfiConverterString.allocationSize(value.`title`) +
             FfiConverterOptionalString.allocationSize(value.`cover`) +
+            FfiConverterOptionalTypeWidgetPalette.allocationSize(value.`palette`) +
             FfiConverterBoolean.allocationSize(value.`pinned`)
     )
 
@@ -11665,7 +11680,65 @@ public object FfiConverterTypeWidgetMix: FfiConverterRustBuffer<WidgetMix> {
             FfiConverterString.write(value.`mixId`, buf)
             FfiConverterString.write(value.`title`, buf)
             FfiConverterOptionalString.write(value.`cover`, buf)
+            FfiConverterOptionalTypeWidgetPalette.write(value.`palette`, buf)
             FfiConverterBoolean.write(value.`pinned`, buf)
+    }
+}
+
+
+
+/**
+ * An album's colours for a widget: the same palette the app draws that album's
+ * gradient from (`ArtworkPalette`, board 04), without the fields only the app
+ * uses. `RRGGBB` hex; `text` reads on `base` and on every stop. A widget draws
+ * one still frame of the Now Playing field from `base` and the four `stops`.
+ */
+data class WidgetPalette (
+    var `scheme`: PaletteScheme
+    , 
+    var `base`: kotlin.String
+    , 
+    /**
+     * Four stops, leading colour first.
+     */
+    var `stops`: List<kotlin.String>
+    , 
+    var `text`: kotlin.String
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeWidgetPalette: FfiConverterRustBuffer<WidgetPalette> {
+    override fun read(buf: ByteBuffer): WidgetPalette {
+        return WidgetPalette(
+            FfiConverterTypePaletteScheme.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterSequenceString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: WidgetPalette) = (
+            FfiConverterTypePaletteScheme.allocationSize(value.`scheme`) +
+            FfiConverterString.allocationSize(value.`base`) +
+            FfiConverterSequenceString.allocationSize(value.`stops`) +
+            FfiConverterString.allocationSize(value.`text`)
+    )
+
+    override fun write(value: WidgetPalette, buf: ByteBuffer) {
+            FfiConverterTypePaletteScheme.write(value.`scheme`, buf)
+            FfiConverterString.write(value.`base`, buf)
+            FfiConverterSequenceString.write(value.`stops`, buf)
+            FfiConverterString.write(value.`text`, buf)
     }
 }
 
@@ -11812,6 +11885,12 @@ data class WidgetSong (
      */
     var `cover`: kotlin.String?
     , 
+    /**
+     * The album's colours; None until they are made (the writer asks for them once
+     * per cover while the server is reachable), and for a song with no cover.
+     */
+    var `palette`: WidgetPalette?
+    , 
     var `durationMs`: kotlin.Long
     , 
     /**
@@ -11841,6 +11920,7 @@ public object FfiConverterTypeWidgetSong: FfiConverterRustBuffer<WidgetSong> {
             FfiConverterOptionalLong.read(buf),
             FfiConverterOptionalString.read(buf),
             FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalTypeWidgetPalette.read(buf),
             FfiConverterLong.read(buf),
             FfiConverterBoolean.read(buf),
         )
@@ -11853,6 +11933,7 @@ public object FfiConverterTypeWidgetSong: FfiConverterRustBuffer<WidgetSong> {
             FfiConverterOptionalLong.allocationSize(value.`albumId`) +
             FfiConverterOptionalString.allocationSize(value.`albumTitle`) +
             FfiConverterOptionalString.allocationSize(value.`cover`) +
+            FfiConverterOptionalTypeWidgetPalette.allocationSize(value.`palette`) +
             FfiConverterLong.allocationSize(value.`durationMs`) +
             FfiConverterBoolean.allocationSize(value.`nowPlaying`)
     )
@@ -11864,6 +11945,7 @@ public object FfiConverterTypeWidgetSong: FfiConverterRustBuffer<WidgetSong> {
             FfiConverterOptionalLong.write(value.`albumId`, buf)
             FfiConverterOptionalString.write(value.`albumTitle`, buf)
             FfiConverterOptionalString.write(value.`cover`, buf)
+            FfiConverterOptionalTypeWidgetPalette.write(value.`palette`, buf)
             FfiConverterLong.write(value.`durationMs`, buf)
             FfiConverterBoolean.write(value.`nowPlaying`, buf)
     }
@@ -15218,6 +15300,38 @@ public object FfiConverterOptionalTypeWidgetMix: FfiConverterRustBuffer<WidgetMi
         } else {
             buf.put(1)
             FfiConverterTypeWidgetMix.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeWidgetPalette: FfiConverterRustBuffer<WidgetPalette?> {
+    override fun read(buf: ByteBuffer): WidgetPalette? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeWidgetPalette.read(buf)
+    }
+
+    override fun allocationSize(value: WidgetPalette?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeWidgetPalette.allocationSize(value)
+        }
+    }
+
+    override fun write(value: WidgetPalette?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeWidgetPalette.write(value, buf)
         }
     }
 }

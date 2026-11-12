@@ -5025,6 +5025,9 @@ return dco_decode_u_64(raw); }
 @protected WidgetMix dco_decode_box_autoadd_widget_mix(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
 return dco_decode_widget_mix(raw); }
 
+@protected WidgetPalette dco_decode_box_autoadd_widget_palette(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return dco_decode_widget_palette(raw); }
+
 @protected WidgetSong dco_decode_box_autoadd_widget_song(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
 return dco_decode_widget_song(raw); }
 
@@ -5603,6 +5606,9 @@ return raw == null ? null : dco_decode_box_autoadd_u_64(raw); }
 @protected WidgetMix? dco_decode_opt_box_autoadd_widget_mix(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
 return raw == null ? null : dco_decode_box_autoadd_widget_mix(raw); }
 
+@protected WidgetPalette? dco_decode_opt_box_autoadd_widget_palette(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw == null ? null : dco_decode_box_autoadd_widget_palette(raw); }
+
 @protected WidgetSong? dco_decode_opt_box_autoadd_widget_song(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
 return raw == null ? null : dco_decode_box_autoadd_widget_song(raw); }
 
@@ -6001,19 +6007,29 @@ soundsLike: dco_decode_list_song(arr[1]),); }
 
 @protected WidgetAlbum dco_decode_widget_album(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
 final arr = raw as List<dynamic>;
-                if (arr.length != 4) throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+                if (arr.length != 5) throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
                 return WidgetAlbum(albumId: dco_decode_i_64(arr[0]),
 title: dco_decode_String(arr[1]),
 artist: dco_decode_String(arr[2]),
-cover: dco_decode_opt_String(arr[3]),); }
+cover: dco_decode_opt_String(arr[3]),
+palette: dco_decode_opt_box_autoadd_widget_palette(arr[4]),); }
 
 @protected WidgetMix dco_decode_widget_mix(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
 final arr = raw as List<dynamic>;
-                if (arr.length != 4) throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+                if (arr.length != 5) throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
                 return WidgetMix(mixId: dco_decode_String(arr[0]),
 title: dco_decode_String(arr[1]),
 cover: dco_decode_opt_String(arr[2]),
-pinned: dco_decode_bool(arr[3]),); }
+palette: dco_decode_opt_box_autoadd_widget_palette(arr[3]),
+pinned: dco_decode_bool(arr[4]),); }
+
+@protected WidgetPalette dco_decode_widget_palette(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 4) throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+                return WidgetPalette(scheme: dco_decode_palette_scheme(arr[0]),
+base: dco_decode_String(arr[1]),
+stops: dco_decode_list_String(arr[2]),
+text: dco_decode_String(arr[3]),); }
 
 @protected WidgetPrivacy dco_decode_widget_privacy(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
 return WidgetPrivacy.values[raw as int]; }
@@ -6036,15 +6052,16 @@ writtenAtUtcMs: dco_decode_i_64(arr[11]),); }
 
 @protected WidgetSong dco_decode_widget_song(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
 final arr = raw as List<dynamic>;
-                if (arr.length != 8) throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+                if (arr.length != 9) throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
                 return WidgetSong(songId: dco_decode_opt_box_autoadd_i_64(arr[0]),
 title: dco_decode_String(arr[1]),
 artist: dco_decode_String(arr[2]),
 albumId: dco_decode_opt_box_autoadd_i_64(arr[3]),
 albumTitle: dco_decode_opt_String(arr[4]),
 cover: dco_decode_opt_String(arr[5]),
-durationMs: dco_decode_i_64(arr[6]),
-nowPlaying: dco_decode_bool(arr[7]),); }
+palette: dco_decode_opt_box_autoadd_widget_palette(arr[6]),
+durationMs: dco_decode_i_64(arr[7]),
+nowPlaying: dco_decode_bool(arr[8]),); }
 
 @protected AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
 var inner = sse_decode_String(deserializer);
@@ -6246,6 +6263,9 @@ return (sse_decode_u_64(deserializer)); }
 
 @protected WidgetMix sse_decode_box_autoadd_widget_mix(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
 return (sse_decode_widget_mix(deserializer)); }
+
+@protected WidgetPalette sse_decode_box_autoadd_widget_palette(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return (sse_decode_widget_palette(deserializer)); }
 
 @protected WidgetSong sse_decode_box_autoadd_widget_song(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
 return (sse_decode_widget_song(deserializer)); }
@@ -7182,6 +7202,15 @@ var inner = sse_decode_i_32(deserializer);
             }
              }
 
+@protected WidgetPalette? sse_decode_opt_box_autoadd_widget_palette(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+            if (sse_decode_bool(deserializer)) {
+                return (sse_decode_box_autoadd_widget_palette(deserializer));
+            } else {
+                return null;
+            }
+             }
+
 @protected WidgetSong? sse_decode_opt_box_autoadd_widget_song(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
 
             if (sse_decode_bool(deserializer)) {
@@ -7571,14 +7600,23 @@ var var_albumId = sse_decode_i_64(deserializer);
 var var_title = sse_decode_String(deserializer);
 var var_artist = sse_decode_String(deserializer);
 var var_cover = sse_decode_opt_String(deserializer);
-return WidgetAlbum(albumId: var_albumId, title: var_title, artist: var_artist, cover: var_cover); }
+var var_palette = sse_decode_opt_box_autoadd_widget_palette(deserializer);
+return WidgetAlbum(albumId: var_albumId, title: var_title, artist: var_artist, cover: var_cover, palette: var_palette); }
 
 @protected WidgetMix sse_decode_widget_mix(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
 var var_mixId = sse_decode_String(deserializer);
 var var_title = sse_decode_String(deserializer);
 var var_cover = sse_decode_opt_String(deserializer);
+var var_palette = sse_decode_opt_box_autoadd_widget_palette(deserializer);
 var var_pinned = sse_decode_bool(deserializer);
-return WidgetMix(mixId: var_mixId, title: var_title, cover: var_cover, pinned: var_pinned); }
+return WidgetMix(mixId: var_mixId, title: var_title, cover: var_cover, palette: var_palette, pinned: var_pinned); }
+
+@protected WidgetPalette sse_decode_widget_palette(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_scheme = sse_decode_palette_scheme(deserializer);
+var var_base = sse_decode_String(deserializer);
+var var_stops = sse_decode_list_String(deserializer);
+var var_text = sse_decode_String(deserializer);
+return WidgetPalette(scheme: var_scheme, base: var_base, stops: var_stops, text: var_text); }
 
 @protected WidgetPrivacy sse_decode_widget_privacy(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
 var inner = sse_decode_i_32(deserializer);
@@ -7606,9 +7644,10 @@ var var_artist = sse_decode_String(deserializer);
 var var_albumId = sse_decode_opt_box_autoadd_i_64(deserializer);
 var var_albumTitle = sse_decode_opt_String(deserializer);
 var var_cover = sse_decode_opt_String(deserializer);
+var var_palette = sse_decode_opt_box_autoadd_widget_palette(deserializer);
 var var_durationMs = sse_decode_i_64(deserializer);
 var var_nowPlaying = sse_decode_bool(deserializer);
-return WidgetSong(songId: var_songId, title: var_title, artist: var_artist, albumId: var_albumId, albumTitle: var_albumTitle, cover: var_cover, durationMs: var_durationMs, nowPlaying: var_nowPlaying); }
+return WidgetSong(songId: var_songId, title: var_title, artist: var_artist, albumId: var_albumId, albumTitle: var_albumTitle, cover: var_cover, palette: var_palette, durationMs: var_durationMs, nowPlaying: var_nowPlaying); }
 
 @protected void sse_encode_AnyhowException(AnyhowException self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
 sse_encode_String(self.message, serializer); }
@@ -7808,6 +7847,9 @@ sse_encode_u_64(self, serializer); }
 
 @protected void sse_encode_box_autoadd_widget_mix(WidgetMix self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
 sse_encode_widget_mix(self, serializer); }
+
+@protected void sse_encode_box_autoadd_widget_palette(WidgetPalette self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_widget_palette(self, serializer); }
 
 @protected void sse_encode_box_autoadd_widget_song(WidgetSong self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
 sse_encode_widget_song(self, serializer); }
@@ -8558,6 +8600,14 @@ sse_encode_i_32(self.index, serializer); }
                 }
                  }
 
+@protected void sse_encode_opt_box_autoadd_widget_palette(WidgetPalette? self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+                sse_encode_bool(self != null, serializer);
+                if (self != null) {
+                    sse_encode_box_autoadd_widget_palette(self, serializer);
+                }
+                 }
+
 @protected void sse_encode_opt_box_autoadd_widget_song(WidgetSong? self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
 
                 sse_encode_bool(self != null, serializer);
@@ -8928,13 +8978,22 @@ sse_encode_i_64(self.albumId, serializer);
 sse_encode_String(self.title, serializer);
 sse_encode_String(self.artist, serializer);
 sse_encode_opt_String(self.cover, serializer);
+sse_encode_opt_box_autoadd_widget_palette(self.palette, serializer);
  }
 
 @protected void sse_encode_widget_mix(WidgetMix self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
 sse_encode_String(self.mixId, serializer);
 sse_encode_String(self.title, serializer);
 sse_encode_opt_String(self.cover, serializer);
+sse_encode_opt_box_autoadd_widget_palette(self.palette, serializer);
 sse_encode_bool(self.pinned, serializer);
+ }
+
+@protected void sse_encode_widget_palette(WidgetPalette self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_palette_scheme(self.scheme, serializer);
+sse_encode_String(self.base, serializer);
+sse_encode_list_String(self.stops, serializer);
+sse_encode_String(self.text, serializer);
  }
 
 @protected void sse_encode_widget_privacy(WidgetPrivacy self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
@@ -8962,6 +9021,7 @@ sse_encode_String(self.artist, serializer);
 sse_encode_opt_box_autoadd_i_64(self.albumId, serializer);
 sse_encode_opt_String(self.albumTitle, serializer);
 sse_encode_opt_String(self.cover, serializer);
+sse_encode_opt_box_autoadd_widget_palette(self.palette, serializer);
 sse_encode_i_64(self.durationMs, serializer);
 sse_encode_bool(self.nowPlaying, serializer);
  }

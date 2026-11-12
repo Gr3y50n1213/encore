@@ -138,6 +138,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected WidgetMix dco_decode_box_autoadd_widget_mix(dynamic raw);
 
+@protected WidgetPalette dco_decode_box_autoadd_widget_palette(dynamic raw);
+
 @protected WidgetSong dco_decode_box_autoadd_widget_song(dynamic raw);
 
 @protected ChosenBy dco_decode_chosen_by(dynamic raw);
@@ -390,6 +392,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected WidgetMix? dco_decode_opt_box_autoadd_widget_mix(dynamic raw);
 
+@protected WidgetPalette? dco_decode_opt_box_autoadd_widget_palette(dynamic raw);
+
 @protected WidgetSong? dco_decode_opt_box_autoadd_widget_song(dynamic raw);
 
 @protected OutputDevice dco_decode_output_device(dynamic raw);
@@ -516,6 +520,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected WidgetMix dco_decode_widget_mix(dynamic raw);
 
+@protected WidgetPalette dco_decode_widget_palette(dynamic raw);
+
 @protected WidgetPrivacy dco_decode_widget_privacy(dynamic raw);
 
 @protected WidgetSnapshot dco_decode_widget_snapshot(dynamic raw);
@@ -633,6 +639,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer);
 
 @protected WidgetMix sse_decode_box_autoadd_widget_mix(SseDeserializer deserializer);
+
+@protected WidgetPalette sse_decode_box_autoadd_widget_palette(SseDeserializer deserializer);
 
 @protected WidgetSong sse_decode_box_autoadd_widget_song(SseDeserializer deserializer);
 
@@ -886,6 +894,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected WidgetMix? sse_decode_opt_box_autoadd_widget_mix(SseDeserializer deserializer);
 
+@protected WidgetPalette? sse_decode_opt_box_autoadd_widget_palette(SseDeserializer deserializer);
+
 @protected WidgetSong? sse_decode_opt_box_autoadd_widget_song(SseDeserializer deserializer);
 
 @protected OutputDevice sse_decode_output_device(SseDeserializer deserializer);
@@ -1012,6 +1022,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected WidgetMix sse_decode_widget_mix(SseDeserializer deserializer);
 
+@protected WidgetPalette sse_decode_widget_palette(SseDeserializer deserializer);
+
 @protected WidgetPrivacy sse_decode_widget_privacy(SseDeserializer deserializer);
 
 @protected WidgetSnapshot sse_decode_widget_snapshot(SseDeserializer deserializer);
@@ -1129,6 +1141,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer);
 
 @protected void sse_encode_box_autoadd_widget_mix(WidgetMix self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_widget_palette(WidgetPalette self, SseSerializer serializer);
 
 @protected void sse_encode_box_autoadd_widget_song(WidgetSong self, SseSerializer serializer);
 
@@ -1382,6 +1396,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_opt_box_autoadd_widget_mix(WidgetMix? self, SseSerializer serializer);
 
+@protected void sse_encode_opt_box_autoadd_widget_palette(WidgetPalette? self, SseSerializer serializer);
+
 @protected void sse_encode_opt_box_autoadd_widget_song(WidgetSong? self, SseSerializer serializer);
 
 @protected void sse_encode_output_device(OutputDevice self, SseSerializer serializer);
@@ -1507,6 +1523,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_widget_album(WidgetAlbum self, SseSerializer serializer);
 
 @protected void sse_encode_widget_mix(WidgetMix self, SseSerializer serializer);
+
+@protected void sse_encode_widget_palette(WidgetPalette self, SseSerializer serializer);
 
 @protected void sse_encode_widget_privacy(WidgetPrivacy self, SseSerializer serializer);
 

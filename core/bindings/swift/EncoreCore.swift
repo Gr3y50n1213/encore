@@ -9911,17 +9911,25 @@ public struct WidgetAlbum: Equatable, Hashable {
      * A file name in the profile's `art/` folder; None: no cover saved.
      */
     public var cover: String?
+    /**
+     * This album's colours; see `WidgetSong::palette`.
+     */
+    public var palette: WidgetPalette?
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
     public init(albumId: Int64, title: String, artist: String, 
         /**
          * A file name in the profile's `art/` folder; None: no cover saved.
-         */cover: String?) {
+         */cover: String?, 
+        /**
+         * This album's colours; see `WidgetSong::palette`.
+         */palette: WidgetPalette?) {
         self.albumId = albumId
         self.title = title
         self.artist = artist
         self.cover = cover
+        self.palette = palette
     }
 
     
@@ -9943,7 +9951,8 @@ public struct FfiConverterTypeWidgetAlbum: FfiConverterRustBuffer {
                 albumId: FfiConverterInt64.read(from: &buf), 
                 title: FfiConverterString.read(from: &buf), 
                 artist: FfiConverterString.read(from: &buf), 
-                cover: FfiConverterOptionString.read(from: &buf)
+                cover: FfiConverterOptionString.read(from: &buf), 
+                palette: FfiConverterOptionTypeWidgetPalette.read(from: &buf)
         )
     }
 
@@ -9952,6 +9961,7 @@ public struct FfiConverterTypeWidgetAlbum: FfiConverterRustBuffer {
         FfiConverterString.write(value.title, into: &buf)
         FfiConverterString.write(value.artist, into: &buf)
         FfiConverterOptionString.write(value.cover, into: &buf)
+        FfiConverterOptionTypeWidgetPalette.write(value.palette, into: &buf)
     }
 }
 
@@ -9981,6 +9991,10 @@ public struct WidgetMix: Equatable, Hashable {
      * A file name in the profile's `art/` folder; None: no cover saved.
      */
     public var cover: String?
+    /**
+     * The colours of the album the cover comes from; see `WidgetSong::palette`.
+     */
+    public var palette: WidgetPalette?
     public var pinned: Bool
 
     // Default memberwise initializers are never public by default, so we
@@ -9988,10 +10002,14 @@ public struct WidgetMix: Equatable, Hashable {
     public init(mixId: String, title: String, 
         /**
          * A file name in the profile's `art/` folder; None: no cover saved.
-         */cover: String?, pinned: Bool) {
+         */cover: String?, 
+        /**
+         * The colours of the album the cover comes from; see `WidgetSong::palette`.
+         */palette: WidgetPalette?, pinned: Bool) {
         self.mixId = mixId
         self.title = title
         self.cover = cover
+        self.palette = palette
         self.pinned = pinned
     }
 
@@ -10014,6 +10032,7 @@ public struct FfiConverterTypeWidgetMix: FfiConverterRustBuffer {
                 mixId: FfiConverterString.read(from: &buf), 
                 title: FfiConverterString.read(from: &buf), 
                 cover: FfiConverterOptionString.read(from: &buf), 
+                palette: FfiConverterOptionTypeWidgetPalette.read(from: &buf), 
                 pinned: FfiConverterBool.read(from: &buf)
         )
     }
@@ -10022,6 +10041,7 @@ public struct FfiConverterTypeWidgetMix: FfiConverterRustBuffer {
         FfiConverterString.write(value.mixId, into: &buf)
         FfiConverterString.write(value.title, into: &buf)
         FfiConverterOptionString.write(value.cover, into: &buf)
+        FfiConverterOptionTypeWidgetPalette.write(value.palette, into: &buf)
         FfiConverterBool.write(value.pinned, into: &buf)
     }
 }
@@ -10039,6 +10059,80 @@ public func FfiConverterTypeWidgetMix_lift(_ buf: RustBuffer) throws -> WidgetMi
 #endif
 public func FfiConverterTypeWidgetMix_lower(_ value: WidgetMix) -> RustBuffer {
     return FfiConverterTypeWidgetMix.lower(value)
+}
+
+
+/**
+ * An album's colours for a widget: the same palette the app draws that album's
+ * gradient from (`ArtworkPalette`, board 04), without the fields only the app
+ * uses. `RRGGBB` hex; `text` reads on `base` and on every stop. A widget draws
+ * one still frame of the Now Playing field from `base` and the four `stops`.
+ */
+public struct WidgetPalette: Equatable, Hashable {
+    public var scheme: PaletteScheme
+    public var base: String
+    /**
+     * Four stops, leading colour first.
+     */
+    public var stops: [String]
+    public var text: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(scheme: PaletteScheme, base: String, 
+        /**
+         * Four stops, leading colour first.
+         */stops: [String], text: String) {
+        self.scheme = scheme
+        self.base = base
+        self.stops = stops
+        self.text = text
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension WidgetPalette: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeWidgetPalette: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> WidgetPalette {
+        return
+            try WidgetPalette(
+                scheme: FfiConverterTypePaletteScheme.read(from: &buf), 
+                base: FfiConverterString.read(from: &buf), 
+                stops: FfiConverterSequenceString.read(from: &buf), 
+                text: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: WidgetPalette, into buf: inout [UInt8]) {
+        FfiConverterTypePaletteScheme.write(value.scheme, into: &buf)
+        FfiConverterString.write(value.base, into: &buf)
+        FfiConverterSequenceString.write(value.stops, into: &buf)
+        FfiConverterString.write(value.text, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeWidgetPalette_lift(_ buf: RustBuffer) throws -> WidgetPalette {
+    return try FfiConverterTypeWidgetPalette.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeWidgetPalette_lower(_ value: WidgetPalette) -> RustBuffer {
+    return FfiConverterTypeWidgetPalette.lower(value)
 }
 
 
@@ -10207,6 +10301,11 @@ public struct WidgetSong: Equatable, Hashable {
      * A file name in the profile's `art/` folder; None: no cover saved.
      */
     public var cover: String?
+    /**
+     * The album's colours; None until they are made (the writer asks for them once
+     * per cover while the server is reachable), and for a song with no cover.
+     */
+    public var palette: WidgetPalette?
     public var durationMs: Int64
     /**
      * True: the current song of a play in progress (playing or paused). False:
@@ -10222,7 +10321,11 @@ public struct WidgetSong: Equatable, Hashable {
          */songId: Int64?, title: String, artist: String, albumId: Int64?, albumTitle: String?, 
         /**
          * A file name in the profile's `art/` folder; None: no cover saved.
-         */cover: String?, durationMs: Int64, 
+         */cover: String?, 
+        /**
+         * The album's colours; None until they are made (the writer asks for them once
+         * per cover while the server is reachable), and for a song with no cover.
+         */palette: WidgetPalette?, durationMs: Int64, 
         /**
          * True: the current song of a play in progress (playing or paused). False:
          * the last song played; show it with a Play button.
@@ -10233,6 +10336,7 @@ public struct WidgetSong: Equatable, Hashable {
         self.albumId = albumId
         self.albumTitle = albumTitle
         self.cover = cover
+        self.palette = palette
         self.durationMs = durationMs
         self.nowPlaying = nowPlaying
     }
@@ -10259,6 +10363,7 @@ public struct FfiConverterTypeWidgetSong: FfiConverterRustBuffer {
                 albumId: FfiConverterOptionInt64.read(from: &buf), 
                 albumTitle: FfiConverterOptionString.read(from: &buf), 
                 cover: FfiConverterOptionString.read(from: &buf), 
+                palette: FfiConverterOptionTypeWidgetPalette.read(from: &buf), 
                 durationMs: FfiConverterInt64.read(from: &buf), 
                 nowPlaying: FfiConverterBool.read(from: &buf)
         )
@@ -10271,6 +10376,7 @@ public struct FfiConverterTypeWidgetSong: FfiConverterRustBuffer {
         FfiConverterOptionInt64.write(value.albumId, into: &buf)
         FfiConverterOptionString.write(value.albumTitle, into: &buf)
         FfiConverterOptionString.write(value.cover, into: &buf)
+        FfiConverterOptionTypeWidgetPalette.write(value.palette, into: &buf)
         FfiConverterInt64.write(value.durationMs, into: &buf)
         FfiConverterBool.write(value.nowPlaying, into: &buf)
     }
@@ -15409,6 +15515,30 @@ fileprivate struct FfiConverterOptionTypeWidgetMix: FfiConverterRustBuffer {
         switch try readInt(&buf) as Int8 {
         case 0: return nil
         case 1: return try FfiConverterTypeWidgetMix.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeWidgetPalette: FfiConverterRustBuffer {
+    typealias SwiftType = WidgetPalette?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeWidgetPalette.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeWidgetPalette.read(from: &buf)
         default: throw UniffiInternalError.unexpectedOptionalTag
         }
     }

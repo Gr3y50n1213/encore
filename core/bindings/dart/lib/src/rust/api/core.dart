@@ -2957,15 +2957,16 @@ class WidgetAlbum  {
 final String title;
 final String artist;
 final String? cover;
+final WidgetPalette? palette;
 
-                const WidgetAlbum({required this.albumId ,required this.title ,required this.artist ,this.cover ,});
+                const WidgetAlbum({required this.albumId ,required this.title ,required this.artist ,this.cover ,this.palette ,});
 
 
 
 
 
         @override
-        int get hashCode => albumId.hashCode^title.hashCode^artist.hashCode^cover.hashCode;
+        int get hashCode => albumId.hashCode^title.hashCode^artist.hashCode^cover.hashCode^palette.hashCode;
 
 
 
@@ -2974,7 +2975,7 @@ final String? cover;
             identical(this, other) ||
             other is WidgetAlbum &&
                 runtimeType == other.runtimeType
-                && albumId == other.albumId&& title == other.title&& artist == other.artist&& cover == other.cover;
+                && albumId == other.albumId&& title == other.title&& artist == other.artist&& cover == other.cover&& palette == other.palette;
 
             }
 
@@ -2982,16 +2983,17 @@ class WidgetMix  {
                 final String mixId;
 final String title;
 final String? cover;
+final WidgetPalette? palette;
 final bool pinned;
 
-                const WidgetMix({required this.mixId ,required this.title ,this.cover ,required this.pinned ,});
+                const WidgetMix({required this.mixId ,required this.title ,this.cover ,this.palette ,required this.pinned ,});
 
 
 
 
 
         @override
-        int get hashCode => mixId.hashCode^title.hashCode^cover.hashCode^pinned.hashCode;
+        int get hashCode => mixId.hashCode^title.hashCode^cover.hashCode^palette.hashCode^pinned.hashCode;
 
 
 
@@ -3000,7 +3002,33 @@ final bool pinned;
             identical(this, other) ||
             other is WidgetMix &&
                 runtimeType == other.runtimeType
-                && mixId == other.mixId&& title == other.title&& cover == other.cover&& pinned == other.pinned;
+                && mixId == other.mixId&& title == other.title&& cover == other.cover&& palette == other.palette&& pinned == other.pinned;
+
+            }
+
+class WidgetPalette  {
+                final PaletteScheme scheme;
+final String base;
+final List<String> stops;
+final String text;
+
+                const WidgetPalette({required this.scheme ,required this.base ,required this.stops ,required this.text ,});
+
+
+
+
+
+        @override
+        int get hashCode => scheme.hashCode^base.hashCode^stops.hashCode^text.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is WidgetPalette &&
+                runtimeType == other.runtimeType
+                && scheme == other.scheme&& base == other.base&& stops == other.stops&& text == other.text;
 
             }
 
@@ -3053,17 +3081,18 @@ final String artist;
 final PlatformInt64? albumId;
 final String? albumTitle;
 final String? cover;
+final WidgetPalette? palette;
 final PlatformInt64 durationMs;
 final bool nowPlaying;
 
-                const WidgetSong({this.songId ,required this.title ,required this.artist ,this.albumId ,this.albumTitle ,this.cover ,required this.durationMs ,required this.nowPlaying ,});
+                const WidgetSong({this.songId ,required this.title ,required this.artist ,this.albumId ,this.albumTitle ,this.cover ,this.palette ,required this.durationMs ,required this.nowPlaying ,});
 
 
 
 
 
         @override
-        int get hashCode => songId.hashCode^title.hashCode^artist.hashCode^albumId.hashCode^albumTitle.hashCode^cover.hashCode^durationMs.hashCode^nowPlaying.hashCode;
+        int get hashCode => songId.hashCode^title.hashCode^artist.hashCode^albumId.hashCode^albumTitle.hashCode^cover.hashCode^palette.hashCode^durationMs.hashCode^nowPlaying.hashCode;
 
 
 
@@ -3072,7 +3101,7 @@ final bool nowPlaying;
             identical(this, other) ||
             other is WidgetSong &&
                 runtimeType == other.runtimeType
-                && songId == other.songId&& title == other.title&& artist == other.artist&& albumId == other.albumId&& albumTitle == other.albumTitle&& cover == other.cover&& durationMs == other.durationMs&& nowPlaying == other.nowPlaying;
+                && songId == other.songId&& title == other.title&& artist == other.artist&& albumId == other.albumId&& albumTitle == other.albumTitle&& cover == other.cover&& palette == other.palette&& durationMs == other.durationMs&& nowPlaying == other.nowPlaying;
 
             }
             
