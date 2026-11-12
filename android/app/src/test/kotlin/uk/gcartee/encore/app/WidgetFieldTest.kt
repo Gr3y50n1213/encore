@@ -73,10 +73,13 @@ class WidgetFieldTest {
     @Test
     fun aFadeMovesTheStopsTowardTheBase() {
         val faded = WidgetField.stops(golden, WidgetField.STALE_FADE)
+        // Distance in color, not contrast: a stop already as bright as the base keeps its contrast.
+        fun distance(a: Int, b: Int): Int =
+            listOf(16, 8, 0).sumOf { s -> Math.abs(((a shr s) and 0xFF) - ((b shr s) and 0xFF)) }
         for ((stop, f) in golden.stops.zip(faded)) {
             assertTrue(
                 "${Integer.toHexString(stop)} fades toward ${Integer.toHexString(golden.base)}",
-                WidgetField.contrast(f, golden.base) < WidgetField.contrast(stop, golden.base),
+                distance(f, golden.base) < distance(stop, golden.base),
             )
         }
         assertEquals("no fade changes nothing", golden.stops, WidgetField.stops(golden, 0f))
