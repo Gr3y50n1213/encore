@@ -142,36 +142,43 @@ internal fun CollectionBody(
         if (layout.hero) {
             tiles.firstOrNull()?.let { Hero(it, stale, ink, fs) }
             Spacer(GlanceModifier.height(gap))
-            TileRow(tiles.drop(1).take(layout.cols), layout.cols, fit, stale)
+            TileRow(tiles.drop(1).take(layout.cols), layout.cols, fit, stale, fs)
         } else {
             tiles.take(layout.cols * layout.rows).chunked(layout.cols).forEachIndexed { r, row ->
                 if (r > 0) Spacer(GlanceModifier.height(gap))
-                TileRow(row, layout.cols, fit, stale)
+                TileRow(row, layout.cols, fit, stale, fs)
             }
         }
     }
 }
 
 @Composable
-private fun TileRow(row: List<TileData>, cols: Int, fit: CollectionFit, stale: Boolean) {
+private fun TileRow(row: List<TileData>, cols: Int, fit: CollectionFit, stale: Boolean, fs: Float) {
     Row(modifier = GlanceModifier.fillMaxWidth()) {
         for (i in 0 until cols) {
             if (i > 0) Spacer(GlanceModifier.width(CollectionSizing.GAP.dp))
             val tile = row.getOrNull(i)
-            if (tile == null) Spacer(GlanceModifier.defaultWeight()) else Tile(tile, fit, stale, GlanceModifier.defaultWeight())
+            if (tile == null) Spacer(GlanceModifier.defaultWeight()) else Tile(tile, fit, stale, fs, GlanceModifier.defaultWeight())
         }
     }
 }
 
 /** A tile: a card tinted by its album (its base, a fade of its leading color), the cover inset, then the name and artist. */
 @Composable
-private fun Tile(t: TileData, fit: CollectionFit, stale: Boolean, modifier: GlanceModifier) {
+private fun Tile(t: TileData, fit: CollectionFit, stale: Boolean, fs: Float, modifier: GlanceModifier) {
     val ink = inkOf(t.palette)
     val s = fit.cover
     val p = t.palette
     val cardTint = if (p != null) ColorProvider(Color(p.base)) else ink.tonal
+    // An explicit height: the fade below fills its parent, and in a parent that wraps its
+    // content that is the whole widget, which stretched every tile to the widget's height and
+    // pushed the second row off it (first CI gallery). The sizing model knows the height.
+    val height = s + 2 * CollectionSizing.CARD_PAD +
+        (if (fit.names) CollectionSizing.nameHeight(fs) + 2 else 0) +
+        (if (fit.artist) CollectionSizing.artistHeight(fs) else 0)
     Box(
         modifier = modifier
+            .height(height.dp)
             .background(ImageProvider(R.drawable.widget_card_18), colorFilter = ColorFilter.tint(cardTint))
             .clickable(t.action)
             .semantics { contentDescription = t.label },

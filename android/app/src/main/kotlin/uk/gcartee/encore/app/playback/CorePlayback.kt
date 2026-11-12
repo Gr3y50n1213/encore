@@ -735,7 +735,16 @@ class CorePlayback(
         clock.reset()
         clock.playing(exo.isPlaying)
         val offsetMinutes = TimeZone.getDefault().getOffset(System.currentTimeMillis()) / 60_000
-        core.playbackStarted(uid, offsetMinutes)
+        try {
+            core.playbackStarted(uid, offsetMinutes)
+        } catch (e: uk.gcartee.encore.core.EncoreException.NotFound) {
+            // The player still holds a song the core's queue has moved on from (a queue change
+            // that hasn't reached the player yet, found on a slow tablet in CI): that isn't a
+            // start. Don't let it escape into the player's callback, where it would crash the
+            // app; the player follows the queue, and the next song change reports its start.
+            Log.w(TAG, "uid $uid isn't the current song in the queue: no start reported")
+            return
+        }
         startedUid = uid
         errorsInARow = 0
         if (replayedUid != uid) replayedUid = null

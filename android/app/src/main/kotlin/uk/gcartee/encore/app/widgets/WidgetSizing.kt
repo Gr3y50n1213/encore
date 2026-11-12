@@ -65,12 +65,12 @@ enum class NpKind { COMPACT, ROW, TILE, STACK, SIDE }
 enum class NpLayout(val w: Int, val h: Int, val kind: NpKind, val controls: NpControls, val tall: Boolean = false) {
     COMPACT(116, 48, NpKind.COMPACT, NpControls.PLAY),
     COMPACT_TALL(128, 72, NpKind.COMPACT, NpControls.PLAY, tall = true),
-    ROW(194, 48, NpKind.ROW, NpControls.PLAY),
-    ROW_TALL(200, 72, NpKind.ROW, NpControls.PLAY, tall = true),
-    NEXT(248, 48, NpKind.ROW, NpControls.PLAY_NEXT),
-    NEXT_TALL(264, 72, NpKind.ROW, NpControls.PLAY_NEXT, tall = true),
-    TRANSPORT(320, 48, NpKind.ROW, NpControls.TRIO_48),
-    TRANSPORT_TALL(336, 72, NpKind.ROW, NpControls.TRIO_48, tall = true),
+    ROW(208, 48, NpKind.ROW, NpControls.PLAY),
+    ROW_TALL(220, 72, NpKind.ROW, NpControls.PLAY, tall = true),
+    NEXT(264, 48, NpKind.ROW, NpControls.PLAY_NEXT),
+    NEXT_TALL(276, 72, NpKind.ROW, NpControls.PLAY_NEXT, tall = true),
+    TRANSPORT(336, 48, NpKind.ROW, NpControls.TRIO_48),
+    TRANSPORT_TALL(348, 72, NpKind.ROW, NpControls.TRIO_48, tall = true),
     TILE(120, 150, NpKind.TILE, NpControls.OVERLAY),
     TILE_LARGE(160, 196, NpKind.TILE, NpControls.OVERLAY),
     FULL(200, 146, NpKind.STACK, NpControls.TRIO_48),
@@ -97,8 +97,11 @@ object NpSizing {
     private const val GAP_COVER = 10
     private const val GAP_TEXT = 4
 
-    /** The narrowest the title may be given beside a cover and controls. */
-    const val TEXT_MIN_W = 60
+    /**
+     * The narrowest the title may be given beside a cover and controls: "Slow Tide" in bold 16 sp
+     * is about 70 dp, and at 60 the first CI gallery showed titles cut to "Slow Ti...".
+     */
+    const val TEXT_MIN_W = 80
 
     /** The level bars: 14 dp high. */
     const val BARS_H = 14

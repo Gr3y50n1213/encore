@@ -117,7 +117,7 @@ class WidgetGalleryTest {
         var used = 0f
         for (s in specs) {
             val need = s.h + CAPTION_DP + GAP_DP
-            if (pages.isEmpty() || used + need > screenDp - 60) {
+            if (pages.isEmpty() || used + need > screenDp - TOP_DP - 40) {
                 pages += mutableListOf<Spec>()
                 used = 0f
             }
@@ -143,7 +143,11 @@ class WidgetGalleryTest {
         val views = mutableListOf<Triple<Spec, AppWidgetHostView, Int>>()
         var column: LinearLayout? = null
         rule.runOnUiThread {
-            val root = FrameLayout(rule.activity).apply { setBackgroundColor(MAGENTA) }
+            // Under the status bar, so the clock doesn't draw over the first widget.
+            val root = FrameLayout(rule.activity).apply {
+                setBackgroundColor(MAGENTA)
+                setPadding(0, (TOP_DP * density).toInt(), 0, 0)
+            }
             val col = LinearLayout(rule.activity).apply { orientation = LinearLayout.VERTICAL }
             root.addView(col, FrameLayout.LayoutParams(-1, -1))
             rule.activity.setContentView(root)
@@ -334,6 +338,7 @@ class WidgetGalleryTest {
         const val MAGENTA = 0xFFFF00FF.toInt()
         const val CAPTION_DP = 16
         const val GAP_DP = 8
+        const val TOP_DP = 32
         const val SETTLE_MS = 4_000L
     }
 }

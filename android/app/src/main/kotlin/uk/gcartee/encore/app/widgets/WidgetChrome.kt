@@ -72,7 +72,10 @@ internal fun inkOf(p: SnapshotPalette?): WidgetInk =
             secondary = ColorProvider(text.copy(alpha = SECONDARY_ALPHA)),
             container = ColorProvider(text),
             glyph = ColorProvider(Color(p.base)),
-            tonal = ColorProvider(text.copy(alpha = TONAL_ALPHA)),
+            // Opaque: a tint with alpha loses it as a background, which drew previous and next as
+            // white pills with white arrows (first CI gallery). The app's tonal buttons are the
+            // surface with a share of the text color laid over it; so is this, over the base.
+            tonal = ColorProvider(Color(WidgetField.blend(p.base, p.text, TONAL_SHARE))),
             tonalGlyph = ColorProvider(text),
         )
     } else {
@@ -87,7 +90,8 @@ internal fun inkOf(p: SnapshotPalette?): WidgetInk =
     }
 
 internal const val SECONDARY_ALPHA = 0.78f
-internal const val TONAL_ALPHA = 0.16f
+/** How much of the text color is laid over the base for a tonal button or an empty cover. */
+internal const val TONAL_SHARE = 0.25f
 internal const val DIM_ALPHA = 0.5f
 
 @Composable
