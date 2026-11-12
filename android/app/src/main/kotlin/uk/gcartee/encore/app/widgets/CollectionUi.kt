@@ -174,7 +174,7 @@ private fun Tile(t: TileData, fit: CollectionFit, stale: Boolean, fs: Float, mod
     // content that is the whole widget, which stretched every tile to the widget's height and
     // pushed the second row off it (first CI gallery). The sizing model knows the height.
     val height = s + 2 * CollectionSizing.CARD_PAD +
-        (if (fit.names) CollectionSizing.nameHeight(fs) + 2 else 0) +
+        (if (fit.names) CollectionSizing.nameHeight(fs) else 0) +
         (if (fit.artist) CollectionSizing.artistHeight(fs) else 0)
     Box(
         modifier = modifier
@@ -202,7 +202,7 @@ private fun Tile(t: TileData, fit: CollectionFit, stale: Boolean, fs: Float, mod
             }
             if (fit.names) {
                 Column(modifier = GlanceModifier.fillMaxWidth().padding(horizontal = 2.dp)) {
-                    Text(t.name, style = titleStyle(ink, 13), maxLines = 1, modifier = GlanceModifier.padding(top = 2.dp))
+                    Text(t.name, style = titleStyle(ink, 13), maxLines = 1, modifier = GlanceModifier.padding(top = CollectionSizing.NAME_TOP.dp))
                     if (fit.artist && !t.artist.isNullOrBlank()) Text(t.artist, style = secondaryStyle(ink, 12), maxLines = 1)
                 }
             }

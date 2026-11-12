@@ -205,13 +205,15 @@ object CollectionSizing {
     const val GAP = 6
     const val CARD_PAD = 4
     const val HERO_H = 72
+    const val NAME_TOP = 2
     private const val NAME_SP = 13
     private const val ARTIST_SP = 12
     private const val HEADER_SP = 15
 
     fun headerHeight(fs: Float) = WidgetSizing.lineHeight(HEADER_SP, fs)
 
-    fun nameHeight(fs: Float) = WidgetSizing.lineHeight(NAME_SP, fs)
+    /** A tile's name line: the text and the 2 dp the tile leaves above it. */
+    fun nameHeight(fs: Float) = WidgetSizing.lineHeight(NAME_SP, fs) + NAME_TOP
 
     fun artistHeight(fs: Float) = WidgetSizing.lineHeight(ARTIST_SP, fs)
 
