@@ -1,6 +1,6 @@
 # Widgets redesign: everything still to fix, check or write (12 November 2026)
 
-Branch `widgets-redesign` (based on `phase9`; neither merged). Last green CI: run 43305039297 on commit 32051b3 (API 28, API 36 phone and tablet; only the allowed API 37.0 job is red). Commit 1854160 (run 43318767227) adds the items marked *done in 1854160* below and is checked in that run. The history of the phone tests is in `widget-device-test-2026-11-12.md`; this page is the to-do list.
+Branch `widgets-redesign` (based on `phase9`; neither merged). Last green CI: run 43322617742 on commit 6a4eb86 (API 28, API 36 phone and tablet; only the allowed API 37.0 job is red). The history of the phone tests is in `widget-device-test-2026-11-12.md`; this page is the to-do list.
 
 ## 1. Bugs and shortcomings still open
 
@@ -19,7 +19,7 @@ Branch `widgets-redesign` (based on `phase9`; neither merged). Last green CI: ru
    the minified release APK once in `device-check.sh`.
 6. **API 37.0 emulator job fails** (allowed, cause not looked into since Phase 9).
 
-Done in 1854160 (confirm in run 43318767227): a short strip of tiles is centered (the gallery has a one-mix and
+Done and confirmed in CI (commits 1854160 and 6a4eb86, run 43322617742; the screenshots show the centered strips): a short strip of tiles is centered (the gallery has a one-mix and
 two-album library); the gallery fails on a stretched field picture; `collections-play` waits up to a minute for the
 mixes to build (it failed once on API 36 and passed on a rerun); the debug-only readout of the sizes Android
 reports is on Settings > Lock screen and widgets (`WidgetSizeLog`).
