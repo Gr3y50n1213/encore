@@ -232,6 +232,13 @@ The "Android and Windows" column covers both; sizes written "2 by 1 up to 6 by 2
 
 - **Android.** The player comes from the Media3 session. Sleep timer and user-started downloads use a Live Update when the app can post one (permission POST\_PROMOTED\_NOTIFICATIONS, a title, ongoing, no custom views, not colorized, progress style), with a short chip text such as 24m, and fall back to a normal ongoing notification. Downloads run as user-initiated data transfer jobs. Widgets are built with Jetpack Glance and Material 3 Expressive shapes and colors, in resizable cells. Every widget is allowed on the lock screen unless it declares the not\_keyguard category, so the history widgets declare it and the Now Playing widget does not.
 
+**Widget build rules (redesign, 12 November 2026, ADR android-0006)**
+
+- Widgets wear the album's colors: the field is a small bitmap made at each size bucket's own shape from the palette in the snapshot (`FieldMath`, `WidgetField`), with `CoverPalette` as a stand-in until the core has made one. No progress bar: the playing state is the play button's shape and the level bars.
+- Every size is a bucket in `WidgetSizing.kt` (Now Playing 14, Mixes 12, Recently played 11), sized from its content and the font scale; `WidgetLayoutTest` proves each fits at font scales 1.0 to 2.0 and `WidgetGalleryTest` hosts every bucket on the emulators and fails on cropping, buttons under 48 dp, unrounded corners or a stretched field. Now Playing is capped at 260 dp high.
+- Redraw each placed widget through its own receiver (`WidgetRefresh`), never `updateAll` per class, and keep the Glance classes out of R8's class merging (`proguard-rules.pro`, `WidgetKeepRulesTest`): the release build merged the three widgets and one drew another's content. Emulator tests run the debug build and cannot see that.
+- Debug builds show the sizes Android reports for each placed widget on Settings > Lock screen and widgets (`WidgetSizeLog`). One UI's cells are 311, 326 and 418 dp wide on the S20 FE and A13, not Google's table.
+
 **Limits to build against (Android)**
 
 - Android chips are at most 96 dp wide and show the whole text under 7 characters. Tapping a widget that opens an activity from the lock screen asks the person to unlock first unless the activity is marked showWhenLocked, which Encore's main activity is not.

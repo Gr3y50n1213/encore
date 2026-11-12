@@ -49,7 +49,7 @@ Search
 
 Ember Cove
 
-2. Now Playing 4×2, dark. Colors follow the wallpaper (dynamic color), not the album; the cover keeps its own.
+2. Now Playing 4×2, dark. ~~Colors follow the wallpaper (dynamic color), not the album; the cover keeps its own.~~ Changed 12 November 2026: the widget wears the playing album's colors (ADR android-0006); the drawing above is the old look.
 
 Recently played
 
@@ -332,9 +332,9 @@ Dock or panel. Progress bar and count where supported, and Desktop Actions in th
 
 9. Desktop Actions work in every desktop; a tray icon is optional.
 
-1. Android widget set. The same four widgets as on Apple devices, built with Jetpack Glance and Material 3 Expressive: Now Playing, Mixes, Recently played and Recap. Each is resizable between its minimum and maximum cell sizes, from 2×1 up to the sizes shown. The widget background uses the system corner radius, and inner shapes use the system inner radius, so it matches the launcher. Colors follow the wallpaper (dynamic color, light and dark). Previews in the picker are generated from the demo library, never the person's own history.
+1. Android widget set. The same four widgets as on Apple devices, built with Jetpack Glance and Material 3 Expressive: Now Playing, Mixes, Recently played and Recap. Each is resizable between its minimum and maximum cell sizes, from 2×1 up to the sizes shown. The widget background uses the system corner radius, and inner shapes use the system inner radius, so it matches the launcher. Colors follow the album (changed 12 November 2026 from the wallpaper's dynamic color; ADR android-0006): the playing album's field behind, text and buttons in its own text color, with the theme's colors only until an album's palette exists. Every size the launcher can give a widget is drawn whole and sizes that would leave one cover in empty space cannot be placed. Previews in the picker are generated from the demo library, never the person's own history.
 
-2. Now Playing (Android). Cover, title, artist, previous, play or pause, and next. The buttons go to the playback service as media session actions and never open the app. The progress bar is drawn from the last update and refreshed on every track or state change; a widget cannot animate and the system limits how often it may update, so the bar is an indicator, not a clock, and the 2×1 size leaves it out. Tapping the cover or text opens Now Playing.
+2. Now Playing (Android). Cover, title, artist, previous, play or pause, and next. The buttons go to the playback service as media session actions and never open the app. There is no progress bar (changed 12 November 2026): a widget cannot animate and the system limits how often it may update, so a bar could only be wrong. The playing state is shown by the play button's shape (round paused, rounded square playing) and three level bars shown only while playing. Tapping the cover or text opens Now Playing.
 
 3. Mixes, Recently played and Recap. A tap on a mix tile starts it in the background through the playback service; a tap on a recent cover opens the album page. The widget is configured when it is placed: Profile, and for Mixes a pinned mix or Next up. Recap shows the top artist and minutes so far and says Your recap builds as you listen until there is enough data. Touch targets are at least 48 dp; the play button sits inside the tile so a stray tap near the edge opens the page instead of playing.
 

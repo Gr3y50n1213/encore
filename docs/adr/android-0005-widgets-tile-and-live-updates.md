@@ -1,7 +1,7 @@
 # ADR android-0005: Widgets read a file, buttons go to the service, Live Updates only for what the person started
 
 Date: 11 November 2026
-Status: accepted
+Status: accepted. Superseded in part by [android-0006](android-0006-album-colored-widgets.md): the three widgets' look, sizes and colors ("The three widgets") changed on 12 November 2026; everything else here stands.
 
 ## Context
 Phase 9 on Android (ROADMAP; PLAN-ANDROID section 20; boards 31, 32 and 34): three Glance widgets, a Quick Settings tile, Live Updates for the sleep timer and downloads, the sleep timer itself, and a settings page. The core writes the data and owns the timer (ADR core-0018). Android's job is to draw it, route the taps, and keep the lock screen private.
@@ -25,7 +25,7 @@ The owner approved on 11 November 2026:
 **Words, not data, when there is no data.** The states are: Nothing yet, Server not reachable (saved mixes show), Profile is locked, Open Encore (Guest), Profile removed, and dimmed with "Open Encore to refresh" after 24 hours.
 
 **The three widgets.**
-- Now Playing: 2x1 to 6x2, with a wide tablet row. A round play button that becomes a rounded square while playing (PLAN-UX section 22). Wallpaper colors.
+- Now Playing: 2x1 to 6x2, with a wide tablet row. A round play button that becomes a rounded square while playing (PLAN-UX section 22). Wallpaper colors. *(Colors, sizes and the progress bar changed: see ADR android-0006.)*
 - Mixes: 4x2, up to four tiles. Next up comes first, then the pinned mixes. One tap starts the mix in the background. Configurable: Next up or one pinned mix; a pinned choice that is gone falls back to Next up.
 - Recently played: 4x3, up to eight covers. A tap opens the album.
 

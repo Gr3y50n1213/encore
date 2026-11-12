@@ -113,6 +113,23 @@ Decisions the owner made after using the app with their own library, which overr
 | A widget set to another profile | Tapping opens the profile switcher instead of playing | Board 34 |
 | Quick Settings tile "Add" | A button on the page from Android 13; below that, a line saying where to add it | Board 31 |
 
+## Widgets redesign, 12 November 2026
+
+The owner found the Phase 9 widgets basic and cropped on 11 November; the redesign is ADR android-0006. Decisions that differ from the boards:
+
+| What | Decision | Against |
+| --- | --- | --- |
+| Widget colors | The playing album's field and palette, not the wallpaper's | Board 34, spec items 1 and 2 |
+| Now Playing's progress bar | Removed on every size; the play button's shape and level bars show the state | Board 34, spec item 2 |
+| Sizes | Every size is a bucket sized from its content; Now Playing is capped at 260 dp high; Mixes and Recently played at widths 250, 310 and 410 dp; Recently played 4x3 is six bigger covers in three columns | Board 34 shows one size each |
+| Frame behind Mixes and Recently played | The lead album's softened field (frame A); a neutral frame B is one line away | The owner didn't choose |
+| Before an album's palette exists | The widget estimates one from its cover | Board 34 says nothing |
+| Redraw | Per placed widget, through its own receiver; the Glance classes are kept out of R8's class merging | A release-only bug found on the S20 FE |
+
+The mock-up the owner approved on 12 November 2026 is `design/wireframes/html/34-widgets-redesign-mockup.html`, beside the board 34 files.
+
+Found on the phones and fixed or noted: `widget-device-test-2026-11-12.md`; what is still open: `widget-open-items.md`.
+
 ## Not built yet, and why
 
 - Android Auto on a real head unit (built, checked as a media browser); the year recap (11).

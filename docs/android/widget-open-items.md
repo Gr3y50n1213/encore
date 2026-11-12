@@ -1,36 +1,28 @@
 # Widgets redesign: everything still to fix, check or write (12 November 2026)
 
-Branch `widgets-redesign` (based on `phase9`; neither merged). Last CI: run 43305039297 on commit 32051b3,
-green on API 28, API 36 phone and API 36 tablet, red only on the allowed API 37.0 job. The history of the
-phone tests is in `widget-device-test-2026-11-12.md`; this page is the to-do list.
+Branch `widgets-redesign` (based on `phase9`; neither merged). Last green CI: run 43305039297 on commit 32051b3 (API 28, API 36 phone and tablet; only the allowed API 37.0 job is red). Commit 1854160 (run 43318767227) adds the items marked *done in 1854160* below and is checked in that run. The history of the phone tests is in `widget-device-test-2026-11-12.md`; this page is the to-do list.
 
-## 1. Bugs and shortcomings found, not yet fixed
+## 1. Bugs and shortcomings still open
 
-1. **A short strip of tiles leaves an empty gap.** The Mixes widget with only two mixes (S20 FE, hero card
-   plus one tile) draws the tile at the left and leaves the rest of the strip empty. Let the tiles share the
-   width, or center them.
-2. **A 326x354 Recently played still has about 50 dp spare above and below** (covers can't outgrow their
+1. **A 326x354 Recently played still has about 50 dp spare above and below** (covers can't outgrow their
    column and the core sends at most 8 albums, so a 3x3 grid doesn't fit). Options: a hero card for the last
    album, or a 3x3 grid with the core sending 9.
-3. **The estimated palette (bug 3's fix) is only a stand-in.** It is made from the cover's four quadrants, so
-   its colors can shift a little when the core's palette arrives. Look at the change on a phone; if it
-   jars, fade between the two or compute the same palette in the widget.
-4. **Samsung's pickers and launcher have not been checked for the rounded preview covers** (they look right in
+2. **The estimated palette is only a stand-in.** It is made from the cover's four quadrants, so its colors can
+   shift a little when the core's palette arrives. Look at the change on a phone; if it jars, fade between the
+   two or compute the same palette in the widget.
+3. **Samsung's picker has not been checked for the rounded preview covers** (they are clipped vectors; right in
    the emulator).
-5. **Widget Play has no emulator test.** The empty-queue fix was only seen on the S20 FE. Add a device test
-   that clears the queue, taps Play and expects playback.
-6. **Release-only problems are invisible to CI.** The R8 class merge (three widgets drawn as one class) passed
-   every emulator test because they run the debug build. Today only `WidgetKeepRulesTest` reads the rule's
-   text. Run the widget device tests against the minified release APK too, or in `device-check.sh`
-   once, so a merge like that fails a test.
-7. **The gallery does not check the background's shape.** Add a check that compares the field at 4x1, 2x2 and
-   4x2 (round blobs, nothing stretched).
-8. **`collections-play` is flaky on the API 36 phone emulator** ("the profile has a mix to start"; failed
-   once and passed on rerun with nothing changed). The replay's mixes may not be built in time: wait for them
-   or retry.
-9. **API 37.0 emulator job fails** (allowed, cause not looked into since Phase 9).
-10. **The debug-only readout of the widget sizes Android reports** is approved but not built (shown on the
-    Lock screen and widgets page in debug builds only), needed to confirm One UI's cell sizes on the other phones.
+4. **Widget Play with nothing queued has no emulator test.** The core has no call that empties the queue, so only
+   the S20 FE showed the fix. Add one if such a call appears (`AutoLibrary.onPlaybackResumption` is the code).
+5. **Release-only problems are invisible to CI.** The R8 class merge passed every emulator test because they run
+   the debug build; today only `WidgetKeepRulesTest` reads the rule's text. Run the widget device tests against
+   the minified release APK once in `device-check.sh`.
+6. **API 37.0 emulator job fails** (allowed, cause not looked into since Phase 9).
+
+Done in 1854160 (confirm in run 43318767227): a short strip of tiles is centered (the gallery has a one-mix and
+two-album library); the gallery fails on a stretched field picture; `collections-play` waits up to a minute for the
+mixes to build (it failed once on API 36 and passed on a rerun); the debug-only readout of the sizes Android
+reports is on Settings > Lock screen and widgets (`WidgetSizeLog`).
 
 ## 2. Not tested yet (needs a phone, or the owner)
 
@@ -50,14 +42,9 @@ phone tests is in `widget-device-test-2026-11-12.md`; this page is the to-do lis
 - Whether the widget Play with an empty queue should start the last song played (done) or the Next up mix.
 - When to merge: `phase9`, then `widgets-redesign`, into main, only after the owner has tried the build.
 
-## 4. Documents still to write
+## 4. Documents
 
-- Board 34 spec items 1 to 3 (colors follow the album now, not the wallpaper; no progress bar; every size drawn).
-- `docs/shared/PLAN-UX.md` section 20 and `docs/android/PLAN-ANDROID.md` section 20.
-- New `docs/adr/android-0006-album-colored-widgets.md`, and a "superseded in part" line in `android-0005`.
-- `docs/android/REVIEW-UI.md`.
-- Save the approved mock-up beside the board PNG.
-- Note the R8 lesson (keep rules for Glance widgets) in the Android track notes.
+Done: board 34 spec items 1 to 3 (amended), `PLAN-UX` section 20, `PLAN-ANDROID` section 20, `android-0006` and the superseded-in-part line in `android-0005`, `REVIEW-UI` and the mock-up beside the board files (`design/wireframes/html/34-widgets-redesign-mockup.html`). The board 34 PNG still shows the old look.
 
 ## 5. Phase 9 follow-ups (not from the redesign)
 
