@@ -10,6 +10,13 @@ import org.json.JSONObject
 /** The snapshot's `privacy` (CORE-API, "Widgets"). */
 enum class SnapshotPrivacy { NORMAL, LOCKED, GUEST }
 
+/**
+ * An album's colors (CORE-API, "Widgets", Colors): the palette the app draws that album's
+ * gradient from. Opaque ARGB ints: [base], four [stops] (leading color first) and [text],
+ * which reads on both. [dark] is the scheme (white text on a dark field, or dark on light).
+ */
+data class SnapshotPalette(val dark: Boolean, val base: Int, val stops: List<Int>, val text: Int)
+
 /** Now playing (`nowPlaying` true) or the last song played. */
 data class SnapshotSong(
     val songId: Long,
@@ -20,11 +27,25 @@ data class SnapshotSong(
     val cover: String?,
     val durationMs: Long,
     val nowPlaying: Boolean,
+    /** Null until the core has made the album's colors, and for a song with no cover. */
+    val palette: SnapshotPalette? = null,
 )
 
-data class SnapshotMix(val mixId: String, val title: String, val cover: String?, val pinned: Boolean)
+data class SnapshotMix(
+    val mixId: String,
+    val title: String,
+    val cover: String?,
+    val pinned: Boolean,
+    val palette: SnapshotPalette? = null,
+)
 
-data class SnapshotAlbum(val albumId: Long, val title: String, val artist: String, val cover: String?)
+data class SnapshotAlbum(
+    val albumId: Long,
+    val title: String,
+    val artist: String,
+    val cover: String?,
+    val palette: SnapshotPalette? = null,
+)
 
 /** One profile's `snapshot.json`, schema 1. */
 data class Snapshot(
@@ -192,17 +213,45 @@ object SnapshotReader {
             cover = o.str("cover"),
             durationMs = o.optLong("durationMs", 0L).coerceAtLeast(0L),
             nowPlaying = o.optBoolean("nowPlaying", false),
+            palette = palette(o),
         )
     }
 
     private fun mix(o: JSONObject): SnapshotMix? {
         val id = o.str("mixId") ?: return null
-        return SnapshotMix(id, o.str("title").orEmpty(), o.str("cover"), o.optBoolean("pinned", false))
+        return SnapshotMix(id, o.str("title").orEmpty(), o.str("cover"), o.optBoolean("pinned", false), palette(o))
     }
 
     private fun album(o: JSONObject): SnapshotAlbum? {
         if (o.isNull("albumId")) return null
-        return SnapshotAlbum(o.optLong("albumId"), o.str("title").orEmpty(), o.str("artist").orEmpty(), o.str("cover"))
+        return SnapshotAlbum(
+            o.optLong("albumId"),
+            o.str("title").orEmpty(),
+            o.str("artist").orEmpty(),
+            o.str("cover"),
+            palette(o),
+        )
+    }
+
+    private val HEX_COLOUR = Regex("^[0-9A-Fa-f]{6}$")
+
+    /** An `RRGGBB` string as an opaque ARGB int, or null for anything else. */
+    private fun colour(s: String?): Int? =
+        if (s != null && HEX_COLOUR.matches(s)) 0xFF000000.toInt() or s.toInt(16) else null
+
+    /**
+     * The `palette` key of a song, mix or album. Anything malformed (a wrong type, a bad
+     * hex, not exactly four stops) is no palette, never an unreadable file: the widget just
+     * draws in the theme's colors.
+     */
+    internal fun palette(o: JSONObject): SnapshotPalette? {
+        val p = o.optJSONObject("palette") ?: return null
+        val base = colour(p.str("base")) ?: return null
+        val text = colour(p.str("text")) ?: return null
+        val array = p.optJSONArray("stops") ?: return null
+        if (array.length() != 4) return null
+        val stops = (0 until 4).map { colour(array.optString(it, null)) ?: return null }
+        return SnapshotPalette(dark = p.str("scheme") != "light", base = base, stops = stops, text = text)
     }
 
     /** A string, or null when the key is missing or JSON null (optString would say "null"). */
