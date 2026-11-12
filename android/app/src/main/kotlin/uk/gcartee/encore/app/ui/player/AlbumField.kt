@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
@@ -140,7 +141,9 @@ private const val TONE_OUTLINE = 0.5f
  * The moving field behind Now Playing: four blobs of the album's stops over its base,
  * drifting 6 to 10 % of the width, one turn every 40 s. An AGSL shader from Android 13
  * (tokens albumGradient.android), radial brushes before; one still frame with Reduce
- * Motion. Decorative, so hidden from TalkBack. Drawn in its own layer at most
+ * Motion. The composition is the portrait one in either orientation (the blobs' sizes are
+ * measured against the short side), so landscape is the portrait field stretched, not a
+ * different picture. Decorative, so hidden from TalkBack. Drawn in its own layer at most
  * [DRIFT_FRAME_MS] apart, reading the phase where it draws: the slow drift doesn't need
  * the display's 120 Hz, and nothing else on the page redraws with it.
  */
@@ -196,14 +199,21 @@ private val anchors = listOf(Offset(0.2f, 0.18f), Offset(0.85f, 0.35f), Offset(0
 private fun BrushField(colours: FieldColours, phase: FloatState) {
     Canvas(Modifier.fillMaxSize().graphicsLayer { }) {
         val t = phase.floatValue
-        colours.stops.forEachIndexed { i, c ->
-            val a = anchors[i]
-            val centre = Offset(
-                size.width * (a.x + travel * cos(t + i * 1.7f)),
-                size.height * (a.y + travel * sin(t * 1.3f + i * 1.1f)),
-            )
-            val r = size.maxDimension * 0.55f
-            drawCircle(Brush.radialGradient(listOf(c.copy(alpha = 0.9f), Color.Transparent), centre, r), r, centre)
+        // Drawn on a portrait-shaped canvas (the short side wide, the long side tall) and
+        // stretched onto the real one, so turning the phone keeps portrait's composition
+        // instead of rescaling the blobs (owner, 11 November 2026). The identity in portrait.
+        val pw = minOf(size.width, size.height)
+        val ph = maxOf(size.width, size.height)
+        withTransform({ scale(size.width / pw, size.height / ph, pivot = Offset.Zero) }) {
+            colours.stops.forEachIndexed { i, c ->
+                val a = anchors[i]
+                val centre = Offset(
+                    pw * (a.x + travel * cos(t + i * 1.7f)),
+                    ph * (a.y + travel * sin(t * 1.3f + i * 1.1f)),
+                )
+                val r = ph * 0.55f
+                drawCircle(Brush.radialGradient(listOf(c.copy(alpha = 0.9f), Color.Transparent), centre, r), r, centre)
+            }
         }
     }
 }
@@ -225,7 +235,10 @@ float blob(float2 uv, float2 centre) {
 
 half4 main(float2 p) {
     float2 uv = p / size;
-    float aspect = size.y / max(size.x, 1.0);
+    // Measured as on a portrait screen (long side over short side), whichever way the phone
+    // is held: portrait is unchanged, and landscape keeps the same colours at the same
+    // screen-relative places instead of blobs that each cover most of the height.
+    float aspect = max(size.x, size.y) / max(min(size.x, size.y), 1.0);
     uv.y *= aspect;
     float2 p0 = float2(0.20 + travel * cos(t),        (0.18 + travel * sin(t * 1.3)) * aspect);
     float2 p1 = float2(0.85 + travel * cos(t + 1.7),  (0.35 + travel * sin(t * 1.3 + 1.1)) * aspect);
