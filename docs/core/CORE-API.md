@@ -18,7 +18,7 @@ This file is the only thing the platform tracks may rely on. Every public call, 
 | 5 | 7 | Added, nothing removed. Handoff and remote control (board 12): `output_devices`, `rename_device`, `hand_off_to`, `handoff_ready`, `handoff_failed`, `pull_from`, `dismiss_continue`, `remote_command`, `remote_queue`, `control_only`, `stop_remote_control`; the player reports `playback_paused`, `playback_resumed`, `set_volume_level`; types `OutputDevices`, `OutputDevice`, `OutputState`, `DeviceState`, `RemoteSong`, `HandoffInfo`, `RemoteCommand` (+ `RemoteCommandKind`), `RemoteQueue`, `RemoteQueueItem`. `CoreEvent` gains `output_devices`, `device`, `handoff`, `remote_command` and seven kinds (`DevicesChanged`, `ContinueAvailable`, `HandoffIncoming`, `HandoffConfirmed`, `HandoffFailed`, `RemoteCommand`, `RemoteState`). A platform that switches over every `EventKind` adds the seven; one that builds `CoreEvent` itself adds the fields. |
 | 6 | 8 | Added, nothing removed. Downloads and offline (boards 06, 08, 11, 13, 17, 20; docs/adr/core-0017): `download`, `remove_download`, `remove_all_downloads`, `pause_download`, `retry_failed_downloads`, `download_marks`, `downloads_overview`, `download_settings` / `set_download_settings`, `run_downloads` (async) / `stop_downloads`, `refresh_smart_downloads`, `remove_unplayed_downloads`, `set_connectivity`, `search_downloaded`; types `DownloadKind`, `DownloadTarget`, `DownloadState`, `DownloadedItem`, `DownloadMarks`, `DownloadStop`, `DownloadRun`, `DownloadProgress`, `DownloadSettings`, `DownloadsOverview`. `StreamInfo` gains `local` and `cache_key`; `CoreEvent` gains `download` and two kinds (`DownloadsChanged`, `DownloadProgress`). Offline, `play`, `play_next`, `add_to_up_next`, `smart_shuffle`, `jump_to` and `replay_from_history` refuse a song that can't play with `NotAllowed` ("Not downloaded…"), and the queue passes over such songs. A platform that builds `StreamInfo` or `CoreEvent` itself adds the fields; one that switches over every `EventKind` adds the two. |
 | 7 | 9 | Added, nothing removed. The sleep timer (PLAN-UX "Sleep timer"; board 31), one per device: `set_sleep_timer`, `extend_sleep_timer`, `cancel_sleep_timer`, `restore_sleep_timer` (Undo), `sleep_timer`, `sleep_timer_ended`, `sleep_fade_plan`, and `set_sleep_timer_seconds` (testing only); types `SleepTimer`, `SleepTimerSpec`, `SleepTimerMode`, `SleepFadePlan`, `SleepFadeAction`. `CoreEvent` gains `sleep_timer` and the kind `SleepTimerChanged`. The device registry (`device.sqlite`) gains the `sleep_timer` table. A handoff to another device ends this device's timer. A platform that builds `CoreEvent` itself adds the field; one that switches over every `EventKind` adds the kind. |
-| 7 | 9 | Also added, nothing removed. Widgets (PLAN-UX section 20; board 34): the core keeps a per-profile snapshot file, `<data_dir>/widgets/<profile_id>/snapshot.json` (schema 1) with cover thumbnails in `art/`, for widgets that never open the database or call the network; `widget_snapshot()` reads the open profile's; `play_mix(mix)` starts a mix or Next up. Types `WidgetSnapshot`, `WidgetSong`, `WidgetMix`, `WidgetAlbum`, `WidgetPrivacy`, `MixRef`, `MixRefKind`. `CoreEvent` gains `widget_profile_id` and the kind `WidgetSnapshotChanged`. Removing a profile also deletes its widget folder. A platform that builds `CoreEvent` itself adds the field; one that switches over every `EventKind` adds the kind. |
+| 7 | 9 | Also added, nothing removed. Widgets (PLAN-UX section 20; board 34): the core keeps a per-profile snapshot file, `<data_dir>/widgets/<profile_id>/snapshot.json` (schema 1) with cover thumbnails in `art/`, for widgets that never open the database or call the network; `widget_snapshot()` reads the open profile's; `play_mix(mix)` starts a mix or Next up. Each song, mix and album in it carries its album's color `palette` (`WidgetPalette`), made once per cover by the debounced writer (one small PNG, the same work as `album_palette`; the app's own calls reuse it). Types `WidgetSnapshot`, `WidgetSong`, `WidgetMix`, `WidgetAlbum`, `WidgetPalette`, `WidgetPrivacy`, `MixRef`, `MixRefKind`. `CoreEvent` gains `widget_profile_id` and the kind `WidgetSnapshotChanged`. Removing a profile also deletes its widget folder. A platform that builds `CoreEvent` itself adds the field; one that switches over every `EventKind` adds the kind. |
 
 ## How every platform gets the core
 
@@ -359,6 +359,8 @@ A widget never opens the database, never calls the network and never starts the 
 
 **Covers.** About 256 px, fetched by the core through its own client while the app runs (pinned self-signed servers work), stored as the server sends them (JPEG or PNG; decode by content, not by name), and named by a hash of the album, its artwork tag and the size, so the name says nothing about the album and a changed cover gets a new file. Offline, a downloaded album's kept cover is copied instead. A cover the snapshot no longer names is deleted at the next write. A cover not saved yet is null; the snapshot is written again once it is.
 
+**Colors.** Each song, mix and album carries `palette`: the colors the app draws that album's gradient from (`album_palette`, board 04) as `scheme` (`dark` or `light`), `base`, four `stops` (leading color first) and `text`, all `RRGGBB` hex, without the app-only `lowestContrast` and `sampled`. A mix takes the palette of the album its cover comes from, so the tint always matches the cover. A widget can draw one still frame of the Now Playing field from `base` and `stops`. Building a snapshot only reads palettes the database already has. The debounced writer makes the missing ones with the same work as `album_palette` (one small PNG per cover, once, through the core's own client, kept in the database, so the app's `album_palette` is free afterwards), only while the server is reachable and at most 20 per write; an album that fails is not asked for again for ten minutes. Until a palette exists it is null, and the snapshot is written again when it does. A palette made for an older cover is shown until the new one is made. Offline, only palettes already made appear. Palettes are never written to the widget folder except inside the snapshot file, and are absent under `locked` and `guest`.
+
 **Privacy.** The file holds nothing a widget may not show:
 
 - **A profile with a PIN**: `privacy` is `locked` from the moment `set_profile_pin` returns, with no song, no mixes, no albums and no covers (the `art/` folder is emptied). Show "Profile is locked" with Open Encore.
@@ -378,17 +380,20 @@ A widget never opens the database, never calls the network and never starts the 
     "songId": 412, "title": "Slow Tide", "artist": "Ember Cove",
     "albumId": 37, "albumTitle": "Golden Hour Static",
     "cover": "5d41402abc4b2a76b9719d911017c592.img",
+    "palette": { "scheme": "dark", "base": "3D0000", "stops": ["CF4630", "1B1030", "C02D56", "986E00"], "text": "FFFFFF" },
     "durationMs": 222000, "nowPlaying": true
   },
   "isPlaying": true,
   "positionMs": 84000,
   "positionAtUtcMs": 1794470400000,
   "pinnedMixes": [
-    { "mixId": "mix-20403-strongest", "title": "Evening Drive", "cover": "7d793037a0760186574b0282f2f435e7.img", "pinned": true }
+    { "mixId": "mix-20403-strongest", "title": "Evening Drive", "cover": "7d793037a0760186574b0282f2f435e7.img",
+      "palette": { "scheme": "dark", "base": "0B1B33", "stops": ["3B82C4", "1D4E89", "0B1B33", "4FA8C7"], "text": "FFFFFF" }, "pinned": true }
   ],
-  "nextUp": { "mixId": "mix-20403-timeOfDay", "title": "Rainy Focus", "cover": null, "pinned": false },
+  "nextUp": { "mixId": "mix-20403-timeOfDay", "title": "Rainy Focus", "cover": null, "palette": null, "pinned": false },
   "recentAlbums": [
-    { "albumId": 37, "title": "Golden Hour Static", "artist": "Ember Cove", "cover": "5d41402abc4b2a76b9719d911017c592.img" }
+    { "albumId": 37, "title": "Golden Hour Static", "artist": "Ember Cove", "cover": "5d41402abc4b2a76b9719d911017c592.img",
+      "palette": { "scheme": "dark", "base": "3D0000", "stops": ["CF4630", "1B1030", "C02D56", "986E00"], "text": "FFFFFF" } }
   ],
   "reachable": true,
   "writtenAtUtcMs": 1794470400120,
@@ -464,7 +469,8 @@ All are plain records and enums. IDs and times are 64-bit signed integers (milli
 | `SleepTimerSpec` / `SleepTimerMode` | `mode`, `minutes` (Minutes only) / Minutes, EndOfSong, EndOfAlbum |
 | `SleepFadePlan` / `SleepFadeAction` | `action`, `fade_from_ms`, `fade_ms` / KeepPlaying, StopAtSongEnd, FadeNow |
 | `WidgetSnapshot` | `schema` (1), `profile_id`, `privacy`, `song?`, `is_playing`, `position_ms`, `position_at_utc_ms`, `pinned_mixes`, `next_up?`, `recent_albums`, `reachable`, `written_at_utc_ms`; see "Widgets" (the file has the same fields in camelCase, plus `recap: null`) |
-| `WidgetSong` / `WidgetMix` / `WidgetAlbum` | `song_id?`, `title`, `artist`, `album_id?`, `album_title?`, `cover?`, `duration_ms`, `now_playing` / `mix_id`, `title`, `cover?`, `pinned` / `album_id`, `title`, `artist`, `cover?` (`cover` is a file name in the profile's `art/` folder) |
+| `WidgetSong` / `WidgetMix` / `WidgetAlbum` | `song_id?`, `title`, `artist`, `album_id?`, `album_title?`, `cover?`, `palette?`, `duration_ms`, `now_playing` / `mix_id`, `title`, `cover?`, `palette?`, `pinned` / `album_id`, `title`, `artist`, `cover?`, `palette?` (`cover` is a file name in the profile's `art/` folder; `palette` is the album's colors, null until made) |
+| `WidgetPalette` | `scheme` (`PaletteScheme`), `base`, `stops` (four), `text`: `RRGGBB` hex, the album's `ArtworkPalette` without `lowest_contrast` and `sampled` |
 | `WidgetPrivacy` | Normal, Locked (a PIN), Guest |
 | `MixRef` / `MixRefKind` | `kind`, `mix_id?` (for Id) / Id, NextUp |
 | `ArtworkRequest` | `url`, `headers` |

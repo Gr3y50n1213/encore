@@ -41,7 +41,8 @@ pub use encore_core::api::{
     DownloadStop, DownloadTarget, DownloadedItem, DownloadsOverview,
 };
 pub use encore_core::api::{
-    MixRef, MixRefKind, WidgetAlbum, WidgetMix, WidgetPrivacy, WidgetSnapshot, WidgetSong,
+    MixRef, MixRefKind, WidgetAlbum, WidgetMix, WidgetPalette, WidgetPrivacy, WidgetSnapshot,
+    WidgetSong,
 };
 pub use encore_core::api::{
     SleepFadeAction, SleepFadePlan, SleepTimer, SleepTimerMode, SleepTimerSpec,
@@ -1101,6 +1102,14 @@ pub enum _WidgetPrivacy {
     Guest,
 }
 
+#[frb(mirror(WidgetPalette))]
+pub struct _WidgetPalette {
+    pub scheme: PaletteScheme,
+    pub base: String,
+    pub stops: Vec<String>,
+    pub text: String,
+}
+
 #[frb(mirror(WidgetSong))]
 pub struct _WidgetSong {
     pub song_id: Option<i64>,
@@ -1109,6 +1118,7 @@ pub struct _WidgetSong {
     pub album_id: Option<i64>,
     pub album_title: Option<String>,
     pub cover: Option<String>,
+    pub palette: Option<WidgetPalette>,
     pub duration_ms: i64,
     pub now_playing: bool,
 }
@@ -1118,6 +1128,7 @@ pub struct _WidgetMix {
     pub mix_id: String,
     pub title: String,
     pub cover: Option<String>,
+    pub palette: Option<WidgetPalette>,
     pub pinned: bool,
 }
 
@@ -1127,6 +1138,7 @@ pub struct _WidgetAlbum {
     pub title: String,
     pub artist: String,
     pub cover: Option<String>,
+    pub palette: Option<WidgetPalette>,
 }
 
 #[frb(mirror(WidgetSnapshot))]

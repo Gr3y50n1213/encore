@@ -1374,6 +1374,31 @@ pub enum WidgetPrivacy {
     Guest,
 }
 
+/// An album's colours for a widget: the same palette the app draws that album's
+/// gradient from (`ArtworkPalette`, board 04), without the fields only the app
+/// uses. `RRGGBB` hex; `text` reads on `base` and on every stop. A widget draws
+/// one still frame of the Now Playing field from `base` and the four `stops`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct WidgetPalette {
+    pub scheme: PaletteScheme,
+    pub base: String,
+    /// Four stops, leading colour first.
+    pub stops: Vec<String>,
+    pub text: String,
+}
+
+impl From<ArtworkPalette> for WidgetPalette {
+    fn from(p: ArtworkPalette) -> Self {
+        WidgetPalette {
+            scheme: p.scheme,
+            base: p.base,
+            stops: p.stops,
+            text: p.text,
+        }
+    }
+}
+
 /// The song a Now Playing widget shows: the one playing (or paused) now, else
 /// the last one played.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1387,6 +1412,9 @@ pub struct WidgetSong {
     pub album_title: Option<String>,
     /// A file name in the profile's `art/` folder; None: no cover saved.
     pub cover: Option<String>,
+    /// The album's colours; None until they are made (the writer asks for them once
+    /// per cover while the server is reachable), and for a song with no cover.
+    pub palette: Option<WidgetPalette>,
     pub duration_ms: i64,
     /// True: the current song of a play in progress (playing or paused). False:
     /// the last song played; show it with a Play button.
@@ -1401,6 +1429,8 @@ pub struct WidgetMix {
     pub title: String,
     /// A file name in the profile's `art/` folder; None: no cover saved.
     pub cover: Option<String>,
+    /// The colours of the album the cover comes from; see `WidgetSong::palette`.
+    pub palette: Option<WidgetPalette>,
     pub pinned: bool,
 }
 
@@ -1413,6 +1443,8 @@ pub struct WidgetAlbum {
     pub artist: String,
     /// A file name in the profile's `art/` folder; None: no cover saved.
     pub cover: Option<String>,
+    /// This album's colours; see `WidgetSong::palette`.
+    pub palette: Option<WidgetPalette>,
 }
 
 /// One profile's widget snapshot: what `<data_dir>/widgets/<profile_id>/

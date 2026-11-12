@@ -15,6 +15,12 @@
 //! - Covers are about 256 px, fetched through the core's own client by the
 //!   debounced writer (that is the app's network use, not the widget's), stored as
 //!   the server sends them, and deleted once no snapshot names them.
+//! - Each song, mix and album carries its album's palette (the colours the app draws
+//!   that album's gradient from). Building a snapshot only reads palettes already in
+//!   the database; the debounced writer makes the missing ones, once per cover
+//!   (one small PNG, the same one `album_palette` uses), while the server is
+//!   reachable, and the snapshot is written again with them. Palettes live in the
+//!   database, never in the widget folder.
 //! - Privacy: a profile with a PIN writes `locked` and Guest writes `guest`, both
 //!   with no titles and no covers, at once (not after the debounce). Private
 //!   listening and Learning off record no plays, so last played and the recent
@@ -24,7 +30,7 @@
 //! Lock order: the write lock first, then the profile, the registry, playback,
 //! the store and the live state, each taken on its own.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -56,6 +62,10 @@ const RECENT_PLAYS_READ: u32 = 300;
 const MAX_PINNED: usize = 10;
 /// Songs looked at for a mix's cover.
 const MIX_COVER_LOOKS: usize = 12;
+/// Palettes made in one debounced write (a long list of new albums takes a few).
+const PALETTES_PER_ROUND: usize = 20;
+/// An album whose palette failed isn't asked for again for this long.
+const PALETTE_RETRY_MS: i64 = 10 * 60_000;
 
 /// The writer's state, one per core (`Inner::widgets`).
 #[derive(Debug, Default)]
@@ -70,6 +80,9 @@ pub(super) struct Widgets {
     /// The profile and the content last written, without its time: a snapshot
     /// that didn't change isn't written again (no disk write, no redraw).
     last: Mutex<Option<(String, Value)>>,
+    /// Albums whose palette couldn't be made, and when: not asked for again for
+    /// [`PALETTE_RETRY_MS`], so a server that refuses one cover isn't asked on every write.
+    failed: Mutex<HashMap<i64, i64>>,
 }
 
 /// A cover the snapshot names but `art/` doesn't hold yet.
@@ -86,6 +99,12 @@ struct Wanted {
 struct Covers {
     saved: HashSet<String>,
     wanted: Vec<Wanted>,
+    /// Albums whose palette is missing or was made for an older cover (the
+    /// debounced writer makes them).
+    palettes_wanted: Vec<i64>,
+    /// Albums whose palette failed lately, with the time (`Widgets::failed`).
+    failed: HashMap<i64, i64>,
+    now: i64,
 }
 
 impl Covers {
@@ -99,6 +118,35 @@ impl Covers {
         }
         None
     }
+
+    /// An album's palette as the database has it. One made for an older cover still
+    /// beats none; a missing or outdated one is noted for the writer. An album with no
+    /// cover has no palette and nothing to fetch. Local reads only.
+    fn palette(&mut self, store: &Store, album_id: Option<i64>) -> Option<WidgetPalette> {
+        let id = album_id?;
+        let (_, _, tag) = store.artwork_tag("album", id).ok()??;
+        let tag = tag?;
+        let cached = store.cached_palette("album", id).ok().flatten();
+        let current = cached
+            .as_ref()
+            .is_some_and(|c| c.artwork_tag.as_ref() == Some(&tag));
+        if !current {
+            let failed_lately = self
+                .failed
+                .get(&id)
+                .is_some_and(|at| self.now - at < PALETTE_RETRY_MS);
+            if !failed_lately && !self.palettes_wanted.contains(&id) {
+                self.palettes_wanted.push(id);
+            }
+        }
+        cached.and_then(|c| widget_palette(c.palette_json.as_deref()?))
+    }
+}
+
+/// A stored palette (the JSON `make_palette` saves) as the widget's record.
+fn widget_palette(json: &str) -> Option<WidgetPalette> {
+    let p: crate::palette::Palette = serde_json::from_str(json).ok()?;
+    Some(ArtworkPalette::from(p).into())
 }
 
 /// An album's cover file: its source, its ID there, its artwork tag and the size,
@@ -132,6 +180,7 @@ fn widget_song(
 ) -> WidgetSong {
     WidgetSong {
         cover: covers.of(store, t.album_id),
+        palette: covers.palette(store, t.album_id),
         song_id: Some(t.id),
         title: t.title,
         artist: t.artist,
@@ -157,6 +206,7 @@ fn last_played(store: &Store, covers: &mut Covers) -> Result<Option<WidgetSong>,
             album_id: None,
             album_title: e.album,
             cover: None,
+            palette: None,
             duration_ms: e.duration_ms as i64,
             now_playing: false,
         },
@@ -175,7 +225,25 @@ fn widget_mix(store: &Store, m: &encore_recs::Mix, pinned: bool, covers: &mut Co
         mix_id: m.id.clone(),
         title: m.title.clone(),
         cover: covers.of(store, album),
+        // The colours of the album the cover comes from, so the tint matches the cover.
+        palette: covers.palette(store, album),
         pinned,
+    }
+}
+
+/// A palette as the file holds it (null until it is made).
+fn palette_value(p: &Option<WidgetPalette>) -> Value {
+    match p {
+        Some(p) => json!({
+            "scheme": match p.scheme {
+                PaletteScheme::Dark => "dark",
+                PaletteScheme::Light => "light",
+            },
+            "base": p.base,
+            "stops": p.stops,
+            "text": p.text,
+        }),
+        None => Value::Null,
     }
 }
 
@@ -264,6 +332,7 @@ pub(super) fn snapshot_json(s: &WidgetSnapshot) -> Value {
             "mixId": m.mix_id,
             "title": m.title,
             "cover": m.cover,
+            "palette": palette_value(&m.palette),
             "pinned": m.pinned,
         })
     };
@@ -278,6 +347,7 @@ pub(super) fn snapshot_json(s: &WidgetSnapshot) -> Value {
             "albumId": x.album_id,
             "albumTitle": x.album_title,
             "cover": x.cover,
+            "palette": palette_value(&x.palette),
             "durationMs": x.duration_ms,
             "nowPlaying": x.now_playing,
         })),
@@ -291,6 +361,7 @@ pub(super) fn snapshot_json(s: &WidgetSnapshot) -> Value {
             "title": a.title,
             "artist": a.artist,
             "cover": a.cover,
+            "palette": palette_value(&a.palette),
         })).collect::<Vec<Value>>(),
         "reachable": s.reachable,
         "writtenAtUtcMs": s.written_at_utc_ms,
@@ -414,12 +485,14 @@ impl Inner {
     }
 
     /// The open profile's snapshot from local state, with the covers already
-    /// saved, and the covers it lacks. `closing`: nothing plays any more.
+    /// saved and the palettes already made, then the covers it lacks and the
+    /// albums whose palette it lacks. `closing`: nothing plays any more. No
+    /// network: the writer fetches what is missing.
     fn build_snapshot(
         &self,
         p: &Profile,
         closing: bool,
-    ) -> Result<(WidgetSnapshot, Vec<Wanted>), EncoreError> {
+    ) -> Result<(WidgetSnapshot, Vec<Wanted>, Vec<i64>), EncoreError> {
         let now = now_ms();
         let privacy = self.widget_privacy(p)?;
         let reachable = self.widgets_reachable(p);
@@ -439,12 +512,15 @@ impl Inner {
             written_at_utc_ms: now,
         };
         if privacy != WidgetPrivacy::Normal {
-            // Locked and Guest: nothing of the profile at all.
-            return Ok((snap, Vec::new()));
+            // Locked and Guest: nothing of the profile at all, no palettes either.
+            return Ok((snap, Vec::new(), Vec::new()));
         }
         let mut covers = Covers {
             saved: saved_art(&self.widget_dir(&p.id)),
             wanted: Vec::new(),
+            palettes_wanted: Vec::new(),
+            failed: lock(&self.widgets.failed)?.clone(),
+            now,
         };
         // Playback before the store (the lock order), each on its own.
         let (mode, playing_track, playing_context) = {
@@ -492,6 +568,7 @@ impl Inner {
             snap.recent_albums.push(WidgetAlbum {
                 album_id,
                 cover: covers.of(&store, Some(album_id)),
+                palette: covers.palette(&store, Some(album_id)),
                 title: a.title,
                 artist: a.artist,
             });
@@ -505,7 +582,7 @@ impl Inner {
             snap.next_up = Some(widget_mix(&store, &m, pinned, &mut covers));
         }
         drop(store);
-        Ok((snap, covers.wanted))
+        Ok((snap, covers.wanted, covers.palettes_wanted))
     }
 
     /// Build and write the open profile's snapshot now, prune the covers it no
@@ -524,7 +601,7 @@ impl Inner {
             if only.is_some_and(|id| id != p.id) {
                 return Ok(None);
             }
-            let (snap, _) = self.build_snapshot(&p, closing)?;
+            let (snap, _, _) = self.build_snapshot(&p, closing)?;
             let dir = self.widget_dir(&p.id);
             let json = snapshot_json(&snap);
             let mut content = json.clone();
@@ -610,17 +687,41 @@ impl Inner {
         fetched
     }
 
-    /// One debounced write: fetch the covers the snapshot lacks, then write it.
+    /// Make the album palettes a snapshot lacks: `make_palette`'s work (one small
+    /// PNG through the core's own client, kept in the database for good, so the
+    /// app's `album_palette` is free afterwards). Only while the server is
+    /// reachable, at most [`PALETTES_PER_ROUND`] a round, and only while this
+    /// profile may still show them; an album that fails is left alone for
+    /// [`PALETTE_RETRY_MS`]. Nothing is written to the widget folder.
+    async fn fetch_palettes(&self, p: &Arc<Profile>, wanted: Vec<i64>) {
+        if wanted.is_empty() || !self.widgets_reachable(p) {
+            return;
+        }
+        for id in wanted.into_iter().take(PALETTES_PER_ROUND) {
+            if !self.still_showing(p) {
+                break;
+            }
+            if self.make_palette(p, "album", id).await.is_err()
+                && let Ok(mut failed) = lock(&self.widgets.failed)
+            {
+                failed.insert(id, now_ms());
+            }
+        }
+    }
+
+    /// One debounced write: fetch the covers and palettes the snapshot lacks,
+    /// then write it.
     async fn widgets_round(self: &Arc<Self>) {
         if !self.widgets.dirty.swap(false, Ordering::SeqCst) {
             return;
         }
         let Ok(p) = self.profile() else { return };
-        let wanted = match self.build_snapshot(&p, false) {
-            Ok((_, wanted)) => wanted,
+        let (wanted, palettes) = match self.build_snapshot(&p, false) {
+            Ok((_, wanted, palettes)) => (wanted, palettes),
             Err(_) => return,
         };
         let fetched = self.fetch_covers(&p, wanted).await;
+        self.fetch_palettes(&p, palettes).await;
         if !matches!(self.write_snapshot(Some(&p.id), false), Ok(Some(_))) {
             discard(&fetched);
         }

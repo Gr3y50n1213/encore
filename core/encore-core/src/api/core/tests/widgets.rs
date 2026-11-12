@@ -22,14 +22,29 @@ fn is_cover(req: &Request) -> bool {
         && req.url.query().is_some_and(|q| q.contains("fillWidth"))
 }
 
+/// What every palette request answers with: the board's Golden Hour Static cover as
+/// PNG, so every album's palette is the one `album_palettes_are_made_once_and_shown_offline`
+/// pins: base 3D0000, stops CF4630 1B1030 C02D56 986E00, text FFFFFF.
+const PALETTE_PNG: &[u8] =
+    include_bytes!("../../../../../../tools/fixtures/artwork/golden-hour-static.png");
+
+/// The small PNG the palette is sampled from (`cover_png`).
+fn is_palette(req: &Request) -> bool {
+    let path = req.url.path();
+    path.starts_with("/Items/")
+        && path.ends_with("/Images/Primary")
+        && req.url.query().is_some_and(|q| q.contains("format=Png"))
+}
+
 /// The recording (swappable, for a second user) until `strict`; from then on
-/// covers only, and anything else is refused and noted.
+/// covers and palette images only, and anything else is refused and noted.
 #[derive(Debug)]
 struct Guard {
     inner: Mutex<Arc<dyn Transport>>,
     strict: AtomicBool,
     refused: Mutex<Vec<String>>,
     covers: AtomicU32,
+    palettes: AtomicU32,
 }
 
 impl Transport for Guard {
@@ -40,6 +55,16 @@ impl Transport for Guard {
                 Ok(Response {
                     status: 200,
                     body: COVER.to_vec(),
+                    server_date_utc_ms: None,
+                })
+            });
+        }
+        if is_palette(&req) {
+            self.palettes.fetch_add(1, Ordering::SeqCst);
+            return Box::pin(async {
+                Ok(Response {
+                    status: 200,
+                    body: PALETTE_PNG.to_vec(),
                     server_date_utc_ms: None,
                 })
             });
@@ -59,6 +84,7 @@ fn guarded(dir: &TempDir) -> (Arc<EncoreCore>, Arc<Events>, Arc<Guard>) {
         strict: AtomicBool::new(false),
         refused: Mutex::new(Vec::new()),
         covers: AtomicU32::new(0),
+        palettes: AtomicU32::new(0),
     });
     let config = CoreConfig {
         data_dir: dir.0.to_string_lossy().into_owned(),
@@ -191,6 +217,48 @@ fn assert_no_titles(dir: &TempDir, profile: &str, texts: &[String]) {
     assert!(checked > 0, "nothing to look for");
 }
 
+/// Every colour (base and stops) of every palette a snapshot file holds.
+fn palette_colours(v: &Value, out: &mut Vec<String>) {
+    match v {
+        Value::Object(m) => {
+            for (k, x) in m {
+                if k == "palette" && x.is_object() {
+                    out.extend(x["base"].as_str().map(str::to_owned));
+                    out.extend(
+                        x["stops"]
+                            .as_array()
+                            .into_iter()
+                            .flatten()
+                            .filter_map(|s| s.as_str().map(str::to_owned)),
+                    );
+                } else {
+                    palette_colours(x, out);
+                }
+            }
+        }
+        Value::Array(a) => {
+            for x in a {
+                palette_colours(x, out);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// No palette is in any file of the profile's widget folder: not its key, and none
+/// of `colours` (a palette's base and stops, as they were written before).
+fn assert_no_palettes(dir: &TempDir, profile: &str, colours: &[String]) {
+    assert!(!colours.is_empty(), "nothing to look for");
+    for f in widget_bytes(dir, profile) {
+        for key in ["palette", "stops"] {
+            assert!(!holds(&f, key.as_bytes()), "{key:?} is in the widget files");
+        }
+        for c in colours {
+            assert!(!holds(&f, c.as_bytes()), "{c} is in the widget files");
+        }
+    }
+}
+
 /// The mix the current song was started from.
 fn playing_context(core: &EncoreCore) -> Option<String> {
     let p = core.inner.profile().unwrap();
@@ -251,6 +319,14 @@ fn the_snapshot_is_schema_1_written_atomically_with_its_covers() {
     assert_eq!(v["positionMs"], 42_000);
     assert_eq!(v["recentAlbums"][0]["albumId"], album.album.id);
     assert!(v["pinnedMixes"].as_array().unwrap().is_empty());
+    // Every song, mix and album carries a palette key (null until made).
+    assert!(v["song"].as_object().unwrap().contains_key("palette"));
+    assert!(
+        v["recentAlbums"][0]
+            .as_object()
+            .unwrap()
+            .contains_key("palette")
+    );
 
     // The covers it names are saved beside it, exactly those, as the server sent them.
     let named = named_covers(&v);
@@ -314,6 +390,10 @@ fn a_locked_profile_keeps_no_titles_or_covers() {
     texts_of(&before, &mut texts);
     assert!(!before["song"].is_null() && !before["pinnedMixes"].as_array().unwrap().is_empty());
     assert!(!art_files(&dir, &me).is_empty());
+    // The colours too are part of what a PIN must hide.
+    let mut colours = Vec::new();
+    palette_colours(&before, &mut colours);
+    assert!(!colours.is_empty(), "the snapshot had palettes: {before}");
 
     core.set_profile_pin(me.clone(), "4821".into()).unwrap();
     let check = |why: &str| {
@@ -332,6 +412,7 @@ fn a_locked_profile_keeps_no_titles_or_covers() {
         }
         assert!(art_files(&dir, &me).is_empty(), "{why}: covers kept");
         assert_no_titles(&dir, &me, &texts);
+        assert_no_palettes(&dir, &me, &colours);
     };
     check("at once");
     // Still locked while the owner keeps listening, and after the debounced writer.
@@ -643,9 +724,10 @@ fn play_mix_falls_back_to_next_up() {
 }
 
 /// "A widget never calls the network", core side: building and writing the
-/// snapshot asks the server for covers and nothing else, whatever happens.
+/// snapshot asks the server for covers and palette images and nothing else, whatever
+/// happens; `widget_snapshot()` alone asks for nothing.
 #[test]
-fn building_the_snapshot_makes_no_network_call_but_covers() {
+fn building_the_snapshot_makes_no_network_call_but_covers_and_palettes() {
     let dir = temp_dir("widgets-offline");
     let (core, _, guard) = guarded(&dir);
     let me = signed_in(&core).profile_id;
@@ -699,12 +781,25 @@ fn building_the_snapshot_makes_no_network_call_but_covers() {
     .unwrap();
     flush(&core);
     std::thread::sleep(Duration::from_millis(1_500));
+    // The read call builds from local state and asks for nothing, not even a cover.
+    let before_read = (
+        guard.covers.load(Ordering::SeqCst),
+        guard.palettes.load(Ordering::SeqCst),
+    );
     let _ = core.widget_snapshot().unwrap();
+    assert_eq!(
+        (
+            guard.covers.load(Ordering::SeqCst),
+            guard.palettes.load(Ordering::SeqCst)
+        ),
+        before_read,
+        "widget_snapshot() made a request"
+    );
 
     let refused = guard.refused.lock().unwrap().clone();
     assert!(
         refused.is_empty(),
-        "requests other than covers: {refused:?}"
+        "requests other than covers and palettes: {refused:?}"
     );
     assert!(
         guard.covers.load(Ordering::SeqCst) > covers_before,
@@ -713,4 +808,102 @@ fn building_the_snapshot_makes_no_network_call_but_covers() {
     let v = snapshot(&dir, &me);
     assert_eq!(art_files(&dir, &me), named_covers(&v));
     assert!(!named_covers(&v).is_empty());
+}
+
+/// Colours: the song and the recent albums carry their album's palette, the same
+/// one the app draws that album's gradient from (board 04), and a mix tile takes
+/// its cover's album's.
+#[test]
+fn palettes_reach_the_snapshot_and_match_album_palette() {
+    let dir = temp_dir("widgets-palette");
+    let (core, _, guard) = guarded(&dir);
+    let me = signed_in(&core).profile_id;
+    block(core.sync_library()).unwrap();
+    let ids = song_ids(&core);
+    listen(&core, &ids[..60], 60);
+    let home = block(core.regenerate_mixes()).unwrap();
+    core.pin_mix(home.made_for_you.mixes[0].mix_id.clone(), true)
+        .unwrap();
+    let album = covered_albums(&core).remove(0);
+    let q = core
+        .play(
+            album.songs.iter().map(|s| s.id).collect(),
+            0,
+            StartedFrom::Album,
+            Some(album.album.id.to_string()),
+        )
+        .unwrap();
+    core.playback_started(q.current.unwrap().uid, 60).unwrap();
+    flush(&core);
+
+    let golden = serde_json::json!({
+        "scheme": "dark",
+        "base": "3D0000",
+        "stops": ["CF4630", "1B1030", "C02D56", "986E00"],
+        "text": "FFFFFF",
+    });
+    let v = snapshot(&dir, &me);
+    assert_eq!(v["song"]["palette"], golden, "{v}");
+    assert_eq!(v["recentAlbums"][0]["palette"], golden);
+    // A mix takes the colours of the album its cover comes from: there is one when
+    // the tile has a cover, and none when it has not.
+    let mix = &v["pinnedMixes"][0];
+    if mix["cover"].is_null() {
+        assert!(mix["palette"].is_null(), "{v}");
+    } else {
+        assert_eq!(mix["palette"], golden, "{v}");
+    }
+
+    // The record the read call returns is the app's palette, without its extras.
+    let made = guard.palettes.load(Ordering::SeqCst);
+    assert!(made >= 1);
+    let app = block(core.album_palette(album.album.id)).unwrap().unwrap();
+    let song = core.widget_snapshot().unwrap().song.unwrap();
+    assert_eq!(song.palette, Some(WidgetPalette::from(app)));
+    // The app got it from the same cache: no second image request.
+    assert_eq!(guard.palettes.load(Ordering::SeqCst), made);
+}
+
+/// A palette is made once per cover, and not while the server can't be reached;
+/// it comes when it can.
+#[test]
+fn a_palette_is_made_once_and_not_while_offline() {
+    let dir = temp_dir("widgets-palette-once");
+    let (core, _, guard) = guarded(&dir);
+    let me = signed_in(&core).profile_id;
+    block(core.sync_library()).unwrap();
+    let album = covered_albums(&core).remove(0);
+    let q = core
+        .play(
+            album.songs.iter().map(|s| s.id).collect(),
+            0,
+            StartedFrom::Album,
+            Some(album.album.id.to_string()),
+        )
+        .unwrap();
+    core.playback_started(q.current.unwrap().uid, 60).unwrap();
+    // Offline before the first write (the debounced one is a second away): nothing
+    // can be asked for.
+    core.set_connectivity(false, Network::Wifi, Vec::new())
+        .unwrap();
+    flush(&core);
+    assert_eq!(
+        guard.palettes.load(Ordering::SeqCst),
+        0,
+        "asked while offline"
+    );
+    assert!(snapshot(&dir, &me)["song"]["palette"].is_null());
+
+    // Reachable: made, written, and the app is told.
+    core.set_connectivity(true, Network::Wifi, Vec::new())
+        .unwrap();
+    flush(&core);
+    let made = guard.palettes.load(Ordering::SeqCst);
+    assert!(made >= 1, "never made");
+    assert_eq!(snapshot(&dir, &me)["song"]["palette"]["base"], "3D0000");
+
+    // Once: more writes ask for nothing.
+    flush(&core);
+    flush(&core);
+    assert_eq!(guard.palettes.load(Ordering::SeqCst), made);
 }

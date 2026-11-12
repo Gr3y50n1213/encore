@@ -749,64 +749,7 @@ impl EncoreCore {
         let inner = self.inner.clone();
         self.spawn(async move {
             let p = inner.profile()?;
-            let settings = &tokens().palette;
-            let (found, cached) = {
-                let store = lock(&p.store)?;
-                (
-                    store.artwork_tag(kind, id)?,
-                    store.cached_palette(kind, id)?,
-                )
-            };
-            let Some((source_id, item, tag)) = found else {
-                return Err(EncoreError::NotFound {
-                    reason: format!("That {kind} isn't in your library"),
-                });
-            };
-            let read = |c: &CachedPalette| -> Result<Option<ArtworkPalette>, EncoreError> {
-                let Some(json) = &c.palette_json else {
-                    return Ok(None);
-                };
-                let palette: crate::palette::Palette =
-                    serde_json::from_str(json).map_err(EncoreError::internal)?;
-                Ok(Some(palette.into()))
-            };
-            if let Some(c) = &cached
-                && c.artwork_tag == tag
-            {
-                return read(c);
-            }
-            let fetched = match (&tag, inner.source(&p, source_id)) {
-                // No cover: nothing to fetch.
-                (None, _) => Ok(None),
-                (Some(t), Ok(source)) => source
-                    .cover_png(&item, settings.sample_size_px, Some(t))
-                    .await
-                    .map_err(EncoreError::from),
-                (Some(_), Err(e)) => Err(e),
-            };
-            let bytes = match (fetched, &cached) {
-                (Ok(b), _) => b,
-                // Offline or signed out: the last palette, even of an older cover.
-                (Err(_), Some(c)) => return read(c),
-                (Err(e), None) => return Err(e),
-            };
-            // A cover that can't be read counts as no cover: the profile accent.
-            let palette =
-                bytes.and_then(|b| crate::palette::palette_of_png(&b, settings).ok().flatten());
-            let palette_json = match &palette {
-                Some(pal) => Some(serde_json::to_string(pal).map_err(EncoreError::internal)?),
-                None => None,
-            };
-            lock(&p.store)?.save_palette(
-                kind,
-                id,
-                &CachedPalette {
-                    artwork_tag: tag,
-                    palette_json,
-                    made_utc_ms: now_ms(),
-                },
-            )?;
-            Ok(palette.map(Into::into))
+            inner.make_palette(&p, kind, id).await
         })
         .await
     }
@@ -822,6 +765,78 @@ impl EncoreCore {
             .as_ref()
             .ok_or_else(|| EncoreError::internal("runtime stopped"))?;
         rt.spawn(fut).await.map_err(EncoreError::internal)?
+    }
+}
+
+impl Inner {
+    /// Make, or read back, the palette of an album's or playlist's cover: the
+    /// database first (no network), else one small PNG from the source, kept
+    /// for good. The app's `album_palette` and the widget writer
+    /// (`widgets.rs`) both come here, so a palette is made once per cover.
+    async fn make_palette(
+        &self,
+        p: &Profile,
+        kind: &'static str,
+        id: i64,
+    ) -> Result<Option<ArtworkPalette>, EncoreError> {
+        let settings = &tokens().palette;
+        let (found, cached) = {
+            let store = lock(&p.store)?;
+            (
+                store.artwork_tag(kind, id)?,
+                store.cached_palette(kind, id)?,
+            )
+        };
+        let Some((source_id, item, tag)) = found else {
+            return Err(EncoreError::NotFound {
+                reason: format!("That {kind} isn't in your library"),
+            });
+        };
+        let read = |c: &CachedPalette| -> Result<Option<ArtworkPalette>, EncoreError> {
+            let Some(json) = &c.palette_json else {
+                return Ok(None);
+            };
+            let palette: crate::palette::Palette =
+                serde_json::from_str(json).map_err(EncoreError::internal)?;
+            Ok(Some(palette.into()))
+        };
+        if let Some(c) = &cached
+            && c.artwork_tag == tag
+        {
+            return read(c);
+        }
+        let fetched = match (&tag, self.source(p, source_id)) {
+            // No cover: nothing to fetch.
+            (None, _) => Ok(None),
+            (Some(t), Ok(source)) => source
+                .cover_png(&item, settings.sample_size_px, Some(t))
+                .await
+                .map_err(EncoreError::from),
+            (Some(_), Err(e)) => Err(e),
+        };
+        let bytes = match (fetched, &cached) {
+            (Ok(b), _) => b,
+            // Offline or signed out: the last palette, even of an older cover.
+            (Err(_), Some(c)) => return read(c),
+            (Err(e), None) => return Err(e),
+        };
+        // A cover that can't be read counts as no cover: the profile accent.
+        let palette =
+            bytes.and_then(|b| crate::palette::palette_of_png(&b, settings).ok().flatten());
+        let palette_json = match &palette {
+            Some(pal) => Some(serde_json::to_string(pal).map_err(EncoreError::internal)?),
+            None => None,
+        };
+        lock(&p.store)?.save_palette(
+            kind,
+            id,
+            &CachedPalette {
+                artwork_tag: tag,
+                palette_json,
+                made_utc_ms: now_ms(),
+            },
+        )?;
+        Ok(palette.map(Into::into))
     }
 }
 
