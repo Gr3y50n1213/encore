@@ -44,6 +44,14 @@ nothing below has been changed in code.
    brown blob; it is faithful to the app's field, but the widget looks flat. Consider a minimum chroma or
    lightness for the widget field only.
 
+8. **The album gradient behind the widget looks stretched (owner's note, seen on the phone).** The field is one
+   160x80 bitmap drawn with `ContentScale.FillBounds`, so it is pulled to whatever shape the widget has:
+   a wide, short 4x1 (326x108 dp) or a tall one stretches the blobs into streaks, unlike the app's field.
+   Suspect: the fixed 2:1 bitmap against widget shapes far from 2:1. Fix idea: render the bitmap at the
+   widget's own aspect (one per size bucket, or per reported size), or scale the blob radii by aspect as
+   `AlbumField` now does, and add a gallery check that compares the field's look at 4x1, 2x2 and 4x2.
+   Not yet looked at closely on the other two phones.
+
 ## Checked and fine
 
 - Real Samsung cell sizes (S20 FE: 4x1 = 326x108 dp, 2x2 = 158x226; A13: 4x1 = 418x121, 2x1 = 204x121,
