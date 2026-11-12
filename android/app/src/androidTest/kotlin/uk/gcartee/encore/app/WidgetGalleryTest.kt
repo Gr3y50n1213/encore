@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
@@ -20,6 +21,7 @@ import android.util.SizeF
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.ComponentActivity
@@ -76,7 +78,7 @@ class WidgetGalleryTest {
     private val automation: UiAutomation get() = instrumentation.uiAutomation
     private val density get() = context.resources.displayMetrics.density
     private val problems = mutableListOf<String>()
-    private val demoProfiles = listOf("gallery-dark", "gallery-light", "gallery-stale", "gallery-locked")
+    private val demoProfiles = listOf("gallery-dark", "gallery-light", "gallery-stale", "gallery-locked", "gallery-few")
 
     private class Kind(val name: String, val receiver: Class<*>, val widget: GlanceAppWidget)
 
@@ -110,6 +112,10 @@ class WidgetGalleryTest {
         for (b in RecentSizing.buckets) specs += Spec(recent, b.w, b.h, "gallery-dark", "${b.cols}x${b.rows}")
         for ((w, h) in listOf(276 to 220, 276 to 337, 412 to 117)) specs += Spec(recent, w, h, "gallery-dark", "phone")
         specs += Spec(recent, 250, 190, "gallery-locked", "locked")
+        // Fewer tiles than columns: the strip is centered, not left with a hole.
+        specs += Spec(mixes, 310, 200, "gallery-few", "hero, one tile")
+        specs += Spec(mixes, 410, 110, "gallery-few", "one mix")
+        specs += Spec(recent, 410, 110, "gallery-few", "two albums")
 
         // Pages of widgets that fit one screen.
         val screenDp = context.resources.displayMetrics.heightPixels / density
@@ -238,6 +244,21 @@ class WidgetGalleryTest {
             if (v is ViewGroup) for (i in 0 until v.childCount) buttons(v.getChildAt(i))
         }
         buttons(host)
+        // The album field is drawn at the widget's own shape, not stretched (owner, 12 Nov 2026).
+        fun fields(v: View) {
+            val bmp = (v as? ImageView)?.drawable as? BitmapDrawable
+            if (bmp != null && bmp.intrinsicWidth > 0 && v.width >= host.width * 0.9f && v.height >= host.height * 0.9f) {
+                val viewAspect = v.height.toFloat() / v.width
+                val pictureAspect = bmp.intrinsicHeight.toFloat() / bmp.intrinsicWidth
+                val stretch = viewAspect / pictureAspect
+                // Aspects the field clamps (a very thin strip) are skipped; anything else within 40 %.
+                if (viewAspect in 0.25f..2.1f && (stretch < 0.6f || stretch > 1.67f)) {
+                    problems += "${label(spec)}: the field picture is stretched (${bmp.intrinsicWidth}x${bmp.intrinsicHeight} px drawn at ${v.width}x${v.height})"
+                }
+            }
+            if (v is ViewGroup) for (i in 0 until v.childCount) fields(v.getChildAt(i))
+        }
+        fields(host)
     }
 
     private fun describe(v: View): String {
@@ -277,13 +298,13 @@ class WidgetGalleryTest {
         )
         val titles = listOf("Golden Hour", "Night Market", "Salt and Signal", "Tidewater", "Paper Lanterns", "Low Orbit", "Harbor Light", "Cinder Road")
         val mixNames = listOf("Evening Drive", "Rainy Focus", "Drive Home", "Slow Morning", "Late Train", "Sunday Slow")
-        fun profile(id: String, privacy: String, written: Long, songPalette: String) {
+        fun profile(id: String, privacy: String, written: Long, songPalette: String, mixCount: Int = 5, albumCount: Int = 8) {
             val folder = File(dir, id)
             folder.deleteRecursively()
             File(folder, "art").mkdirs()
             for (i in 0 until 8) writeCover(File(folder, "art/a$i.img"), i)
             writeCover(File(folder, "art/s.img"), 0)
-            val albums = (0 until 8).joinToString(",") { i ->
+            val albums = (0 until albumCount).joinToString(",") { i ->
                 """{"albumId":${i + 1},"title":"${titles[i]}","artist":"Ember Cove","cover":"a$i.img","palette":${palettes[i]}}"""
             }
             fun mix(i: Int, pinned: Boolean) =
@@ -291,7 +312,7 @@ class WidgetGalleryTest {
             val body = if (privacy == "normal") {
                 """"song":{"songId":412,"title":"Slow Tide","artist":"Ember Cove","albumId":1,"albumTitle":"Golden Hour Static","cover":"s.img","palette":$songPalette,"durationMs":222000,"nowPlaying":true},""" +
                     """"isPlaying":true,"positionMs":84000,"positionAtUtcMs":$now,""" +
-                    """"pinnedMixes":[${(1..5).joinToString(",") { mix(it, true) }}],"nextUp":${mix(0, false)},"recentAlbums":[$albums],"""
+                    """"pinnedMixes":[${(1..mixCount).joinToString(",") { mix(it, true) }}],"nextUp":${mix(0, false)},"recentAlbums":[$albums],"""
             } else {
                 """"song":null,"isPlaying":false,"positionMs":0,"positionAtUtcMs":0,"pinnedMixes":[],"nextUp":null,"recentAlbums":[],"""
             }
@@ -303,6 +324,8 @@ class WidgetGalleryTest {
         profile("gallery-light", "normal", now, daylight)
         profile("gallery-stale", "normal", now - 2 * 24 * 3600 * 1000L, golden)
         profile("gallery-locked", "locked", now, golden)
+        // A new library: one pinned mix and two albums, so a strip has fewer tiles than columns.
+        profile("gallery-few", "normal", now, golden, mixCount = 1, albumCount = 2)
     }
 
     /** A made-up sunset in one of eight color schemes: demo art only. */

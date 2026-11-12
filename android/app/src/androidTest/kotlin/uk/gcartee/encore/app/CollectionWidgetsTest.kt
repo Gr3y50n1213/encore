@@ -96,7 +96,15 @@ class CollectionWidgetsTest {
         // WidgetSync has saved the open profile, so the widget's tiles play directly.
         val profile = host.core.currentProfile()!!
         waitFor("WidgetSync saved the profile", TIMEOUT) { WidgetConfig.canControl(profile, WidgetConfig.profileState(context)) }
-        // The tile can only start a mix the profile has: say so plainly if there is none yet.
+        // The tile can only start a mix the profile has. The core builds the mixes in the background
+        // after a sign-in, so give it a minute before calling the replay's history too short (this
+        // failed once on the API 36 phone and passed on a rerun with nothing changed).
+        val end = System.currentTimeMillis() + MIXES_BUILD_MS
+        while (System.currentTimeMillis() < end) {
+            val s = runCatching { host.core.widgetSnapshot() }.getOrNull()
+            if (s != null && (s.nextUp != null || s.pinnedMixes.isNotEmpty())) break
+            Thread.sleep(POLL_MS * 5)
+        }
         val snapshot = host.core.widgetSnapshot()
         Log.i(TAG, "Next up: ${snapshot.nextUp?.title}; pinned mixes: ${snapshot.pinnedMixes.size}")
         assertTrue(
@@ -167,5 +175,6 @@ class CollectionWidgetsTest {
         const val TIMEOUT = 20_000L
         const val SETTLE_MS = 3_000L
         const val POLL_MS = 200L
+        const val MIXES_BUILD_MS = 60_000L
     }
 }

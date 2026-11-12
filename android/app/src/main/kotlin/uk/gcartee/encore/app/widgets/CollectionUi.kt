@@ -143,18 +143,29 @@ internal fun CollectionBody(
         if (layout.hero) {
             tiles.firstOrNull()?.let { Hero(it, stale, ink, fs) }
             Spacer(GlanceModifier.height(gap))
-            TileRow(tiles.drop(1).take(layout.cols), layout.cols, fit, stale, fs)
+            TileRow(tiles.drop(1).take(layout.cols), layout.cols, fit, stale, fs, centerWidth = CollectionSizing.tileWidth(layout))
         } else {
             tiles.take(layout.cols * layout.rows).chunked(layout.cols).forEachIndexed { r, row ->
                 if (r > 0) Spacer(GlanceModifier.height(gap))
-                TileRow(row, layout.cols, fit, stale, fs)
+                // A lone row with fewer tiles than columns is centered; the short last row of a grid stays at the left.
+                TileRow(row, layout.cols, fit, stale, fs, centerWidth = if (layout.rows == 1) CollectionSizing.tileWidth(layout) else null)
             }
         }
     }
 }
 
 @Composable
-private fun TileRow(row: List<TileData>, cols: Int, fit: CollectionFit, stale: Boolean, fs: Float) {
+private fun TileRow(row: List<TileData>, cols: Int, fit: CollectionFit, stale: Boolean, fs: Float, centerWidth: Int? = null) {
+    if (centerWidth != null && row.size in 1 until cols) {
+        // Fewer tiles than columns: each keeps the width it has in a full row and the group sits in the middle.
+        Row(modifier = GlanceModifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            row.forEachIndexed { i, tile ->
+                if (i > 0) Spacer(GlanceModifier.width(CollectionSizing.GAP.dp))
+                Tile(tile, fit, stale, fs, GlanceModifier.width(centerWidth.dp))
+            }
+        }
+        return
+    }
     Row(modifier = GlanceModifier.fillMaxWidth()) {
         for (i in 0 until cols) {
             if (i > 0) Spacer(GlanceModifier.width(CollectionSizing.GAP.dp))

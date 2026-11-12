@@ -44,6 +44,7 @@ import uk.gcartee.encore.app.ui.components.rememberHaptics
 import uk.gcartee.encore.app.ui.theme.LocalEncoreType
 import uk.gcartee.encore.app.widgets.WidgetConfig
 import uk.gcartee.encore.app.widgets.WidgetProfileChoice
+import uk.gcartee.encore.app.widgets.WidgetSizeLog
 import uk.gcartee.encore.tokens.EncoreTokens.Grid
 
 /**
@@ -110,6 +111,14 @@ internal fun LockScreenWidgetsPage(onBack: () -> Unit, contentPadding: PaddingVa
         group("Widgets", listOf(
             Row0("Widget profile", "The profile a new widget starts with", { Icons.devices() }, right = profileName(choice, profiles)) { profileSheet = true },
         ))
+        // Debug builds only: the sizes Android reports for each placed widget (One UI's cells differ from Google's).
+        if (WidgetSizeLog.enabled(context)) {
+            val lines = WidgetSizeLog.lines(context)
+            group("Widget sizes (debug build)", lines.map { line ->
+                val parts = line.split(": ", limit = 2)
+                Row0(parts[0], parts.getOrNull(1), { Icons.info() })
+            })
+        }
         group("Quick Settings", listOf(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 Row0("Quick Settings tile", "Start a mix", { Icons.mixes() }, trailing = {
