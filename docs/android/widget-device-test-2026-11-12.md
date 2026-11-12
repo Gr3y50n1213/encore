@@ -5,6 +5,17 @@ existing app on the S20 FE (One UI 5.1, Android 13), the A13 and the Tab A7 Lite
 on screen (the others were asleep or in use). Volume was 0 (speaker). Findings are recorded here for a later fix;
 nothing below has been changed in code.
 
+## Status of the fixes (commits f2fd885 and db38e41, CI run 43262280830 green except the allowed API 37.0)
+
+| # | State |
+|---|---|
+| 1 | Changed, **not yet confirmed on a phone.** The app now redraws each placed widget by its own receiver (`WidgetRefresh`). `WidgetRefreshTest` (all three placed, redrawn together) passes, but the *old* per-class redraw also passed in CI (logged, 0 problems on API 28, 36 phone, 36 tablet), so the cause was not reproduced there. New log lines (tag `EncoreWidgets`: "redraw X for appWidgetId N", "provideGlance X for appWidgetId N") show on the S20 FE which class draws each id. |
+| 2 | Fixed in code (`AutoLibrary.onPlaybackResumption` starts the last played song when nothing is queued). No emulator test; check on a phone. |
+| 3 | Not changed. A palette made in the widget would differ from the app's and then change when the app's arrives; it only shows on the first launch after an update. Needs a decision. |
+| 4 | Fixed: Mixes and Recently played buckets at 250, 310 and 410 dp wide (One UI cells are 311, 326 and 418); content is centered, so spare height is shared above and below. Covers can't outgrow their column, so a 326x354 Recently played still has about 50 dp spare. |
+| 5, 6, 7 | Not changed. |
+| 8 | Fixed: the field is drawn at each size's own shape (`WidgetField.bitmapFor`), blobs stay round; unit tests for shapes and text contrast on every shape. Gallery screenshots look right; check on a phone. |
+
 ## Bugs
 
 1. **Mixes and Recently played draw Now Playing's content after the app has run (high).**
