@@ -57,6 +57,7 @@ class NowPlayingWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
+        android.util.Log.i(WidgetRefresh.TAG, "provideGlance NowPlayingWidget for appWidgetId $appWidgetId")
         // The cover and the field are made before provideContent, so every size shares them.
         val first = withContext(Dispatchers.IO) { NowPlayingLoader.load(context, appWidgetId) }
         provideContent {

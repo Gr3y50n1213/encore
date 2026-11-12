@@ -3,6 +3,7 @@ package uk.gcartee.encore.app.widgets
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
+import android.util.Log
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
@@ -17,6 +18,8 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
  * leaves no way to mix them up. Touches no core: it only asks Glance to draw again.
  */
 object WidgetRefresh {
+    const val TAG = "EncoreWidgets"
+
     /** Each widget receiver with the widget it draws. */
     internal fun kinds(): List<Pair<Class<out GlanceAppWidgetReceiver>, GlanceAppWidget>> = listOf(
         NowPlayingWidgetReceiver::class.java to NowPlayingWidget(),
@@ -32,6 +35,8 @@ object WidgetRefresh {
         val glance = GlanceAppWidgetManager(context)
         for ((receiver, widget) in kinds()) {
             for (id in placed(context, receiver)) {
+                // Logged so a phone's logcat shows which widget class each id was drawn by.
+                Log.i(TAG, "redraw ${widget.javaClass.simpleName} for appWidgetId $id")
                 runCatching { widget.update(context, glance.getGlanceIdBy(id)) }
             }
         }

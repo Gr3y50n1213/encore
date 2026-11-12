@@ -39,6 +39,7 @@ class RecentWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
+        android.util.Log.i(WidgetRefresh.TAG, "provideGlance RecentWidget for appWidgetId $appWidgetId")
         val first = withContext(Dispatchers.IO) { RecentLoader.load(context, appWidgetId) }
         provideContent {
             val stamp by WidgetRedraws.stamp.collectAsState()

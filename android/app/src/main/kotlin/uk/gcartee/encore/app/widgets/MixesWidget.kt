@@ -39,6 +39,7 @@ class MixesWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
+        android.util.Log.i(WidgetRefresh.TAG, "provideGlance MixesWidget for appWidgetId $appWidgetId")
         val first = withContext(Dispatchers.IO) { MixesLoader.load(context, appWidgetId) }
         provideContent {
             val stamp by WidgetRedraws.stamp.collectAsState()
