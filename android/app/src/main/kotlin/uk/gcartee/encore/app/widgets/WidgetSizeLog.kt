@@ -29,12 +29,15 @@ object WidgetSizeLog {
                 val minH = o.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
                 val maxW = o.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, 0)
                 val maxH = o.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0)
-                val sizes: List<SizeF> =
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val sizes: List<SizeF> = when {
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ->
                         o.getParcelableArrayList(AppWidgetManager.OPTION_APPWIDGET_SIZES, SizeF::class.java).orEmpty()
-                    } else {
-                        emptyList()
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+                        @Suppress("DEPRECATION")
+                        o.getParcelableArrayList<SizeF>(AppWidgetManager.OPTION_APPWIDGET_SIZES).orEmpty()
                     }
+                    else -> emptyList()
+                }
                 val shown = if (sizes.isEmpty()) listOf(SizeF(minW.toFloat(), minH.toFloat())) else sizes
                 val buckets = shown.joinToString(", ") { s -> "${s.width.toInt()}x${s.height.toInt()} -> ${bucket(name, s.width.toInt(), s.height.toInt())}" }
                 out += "$name #$id: min ${minW}x$minH, max ${maxW}x$maxH dp; $buckets"
