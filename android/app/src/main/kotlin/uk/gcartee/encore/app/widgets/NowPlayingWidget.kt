@@ -3,83 +3,61 @@ package uk.gcartee.encore.app.widgets
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProviderInfo
 import android.content.Context
-import android.content.Intent
 import android.graphics.Bitmap
-import android.os.Build
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
-import androidx.glance.Image
-import androidx.glance.ImageProvider
 import androidx.glance.LocalContext
 import androidx.glance.LocalSize
-import androidx.glance.action.Action
-import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
-import androidx.glance.appwidget.LinearProgressIndicator
 import androidx.glance.appwidget.LocalAppWidgetOptions
 import androidx.glance.appwidget.SizeMode
-import androidx.glance.appwidget.action.actionStartActivity
-import androidx.glance.appwidget.action.actionStartService
-import androidx.glance.appwidget.appWidgetBackground
-import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
-import androidx.glance.background
-import androidx.glance.color.ColorProviders
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
-import androidx.glance.layout.ContentScale
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
-import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.layout.width
-import androidx.glance.semantics.contentDescription
-import androidx.glance.semantics.semantics
-import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
-import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import uk.gcartee.encore.app.R
 import uk.gcartee.encore.app.notifications.LiveUpdates
-import uk.gcartee.encore.app.ui.theme.irisDarkScheme
-import uk.gcartee.encore.app.ui.theme.irisLightScheme
 
 /**
- * Board 34, item 2: the Now Playing widget, 2x1 up to 6x2. It reads its profile's
- * snapshot file and nothing else: it never starts the core, opens the database or calls
- * the network (CORE-API, "Widgets"). WidgetSync, in the app's process, asks it to redraw.
+ * Board 34, item 2: the Now Playing widget, 2x1 up to 6x2, redesigned on 11 November 2026 to
+ * wear the album's colors like the app's Now Playing. It reads its profile's snapshot file and
+ * nothing else: it never starts the core, opens the database or calls the network (CORE-API,
+ * "Widgets"). WidgetSync, in the app's process, asks it to redraw.
  *
- * - Colors follow the wallpaper (GlanceTheme's dynamic colors), not the album; the cover
- *   keeps its own. Before Android 12, the app's Iris scheme.
- * - Buttons are 48 dp or larger, inside the tile. Play is round; while playing, the button
- *   is a rounded square (24 dp corner on 72 dp, scaled).
- * - The cover or the text opens Now Playing.
+ * - Every size is a bucket ([NpLayout]) whose content is sized from the bucket and the font
+ *   scale ([NpSizing]), so nothing is ever cropped. No progress bar: a widget can't tick, so
+ *   the playing state is the play button's shape (round paused, rounded square playing) and
+ *   the level bars.
+ * - Colors come from the album's palette (a field behind, text on it, a text-colored play
+ *   button with a base-colored glyph); the theme's until it is made. Bold system font.
+ * - Buttons are 48 dp or larger, inside the tile. The cover or the text opens Now Playing.
  */
 class NowPlayingWidget : GlanceAppWidget() {
-    override val sizeMode: SizeMode = SizeMode.Responsive(setOf(TINY, ROW, FULL, WIDE))
+    override val sizeMode: SizeMode = SizeMode.Responsive(NpLayout.entries.map { DpSize(it.w.dp, it.h.dp) }.toSet())
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
+        // The cover and the field are made before provideContent, so every size shares them.
         val first = withContext(Dispatchers.IO) { NowPlayingLoader.load(context, appWidgetId) }
         provideContent {
             // A running session isn't re-provided on update(): reload when WidgetSync,
@@ -99,23 +77,9 @@ class NowPlayingWidget : GlanceAppWidget() {
                 hideHistoryWhileLocked = loaded.hideHistoryWhileLocked,
             )
             GlanceTheme(colors = widgetColors()) {
-                NowPlayingUi(view, if (view is NowPlayingView.Song) loaded.cover else null)
+                NowPlayingUi(view, if (view is NowPlayingView.Song) loaded.cover else null, loaded.field)
             }
         }
-    }
-
-    companion object {
-        /** 2x1: the cover and the button. */
-        val TINY = DpSize(110.dp, 40.dp)
-
-        /** 4x1: the cover, the title and one button. */
-        val ROW = DpSize(180.dp, 40.dp)
-
-        /** 4x2: the cover, title, artist, previous / play / next and the bar. */
-        val FULL = DpSize(250.dp, 100.dp)
-
-        /** Wider tablet cells: the album and the times too. */
-        val WIDE = DpSize(370.dp, 100.dp)
     }
 }
 
@@ -143,6 +107,8 @@ data class NowPlayingLoaded(
     val canControl: Boolean,
     val hideHistoryWhileLocked: Boolean,
     val cover: Bitmap?,
+    /** The album's field, made from its palette; null with no palette. */
+    val field: Bitmap?,
 )
 
 object NowPlayingLoader {
@@ -150,72 +116,45 @@ object NowPlayingLoader {
         val hide = LiveUpdates.hideHistoryWhileLocked(context)
         val state = WidgetConfig.profileState(context)
         val profileId = WidgetConfig.resolve(WidgetConfig.choice(context, appWidgetId), state)
-            ?: return NowPlayingLoaded(null, canControl = false, hideHistoryWhileLocked = hide, cover = null)
+            ?: return NowPlayingLoaded(null, canControl = false, hideHistoryWhileLocked = hide, cover = null, field = null)
         val dir = SnapshotReader.widgetsDir(context.filesDir)
         val read = SnapshotReader.read(dir, profileId)
-        val cover = (read as? SnapshotRead.Ok)?.snapshot
-            ?.takeIf { it.privacy == SnapshotPrivacy.NORMAL }
-            ?.song?.cover
+        val snapshot = (read as? SnapshotRead.Ok)?.snapshot?.takeIf { it.privacy == SnapshotPrivacy.NORMAL }
+        val cover = snapshot?.song?.cover
             ?.let { SnapshotReader.coverFile(dir, profileId, it) }
             ?.let { SnapshotReader.loadCover(it) }
-        return NowPlayingLoaded(read, WidgetConfig.canControl(profileId, state), hide, cover)
+        val field = snapshot?.song?.palette
+            ?.let {
+                val stale = NowPlayingStates.isStale(snapshot, System.currentTimeMillis())
+                WidgetField.bitmap(it, fade = if (stale) WidgetField.STALE_FADE else 0f)
+            }
+        return NowPlayingLoaded(read, WidgetConfig.canControl(profileId, state), hide, cover, field)
     }
 }
-
-@Composable
-internal fun widgetColors(): ColorProviders =
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        GlanceTheme.colors
-    } else {
-        androidx.glance.material3.ColorProviders(light = irisLightScheme(), dark = irisDarkScheme())
-    }
 
 // --- Layout. ---
 
-private enum class Layout { TINY, ROW, FULL, WIDE }
-
 @Composable
-private fun NowPlayingUi(view: NowPlayingView, cover: Bitmap?) {
+private fun NowPlayingUi(view: NowPlayingView, cover: Bitmap?, field: Bitmap?) {
     val context = LocalContext.current
     val size = LocalSize.current
-    val layout = when {
-        size.height >= NowPlayingWidget.FULL.height && size.width >= NowPlayingWidget.WIDE.width -> Layout.WIDE
-        size.height >= NowPlayingWidget.FULL.height && size.width >= NowPlayingWidget.FULL.width -> Layout.FULL
-        size.width >= NowPlayingWidget.ROW.width -> Layout.ROW
-        else -> Layout.TINY
-    }
-    Box(
-        modifier = GlanceModifier
-            .fillMaxSize()
-            .appWidgetBackground()
-            .tileBackground(GlanceTheme.colors.widgetBackground)
-            .clickable(openAction(context, view.tap))
-            .padding(if (layout == Layout.TINY) 6.dp else 12.dp),
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        when (view) {
-            is NowPlayingView.Card -> CardUi(view, layout)
-            is NowPlayingView.Song -> when (layout) {
-                Layout.TINY -> SongTiny(view, cover)
-                Layout.ROW -> SongRow(view, cover)
-                Layout.FULL -> SongFull(view, cover)
-                Layout.WIDE -> SongWide(view, cover)
-            }
-        }
+    val layout = NpLayout.of(size.width.value.toInt(), size.height.value.toInt())
+    val fs = fontScale()
+    when (view) {
+        is NowPlayingView.Card ->
+            WidgetFrame(null, null, openAction(context, view.tap)) { CardUi(view, layout, fs) }
+        is NowPlayingView.Song ->
+            WidgetFrame(view.palette, field, openAction(context, view.tap)) { SongUi(view, cover, layout, fs) }
     }
 }
 
-/** The system's corner radius from Android 12; a rounded shape before it. */
-internal fun GlanceModifier.tileBackground(color: ColorProvider): GlanceModifier =
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        background(color).cornerRadius(android.R.dimen.system_app_widget_background_radius)
-    } else {
-        background(ImageProvider(R.drawable.widget_tile_shape), colorFilter = ColorFilter.tint(color))
-    }
+/** A cover's corner: a quarter of its side, between 10 and 22 dp, so small ones stay soft and big ones don't balloon. */
+private fun coverRadius(size: Int) = (size / 4).coerceIn(10, 22).dp
 
 @Composable
-private fun CardUi(card: NowPlayingView.Card, layout: Layout) {
+private fun CardUi(card: NowPlayingView.Card, layout: NpLayout, fs: Float) {
     val context = LocalContext.current
+    val ink = inkOf(null)
     val app = context.getString(R.string.app_name)
     val (title, subtitle) = when (card.kind) {
         CardKind.NOTHING_YET -> context.getString(R.string.widget_nothing_yet) to context.getString(R.string.widget_mixes_build)
@@ -226,216 +165,155 @@ private fun CardUi(card: NowPlayingView.Card, layout: Layout) {
         CardKind.REMOVED -> context.getString(R.string.widget_profile_removed) to context.getString(R.string.widget_choose_profile)
         CardKind.LOCK_SCREEN_IDLE -> (card.mixName ?: app) to card.mixName?.let { context.getString(R.string.widget_next_up) }
     }
-    Row(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-        if (layout != Layout.TINY || card.button == null) {
-            Column(modifier = GlanceModifier.defaultWeight(), verticalAlignment = Alignment.CenterVertically) {
-                Text(title, style = titleStyle(if (layout == Layout.TINY) 13.sp else 15.sp), maxLines = 1)
-                if (subtitle != null) Text(subtitle, style = secondaryStyle(13.sp), maxLines = if (layout == Layout.FULL || layout == Layout.WIDE) 2 else 1)
+    val oneRow = layout.kind == NpKind.COMPACT || layout.kind == NpKind.ROW
+    val titleSp = if (oneRow) 16 else 18
+    val subSp = if (oneRow) 13 else 14
+    val room = layout.h - 12
+    val showSubtitle = subtitle != null &&
+        WidgetSizing.linesThatFit(room, WidgetSizing.lineHeight(titleSp, fs), WidgetSizing.lineHeight(subSp, fs)) >= 2
+    val button = card.button
+    if (layout.kind == NpKind.COMPACT) {
+        // 2x1: the button alone when there is one, else the title.
+        Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            if (button != null) {
+                PlayButton(button, card.buttonsOpen, 48, 48, ink)
+            } else {
+                Text(title, style = titleStyle(ink, 14), maxLines = 1, modifier = GlanceModifier.padding(horizontal = 8.dp))
             }
         }
-        card.button?.let {
-            if (layout != Layout.TINY) Spacer(GlanceModifier.width(8.dp))
-            MainButtonUi(it, card.buttonsOpen, if (layout == Layout.FULL || layout == Layout.WIDE) 56.dp else 48.dp)
-        }
+        return
     }
-}
-
-@Composable
-private fun SongTiny(song: NowPlayingView.Song, cover: Bitmap?) {
-    Row(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-        Cover(cover, 48.dp, song.stale)
-        Spacer(GlanceModifier.defaultWeight())
-        MainButtonUi(song.button, song.buttonsOpen, 48.dp)
-    }
-}
-
-@Composable
-private fun SongRow(song: NowPlayingView.Song, cover: Bitmap?) {
-    Row(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-        Cover(cover, 48.dp, song.stale)
-        Spacer(GlanceModifier.width(10.dp))
-        Column(modifier = GlanceModifier.defaultWeight()) {
-            SongText(song, 14.sp, withAlbum = false)
-        }
-        Spacer(GlanceModifier.width(8.dp))
-        MainButtonUi(song.button, song.buttonsOpen, 48.dp)
-    }
-}
-
-@Composable
-private fun SongFull(song: NowPlayingView.Song, cover: Bitmap?) {
-    val size = LocalSize.current
-    val coverSize = minOf(size.height - 24.dp, 120.dp).coerceAtLeast(56.dp)
-    Row(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-        Cover(cover, coverSize, song.stale)
-        Spacer(GlanceModifier.width(12.dp))
-        Column(modifier = GlanceModifier.defaultWeight().fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
-            SongText(song, 15.sp, withAlbum = false)
-            Spacer(GlanceModifier.height(4.dp))
-            Row(modifier = GlanceModifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalAlignment = Alignment.CenterVertically) {
-                SkipButton(previous = true, buttonsOpen = song.buttonsOpen)
-                Spacer(GlanceModifier.width(4.dp))
-                MainButtonUi(song.button, song.buttonsOpen, 56.dp)
-                Spacer(GlanceModifier.width(4.dp))
-                SkipButton(previous = false, buttonsOpen = song.buttonsOpen)
+    if (oneRow) {
+        Row(modifier = GlanceModifier.fillMaxSize().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = GlanceModifier.defaultWeight()) {
+                Text(title, style = titleStyle(ink, titleSp), maxLines = 1)
+                if (showSubtitle) Text(subtitle!!, style = secondaryStyle(ink, subSp), maxLines = 1)
             }
-            if (song.current && !song.stale) {
-                Spacer(GlanceModifier.height(6.dp))
-                Bar(song)
+            if (button != null) {
+                Spacer(GlanceModifier.width(8.dp))
+                PlayButton(button, card.buttonsOpen, 48, 48, ink)
+            }
+        }
+    } else {
+        Column(
+            modifier = GlanceModifier.fillMaxSize().padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(title, style = titleStyle(ink, titleSp), maxLines = 1)
+            if (subtitle != null) Text(subtitle, style = secondaryStyle(ink, subSp), maxLines = 2)
+            if (button != null) {
+                Spacer(GlanceModifier.height(10.dp))
+                PlayButton(button, card.buttonsOpen, 48, 48, ink)
             }
         }
     }
 }
 
 @Composable
-private fun SongWide(song: NowPlayingView.Song, cover: Bitmap?) {
-    val size = LocalSize.current
-    val coverSize = minOf(size.height - 24.dp, 140.dp).coerceAtLeast(64.dp)
-    Row(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-        Cover(cover, coverSize, song.stale)
-        Spacer(GlanceModifier.width(16.dp))
-        Column(modifier = GlanceModifier.defaultWeight().fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
-            SongText(song, 17.sp, withAlbum = true)
-            if (song.current && !song.stale) {
-                Spacer(GlanceModifier.height(6.dp))
-                Bar(song)
-                Row(modifier = GlanceModifier.fillMaxWidth()) {
-                    Text(clock(song.positionMs), style = secondaryStyle(11.sp), modifier = GlanceModifier.defaultWeight())
-                    Text(clock(song.durationMs), style = secondaryStyle(11.sp))
-                }
+private fun SongUi(song: NowPlayingView.Song, cover: Bitmap?, layout: NpLayout, fs: Float) {
+    val ink = inkOf(song.palette)
+    val c = NpSizing.cover(layout, fs)
+    val text = NpSizing.text(layout, fs, song.playing && !song.stale)
+    when (layout.kind) {
+        NpKind.COMPACT -> Row(
+            modifier = GlanceModifier.fillMaxSize().padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Cover(cover, c.dp, coverRadius(c), song.stale, ink)
+            Spacer(GlanceModifier.defaultWeight())
+            Controls(layout.controls, song, ink)
+        }
+        NpKind.ROW -> Row(
+            modifier = GlanceModifier.fillMaxSize().padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Cover(cover, c.dp, coverRadius(c), song.stale, ink)
+            Spacer(GlanceModifier.width(10.dp))
+            Column(modifier = GlanceModifier.defaultWeight()) { SongText(song, ink, layout, text) }
+            Spacer(GlanceModifier.width(8.dp))
+            Controls(layout.controls, song, ink)
+        }
+        NpKind.TILE -> Column(
+            modifier = GlanceModifier.fillMaxSize().padding(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Box(modifier = GlanceModifier.size(c.dp), contentAlignment = Alignment.BottomEnd) {
+                Cover(cover, c.dp, coverRadius(c), song.stale, ink)
+                Box(modifier = GlanceModifier.padding(6.dp)) { PlayButton(song.button, song.buttonsOpen, 48, 48, ink) }
             }
-            Spacer(GlanceModifier.height(2.dp))
-            Row(modifier = GlanceModifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalAlignment = Alignment.CenterVertically) {
-                SkipButton(previous = true, buttonsOpen = song.buttonsOpen)
+            Spacer(GlanceModifier.height(6.dp))
+            Column(modifier = GlanceModifier.fillMaxWidth()) { SongText(song, ink, layout, text) }
+        }
+        NpKind.STACK -> Column(modifier = GlanceModifier.fillMaxSize().padding(12.dp)) {
+            Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+                Cover(cover, c.dp, coverRadius(c), song.stale, ink)
                 Spacer(GlanceModifier.width(12.dp))
-                MainButtonUi(song.button, song.buttonsOpen, 56.dp)
-                Spacer(GlanceModifier.width(12.dp))
-                SkipButton(previous = false, buttonsOpen = song.buttonsOpen)
+                Column(modifier = GlanceModifier.defaultWeight()) { SongText(song, ink, layout, text) }
+            }
+            Spacer(GlanceModifier.defaultWeight())
+            Row(modifier = GlanceModifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                Controls(layout.controls, song, ink)
+            }
+        }
+        NpKind.SIDE -> Row(
+            modifier = GlanceModifier.fillMaxSize().padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Cover(cover, c.dp, coverRadius(c), song.stale, ink)
+            Spacer(GlanceModifier.width(12.dp))
+            Column(modifier = GlanceModifier.defaultWeight()) {
+                SongText(song, ink, layout, text)
+                Spacer(GlanceModifier.height(8.dp))
+                Controls(layout.controls, song, ink)
             }
         }
     }
 }
 
+/** The title, then the lines this layout has room for: the artist, the album, the level bars. */
 @Composable
-private fun SongText(song: NowPlayingView.Song, titleSize: TextUnit, withAlbum: Boolean) {
+private fun SongText(song: NowPlayingView.Song, ink: WidgetInk, layout: NpLayout, plan: NpText) {
     val context = LocalContext.current
-    Text(song.title, style = if (song.stale) secondaryStyle(titleSize) else titleStyle(titleSize), maxLines = 1)
+    Text(song.title, style = if (song.stale) secondaryStyle(ink, NpSizing.titleSp(layout)) else titleStyle(ink, NpSizing.titleSp(layout)), maxLines = 1)
     val second = when {
         song.stale -> context.getString(R.string.widget_open_to_refresh, context.getString(R.string.app_name))
-        withAlbum && !song.album.isNullOrBlank() -> context.getString(R.string.widget_artist_and_album, song.artist, song.album)
+        plan.album && !song.album.isNullOrBlank() -> context.getString(R.string.widget_artist_and_album, song.artist, song.album)
         else -> song.artist
     }
-    if (second.isNotBlank()) Text(second, style = secondaryStyle(13.sp), maxLines = 1)
-}
-
-@Composable
-private fun Bar(song: NowPlayingView.Song) {
-    LinearProgressIndicator(
-        progress = NowPlayingStates.fraction(song.positionMs, song.durationMs),
-        modifier = GlanceModifier.fillMaxWidth().height(4.dp),
-        color = GlanceTheme.colors.primary,
-        backgroundColor = GlanceTheme.colors.surfaceVariant,
-    )
-}
-
-@Composable
-internal fun Cover(cover: Bitmap?, size: Dp, dimmed: Boolean) {
-    val modifier = GlanceModifier.size(size).let {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) it.cornerRadius(android.R.dimen.system_app_widget_inner_radius) else it
+    if ((plan.artist || song.stale) && second.isNotBlank()) {
+        Text(second, style = secondaryStyle(ink, NpSizing.artistSp(layout)), maxLines = 1)
     }
-    if (cover != null) {
-        // Decorative: the title beside it says what it is.
-        Image(
-            provider = ImageProvider(cover),
-            contentDescription = null,
-            alpha = if (dimmed) DIM_ALPHA else 1f,
-            modifier = modifier,
-            contentScale = ContentScale.Crop,
-        )
-    } else {
-        Box(modifier = modifier.background(GlanceTheme.colors.secondaryContainer), contentAlignment = Alignment.Center) {
-            Image(
-                provider = ImageProvider(R.drawable.sym_music_note),
-                contentDescription = null,
-                modifier = GlanceModifier.size(size * 0.4f),
-                colorFilter = ColorFilter.tint(GlanceTheme.colors.onSecondaryContainer),
-            )
+    if (plan.bars) {
+        Spacer(GlanceModifier.height(4.dp))
+        LevelBars(song.barsVariant, ink)
+    }
+}
+
+/** The layout's controls, joined as the app's transport: previous and next hug a wider play button. */
+@Composable
+private fun Controls(controls: NpControls, song: NowPlayingView.Song, ink: WidgetInk) {
+    val open = song.buttonsOpen
+    when (controls) {
+        NpControls.PLAY, NpControls.OVERLAY -> PlayButton(song.button, open, 48, 48, ink)
+        NpControls.PLAY_NEXT -> Row(verticalAlignment = Alignment.CenterVertically) {
+            PlayButton(song.button, open, 48, 48, ink)
+            Spacer(GlanceModifier.width(4.dp))
+            SkipButton(previous = false, buttonsOpen = open, w = 52, h = 48, ink = ink)
+        }
+        NpControls.TRIO_48 -> Row(verticalAlignment = Alignment.CenterVertically) {
+            SkipButton(previous = true, buttonsOpen = open, w = 52, h = 48, ink = ink)
+            Spacer(GlanceModifier.width(4.dp))
+            PlayButton(song.button, open, 64, 48, ink)
+            Spacer(GlanceModifier.width(4.dp))
+            SkipButton(previous = false, buttonsOpen = open, w = 52, h = 48, ink = ink)
+        }
+        NpControls.TRIO_56 -> Row(verticalAlignment = Alignment.CenterVertically) {
+            SkipButton(previous = true, buttonsOpen = open, w = 60, h = 56, ink = ink)
+            Spacer(GlanceModifier.width(6.dp))
+            PlayButton(song.button, open, 76, 56, ink)
+            Spacer(GlanceModifier.width(6.dp))
+            SkipButton(previous = false, buttonsOpen = open, w = 60, h = 56, ink = ink)
         }
     }
 }
-
-/** Round when it plays; a rounded square (24 dp on 72 dp, scaled by the drawable) while playing. */
-@Composable
-private fun MainButtonUi(button: MainButton, buttonsOpen: WidgetTarget?, size: Dp) {
-    val context = LocalContext.current
-    val playing = button == MainButton.PAUSE
-    val label = context.getString(if (playing) R.string.widget_pause else R.string.widget_play)
-    val intent = when (button) {
-        MainButton.PLAY, MainButton.PAUSE -> WidgetIntents.mediaButton(context, WidgetIntents.KEY_PLAY_PAUSE)
-        MainButton.START_NEXT_UP -> WidgetIntents.playMix(context, null)
-    }
-    Box(
-        modifier = GlanceModifier
-            .size(size)
-            .background(
-                ImageProvider(if (playing) R.drawable.widget_button_playing else R.drawable.widget_button_round),
-                colorFilter = ColorFilter.tint(GlanceTheme.colors.primary),
-            )
-            .clickable(buttonAction(context, intent, buttonsOpen))
-            .semantics { contentDescription = label },
-        contentAlignment = Alignment.Center,
-    ) {
-        Image(
-            provider = ImageProvider(if (playing) R.drawable.sym_pause_fill else R.drawable.sym_play_arrow_fill),
-            contentDescription = null,
-            modifier = GlanceModifier.size(size * 0.5f),
-            colorFilter = ColorFilter.tint(GlanceTheme.colors.onPrimary),
-        )
-    }
-}
-
-@Composable
-private fun SkipButton(previous: Boolean, buttonsOpen: WidgetTarget?) {
-    val context = LocalContext.current
-    val label = context.getString(if (previous) R.string.widget_previous else R.string.widget_next)
-    val key = if (previous) WidgetIntents.KEY_PREVIOUS else WidgetIntents.KEY_NEXT
-    Box(
-        modifier = GlanceModifier
-            .size(48.dp)
-            .clickable(buttonAction(context, WidgetIntents.mediaButton(context, key), buttonsOpen))
-            .semantics { contentDescription = label },
-        contentAlignment = Alignment.Center,
-    ) {
-        Image(
-            provider = ImageProvider(if (previous) R.drawable.sym_skip_previous_fill else R.drawable.sym_skip_next_fill),
-            contentDescription = null,
-            modifier = GlanceModifier.size(24.dp),
-            colorFilter = ColorFilter.tint(GlanceTheme.colors.onSurfaceVariant),
-        )
-    }
-}
-
-/** Straight to the playback service (a foreground start, allowed for a widget tap), or the app. */
-internal fun buttonAction(context: Context, intent: Intent, buttonsOpen: WidgetTarget?): Action =
-    if (buttonsOpen != null) {
-        actionStartActivity(WidgetIntents.open(context, buttonsOpen))
-    } else {
-        actionStartService(intent, isForegroundService = true)
-    }
-
-private fun openAction(context: Context, target: WidgetTarget): Action =
-    actionStartActivity(WidgetIntents.open(context, target))
-
-@Composable
-internal fun titleStyle(size: TextUnit) = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = size, fontWeight = FontWeight.Medium)
-
-@Composable
-internal fun secondaryStyle(size: TextUnit) = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = size)
-
-/** m:ss, as the app's scrub bar shows it. */
-private fun clock(ms: Long): String {
-    val s = (ms / 1000).coerceAtLeast(0)
-    return "%d:%02d".format(s / 60, s % 60)
-}
-
-internal const val DIM_ALPHA = 0.5f

@@ -6,13 +6,17 @@ sealed interface WidgetMixChoice {
     data class Pinned(val mixId: String) : WidgetMixChoice
 }
 
-/** One tile. A null [mixId] is Next up: the core picks the first unplayed mix of today's set. */
-data class MixTile(val mixId: String?, val title: String, val cover: String?)
+/**
+ * One tile. A null [mixId] is Next up: the core picks the first unplayed mix of today's set.
+ * [palette] is the colors of the album the mix's cover comes from (null until made).
+ */
+data class MixTile(val mixId: String?, val title: String, val cover: String?, val palette: SnapshotPalette? = null)
 
 sealed interface MixesView {
     data class Card(val kind: CardKind, val tap: WidgetTarget) : MixesView
 
     data class Tiles(
+        /** At most [MixesSizing.MAX_TILES]; the size the widget is drawn at decides how many show. */
         val tiles: List<MixTile>,
         /** Over 24 h old: dimmed, and says Open Encore to refresh. */
         val stale: Boolean,
@@ -41,8 +45,8 @@ sealed interface RecentView {
  * switch profiles silently" rules. JVM-tested.
  */
 object CollectionStates {
-    const val MIX_TILES = 4
-    const val RECENT_ALBUMS = 8
+    const val MIX_TILES = MixesSizing.MAX_TILES
+    const val RECENT_ALBUMS = RecentSizing.MAX_ALBUMS
 
     private sealed interface Gate {
         data class Stop(val kind: CardKind, val tap: WidgetTarget) : Gate
@@ -63,17 +67,17 @@ object CollectionStates {
     private fun isStale(s: Snapshot, nowUtcMs: Long) = nowUtcMs - s.writtenAtUtcMs > NowPlayingStates.STALE_MS
 
     /**
-     * The tiles, at most four. Next up leads (and follows the daily set); a pinned choice
-     * leads instead while that mix is still pinned, then Next up, then the other pinned
+     * The tiles, at most [MIX_TILES]. Next up leads (and follows the daily set); a pinned
+     * choice leads instead while that mix is still pinned, then Next up, then the other pinned
      * mixes. A mix is never shown twice.
      */
     fun mixTiles(s: Snapshot, choice: WidgetMixChoice): List<MixTile> {
-        val next = s.nextUp?.let { MixTile(null, it.title, it.cover) }
+        val next = s.nextUp?.let { MixTile(null, it.title, it.cover, it.palette) }
         val nextId = s.nextUp?.mixId
         val pinned = s.pinnedMixes
             .filter { it.mixId != nextId }
             .distinctBy { it.mixId }
-            .map { MixTile(it.mixId, it.title, it.cover) }
+            .map { MixTile(it.mixId, it.title, it.cover, it.palette) }
         val chosen = (choice as? WidgetMixChoice.Pinned)?.let { c -> pinned.firstOrNull { it.mixId == c.mixId } }
         val ordered = if (chosen != null) {
             listOf(chosen) + listOfNotNull(next) + pinned.filter { it !== chosen }

@@ -3,48 +3,39 @@ package uk.gcartee.encore.app.widgets
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.graphics.Bitmap
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceId
-import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.LocalContext
 import androidx.glance.LocalSize
 import androidx.glance.action.Action
-import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
-import androidx.glance.layout.Column
-import androidx.glance.layout.Row
-import androidx.glance.layout.Spacer
-import androidx.glance.layout.fillMaxSize
-import androidx.glance.layout.fillMaxWidth
-import androidx.glance.layout.height
-import androidx.glance.layout.width
-import androidx.glance.semantics.contentDescription
-import androidx.glance.semantics.semantics
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import uk.gcartee.encore.app.R
 
 /**
- * Board 34, item 4: the Recently played widget, 4x3. "Recently played" and up to eight
- * album covers with their names, four to a row. A tap opens that album in the app
- * (WidgetIntents.openAlbum): the app opens it only when this widget's profile is the one
- * open and the album is in its library, and otherwise opens the profile switcher. A widget
- * for another profile, or one with a PIN, sends the tap to the switcher straight away; a
- * stale file sends it to the app. It reads its snapshot file and nothing else, never starts
- * the core, and is declared `not_keyguard`: listening history never reaches the lock screen.
+ * Board 34, item 4: the Recently played widget, redesigned on 11 November 2026. Up to eight
+ * album tiles, each tinted by its own album, on the lead album's field, softened; at 4x3 six
+ * bigger covers with title and artist. A tap opens that album in the app
+ * (WidgetIntents.openAlbum): the app opens it only when this widget's profile is the one open
+ * and the album is in its library, and otherwise opens the profile switcher. A widget for
+ * another profile, or one with a PIN, sends the tap to the switcher straight away; a stale
+ * file sends it to the app. It reads its snapshot file and nothing else, never starts the
+ * core, and is declared `not_keyguard`: listening history never reaches the lock screen.
  */
 class RecentWidget : GlanceAppWidget() {
-    override val sizeMode: SizeMode = SizeMode.Responsive(setOf(BASE, WIDE, TALL, BIG))
+    override val sizeMode: SizeMode = SizeMode.Responsive(RecentSizing.buckets.map { DpSize(it.w.dp, it.h.dp) }.toSet())
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
@@ -56,22 +47,9 @@ class RecentWidget : GlanceAppWidget() {
             }
             val view = CollectionStates.recent(loaded.read, loaded.canControl, System.currentTimeMillis())
             GlanceTheme(colors = widgetColors()) {
-                RecentUi(view, loaded.covers)
+                RecentUi(view, loaded.covers, loaded.field)
             }
         }
-    }
-
-    companion object {
-        /** 4x3. */
-        val BASE = DpSize(250.dp, 170.dp)
-
-        /** Wider tablet cells. */
-        val WIDE = DpSize(370.dp, 170.dp)
-
-        /** Taller: bigger covers. */
-        val TALL = DpSize(250.dp, 250.dp)
-
-        val BIG = DpSize(370.dp, 250.dp)
     }
 }
 
@@ -95,63 +73,48 @@ data class RecentLoaded(
     val read: SnapshotRead?,
     val canControl: Boolean,
     val covers: Map<String, Bitmap>,
+    /** The lead album's field behind the tiles; null with no palette. */
+    val field: Bitmap?,
 )
 
 object RecentLoader {
     fun load(context: Context, appWidgetId: Int): RecentLoaded {
         val state = WidgetConfig.profileState(context)
         val profileId = WidgetConfig.resolve(WidgetConfig.choice(context, appWidgetId), state)
-            ?: return RecentLoaded(null, canControl = false, covers = emptyMap())
+            ?: return RecentLoaded(null, canControl = false, covers = emptyMap(), field = null)
         val read = SnapshotReader.read(SnapshotReader.widgetsDir(context.filesDir), profileId)
-        val covers = (read as? SnapshotRead.Ok)?.snapshot
-            ?.takeIf { it.privacy == SnapshotPrivacy.NORMAL }
-            ?.let { s -> loadCollectionCovers(context, profileId, s.recentAlbums.take(CollectionStates.RECENT_ALBUMS).map { it.cover }) }
-            .orEmpty()
-        return RecentLoaded(read, WidgetConfig.canControl(profileId, state), covers)
+        val snapshot = (read as? SnapshotRead.Ok)?.snapshot?.takeIf { it.privacy == SnapshotPrivacy.NORMAL }
+        val albums = snapshot?.recentAlbums?.take(CollectionStates.RECENT_ALBUMS).orEmpty()
+        val covers = snapshot?.let { loadCollectionCovers(context, profileId, albums.map { it.cover }) }.orEmpty()
+        val stale = snapshot?.let { NowPlayingStates.isStale(it, System.currentTimeMillis()) } ?: false
+        return RecentLoaded(read, WidgetConfig.canControl(profileId, state), covers, collectionField(albums.firstOrNull()?.palette, stale))
     }
 }
 
-private const val PER_ROW = 4
-
-@androidx.compose.runtime.Composable
-private fun RecentUi(view: RecentView, covers: Map<String, Bitmap>) {
+@Composable
+private fun RecentUi(view: RecentView, covers: Map<String, Bitmap>, field: Bitmap?) {
     val context = LocalContext.current
+    val size = LocalSize.current
+    val layout = CollectionSizing.of(RecentSizing.buckets, size.width.value.toInt(), size.height.value.toInt())
     when (view) {
-        is RecentView.Card -> CollectionFrame(view.tap) { CollectionCard(view.kind) }
-        is RecentView.Albums -> CollectionFrame(null) {
-            val size = LocalSize.current
-            val rows = view.albums.chunked(PER_ROW)
-            val cell = (size.width - PAD * 2 - GAP * (PER_ROW - 1)) / PER_ROW
-            val room = (size.height - PAD * 2 - HEADER_HEIGHT - GAP * (rows.size - 1)) / rows.size - NAME_HEIGHT
-            val cover = minOf(cell, room).coerceAtLeast(32.dp)
-            Column(modifier = GlanceModifier.fillMaxSize()) {
-                CollectionHeader(context.getString(R.string.recent_widget_title), view.stale)
-                rows.forEachIndexed { r, row ->
-                    if (r > 0) Spacer(GlanceModifier.height(GAP))
-                    Row(modifier = GlanceModifier.fillMaxWidth()) {
-                        for (i in 0 until PER_ROW) {
-                            if (i > 0) Spacer(GlanceModifier.width(GAP))
-                            val album = row.getOrNull(i)
-                            if (album == null) {
-                                Spacer(GlanceModifier.defaultWeight())
-                            } else {
-                                val name = album.title.ifBlank { context.getString(R.string.widget_untitled_album) }
-                                val label = context.getString(R.string.widget_open_album, name)
-                                CollectionTile(
-                                    name = name,
-                                    cover = album.cover?.let { covers[it] },
-                                    size = cover,
-                                    dimmed = view.stale,
-                                    badge = false,
-                                    modifier = GlanceModifier
-                                        .defaultWeight()
-                                        .clickable(albumAction(context, view, album))
-                                        .semantics { contentDescription = label },
-                                )
-                            }
-                        }
-                    }
-                }
+        is RecentView.Card -> CollectionFrame(null, null, view.tap) { CollectionCard(view.kind, layout, fontScale()) }
+        is RecentView.Albums -> {
+            val lead = view.albums.firstOrNull()?.palette
+            val tiles = view.albums.map { album ->
+                val name = album.title.ifBlank { context.getString(R.string.widget_untitled_album) }
+                TileData(
+                    name = name,
+                    artist = album.artist,
+                    kicker = null,
+                    cover = album.cover?.let { covers[it] },
+                    palette = album.palette,
+                    label = context.getString(R.string.widget_open_album, name),
+                    action = albumAction(context, view, album),
+                    badge = false,
+                )
+            }
+            CollectionFrame(lead, field, null) {
+                CollectionBody(layout, tiles, context.getString(R.string.recent_widget_title), view.stale, lead)
             }
         }
     }

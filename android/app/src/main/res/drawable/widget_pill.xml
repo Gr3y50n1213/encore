@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A round or pill-shaped button, a badge or a tile: Widgets redesign (11 November 2026). Tinted by the widget. A corner radius over half the shorter side is clamped to a pill, but only for one radius on all four corners: Android scales every corner down when a pair of different radii overflows a side, so the buttons with two radii are one drawable per size. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#FFFFFFFF" />
+    <corners android:radius="999dp" />
+</shape>

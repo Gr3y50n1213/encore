@@ -57,8 +57,14 @@ sealed interface NowPlayingView {
         val playing: Boolean,
         /** The song is the current one (else the last played, shown with Play). */
         val current: Boolean,
-        val positionMs: Long,
-        val durationMs: Long,
+        /** The album's colors; null until the core has made them (the widget then wears the theme's). */
+        val palette: SnapshotPalette?,
+        /**
+         * Which of the three level-bar drawings to show while it plays. It changes with every
+         * song, pause and resume (the file's position time moves with each), so the bars look
+         * alive whenever the widget redraws. A widget can't animate.
+         */
+        val barsVariant: Int,
         /** Over 24 h old: dimmed, and says Open Encore to refresh. */
         val stale: Boolean,
         val button: MainButton,
@@ -98,7 +104,7 @@ object NowPlayingStates {
             SnapshotPrivacy.GUEST -> return NowPlayingView.Card(CardKind.OPEN_APP, WidgetTarget.APP)
             SnapshotPrivacy.NORMAL -> Unit
         }
-        val stale = nowUtcMs - s.writtenAtUtcMs > STALE_MS
+        val stale = isStale(s, nowUtcMs)
         val buttonsOpen = when {
             stale -> WidgetTarget.APP
             !canControl -> WidgetTarget.PROFILES
@@ -147,8 +153,8 @@ object NowPlayingStates {
             cover = song.cover,
             playing = playing,
             current = song.nowPlaying,
-            positionMs = if (song.nowPlaying) positionNow(s, song, playing, nowUtcMs) else 0L,
-            durationMs = song.durationMs,
+            palette = song.palette,
+            barsVariant = Math.floorMod(((song.songId * 31L) + s.positionAtUtcMs / 1000L).toInt(), BARS_VARIANTS),
             stale = stale,
             button = if (playing) MainButton.PAUSE else MainButton.PLAY,
             tap = bodyTap,
@@ -165,14 +171,9 @@ object NowPlayingStates {
         return s.writtenAtUtcMs + remaining < nowUtcMs
     }
 
-    /** The bar's position: an indicator from the last play report, not a clock. */
-    fun positionNow(s: Snapshot, song: SnapshotSong, playing: Boolean, nowUtcMs: Long): Long {
-        val moved = if (playing) (nowUtcMs - s.positionAtUtcMs).coerceAtLeast(0L) else 0L
-        val at = s.positionMs + moved
-        return if (song.durationMs > 0) at.coerceIn(0L, song.durationMs) else at.coerceAtLeast(0L)
-    }
+    /** The file is over a day old: the widget dims and says Open Encore to refresh. */
+    fun isStale(s: Snapshot, nowUtcMs: Long): Boolean = nowUtcMs - s.writtenAtUtcMs > STALE_MS
 
-    /** 0 to 1 for the progress bar. */
-    fun fraction(positionMs: Long, durationMs: Long): Float =
-        if (durationMs <= 0) 0f else (positionMs.toFloat() / durationMs).coerceIn(0f, 1f)
+    /** The level-bar drawings (`widget_bars_a`, `_b`, `_c`). */
+    const val BARS_VARIANTS = 3
 }

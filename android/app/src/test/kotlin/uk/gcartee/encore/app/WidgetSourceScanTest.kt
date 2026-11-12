@@ -22,6 +22,10 @@ class WidgetSourceScanTest {
         for (name in listOf("MixesWidget.kt", "RecentWidget.kt", "CollectionUi.kt", "CollectionStates.kt")) {
             assertTrue("found $name", files.any { it.name == name })
         }
+        // The widgets redesign (11 November 2026): the sizing model, the field and the shared chrome.
+        for (name in listOf("WidgetSizing.kt", "WidgetField.kt", "WidgetChrome.kt")) {
+            assertTrue("found $name", files.any { it.name == name })
+        }
         val offenders = files
             .filter { it.name != "WidgetSync.kt" }
             .flatMap { file ->
@@ -31,6 +35,16 @@ class WidgetSourceScanTest {
                 }
             }
         assertTrue("widgets must not touch the core:\n" + offenders.joinToString("\n"), offenders.isEmpty())
+    }
+
+    @Test
+    fun theFieldMathWidgetsDrawWithTouchesNeitherTheCoreNorAndroid() {
+        // ui/player/FieldMath.kt is shared by the app's field and every widget's background.
+        val file = File("src/main/kotlin/uk/gcartee/encore/app/ui/player/FieldMath.kt")
+        assertTrue("no ${file.absolutePath}", file.isFile)
+        val text = file.readText()
+        assertTrue("FieldMath must not touch the core", !text.contains("CoreHost") && !text.contains("uk.gcartee.encore.core."))
+        assertTrue("FieldMath is plain Kotlin", !Regex("""^\s*import\s+(android|androidx)\.""", RegexOption.MULTILINE).containsMatchIn(text))
     }
 
     @Test

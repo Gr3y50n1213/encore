@@ -81,10 +81,11 @@ class CollectionWidgetStatesTest {
     }
 
     @Test
-    fun atMostFourTilesAndNoMixTwice() {
-        val many = (1..6).map { mix("m-$it", "Mix $it") } + mix("next-1", "Rainy Focus")
+    fun atMostSixTilesAndNoMixTwice() {
+        // Six is the most the biggest layout (three across, two down) shows.
+        val many = (1..8).map { mix("m-$it", "Mix $it") } + mix("next-1", "Rainy Focus")
         val v = mixes(json(pinned = many)) as MixesView.Tiles
-        assertEquals(4, v.tiles.size)
+        assertEquals(6, v.tiles.size)
         assertEquals(v.tiles.size, v.tiles.map { it.mixId }.distinct().size)
         // The pinned copy of the Next up mix is dropped: Next up already shows it.
         assertEquals(1, mixes(json(pinned = many)).let { (it as MixesView.Tiles).tiles }.count { it.title == "Rainy Focus" })

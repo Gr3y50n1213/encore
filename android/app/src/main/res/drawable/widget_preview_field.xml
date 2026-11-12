@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widgets redesign (11 November 2026): the picker previews' background, the app's Golden Hour
+     demo palette (base 3D0000; stops CF4630, 1B1030, C02D56, 986E00) as four radial blobs at
+     the album field's anchors. Demo colors only; a preview never shows the person's library.
+     The real widget draws the same picture as a bitmap from the album's own palette. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#FF3D0000" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient android:type="radial" android:centerX="0.2" android:centerY="0.18" android:gradientRadius="70%p" android:startColor="#FFCF4630" android:endColor="#00CF4630" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient android:type="radial" android:centerX="0.85" android:centerY="0.35" android:gradientRadius="70%p" android:startColor="#FF1B1030" android:endColor="#001B1030" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient android:type="radial" android:centerX="0.25" android:centerY="0.75" android:gradientRadius="70%p" android:startColor="#FFC02D56" android:endColor="#00C02D56" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient android:type="radial" android:centerX="0.8" android:centerY="0.92" android:gradientRadius="70%p" android:startColor="#FF986E00" android:endColor="#00986E00" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+</layer-list>

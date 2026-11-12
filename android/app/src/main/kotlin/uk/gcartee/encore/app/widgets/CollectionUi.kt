@@ -3,36 +3,40 @@ package uk.gcartee.encore.app.widgets
 import android.content.Context
 import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.glance.ColorFilter
 import androidx.glance.GlanceModifier
-import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.LocalContext
-import androidx.glance.appwidget.action.actionStartActivity
-import androidx.glance.appwidget.appWidgetBackground
+import androidx.glance.action.Action
 import androidx.glance.action.clickable
 import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
+import androidx.glance.layout.ContentScale
+import androidx.glance.layout.Row
+import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
+import androidx.glance.layout.width
+import androidx.glance.semantics.contentDescription
+import androidx.glance.semantics.semantics
 import androidx.glance.text.Text
-import androidx.glance.text.TextAlign
-import androidx.glance.text.TextStyle
+import androidx.glance.unit.ColorProvider
 import java.io.File
 import uk.gcartee.encore.app.R
 
 /**
- * What the Mixes and Recently played widgets share (board 34, items 3 and 4): the tile,
- * the words-only cards, the header and the cover loading. Like Now Playing, they read the
- * profile's snapshot file and nothing else.
+ * What the Mixes and Recently played widgets share (board 34, items 3 and 4, redesigned on
+ * 11 November 2026): album-tinted tiles, a hero card, the words-only cards and the cover
+ * loading. Like Now Playing, they read the profile's snapshot file and nothing else, and the
+ * frame behind the tiles is the lead item's album field, softened.
  */
 
 /** Tiles are drawn small: eight 128 px covers stay well inside what a launcher accepts. */
@@ -49,22 +53,40 @@ fun loadCollectionCovers(context: Context, profileId: String, names: List<String
     return out
 }
 
-/** The tile behind both widgets: wallpaper colors, the system's corner radius. */
+/**
+ * The lead item's field behind the tiles, softened (the mock-up's frame A), and faded more
+ * when the file is over a day old; made once for every size.
+ */
+fun collectionField(lead: SnapshotPalette?, stale: Boolean): Bitmap? =
+    lead?.let { WidgetField.bitmap(it, fade = if (stale) WidgetField.STALE_FADE else WidgetField.SOFT_FADE) }
+
+/** One tile of either widget: what it shows and where a tap goes. */
+data class TileData(
+    val name: String,
+    val artist: String?,
+    /** "Next up" over the hero's name, when it is the Next up mix. */
+    val kicker: String?,
+    val cover: Bitmap?,
+    val palette: SnapshotPalette?,
+    /** TalkBack's name for the tile, e.g. "Play Evening Drive". */
+    val label: String,
+    val action: Action,
+    /** A small play badge on the cover (Mixes). */
+    val badge: Boolean,
+)
+
+/** The widget's tile: the lead album's field, or the theme's surface; [tap] is where the body goes. */
 @Composable
-internal fun CollectionFrame(tap: WidgetTarget?, content: @Composable () -> Unit) {
+internal fun CollectionFrame(lead: SnapshotPalette?, field: Bitmap?, tap: WidgetTarget?, content: @Composable () -> Unit) {
     val context = LocalContext.current
-    val base = GlanceModifier
-        .fillMaxSize()
-        .appWidgetBackground()
-        .tileBackground(GlanceTheme.colors.widgetBackground)
-    val modifier = if (tap != null) base.clickable(actionStartActivity(WidgetIntents.open(context, tap))) else base
-    Box(modifier = modifier.padding(PAD), contentAlignment = Alignment.TopStart) { content() }
+    WidgetFrame(lead, field, tap?.let { openAction(context, it) }, content)
 }
 
 /** Board 34's state cards, in words: a title and one line, never an error icon. */
 @Composable
-internal fun CollectionCard(kind: CardKind) {
+internal fun CollectionCard(kind: CardKind, layout: CollectionLayout, fs: Float) {
     val context = LocalContext.current
+    val ink = inkOf(null)
     val app = context.getString(R.string.app_name)
     val (title, subtitle) = when (kind) {
         CardKind.NOTHING_YET -> context.getString(R.string.widget_nothing_yet) to context.getString(R.string.widget_mixes_build)
@@ -73,74 +95,168 @@ internal fun CollectionCard(kind: CardKind) {
         CardKind.REMOVED -> context.getString(R.string.widget_profile_removed) to context.getString(R.string.widget_choose_profile)
         else -> context.getString(R.string.widget_open_app, app) to null
     }
-    Column(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-        Text(title, style = titleStyle(15.sp), maxLines = 1)
-        if (subtitle != null) Text(subtitle, style = secondaryStyle(13.sp), maxLines = 2)
+    val room = layout.h - 2 * CollectionSizing.PAD
+    val showSubtitle = subtitle != null &&
+        WidgetSizing.linesThatFit(room, WidgetSizing.lineHeight(18, fs), WidgetSizing.lineHeight(14, fs)) >= 2
+    Column(
+        modifier = GlanceModifier.fillMaxSize().padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(title, style = titleStyle(ink, 18), maxLines = 1)
+        if (showSubtitle) Text(subtitle!!, style = secondaryStyle(ink, 14), maxLines = 2)
     }
 }
 
-/** The widget's name, or "Open Encore to refresh" when the file is over 24 hours old. */
+/**
+ * The widget's content at one bucket: an optional header, then either a hero card with a
+ * strip of tiles under it, or rows of tiles. Sizes come from [CollectionSizing] and the
+ * user's font scale, so nothing is cropped.
+ */
 @Composable
-internal fun CollectionHeader(title: String, stale: Boolean) {
-    val context = LocalContext.current
-    Box(modifier = GlanceModifier.height(HEADER_HEIGHT), contentAlignment = Alignment.CenterStart) {
-        if (stale) {
-            Text(context.getString(R.string.widget_open_to_refresh, context.getString(R.string.app_name)), style = secondaryStyle(13.sp), maxLines = 1)
-        } else {
-            Text(title, style = titleStyle(13.sp), maxLines = 1)
-        }
-    }
-}
-
-/** A cover over a name, centered; [badge] adds the small play badge (Mixes). */
-@Composable
-internal fun CollectionTile(
-    name: String,
-    cover: Bitmap?,
-    size: Dp,
-    dimmed: Boolean,
-    badge: Boolean,
-    modifier: GlanceModifier,
+internal fun CollectionBody(
+    layout: CollectionLayout,
+    tiles: List<TileData>,
+    title: String,
+    stale: Boolean,
+    lead: SnapshotPalette?,
 ) {
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(modifier = GlanceModifier.size(size), contentAlignment = Alignment.BottomEnd) {
-            Cover(cover, size, dimmed)
-            if (badge) PlayBadge(if (size < 44.dp) 18.dp else 22.dp)
+    val context = LocalContext.current
+    val fs = fontScale()
+    val fit = CollectionSizing.fit(layout, fs)
+    val ink = inkOf(lead)
+    val gap = CollectionSizing.GAP.dp
+    Column(modifier = GlanceModifier.fillMaxSize().padding(CollectionSizing.PAD.dp)) {
+        if (layout.header) {
+            Box(
+                modifier = GlanceModifier.height(CollectionSizing.headerHeight(fs).dp).fillMaxWidth(),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                if (stale) {
+                    Text(context.getString(R.string.widget_open_to_refresh, context.getString(R.string.app_name)), style = secondaryStyle(ink, 15), maxLines = 1)
+                } else {
+                    Text(title, style = titleStyle(ink, 15), maxLines = 1)
+                }
+            }
+            Spacer(GlanceModifier.height(gap))
         }
-        Box(modifier = GlanceModifier.height(NAME_HEIGHT).padding(top = 2.dp), contentAlignment = Alignment.TopCenter) {
-            Text(
-                name,
-                style = TextStyle(
-                    color = if (dimmed) GlanceTheme.colors.onSurfaceVariant else GlanceTheme.colors.onSurface,
-                    fontSize = 11.sp,
-                    textAlign = TextAlign.Center,
-                ),
-                maxLines = 1,
+        if (layout.hero) {
+            tiles.firstOrNull()?.let { Hero(it, stale, ink, fs) }
+            Spacer(GlanceModifier.height(gap))
+            TileRow(tiles.drop(1).take(layout.cols), layout.cols, fit, stale)
+        } else {
+            tiles.take(layout.cols * layout.rows).chunked(layout.cols).forEachIndexed { r, row ->
+                if (r > 0) Spacer(GlanceModifier.height(gap))
+                TileRow(row, layout.cols, fit, stale)
+            }
+        }
+    }
+}
+
+@Composable
+private fun TileRow(row: List<TileData>, cols: Int, fit: CollectionFit, stale: Boolean) {
+    Row(modifier = GlanceModifier.fillMaxWidth()) {
+        for (i in 0 until cols) {
+            if (i > 0) Spacer(GlanceModifier.width(CollectionSizing.GAP.dp))
+            val tile = row.getOrNull(i)
+            if (tile == null) Spacer(GlanceModifier.defaultWeight()) else Tile(tile, fit, stale, GlanceModifier.defaultWeight())
+        }
+    }
+}
+
+/** A tile: a card tinted by its album (its base, a fade of its leading color), the cover inset, then the name and artist. */
+@Composable
+private fun Tile(t: TileData, fit: CollectionFit, stale: Boolean, modifier: GlanceModifier) {
+    val ink = inkOf(t.palette)
+    val s = fit.cover
+    val p = t.palette
+    val cardTint = if (p != null) ColorProvider(Color(p.base)) else ink.tonal
+    Box(
+        modifier = modifier
+            .background(ImageProvider(R.drawable.widget_card_18), colorFilter = ColorFilter.tint(cardTint))
+            .clickable(t.action)
+            .semantics { contentDescription = t.label },
+    ) {
+        if (p != null) {
+            Image(
+                provider = ImageProvider(R.drawable.widget_card_fade),
+                contentDescription = null,
+                modifier = GlanceModifier.fillMaxSize(),
+                colorFilter = ColorFilter.tint(ColorProvider(Color(p.stops[0]))),
+                contentScale = ContentScale.FillBounds,
             )
         }
+        Column(
+            modifier = GlanceModifier.fillMaxWidth().padding(CollectionSizing.CARD_PAD.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Box(modifier = GlanceModifier.size(s.dp), contentAlignment = Alignment.BottomEnd) {
+                Cover(t.cover, s.dp, if (s >= 56) 15.dp else 12.dp, stale, ink)
+                if (t.badge) Badge(if (s >= 56) 24 else 20, ink)
+            }
+            if (fit.names) {
+                Column(modifier = GlanceModifier.fillMaxWidth().padding(horizontal = 2.dp)) {
+                    Text(t.name, style = titleStyle(ink, 13), maxLines = 1, modifier = GlanceModifier.padding(top = 2.dp))
+                    if (fit.artist && !t.artist.isNullOrBlank()) Text(t.artist, style = secondaryStyle(ink, 12), maxLines = 1)
+                }
+            }
+        }
     }
 }
 
+/** A small play badge on a cover's corner. */
 @Composable
-private fun PlayBadge(size: Dp) {
-    Box(modifier = GlanceModifier.padding(3.dp)) {
+private fun Badge(size: Int, ink: WidgetInk) {
+    Box(modifier = GlanceModifier.padding(4.dp)) {
         Box(
             modifier = GlanceModifier
-                .size(size)
-                .background(ImageProvider(R.drawable.widget_button_round), colorFilter = ColorFilter.tint(GlanceTheme.colors.primary)),
+                .size(size.dp)
+                .background(ImageProvider(R.drawable.widget_pill), colorFilter = ColorFilter.tint(ink.container)),
             contentAlignment = Alignment.Center,
         ) {
             Image(
                 provider = ImageProvider(R.drawable.sym_play_arrow_fill),
                 contentDescription = null,
-                modifier = GlanceModifier.size(size * 0.6f),
-                colorFilter = ColorFilter.tint(GlanceTheme.colors.onPrimary),
+                modifier = GlanceModifier.size((size / 2).dp),
+                colorFilter = ColorFilter.tint(ink.glyph),
             )
         }
     }
 }
 
-internal val PAD = 10.dp
-internal val GAP = 6.dp
-internal val HEADER_HEIGHT = 20.dp
-internal val NAME_HEIGHT = 16.dp
+/** The lead mix as a wide card on the field: its cover, "Next up" over its name, and a play button. */
+@Composable
+private fun Hero(t: TileData, stale: Boolean, ink: WidgetInk, fs: Float) {
+    val room = CollectionSizing.HERO_H - 8
+    val showKicker = t.kicker != null &&
+        WidgetSizing.linesThatFit(room, WidgetSizing.lineHeight(12, fs), WidgetSizing.lineHeight(16, fs)) >= 2
+    Row(
+        modifier = GlanceModifier
+            .fillMaxWidth()
+            .height(CollectionSizing.HERO_H.dp)
+            .clickable(t.action)
+            .semantics { contentDescription = t.label },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Spacer(GlanceModifier.width(4.dp))
+        Cover(t.cover, 64.dp, 16.dp, stale, ink)
+        Spacer(GlanceModifier.width(10.dp))
+        Column(modifier = GlanceModifier.defaultWeight()) {
+            if (showKicker) Text(t.kicker!!, style = secondaryStyle(ink, 12), maxLines = 1)
+            Text(t.name, style = titleStyle(ink, 16), maxLines = 1)
+        }
+        Box(
+            modifier = GlanceModifier
+                .size(48.dp)
+                .background(ImageProvider(R.drawable.widget_pill), colorFilter = ColorFilter.tint(ink.container)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Image(
+                provider = ImageProvider(R.drawable.sym_play_arrow_fill),
+                contentDescription = null,
+                modifier = GlanceModifier.size(24.dp),
+                colorFilter = ColorFilter.tint(ink.glyph),
+            )
+        }
+        Spacer(GlanceModifier.width(4.dp))
+    }
+}

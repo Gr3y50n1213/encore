@@ -87,8 +87,9 @@ sleep_sheet=uk.gcartee.encore.app.SleepTimerSheetTest
 widget=uk.gcartee.encore.app.NowPlayingWidgetTest
 lock_page=uk.gcartee.encore.app.LockScreenWidgetsPageTest # Phase 9 (WP8)
 collections=uk.gcartee.encore.app.CollectionWidgetsTest # Phase 9 (WP7)
+gallery=uk.gcartee.encore.app.WidgetGalleryTest # widgets redesign, 11 November 2026
 # First on a fresh install (no profile yet), everything but the replay tests.
-adb shell am instrument -w -r -e notClass "$signin,$offline,$playback,$sleep_sheet,$widget,$lock_page,$collections" "$runner" | tee "$out/instrument.txt"
+adb shell am instrument -w -r -e notClass "$signin,$offline,$playback,$sleep_sheet,$widget,$lock_page,$collections,$gallery" "$runner" | tee "$out/instrument.txt"
 grep -q '^OK (' "$out/instrument.txt" || { echo "instrumented tests failed" >&2; exit 1; }
 # Phase 9 (WP6, WP7): each in a process of its own, so "a widget update never starts the
 # core" is checked.
@@ -96,6 +97,19 @@ adb shell am instrument -w -r -e class "$widget" "$runner" | tee "$out/instrumen
 grep -q '^OK (' "$out/instrument-widget.txt" || { echo "the widget test failed" >&2; exit 1; }
 adb shell am instrument -w -r -e class "$collections" "$runner" | tee "$out/instrument-collections.txt"
 grep -q '^OK (' "$out/instrument-collections.txt" || { echo "the Mixes and Recently played widget test failed" >&2; exit 1; }
+# Widgets redesign: every widget at every size it may be placed, hosted for real. Nothing may be
+# cropped, buttons are 48 dp, corners are the system's; pages of screenshots for the review.
+# The screenshots are kept even when it fails (they are what shows why).
+echo "== 1a. The widget gallery"
+adb shell am instrument -w -r -e class "$gallery" "$runner" | tee "$out/instrument-gallery.txt" || true
+mkdir -p "$out/screens"
+for f in $(adb shell 'ls /data/local/tmp/encore-shot-widgets-*.png 2>/dev/null' | tr -d '\r'); do
+  adb pull "$f" "$out/screens/api$sdk-$(basename "$f" | sed 's/^encore-shot-//')" > /dev/null || true
+done
+adb shell 'rm -f /data/local/tmp/encore-shot-widgets-*.png' || true
+# Judged after the other tests have run, so one bad widget size doesn't hide their results.
+gallery_ok=0
+grep -q '^OK (' "$out/instrument-gallery.txt" && gallery_ok=1
 
 echo "== 1b. Sign in to the Jellyfin replay, browse, play"
 # The owner's anonymized recording, served on this host and reached from the device
@@ -162,6 +176,7 @@ grep -q '^OK (' "$out/instrument-sleep-sheet.txt" || { echo "the sleep timer she
 grep -q '^OK (' "$out/instrument-widget-play.txt" || { echo "the widget play test failed" >&2; exit 1; }
 grep -q '^OK (' "$out/instrument-collections-play.txt" || { echo "the Mixes widget play test failed" >&2; exit 1; }
 grep -q '^OK (' "$out/instrument-lock-page.txt" || { echo "the Lock screen and widgets page test failed" >&2; exit 1; }
+[ "$gallery_ok" = 1 ] || { echo "the widget gallery found problems (instrument-gallery.txt)" >&2; exit 1; }
 # The release build below must start fresh again, on Welcome.
 adb uninstall uk.gcartee.encore.debug > /dev/null || true
 

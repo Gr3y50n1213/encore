@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widgets redesign: the level bars the app shows beside a playing song (three bars, 3 dp wide, 3 dp apart, bottoms level). A widget can't animate, so there are three drawings and the widget picks one on every redraw. Tinted by the widget. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="15dp"
+    android:height="14dp"
+    android:viewportWidth="15"
+    android:viewportHeight="14">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M0,7.5 a1.5,1.5 0 0 1 3,0 v5 a1.5,1.5 0 0 1 -3,0 z M6,1.5 a1.5,1.5 0 0 1 3,0 v11 a1.5,1.5 0 0 1 -3,0 z M12,5.5 a1.5,1.5 0 0 1 3,0 v7 a1.5,1.5 0 0 1 -3,0 z" />
+</vector>

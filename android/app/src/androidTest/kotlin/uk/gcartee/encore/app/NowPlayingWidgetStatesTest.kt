@@ -129,23 +129,21 @@ class NowPlayingWidgetStatesTest {
     // --- Normal states. ---
 
     @Test
-    fun playingShowsTheSongWithPauseAndAMovingBar() {
+    fun playingShowsTheSongWithPause() {
         val v = decide(json()) as NowPlayingView.Song
         assertTrue(v.playing)
         assertTrue(v.current)
         assertEquals(MainButton.PAUSE, v.button)
         assertEquals(WidgetTarget.NOW_PLAYING, v.tap)
         assertNull("buttons go straight to the service", v.buttonsOpen)
-        assertEquals("position moved on since the report", 94_000L, v.positionMs)
         assertFalse(v.stale)
     }
 
     @Test
-    fun pausedShowsPlayAndAStillBar() {
+    fun pausedShowsPlay() {
         val v = decide(json(isPlaying = false)) as NowPlayingView.Song
         assertFalse(v.playing)
         assertEquals(MainButton.PLAY, v.button)
-        assertEquals(84_000L, v.positionMs)
     }
 
     @Test
@@ -154,7 +152,16 @@ class NowPlayingWidgetStatesTest {
         val v = decide(json(written = now - 600_000, positionAt = now - 600_000)) as NowPlayingView.Song
         assertFalse(v.playing)
         assertEquals(MainButton.PLAY, v.button)
-        assertEquals(84_000L, v.positionMs)
+    }
+
+    @Test
+    fun theLevelBarsChangeWithEveryStateChange() {
+        // A widget can't animate: the bars are three drawings, and the file's position time
+        // moves with every start, pause, resume and song change, so each redraw differs.
+        val variants = (0L..5L).map { s -> (decide(json(positionAt = now - 60_000 + s * 1000)) as NowPlayingView.Song).barsVariant }
+        assertTrue("always one of the drawings: $variants", variants.all { it in 0 until NowPlayingStates.BARS_VARIANTS })
+        assertEquals("every drawing comes up: $variants", NowPlayingStates.BARS_VARIANTS, variants.distinct().size)
+        for ((a, b) in variants.zipWithNext()) assertTrue("a second later it looks different: $variants", a != b)
     }
 
     @Test
@@ -292,9 +299,12 @@ class NowPlayingWidgetStatesTest {
     }
 
     @Test
-    fun theBarIsAFraction() {
-        assertEquals(0f, NowPlayingStates.fraction(10, 0), 0f)
-        assertEquals(0.5f, NowPlayingStates.fraction(50, 100), 0.0001f)
-        assertEquals(1f, NowPlayingStates.fraction(500, 100), 0f)
+    fun theSongCarriesItsAlbumsColors() {
+        // A palette in the file reaches the view (the widget then wears the album's colors).
+        val palette = """{"scheme":"dark","base":"3D0000","stops":["CF4630","1B1030","C02D56","986E00"],"text":"FFFFFF"}"""
+        val withColours = song(nowPlaying = true).replace("\"nowPlaying\": true", "\"nowPlaying\": true, \"palette\": $palette")
+        val v = decide(json(song = withColours)) as NowPlayingView.Song
+        assertEquals(0xFF3D0000.toInt(), v.palette!!.base)
+        assertNull("no palette yet: the theme's colors", (decide(json()) as NowPlayingView.Song).palette)
     }
 }

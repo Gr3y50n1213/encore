@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Phase 9, board 34, item 4: the Recently played widget, 4x3. A history widget: it
+<!-- Phase 9, board 34, item 4: the Recently played widget, 4x3, down to 4x1 and up to 3 rows (RecentSizing; WidgetLayoutTest). A history widget: it
      declares not_keyguard (PLAN-ANDROID section 20), so it can never be placed on the lock
      screen. updatePeriodMillis is 3 hours so a snapshot over 24 hours old dims even when the
      app never runs. The preview is demo text and art. -->
@@ -10,9 +10,9 @@
     android:minWidth="250dp"
     android:minHeight="180dp"
     android:minResizeWidth="250dp"
-    android:minResizeHeight="180dp"
+    android:minResizeHeight="110dp"
     android:maxResizeWidth="530dp"
-    android:maxResizeHeight="320dp"
+    android:maxResizeHeight="360dp"
     android:previewImage="@drawable/widget_preview_recent"
     android:previewLayout="@layout/recent_widget_preview"
     android:resizeMode="horizontal|vertical"

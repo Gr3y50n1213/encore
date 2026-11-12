@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Phase 9, board 34, item 2: the Now Playing widget, 2x1 up to 6x2, 4x2 when placed.
-     Allowed on the lock screen (PLAN-ANDROID section 20: only the history widgets declare
+     Resize limits (widgets redesign, 11 November 2026): 116 by 48 dp up to 530 by 260 dp, so 2 rows is the tallest and every size in that range has a layout sized for it (NpLayout; WidgetLayoutTest). Allowed on the lock screen (PLAN-ANDROID section 20: only the history widgets declare
      not_keyguard); there it follows "Hide listening history while locked".
      updatePeriodMillis is 3 hours (Android's floor is 30 minutes), so a snapshot left over
      24 hours old dims even when the app never runs. The preview is demo text and art. -->
@@ -10,10 +10,10 @@
     android:initialLayout="@layout/glance_default_loading_layout"
     android:minWidth="250dp"
     android:minHeight="110dp"
-    android:minResizeWidth="110dp"
-    android:minResizeHeight="40dp"
+    android:minResizeWidth="116dp"
+    android:minResizeHeight="48dp"
     android:maxResizeWidth="530dp"
-    android:maxResizeHeight="200dp"
+    android:maxResizeHeight="260dp"
     android:previewImage="@drawable/widget_preview_now_playing"
     android:previewLayout="@layout/now_playing_widget_preview"
     android:resizeMode="horizontal|vertical"
