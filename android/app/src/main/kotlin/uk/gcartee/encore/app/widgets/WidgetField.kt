@@ -1,6 +1,9 @@
 package uk.gcartee.encore.app.widgets
 
 import android.graphics.Bitmap
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
 import uk.gcartee.encore.app.ui.player.FieldMath
 
 /**
@@ -20,13 +23,58 @@ object WidgetField {
     /** The frame behind Mixes and Recently played is the lead album's field, softened by this much. */
     const val SOFT_FADE = 0.3f
 
-    /** The palette's stops, moved [fade] (0 to 1) of the way to the base. */
-    fun stops(p: SnapshotPalette, fade: Float): List<Int> =
-        if (fade <= 0f) p.stops else p.stops.map { blend(it, p.base, fade) }
+    /** A dark album's stops are never darker than this (HSV value), so the field isn't a flat black-grey. */
+    private const val MIN_STOP_VALUE = 0.30f
+
+    /** The same for the base the stops sit on. */
+    private const val MIN_BASE_VALUE = 0.12f
+
+    /** A very dark color made lighter and a little richer, keeping its hue; anything brighter is left alone (pure). */
+    fun lifted(c: Int, minValue: Float): Int {
+        val r = ((c shr 16) and 0xFF) / 255f
+        val g = ((c shr 8) and 0xFF) / 255f
+        val b = (c and 0xFF) / 255f
+        val mx = max(r, max(g, b))
+        if (mx >= minValue) return c
+        val mn = min(r, min(g, b))
+        val d = mx - mn
+        val s = if (mx <= 0f) 0f else d / mx
+        val h = when {
+            d <= 0f -> 0f
+            mx == r -> (((g - b) / d) % 6f + 6f) % 6f
+            mx == g -> (b - r) / d + 2f
+            else -> (r - g) / d + 4f
+        }
+        // Only a tinted color is made richer; a true grey stays grey.
+        val s2 = if (s > 0.08f) min(1f, s * 1.25f) else s
+        val v = minValue
+        val chroma = v * s2
+        val x = chroma * (1f - abs(h % 2f - 1f))
+        val m = v - chroma
+        val (r1, g1, b1) = when (h.toInt()) {
+            0 -> Triple(chroma, x, 0f)
+            1 -> Triple(x, chroma, 0f)
+            2 -> Triple(0f, chroma, x)
+            3 -> Triple(0f, x, chroma)
+            4 -> Triple(x, 0f, chroma)
+            else -> Triple(chroma, 0f, x)
+        }
+        fun ch(f: Float) = ((f + m) * 255f + 0.5f).toInt().coerceIn(0, 255)
+        return (0xFF shl 24) or (ch(r1) shl 16) or (ch(g1) shl 8) or ch(b1)
+    }
+
+    /** The base the field is drawn on: the palette's, lifted when the art is dark. */
+    fun baseOf(p: SnapshotPalette): Int = if (p.dark) lifted(p.base, MIN_BASE_VALUE) else p.base
+
+    /** The palette's stops (dark art lifted), moved [fade] (0 to 1) of the way to the base. */
+    fun stops(p: SnapshotPalette, fade: Float): List<Int> {
+        val lit = if (p.dark) p.stops.map { lifted(it, MIN_STOP_VALUE) } else p.stops
+        return if (fade <= 0f) lit else lit.map { blend(it, baseOf(p), fade) }
+    }
 
     /** The field's pixels (pure, JVM-testable). */
     fun pixels(p: SnapshotPalette, fade: Float = 0f, size: Int = SIZE_PX): IntArray =
-        FieldMath.pixels(p.base, stops(p, fade), size, size)
+        FieldMath.pixels(baseOf(p), stops(p, fade), size, size)
 
     /** What a widget's background is made from: the palette and how far it is faded. Made into pixels per size. */
     data class Spec(val palette: SnapshotPalette, val fade: Float)
@@ -49,7 +97,7 @@ object WidgetField {
     fun pixelsFor(spec: Spec, wDp: Float, hDp: Float): Triple<IntArray, Int, Int> {
         val (w, h) = shape(wDp, hDp)
         val aspect = (hDp / wDp.coerceAtLeast(1f)).coerceIn(MIN_ASPECT, MAX_ASPECT)
-        return Triple(FieldMath.pixels(spec.palette.base, stops(spec.palette, spec.fade), w, h, aspect), w, h)
+        return Triple(FieldMath.pixels(baseOf(spec.palette), stops(spec.palette, spec.fade), w, h, aspect), w, h)
     }
 
     /** The field for a widget [wDp] x [hDp], at its shape. */

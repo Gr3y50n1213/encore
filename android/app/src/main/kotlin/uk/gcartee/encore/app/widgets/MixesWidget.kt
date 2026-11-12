@@ -85,7 +85,8 @@ object MixesLoader {
         val state = WidgetConfig.profileState(context)
         val profileId = WidgetConfig.resolve(WidgetConfig.choice(context, appWidgetId), state)
             ?: return MixesLoaded(null, canControl = false, choice = choice, covers = emptyMap(), field = null)
-        val read = SnapshotReader.read(SnapshotReader.widgetsDir(context.filesDir), profileId)
+        val dir = SnapshotReader.widgetsDir(context.filesDir)
+        val read = CoverPalette.fill(SnapshotReader.read(dir, profileId), dir)
         val snapshot = (read as? SnapshotRead.Ok)?.snapshot?.takeIf { it.privacy == SnapshotPrivacy.NORMAL }
         val tiles = snapshot?.let { CollectionStates.mixTiles(it, choice) }.orEmpty()
         val covers = snapshot?.let { loadCollectionCovers(context, profileId, tiles.map { t -> t.cover }) }.orEmpty()

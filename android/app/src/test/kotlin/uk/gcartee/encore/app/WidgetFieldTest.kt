@@ -108,17 +108,44 @@ class WidgetFieldTest {
 
     @Test
     fun aFadeMovesTheStopsTowardTheBase() {
+        val unfaded = WidgetField.stops(golden, 0f)
         val faded = WidgetField.stops(golden, WidgetField.STALE_FADE)
+        val base = WidgetField.baseOf(golden)
         // Distance in color, not contrast: a stop already as bright as the base keeps its contrast.
         fun distance(a: Int, b: Int): Int =
             listOf(16, 8, 0).sumOf { s -> Math.abs(((a shr s) and 0xFF) - ((b shr s) and 0xFF)) }
-        for ((stop, f) in golden.stops.zip(faded)) {
+        for ((stop, f) in unfaded.zip(faded)) {
             assertTrue(
-                "${Integer.toHexString(stop)} fades toward ${Integer.toHexString(golden.base)}",
-                distance(f, golden.base) < distance(stop, golden.base),
+                "${Integer.toHexString(stop)} fades toward ${Integer.toHexString(base)}",
+                distance(f, base) < distance(stop, base),
             )
         }
-        assertEquals("no fade changes nothing", golden.stops, WidgetField.stops(golden, 0f))
+    }
+
+    @Test
+    fun aDarkAlbumsFieldIsLiftedOutOfFlatGreyButABrightOneIsLeftAlone() {
+        // Bright stops are untouched.
+        assertEquals(0xFFCF4630.toInt(), WidgetField.lifted(0xFFCF4630.toInt(), 0.30f))
+        // A near-black brown comes up to value 0.30 and keeps its hue (red still leads).
+        val up = WidgetField.lifted(0xFF1A0E08.toInt(), 0.30f)
+        val r = (up shr 16) and 0xFF
+        val g = (up shr 8) and 0xFF
+        val b = up and 0xFF
+        assertTrue("value lifted to 0.30: ${Integer.toHexString(up)}", Math.abs(r - 0x4C) <= 2)
+        assertTrue("hue kept: ${Integer.toHexString(up)}", r > g && g > b)
+        // A true grey stays grey.
+        val grey = WidgetField.lifted(0xFF101010.toInt(), 0.30f)
+        assertEquals((grey shr 16) and 0xFF, grey and 0xFF)
+        // A near-black album's field has real range, not one flat tone, and its text still reads.
+        val dull = SnapshotPalette(
+            dark = true,
+            base = 0xFF0C0A0A.toInt(),
+            stops = listOf(0xFF1A0E08.toInt(), 0xFF0B0B10.toInt(), 0xFF140C0C.toInt(), 0xFF1E1408.toInt()),
+            text = 0xFFFFFFFF.toInt(),
+        )
+        val pixels = WidgetField.pixels(dull)
+        assertTrue("brightest pixel is lifted: ${Integer.toHexString(pixels.maxBy { it and 0xFF00 })}", pixels.any { ((it shr 16) and 0xFF) >= 0x30 })
+        assertTrue(pixels.minOf { WidgetField.contrast(dull.text, it) } >= 4.5)
     }
 
     @Test

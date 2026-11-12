@@ -119,7 +119,7 @@ object NowPlayingLoader {
         val profileId = WidgetConfig.resolve(WidgetConfig.choice(context, appWidgetId), state)
             ?: return NowPlayingLoaded(null, canControl = false, hideHistoryWhileLocked = hide, cover = null, field = null)
         val dir = SnapshotReader.widgetsDir(context.filesDir)
-        val read = SnapshotReader.read(dir, profileId)
+        val read = CoverPalette.fill(SnapshotReader.read(dir, profileId), dir)
         val snapshot = (read as? SnapshotRead.Ok)?.snapshot?.takeIf { it.privacy == SnapshotPrivacy.NORMAL }
         val cover = snapshot?.song?.cover
             ?.let { SnapshotReader.coverFile(dir, profileId, it) }
@@ -246,13 +246,16 @@ private fun SongUi(song: NowPlayingView.Song, cover: Bitmap?, layout: NpLayout, 
             Spacer(GlanceModifier.height(6.dp))
             Column(modifier = GlanceModifier.fillMaxWidth()) { SongText(song, ink, layout, text) }
         }
-        NpKind.STACK -> Column(modifier = GlanceModifier.fillMaxSize().padding(12.dp)) {
+        // Centered with a fixed gap (the model's 10 dp): in a cell taller than the bucket, as a
+        // One UI 4x3 is, the block sits in the middle instead of leaving a hole between the
+        // title and the buttons (device test, 12 Nov 2026).
+        NpKind.STACK -> Column(modifier = GlanceModifier.fillMaxSize().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                 Cover(cover, c.dp, coverRadius(c), song.stale, ink)
                 Spacer(GlanceModifier.width(12.dp))
                 Column(modifier = GlanceModifier.defaultWeight()) { SongText(song, ink, layout, text) }
             }
-            Spacer(GlanceModifier.defaultWeight())
+            Spacer(GlanceModifier.height(10.dp))
             Row(modifier = GlanceModifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 Controls(layout.controls, song, ink)
             }

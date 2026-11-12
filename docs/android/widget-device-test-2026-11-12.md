@@ -11,9 +11,11 @@ nothing below has been changed in code.
 |---|---|
 | 1 | Changed, **not yet confirmed on a phone.** The app now redraws each placed widget by its own receiver (`WidgetRefresh`). `WidgetRefreshTest` (all three placed, redrawn together) passes, but the *old* per-class redraw also passed in CI (logged, 0 problems on API 28, 36 phone, 36 tablet), so the cause was not reproduced there. New log lines (tag `EncoreWidgets`: "redraw X for appWidgetId N", "provideGlance X for appWidgetId N") show on the S20 FE which class draws each id. |
 | 2 | Fixed in code (`AutoLibrary.onPlaybackResumption` starts the last played song when nothing is queued). No emulator test; check on a phone. |
-| 3 | Not changed. A palette made in the widget would differ from the app's and then change when the app's arrives; it only shows on the first launch after an update. Needs a decision. |
+| 3 | Fixed (next commit): a cover with no palette yet gets an estimated one from its own pixels (`CoverPalette`: four quadrant colors in the blobs' places, white text, stops darkened until it reads). It is replaced by the core's palette when the snapshot carries one, so the colors may shift slightly then. |
 | 4 | Fixed: Mixes and Recently played buckets at 250, 310 and 410 dp wide (One UI cells are 311, 326 and 418); content is centered, so spare height is shared above and below. Covers can't outgrow their column, so a 326x354 Recently played still has about 50 dp spare. |
-| 5, 6, 7 | Not changed. |
+| 5 | Fixed (next commit): the tall Now Playing layout is centered with its fixed 10 dp gap, so a cell taller than the bucket leaves margins, not a hole between the title and the buttons. |
+| 6 | Fixed (next commit): the preview cover vectors are clipped to rounded squares. |
+| 7 | Fixed (next commit): a dark album's field lifts stops under value 0.30 and a base under 0.12 (hue kept, a tinted color made 25% richer, greys stay grey); bright palettes are untouched. |
 | 8 | Fixed: the field is drawn at each size's own shape (`WidgetField.bitmapFor`), blobs stay round; unit tests for shapes and text contrast on every shape. Gallery screenshots look right; check on a phone. |
 
 ## Bugs

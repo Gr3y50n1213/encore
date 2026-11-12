@@ -5,7 +5,10 @@
     android:height="96dp"
     android:viewportWidth="96"
     android:viewportHeight="96">
+    <group>
+        <clip-path android:pathData="M24,0 H72 A24,24 0 0 1 96,24 V72 A24,24 0 0 1 72,96 H24 A24,24 0 0 1 0,72 V24 A24,24 0 0 1 24,0 Z" />
     <path android:fillColor="#FF6B3FA0" android:pathData="M0,0 H96 V96 H0 Z" />
     <path android:fillColor="#FF3A2266" android:pathData="M0,48 H96 V96 H0 Z" />
     <path android:fillColor="#FFFF8FA3" android:pathData="M48,20 A24,24 0 1 1 48,68 A24,24 0 1 1 48,20 Z" />
+    </group>
 </vector>

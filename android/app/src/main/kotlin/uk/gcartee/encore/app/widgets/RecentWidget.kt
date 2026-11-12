@@ -83,7 +83,8 @@ object RecentLoader {
         val state = WidgetConfig.profileState(context)
         val profileId = WidgetConfig.resolve(WidgetConfig.choice(context, appWidgetId), state)
             ?: return RecentLoaded(null, canControl = false, covers = emptyMap(), field = null)
-        val read = SnapshotReader.read(SnapshotReader.widgetsDir(context.filesDir), profileId)
+        val dir = SnapshotReader.widgetsDir(context.filesDir)
+        val read = CoverPalette.fill(SnapshotReader.read(dir, profileId), dir)
         val snapshot = (read as? SnapshotRead.Ok)?.snapshot?.takeIf { it.privacy == SnapshotPrivacy.NORMAL }
         val albums = snapshot?.recentAlbums?.take(CollectionStates.RECENT_ALBUMS).orEmpty()
         val covers = snapshot?.let { loadCollectionCovers(context, profileId, albums.map { it.cover }) }.orEmpty()
