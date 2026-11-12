@@ -78,3 +78,13 @@ nothing below has been changed in code.
 
 Landscape, resizing on the launcher, the lock-screen Now Playing widget, a playing state (bug 2 stopped it),
 Mixes tile taps (bug 1 hid the widget), font scale above 1.0, the A13 and the tablet on screen.
+
+## Second phone test (S20 FE, commit 9fea492, release APK)
+
+- Bug 1 confirmed fixed: after Encore ran, Now Playing, Mixes and Recently played each still drew their own content.
+- Root cause found in the log: R8 had merged the three widget classes (the release log named all three yd2), so Glance's per-class lookup handed Now Playing's redraw the other widgets' ids. Fixed by redrawing per instance (9fea492) and by keeping the widget classes apart in R8 (proguard-rules.pro, WidgetKeepRulesTest; not yet on the phone).
+- Bug 2 confirmed fixed: Play with nothing queued started the last song (pause shape showed) and Pause stopped it; no \Nothing queued\ error.
+- Bug 3 confirmed: right after the install the widgets already wore the covers' colors.
+- Bugs 4, 5, 8 look right; a 326x354 Recently played still has about 50 dp spare above and below (centered).
+- Not tested: landscape, launcher resize, lock screen, Mixes tile taps, font scale above 1.0.
+

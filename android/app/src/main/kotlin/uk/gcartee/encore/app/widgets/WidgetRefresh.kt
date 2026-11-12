@@ -36,7 +36,7 @@ object WidgetRefresh {
         for ((receiver, widget) in kinds()) {
             for (id in placed(context, receiver)) {
                 // Logged so a phone's logcat shows which widget class each id was drawn by.
-                Log.i(TAG, "redraw ${widget.javaClass.simpleName} for appWidgetId $id")
+                Log.i(TAG, "redraw ${receiver.simpleName.removeSuffix("Receiver")} for appWidgetId $id")
                 runCatching { widget.update(context, glance.getGlanceIdBy(id)) }
             }
         }
