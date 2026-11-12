@@ -88,3 +88,6 @@ Mixes tile taps (bug 1 hid the widget), font scale above 1.0, the A13 and the ta
 - Bugs 4, 5, 8 look right; a 326x354 Recently played still has about 50 dp spare above and below (centered).
 - Not tested: landscape, launcher resize, lock screen, Mixes tile taps, font scale above 1.0.
 
+
+Everything still open is listed in [widget-open-items.md](widget-open-items.md).
+
