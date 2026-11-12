@@ -1,6 +1,5 @@
 package uk.gcartee.encore.app.widgets
 
-import androidx.glance.appwidget.updateAll
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -69,9 +68,8 @@ object WidgetSync {
         )
         WidgetConfig.saveProfileState(host.context, state)
         WidgetRedraws.bump()
-        runCatching { NowPlayingWidget().updateAll(host.context) }
-        runCatching { MixesWidget().updateAll(host.context) } // Phase 9 (WP7)
-        runCatching { RecentWidget().updateAll(host.context) } // Phase 9 (WP7)
+        // Per instance, not per class: see WidgetRefresh (the widgets swapped content).
+        runCatching { WidgetRefresh.updateAll(host.context) }
         uk.gcartee.encore.app.tile.StartMixTileService.refresh(host.context) // Phase 9 (WP8)
     }
 }

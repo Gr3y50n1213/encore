@@ -57,8 +57,8 @@ fun loadCollectionCovers(context: Context, profileId: String, names: List<String
  * The lead item's field behind the tiles, softened (the mock-up's frame A), and faded more
  * when the file is over a day old; made once for every size.
  */
-fun collectionField(lead: SnapshotPalette?, stale: Boolean): Bitmap? =
-    lead?.let { WidgetField.bitmap(it, fade = if (stale) WidgetField.STALE_FADE else WidgetField.SOFT_FADE) }
+fun collectionField(lead: SnapshotPalette?, stale: Boolean): WidgetField.Spec? =
+    lead?.let { WidgetField.Spec(it, fade = if (stale) WidgetField.STALE_FADE else WidgetField.SOFT_FADE) }
 
 /** One tile of either widget: what it shows and where a tap goes. */
 data class TileData(
@@ -77,7 +77,7 @@ data class TileData(
 
 /** The widget's tile: the lead album's field, or the theme's surface; [tap] is where the body goes. */
 @Composable
-internal fun CollectionFrame(lead: SnapshotPalette?, field: Bitmap?, tap: WidgetTarget?, content: @Composable () -> Unit) {
+internal fun CollectionFrame(lead: SnapshotPalette?, field: WidgetField.Spec?, tap: WidgetTarget?, content: @Composable () -> Unit) {
     val context = LocalContext.current
     WidgetFrame(lead, field, tap?.let { openAction(context, it) }, content)
 }
@@ -125,7 +125,8 @@ internal fun CollectionBody(
     val fit = CollectionSizing.fit(layout, fs)
     val ink = inkOf(lead)
     val gap = CollectionSizing.GAP.dp
-    Column(modifier = GlanceModifier.fillMaxSize().padding(CollectionSizing.PAD.dp)) {
+    // Centered: when a launcher's cell is taller than the bucket, the spare height is shared above and below.
+    Column(modifier = GlanceModifier.fillMaxSize().padding(CollectionSizing.PAD.dp), verticalAlignment = Alignment.CenterVertically) {
         if (layout.header) {
             Box(
                 modifier = GlanceModifier.height(CollectionSizing.headerHeight(fs).dp).fillMaxWidth(),

@@ -107,8 +107,8 @@ data class NowPlayingLoaded(
     val canControl: Boolean,
     val hideHistoryWhileLocked: Boolean,
     val cover: Bitmap?,
-    /** The album's field, made from its palette; null with no palette. */
-    val field: Bitmap?,
+    /** What the album's field is made from (drawn per size, by WidgetFrame); null with no palette. */
+    val field: WidgetField.Spec?,
 )
 
 object NowPlayingLoader {
@@ -126,7 +126,7 @@ object NowPlayingLoader {
         val field = snapshot?.song?.palette
             ?.let {
                 val stale = NowPlayingStates.isStale(snapshot, System.currentTimeMillis())
-                WidgetField.bitmap(it, fade = if (stale) WidgetField.STALE_FADE else 0f)
+                WidgetField.Spec(it, fade = if (stale) WidgetField.STALE_FADE else 0f)
             }
         return NowPlayingLoaded(read, WidgetConfig.canControl(profileId, state), hide, cover, field)
     }
@@ -135,7 +135,7 @@ object NowPlayingLoader {
 // --- Layout. ---
 
 @Composable
-private fun NowPlayingUi(view: NowPlayingView, cover: Bitmap?, field: Bitmap?) {
+private fun NowPlayingUi(view: NowPlayingView, cover: Bitmap?, field: WidgetField.Spec?) {
     val context = LocalContext.current
     val size = LocalSize.current
     val layout = NpLayout.of(size.width.value.toInt(), size.height.value.toInt())

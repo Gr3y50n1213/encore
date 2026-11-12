@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Build
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -15,6 +16,7 @@ import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.LocalContext
+import androidx.glance.LocalSize
 import androidx.glance.action.Action
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.action.actionStartActivity
@@ -123,18 +125,24 @@ internal fun GlanceModifier.tileBackground(color: ColorProvider): GlanceModifier
  * is where the body goes.
  */
 @Composable
-internal fun WidgetFrame(palette: SnapshotPalette?, field: Bitmap?, tap: Action?, content: @Composable () -> Unit) {
+internal fun WidgetFrame(palette: SnapshotPalette?, field: WidgetField.Spec?, tap: Action?, content: @Composable () -> Unit) {
     val modern = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    // The field is drawn at this size's own shape, so it is never stretched (owner, 12 Nov 2026:
+    // one square picture pulled over a wide tile smeared the blobs). Sizes are a few fixed buckets.
+    val size = LocalSize.current
+    val picture = remember(field, size.width.value.toInt(), size.height.value.toInt()) {
+        if (modern && field != null) WidgetField.bitmapFor(field, size.width.value, size.height.value) else null
+    }
     var root = GlanceModifier.fillMaxSize().appWidgetBackground()
     if (modern) root = root.cornerRadius(SYSTEM_RADIUS)
     if (palette == null) root = if (modern) root.background(GlanceTheme.colors.widgetBackground) else root.tileBackground(GlanceTheme.colors.widgetBackground)
     if (tap != null) root = root.clickable(tap)
     Box(modifier = root) {
         if (palette != null) {
-            if (modern && field != null) {
+            if (picture != null) {
                 // Rounded on the picture too: the container's clip is not relied on alone.
                 Image(
-                    provider = ImageProvider(field),
+                    provider = ImageProvider(picture),
                     contentDescription = null,
                     modifier = GlanceModifier.fillMaxSize().cornerRadius(SYSTEM_RADIUS),
                     contentScale = ContentScale.FillBounds,

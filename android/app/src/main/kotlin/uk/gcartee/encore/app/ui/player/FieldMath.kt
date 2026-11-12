@@ -28,16 +28,21 @@ object FieldMath {
     /** A phone held upright: about 2.2 tall for every 1 wide. */
     const val ASPECT = 2.2f
 
-    /** [w] x [h] pixels of the field, row by row, as opaque ARGB ints. [stops] has four colors. */
-    fun pixels(base: Int, stops: List<Int>, w: Int, h: Int): IntArray {
+    /**
+     * [w] x [h] pixels of the field, row by row, as opaque ARGB ints. [stops] has four colors.
+     * [aspect] is the long side over the short, in the portrait composition (the default, the
+     * app's); a widget passes its own height over its width so the blobs stay round on a wide
+     * or short tile instead of being stretched with the picture.
+     */
+    fun pixels(base: Int, stops: List<Int>, w: Int, h: Int, aspect: Float = ASPECT): IntArray {
         require(stops.size == 4) { "the field has four stops" }
         val out = IntArray(w * h)
         val cx = FloatArray(4) { ANCHOR_X[it] + TRAVEL * cos(PHASE_X[it]) }
-        val cy = FloatArray(4) { (ANCHOR_Y[it] + TRAVEL * sin(PHASE_Y[it])) * ASPECT }
+        val cy = FloatArray(4) { (ANCHOR_Y[it] + TRAVEL * sin(PHASE_Y[it])) * aspect }
         val baseRgb = floatArrayOf(red(base), green(base), blue(base))
         val stopRgb = Array(4) { floatArrayOf(red(stops[it]), green(stops[it]), blue(stops[it])) }
         for (y in 0 until h) {
-            val v = (y + 0.5f) / h * ASPECT
+            val v = (y + 0.5f) / h * aspect
             for (x in 0 until w) {
                 val u = (x + 0.5f) / w
                 var r = baseRgb[0]

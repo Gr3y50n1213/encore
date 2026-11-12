@@ -28,9 +28,34 @@ object WidgetField {
     fun pixels(p: SnapshotPalette, fade: Float = 0f, size: Int = SIZE_PX): IntArray =
         FieldMath.pixels(p.base, stops(p, fade), size, size)
 
-    fun bitmap(p: SnapshotPalette, fade: Float = 0f): Bitmap {
-        val pixels = pixels(p, fade)
-        return Bitmap.createBitmap(pixels, SIZE_PX, SIZE_PX, Bitmap.Config.ARGB_8888)
+    /** What a widget's background is made from: the palette and how far it is faded. Made into pixels per size. */
+    data class Spec(val palette: SnapshotPalette, val fade: Float)
+
+    /** The long side of a widget's field, in pixels; the short side follows the widget's shape. */
+    const val LONG_PX = 128
+
+    /** A widget's shape limits: beyond these the field keeps the limit's look (a 6x1 strip is not drawn thinner). */
+    private const val MIN_ASPECT = 0.2f
+    private const val MAX_ASPECT = 2.2f
+
+    /** The (w, h) in pixels of a field for a widget [wDp] x [hDp]: its own shape, [LONG_PX] on the long side. */
+    fun shape(wDp: Float, hDp: Float): Pair<Int, Int> {
+        val aspect = (hDp / wDp.coerceAtLeast(1f)).coerceIn(MIN_ASPECT, MAX_ASPECT)
+        return if (aspect <= 1f) LONG_PX to (LONG_PX * aspect).toInt().coerceAtLeast(8)
+        else (LONG_PX / aspect).toInt().coerceAtLeast(8) to LONG_PX
+    }
+
+    /** The field's pixels at a widget's own shape: round blobs, nothing stretched (pure, JVM-testable). */
+    fun pixelsFor(spec: Spec, wDp: Float, hDp: Float): Triple<IntArray, Int, Int> {
+        val (w, h) = shape(wDp, hDp)
+        val aspect = (hDp / wDp.coerceAtLeast(1f)).coerceIn(MIN_ASPECT, MAX_ASPECT)
+        return Triple(FieldMath.pixels(spec.palette.base, stops(spec.palette, spec.fade), w, h, aspect), w, h)
+    }
+
+    /** The field for a widget [wDp] x [hDp], at its shape. */
+    fun bitmapFor(spec: Spec, wDp: Float, hDp: Float): Bitmap {
+        val (pixels, w, h) = pixelsFor(spec, wDp, hDp)
+        return Bitmap.createBitmap(pixels, w, h, Bitmap.Config.ARGB_8888)
     }
 
     /** [from] moved [share] of the way to [to], both opaque ARGB ints. */

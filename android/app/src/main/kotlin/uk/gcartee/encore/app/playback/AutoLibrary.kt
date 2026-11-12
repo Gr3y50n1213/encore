@@ -166,8 +166,23 @@ class AutoLibrary(
     ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
         if (!host.ensureProfile()) return Futures.immediateFailedFuture(IllegalStateException("No profile"))
         val current = runCatching { core.queue().current }.getOrNull()
-            ?: return Futures.immediateFailedFuture(IllegalStateException("Nothing queued"))
-        return Futures.immediateFuture(MediaSession.MediaItemsWithStartPosition(listOf(placeholder(current.uid)), 0, 0))
+        if (current != null) {
+            return Futures.immediateFuture(MediaSession.MediaItemsWithStartPosition(listOf(placeholder(current.uid)), 0, 0))
+        }
+        // Nothing queued, but the widget (and Home) show the last song played: Play starts it,
+        // rather than starting the service only to stop it again (device test, 12 Nov 2026).
+        val result = SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
+        scope.launch {
+            val last = runCatching { core.home().recentlyPlayed.firstOrNull { view.canPlay(it.id) } }.getOrNull()
+            val started = last != null && runCatching { core.play(listOf(last.id), 0u, StartedFrom.OTHER, null) }.isSuccess
+            val now = if (started) runCatching { core.queue().current }.getOrNull() else null
+            if (now == null) {
+                result.setException(IllegalStateException("Nothing queued"))
+            } else {
+                result.set(MediaSession.MediaItemsWithStartPosition(listOf(placeholder(now.uid)), 0, 0))
+            }
+        }
+        return result
     }
 
     // --- The tree. ---

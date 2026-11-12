@@ -70,6 +70,42 @@ class WidgetFieldTest {
         assertTrue(pixels.distinct().size > 1000)
     }
 
+    // Widget shapes (dp): One UI's 4x1, a tall 2x2, a phone's 4x2, a 6x1 strip.
+    private val shapes = listOf(326f to 108f, 158f to 226f, 276f to 220f, 412f to 51f)
+
+    @Test
+    fun theFieldTakesTheWidgetsOwnShapeSoNothingIsStretched() {
+        val (w, h) = WidgetField.shape(326f, 108f)
+        assertEquals(WidgetField.LONG_PX, w)
+        // Same shape as the widget, within a pixel of rounding.
+        assertEquals(108f / 326f, h.toFloat() / w, 0.01f)
+        val (tw, th) = WidgetField.shape(158f, 226f)
+        assertEquals(WidgetField.LONG_PX, th)
+        assertEquals(158f / 226f, tw.toFloat() / th, 0.02f)
+        // A very thin strip keeps a few rows.
+        assertTrue(WidgetField.shape(412f, 20f).second >= 8)
+    }
+
+    @Test
+    fun theTextReadsOnEveryShapeOfEveryField() {
+        for (p in listOf(golden, daylight)) for ((w, h) in shapes) for (fade in listOf(0f, WidgetField.SOFT_FADE, WidgetField.STALE_FADE)) {
+            val (pixels, _, _) = WidgetField.pixelsFor(WidgetField.Spec(p, fade), w, h)
+            val lowest = pixels.minOf { WidgetField.contrast(p.text, it) }
+            assertTrue("${w}x$h fade $fade: $lowest", lowest >= 4.5)
+        }
+    }
+
+    @Test
+    fun aWideFieldStillHasTheAlbumsColorsLeftAndRight() {
+        // Round blobs on a 4x1 strip: the red leads on the left, the dark blue-violet on the right; not one smear.
+        val (pixels, w, h) = WidgetField.pixelsFor(WidgetField.Spec(golden, 0f), 326f, 108f)
+        fun at(rx: Float, ry: Float) = pixels[(ry * (h - 1)).toInt() * w + (rx * (w - 1)).toInt()]
+        val left = at(0.2f, 0.3f)
+        val right = at(0.88f, 0.3f)
+        assertTrue("left ${Integer.toHexString(left)} is redder than right ${Integer.toHexString(right)}", ((left shr 16) and 0xFF) > ((right shr 16) and 0xFF) + 0x20)
+        assertTrue(pixels.distinct().size > 500)
+    }
+
     @Test
     fun aFadeMovesTheStopsTowardTheBase() {
         val faded = WidgetField.stops(golden, WidgetField.STALE_FADE)

@@ -74,7 +74,7 @@ data class RecentLoaded(
     val canControl: Boolean,
     val covers: Map<String, Bitmap>,
     /** The lead album's field behind the tiles; null with no palette. */
-    val field: Bitmap?,
+    val field: WidgetField.Spec?,
 )
 
 object RecentLoader {
@@ -92,7 +92,7 @@ object RecentLoader {
 }
 
 @Composable
-private fun RecentUi(view: RecentView, covers: Map<String, Bitmap>, field: Bitmap?) {
+private fun RecentUi(view: RecentView, covers: Map<String, Bitmap>, field: WidgetField.Spec?) {
     val context = LocalContext.current
     val size = LocalSize.current
     val layout = CollectionSizing.of(RecentSizing.buckets, size.width.value.toInt(), size.height.value.toInt())

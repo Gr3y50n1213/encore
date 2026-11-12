@@ -75,7 +75,7 @@ data class MixesLoaded(
     val choice: WidgetMixChoice,
     val covers: Map<String, Bitmap>,
     /** The lead mix's field behind the tiles; null with no palette. */
-    val field: Bitmap?,
+    val field: WidgetField.Spec?,
 )
 
 object MixesLoader {
@@ -94,7 +94,7 @@ object MixesLoader {
 }
 
 @Composable
-private fun MixesUi(view: MixesView, covers: Map<String, Bitmap>, field: Bitmap?) {
+private fun MixesUi(view: MixesView, covers: Map<String, Bitmap>, field: WidgetField.Spec?) {
     val context = LocalContext.current
     val size = LocalSize.current
     val layout = CollectionSizing.of(MixesSizing.buckets, size.width.value.toInt(), size.height.value.toInt())

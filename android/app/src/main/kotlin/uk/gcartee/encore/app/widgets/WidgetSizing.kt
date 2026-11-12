@@ -264,16 +264,20 @@ object CollectionSizing {
 /** Mixes (board 34, item 3): a row of tiles, a hero card with a strip, or a grid. */
 object MixesSizing {
     val buckets = listOf(
+        // Widths 250, 310, 410: One UI's cells are 311, 326 and 418 dp wide (S20 FE, A13), so a bucket
+        // sits just under each and a widget never draws much narrower than it is.
         CollectionLayout(250, 110, cols = 4, rows = 1),
-        CollectionLayout(340, 110, cols = 4, rows = 1),
-        CollectionLayout(430, 110, cols = 6, rows = 1),
+        CollectionLayout(310, 110, cols = 4, rows = 1),
+        CollectionLayout(410, 110, cols = 6, rows = 1),
         CollectionLayout(250, 150, cols = 4, rows = 1, header = true),
-        CollectionLayout(340, 150, cols = 4, rows = 1, header = true),
-        CollectionLayout(430, 150, cols = 6, rows = 1, header = true),
+        CollectionLayout(310, 150, cols = 4, rows = 1, header = true),
+        CollectionLayout(410, 150, cols = 6, rows = 1, header = true),
         CollectionLayout(250, 200, cols = 3, rows = 1, hero = true),
-        CollectionLayout(340, 200, cols = 4, rows = 1, hero = true),
+        CollectionLayout(310, 200, cols = 4, rows = 1, hero = true),
+        CollectionLayout(410, 200, cols = 5, rows = 1, hero = true),
         CollectionLayout(250, 300, cols = 2, rows = 2, header = true),
-        CollectionLayout(340, 300, cols = 3, rows = 2, header = true),
+        CollectionLayout(310, 300, cols = 3, rows = 2, header = true),
+        CollectionLayout(410, 300, cols = 3, rows = 2, header = true),
     )
 
     /** At most this many mixes are drawn: three across and two down. */
@@ -283,16 +287,19 @@ object MixesSizing {
 /** Recently played (board 34, item 4): rows of albums, up to three rows and eight albums. */
 object RecentSizing {
     val buckets = listOf(
+        // Widths 250, 310, 410: see MixesSizing. A 4x3 widget (One UI: 326x354) uses the 310x250 bucket and
+        // its spare height is shared above and below (CollectionBody centers), as covers can't outgrow their column.
         CollectionLayout(250, 110, cols = 4, rows = 1),
-        CollectionLayout(340, 110, cols = 5, rows = 1),
-        CollectionLayout(430, 110, cols = 6, rows = 1),
+        CollectionLayout(310, 110, cols = 5, rows = 1),
+        CollectionLayout(410, 110, cols = 6, rows = 1),
         CollectionLayout(250, 150, cols = 4, rows = 1, header = true),
-        CollectionLayout(340, 150, cols = 5, rows = 1, header = true),
-        CollectionLayout(430, 150, cols = 6, rows = 1, header = true),
+        CollectionLayout(310, 150, cols = 5, rows = 1, header = true),
+        CollectionLayout(410, 150, cols = 6, rows = 1, header = true),
         CollectionLayout(250, 190, cols = 4, rows = 2),
-        CollectionLayout(340, 190, cols = 4, rows = 2),
+        CollectionLayout(310, 190, cols = 4, rows = 2),
         CollectionLayout(250, 250, cols = 3, rows = 2, header = true, artist = true),
-        CollectionLayout(340, 250, cols = 4, rows = 2, header = true),
+        CollectionLayout(310, 250, cols = 3, rows = 2, header = true, artist = true),
+        CollectionLayout(410, 250, cols = 4, rows = 2, header = true),
     )
 
     const val MAX_ALBUMS = 8
