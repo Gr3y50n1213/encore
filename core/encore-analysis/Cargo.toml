@@ -1,0 +1,17 @@
+[package]
+name = "encore-analysis"
+description = "Sound analysis: what a song sounds like (tempo, key, loudness, energy, brightness and a small texture vector), made once per song from about 30 seconds of audio."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+# Phase 10, approved by the owner with the plan on 13 Nov 2026. Versions from crates.io that
+# day; licences listed in THIRD_PARTY_LICENSES.md (realfft MIT, ebur128 MIT).
+realfft = "3.5.1"
+ebur128 = "0.1.11"
+
+[lints]
+workspace = true

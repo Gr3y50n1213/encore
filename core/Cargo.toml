@@ -11,6 +11,7 @@ members = [
     "encore-store",
     "encore-lyrics",
     "encore-audio",
+    "encore-analysis",
     "encore-recap",
     "encore-dart",
     "uniffi-bindgen",
