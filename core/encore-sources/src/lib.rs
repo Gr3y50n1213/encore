@@ -13,6 +13,7 @@ pub mod error;
 pub mod http;
 pub mod jellyfin;
 pub mod model;
+pub mod ranged;
 pub mod song_key;
 pub mod source;
 pub mod transport;

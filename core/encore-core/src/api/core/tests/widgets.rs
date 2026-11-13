@@ -56,6 +56,7 @@ impl Transport for Guard {
                     status: 200,
                     body: COVER.to_vec(),
                     server_date_utc_ms: None,
+                    content_range_total: None,
                 })
             });
         }
@@ -66,6 +67,7 @@ impl Transport for Guard {
                     status: 200,
                     body: PALETTE_PNG.to_vec(),
                     server_date_utc_ms: None,
+                    content_range_total: None,
                 })
             });
         }

@@ -64,6 +64,7 @@ impl Transport for Server {
                     status: 200,
                     body: vec![0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3, 4],
                     server_date_utc_ms: None,
+                    content_range_total: None,
                 })
             });
         }
