@@ -32,7 +32,6 @@ reports is on Settings > Lock screen and widgets (`WidgetSizeLog`).
 - A tap on a Mixes tile and on the hero's play button.
 - Font scale above 1.0 on a phone (Samsung's slider reaches 2.0).
 - The A13 and the Tab A7 Lite on screen (A13 was asleep and locked, the tablet had Waypoint in front).
-- The R8 keep rule on a phone (it is in 32051b3; the phone has 9fea492, which works without it).
 - The owner's own look: One UI rounded-corner clipping, AMOLED colors, Samsung's font at larger sizes.
 
 ## 3. Decisions waiting for the owner

@@ -82,7 +82,7 @@ Mixes tile taps (bug 1 hid the widget), font scale above 1.0, the A13 and the ta
 ## Second phone test (S20 FE, commit 9fea492, release APK)
 
 - Bug 1 confirmed fixed: after Encore ran, Now Playing, Mixes and Recently played each still drew their own content.
-- Root cause found in the log: R8 had merged the three widget classes (the release log named all three yd2), so Glance's per-class lookup handed Now Playing's redraw the other widgets' ids. Fixed by redrawing per instance (9fea492) and by keeping the widget classes apart in R8 (proguard-rules.pro, WidgetKeepRulesTest; not yet on the phone).
+- Root cause found in the log: R8 had merged the three widget classes (the release log named all three yd2), so Glance's per-class lookup handed Now Playing's redraw the other widgets' ids. Fixed by redrawing per instance (9fea492) and by keeping the widget classes apart in R8 (proguard-rules.pro, WidgetKeepRulesTest). Confirmed on the S20 FE with the release build of 6a4eb86 (installed over 9fea492, 12 November 2026): the log names NowPlayingWidget, MixesWidget and RecentWidget for their own ids, and on screen each widget draws its own content.
 - Bug 2 confirmed fixed: Play with nothing queued started the last song (pause shape showed) and Pause stopped it; no \Nothing queued\ error.
 - Bug 3 confirmed: right after the install the widgets already wore the covers' colors.
 - Bugs 4, 5, 8 look right; a 326x354 Recently played still has about 50 dp spare above and below (centered).
