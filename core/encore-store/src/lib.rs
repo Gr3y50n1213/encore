@@ -22,6 +22,7 @@ mod recs;
 mod registry;
 mod schema;
 mod search;
+mod sound;
 mod sync;
 
 pub use backup::{BackupInfo, migration_copies};
@@ -35,6 +36,7 @@ pub use playlog::*;
 pub use recs::{FeedbackRow, NotInterestedRow, RecsPlayRow, RecsSongRow};
 pub use registry::{DownloadFileRecord, PinRecord, Registry, RegistryProfile, SleepTimerRecord};
 pub use search::{LyricHit, SearchLimits, SearchResults, TopResult, fold_for_search};
+pub use sound::{PendingSound, SoundCounts, SoundRow};
 pub use sync::{Applied, CLEARED_KEY, EPOCH_KEY, InEvent, OutEvent, like_effect};
 
 #[derive(Debug, thiserror::Error)]

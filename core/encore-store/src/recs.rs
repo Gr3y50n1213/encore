@@ -136,7 +136,8 @@ impl Store {
                  || '|' || (SELECT count(*) || ':' || coalesce(sum(server_play_count), 0) FROM tracks)
                  || '|' || coalesce((SELECT value FROM recs_state WHERE key = 'epochUtcMs'), '')
                  || '|' || (SELECT count(*) FROM events WHERE kind IN ('playlistAdd', 'playlistCreate'))
-                 || '|' || (SELECT count(*) FROM download_signals)",
+                 || '|' || (SELECT count(*) FROM download_signals)
+                 || '|' || (SELECT count(*) || ':' || coalesce(max(analysed_utc_ms), 0) FROM sound_profiles WHERE state = 'ok')",
             [],
             |r| r.get(0),
         )?)

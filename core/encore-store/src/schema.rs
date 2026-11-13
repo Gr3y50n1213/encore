@@ -461,8 +461,29 @@ CREATE TABLE download_signals (
 );
 "#;
 
+/// Migration 9: sound analysis (Phase 10; docs/adr/core-0019).
+///
+/// One row per song key: what the song sounds like, made once from about 30 seconds of its audio.
+/// `profile` is the basic profile (tempo, key, loudness, energy, brightness, texture) as
+/// `encore_analysis` encodes it; `embedding` is a neural model's vector for "sounds like", with the
+/// model's name in `model` so a better model can replace it. `unavailable` marks audio that could
+/// not be read, with the reason; such a song is never guessed at. No foreign key to `tracks`, as
+/// with downloads: a row about a song that left the library is harmless and is not counted.
+const V9: &str = r#"
+CREATE TABLE sound_profiles (
+    song_key         TEXT    PRIMARY KEY,
+    version          INTEGER NOT NULL,
+    state            TEXT    NOT NULL,
+    reason           TEXT,
+    profile          BLOB,
+    model            TEXT,
+    embedding        BLOB,
+    analysed_utc_ms  INTEGER NOT NULL
+);
+"#;
+
 /// Every migration, oldest first. Append only.
-pub(crate) const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7, V8];
+pub(crate) const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7, V8, V9];
 
 /// Bring the database up to the newest schema. Returns the version it ended at.
 #[cfg(test)]
