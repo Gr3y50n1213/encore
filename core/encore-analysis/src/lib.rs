@@ -12,11 +12,19 @@
 mod dsp;
 mod profile;
 mod tempo;
+mod yamnet;
+
+pub use yamnet::{
+    CLASSES, EMBEDDING_ENCODED_LEN, EMBEDDING_LEN, Embedding, MODEL_NAME, ModelError,
+    PATCH_SAMPLES, RATE as MODEL_RATE, Yamnet, resample_to_model_rate,
+};
 
 #[cfg(feature = "decode")]
 mod decode;
 #[cfg(feature = "decode")]
-pub use decode::{WINDOW_SECONDS, Window, analyse_source, decode_window};
+pub use decode::{
+    Analysis, PATCH_HOP, WINDOW_SECONDS, Window, analyse_song, analyse_source, decode_window,
+};
 
 pub use profile::{
     AnalysisError, ENCODED_LEN, Key, SoundProfile, TEXTURE_LEN, VERSION, texture_cosine,

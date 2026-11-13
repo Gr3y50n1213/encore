@@ -14,7 +14,7 @@ use symphonia::core::io::{MediaSource, MediaSourceStream};
 use symphonia::core::meta::MetadataOptions;
 use symphonia::core::units::Time;
 
-use crate::{AnalysisError, SoundProfile, analyse};
+use crate::{AnalysisError, Embedding, SoundProfile, Yamnet, analyse, resample_to_model_rate};
 
 /// How much audio is analysed.
 pub const WINDOW_SECONDS: f64 = 30.0;
@@ -38,6 +38,35 @@ pub fn analyse_source(
 ) -> Result<SoundProfile, AnalysisError> {
     let window = decode_window(source, extension)?;
     analyse(&window.samples, window.rate)
+}
+
+/// Everything one analysis makes of a song.
+#[derive(Debug, Clone)]
+pub struct Analysis {
+    /// Tempo, key, loudness, energy, brightness and the hand-built texture.
+    pub profile: SoundProfile,
+    /// What the song sounds like to YAMNet, when a model was given.
+    pub embedding: Option<Embedding>,
+}
+
+/// How far apart YAMNet's patches start, in samples at 16 kHz: every half patch (0.49 s). A hop of
+/// a whole patch halves the work for a slightly rougher average (docs/adr/core-0019).
+pub const PATCH_HOP: usize = crate::PATCH_SAMPLES / 2;
+
+/// Read one window of the song and make everything from it: the profile always, and the YAMNet
+/// embedding when `model` is given. The audio is decoded once.
+pub fn analyse_song(
+    source: Box<dyn MediaSource>,
+    extension: Option<&str>,
+    model: Option<&Yamnet>,
+) -> Result<Analysis, AnalysisError> {
+    let window = decode_window(source, extension)?;
+    let profile = analyse(&window.samples, window.rate)?;
+    let embedding = model.and_then(|m| {
+        let at_model_rate = resample_to_model_rate(&window.samples, window.rate);
+        m.clip(&at_model_rate, PATCH_HOP)
+    });
+    Ok(Analysis { profile, embedding })
 }
 
 /// Decode about [`WINDOW_SECONDS`] of the song to mono.

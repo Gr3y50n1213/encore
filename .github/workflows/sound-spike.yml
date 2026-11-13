@@ -44,7 +44,12 @@ jobs:
         run: python tools/sound-spike/fetch_fma.py "$RUNNER_TEMP/fma" 25
       - name: Compare
         run: python tools/sound-spike/embed_eval.py "$RUNNER_TEMP/fma" results.json ${{ matrix.model }}
+      - name: Reference outputs for the Rust test
+        if: matrix.model == 'yamnet'
+        run: python tools/sound-spike/reference_yamnet.py yamnet.tflite yamnet-reference.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sound-spike-${{ matrix.model }}
-          path: results.json
+          path: |
+            results.json
+            yamnet-reference.json
