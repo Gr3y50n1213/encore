@@ -7,6 +7,13 @@ name: sound-spike
 
 on:
   workflow_dispatch:
+  # Also on a push that changes the spike itself, on this branch only, so a new copy of the
+  # file is picked up before it can be started by hand. Removed when Phase 10 merges.
+  push:
+    branches: [phase10]
+    paths:
+      - "tools/sound-spike/**"
+      - ".github/workflows/sound-spike.yml"
 
 permissions:
   contents: read
