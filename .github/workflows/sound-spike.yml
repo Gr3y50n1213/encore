@@ -20,8 +20,13 @@ permissions:
 
 jobs:
   spike:
+    name: ${{ matrix.model }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        model: [openl3, yamnet]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -31,15 +36,15 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
-          pip install "numpy<2" pandas requests "tensorflow-cpu==2.15.1" "tensorflow-hub==0.15.0"
-      - name: OpenL3 (best effort)
-        continue-on-error: true
+          pip install "numpy<2" pandas requests "tensorflow-cpu==2.15.1"
+      - name: OpenL3
+        if: matrix.model == 'openl3'
         run: pip install openl3
       - name: Fetch the clips
         run: python tools/sound-spike/fetch_fma.py "$RUNNER_TEMP/fma" 25
-      - name: Compare the models
-        run: python tools/sound-spike/embed_eval.py "$RUNNER_TEMP/fma" results.json
+      - name: Compare
+        run: python tools/sound-spike/embed_eval.py "$RUNNER_TEMP/fma" results.json ${{ matrix.model }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: sound-spike-results
+          name: sound-spike-${{ matrix.model }}
           path: results.json
