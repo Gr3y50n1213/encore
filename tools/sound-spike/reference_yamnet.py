@@ -44,7 +44,11 @@ def main():
         interp.invoke()
         scores = interp.get_tensor(interp.get_output_details()[0]["index"]).reshape(-1)
         cands = [d for d in interp.get_tensor_details() if list(d["shape"]) in ([1, 1024], [1, 1, 1, 1024])]
-        pooled = interp.get_tensor(max(cands, key=lambda d: d["index"])["index"]).reshape(-1)
+        detail = max(cands, key=lambda d: d["index"])
+        raw = interp.get_tensor(detail["index"]).reshape(-1)
+        # The file is integer quantised: this tensor holds int8, and real = (q - zero_point) * scale.
+        scale, zero_point = detail["quantization"]
+        pooled = (raw.astype(np.float64) - zero_point) * scale if scale else raw.astype(np.float64)
         patches.append({"start": start, "pooled": [round(float(v), 4) for v in pooled],
                         "scores": [round(float(v), 4) for v in scores]})
     json.dump({"rate": RATE, "patch": PATCH, "patches": patches}, open(out, "w"))
