@@ -13,6 +13,11 @@ mod dsp;
 mod profile;
 mod tempo;
 
+#[cfg(feature = "decode")]
+mod decode;
+#[cfg(feature = "decode")]
+pub use decode::{WINDOW_SECONDS, Window, analyse_source, decode_window};
+
 pub use profile::{
     AnalysisError, ENCODED_LEN, Key, SoundProfile, TEXTURE_LEN, VERSION, texture_cosine,
 };

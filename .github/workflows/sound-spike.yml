@@ -1,0 +1,38 @@
+# Phase 10, work package 0 (docs/adr/core-0019): how well do audio embedding models find songs
+# that sound alike, next to the hand-built fingerprint in core/encore-analysis? Run by hand.
+# It fetches 200 Creative Commons clips of the Free Music Archive's small set (eight genres) in
+# the runner's temporary folder, with HTTP range requests so the 7 GB zip is never downloaded,
+# and uploads only the numbers: no audio is kept.
+name: sound-spike
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  spike:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          pip install "numpy<2" pandas requests "tensorflow-cpu==2.15.1" "tensorflow-hub==0.16.1"
+      - name: OpenL3 (best effort)
+        continue-on-error: true
+        run: pip install openl3
+      - name: Fetch the clips
+        run: python tools/sound-spike/fetch_fma.py "$RUNNER_TEMP/fma" 25
+      - name: Compare the models
+        run: python tools/sound-spike/embed_eval.py "$RUNNER_TEMP/fma" results.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sound-spike-results
+          path: results.json

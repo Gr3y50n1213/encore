@@ -9,9 +9,17 @@ license.workspace = true
 
 [dependencies]
 # Phase 10, approved by the owner with the plan on 13 Nov 2026. Versions from crates.io that
-# day; licences listed in THIRD_PARTY_LICENSES.md (realfft MIT, ebur128 MIT).
+# day; licences listed in THIRD_PARTY_LICENSES.md (realfft MIT, ebur128 MIT, symphonia MPL-2.0).
 realfft = "3.5.1"
 ebur128 = "0.1.11"
+# The decoder: the formats a music library has (MP3, FLAC, AAC and ALAC in MP4, Vorbis in Ogg,
+# WAV). It has no Opus decoder, so Opus songs are marked unreadable, never guessed.
+symphonia = { version = "0.6.1", default-features = false, features = ["mp3", "flac", "aac", "alac", "vorbis", "pcm", "isomp4", "ogg", "wav"], optional = true }
+
+[features]
+default = ["decode"]
+# Reading a song's audio (a file or a ranged stream) into samples; without it only `analyse` is built.
+decode = ["dep:symphonia"]
 
 [lints]
 workspace = true
