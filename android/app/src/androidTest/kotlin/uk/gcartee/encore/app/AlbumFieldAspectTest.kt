@@ -69,33 +69,47 @@ class AlbumFieldAspectTest {
     private fun spread(a: Color, b: Color) = maxOf(abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue))
 
     /**
-     * The blob is a circle: the same distance to the right and straight up gives the same colour.
-     * The first blob sits 18 % down the box, so up is the one direction with room, and it points
-     * away from the other blobs, as right does, so they add the same little to both samples (down
-     * ran into the third blob and differed by 0.13 on CI). The other three blobs draw their
-     * colours as the base, which pulls the first blob's colour a little toward the base where
-     * they overlap, so the bound allows that: a blob stretched 2.2 times along x, the old
-     * landscape, differs by about 0.05 here.
+     * The four colours do not smear into one: at each blob's centre the nearest of the four stops
+     * is that blob's own, in a tall box and in a wide one. The original landscape measured the
+     * blobs against the width, so each covered most of the height and the colours merged. A blob's
+     * roundness is not tested pixel by pixel: the other three blobs overlap every sample and shift
+     * it by about as much as an oval would (CI: 0.05 apart even in portrait), so the landscape
+     * look is judged on the screenshot this test saves. The shader path only: the brush fallback
+     * (below Android 13) draws far larger blobs that do blend.
      */
     @Test
-    fun aBlobIsACircleInBothOrientations() {
-        val (portrait, landscape) = render(single)
-        // At phase 0 the first blob's centre is at (0.20 + travel, 0.18) of the box; travel is 8 %.
+    fun theFourColoursStayApartInBothOrientations() {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) return
+        val (portrait, landscape) = render(golden)
+        // At phase 0 blob i is at (ax + 0.08 cos(1.7 i), ay + 0.08 sin(1.1 i)) of the box.
+        val anchors = listOf(0.20f to 0.18f, 0.85f to 0.35f, 0.25f to 0.75f, 0.80f to 0.92f)
+        fun dist(a: Color, b: Color) = abs(a.red - b.red) + abs(a.green - b.green) + abs(a.blue - b.blue)
         listOf(portrait, landscape).forEach { map ->
-            val d = 0.16f * minOf(map.width, map.height) // pixels, short of the first blob's 18 % height
-            val cx = (0.28f * map.width)
-            val cy = (0.18f * map.height)
-            fun at(x: Float, y: Float) = map[x.toInt().coerceIn(0, map.width - 1), y.toInt().coerceIn(0, map.height - 1)]
-            val centre = at(cx, cy)
-            val right = at(cx + d, cy)
-            val up = at(cx, cy - d)
-            assertTrue("the blob shows (centre $centre differs from the base)", spread(centre, base) > 0.1f)
-            val diff = spread(right, up)
-            val bound = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) 0.04f else 0.06f
-            assertTrue("a ${map.width}x${map.height} box: right $right, up $up differ by $diff (oval blob)", diff <= bound)
+            anchors.forEachIndexed { i, (ax, ay) ->
+                val x = ((ax + 0.08f * kotlin.math.cos(1.7f * i)) * map.width).toInt().coerceIn(0, map.width - 1)
+                val y = ((ay + 0.08f * kotlin.math.sin(1.1f * i)) * map.height).toInt().coerceIn(0, map.height - 1)
+                val got = map[x, y]
+                val nearest = golden.stops.indices.minBy { dist(got, golden.stops[it]) }
+                assertTrue("a ${map.width}x${map.height} box: at blob $i the colour $got is nearest to stop $nearest", nearest == i)
+            }
         }
     }
 
+    /** A picture for the owner to judge the landscape look: both boxes, large, on screen. */
+    @Test
+    fun saveAScreenshotOfBothOrientations() {
+        rule.setContent {
+            Row {
+                Box(Modifier.size(120.dp, 264.dp)) { AlbumField(golden, Modifier.size(120.dp, 264.dp)) }
+                Box(Modifier.size(264.dp, 120.dp)) { AlbumField(golden, Modifier.size(264.dp, 120.dp)) }
+            }
+        }
+        rule.waitForIdle()
+        Thread.sleep(600)
+        val automation = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
+        val pfd = automation.executeShellCommand("screencap -p /data/local/tmp/encore-shot-album-field-orientations.png")
+        android.os.ParcelFileDescriptor.AutoCloseInputStream(pfd).use { it.readBytes() }
+    }
     /** Each orientation shows about the same amount of colour: the mean distance from the base. */
     @Test
     fun landscapeShowsAboutAsMuchColourAsPortrait() {
