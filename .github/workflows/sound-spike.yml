@@ -31,7 +31,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
-          pip install "numpy<2" pandas requests "tensorflow-cpu==2.15.1" "tensorflow-hub==0.16.1"
+          pip install "numpy<2" pandas requests "tensorflow-cpu==2.15.1" "tensorflow-hub==0.15.0"
       - name: OpenL3 (best effort)
         continue-on-error: true
         run: pip install openl3

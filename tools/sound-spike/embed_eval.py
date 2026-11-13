@@ -40,8 +40,10 @@ def load_models():
         import openl3
 
         net = openl3.models.load_audio_embedding_model("mel256", "music", 512)
-        models["openl3-music (CC BY 4.0)"] = lambda w: openl3.get_audio_embedding(
-            w, RATE, model=net, hop_size=1.0, verbose=False)[0].mean(0)
+        # The hop between 1 s patches: a longer hop analyses fewer patches, costing less on a phone.
+        for hop in (1.0, 2.0, 3.0):
+            models[f"openl3-music hop {hop:g} s (CC BY 4.0)"] = lambda w, hop=hop: openl3.get_audio_embedding(
+                w, RATE, model=net, hop_size=hop, verbose=False)[0].mean(0)
     except Exception as e:  # noqa: BLE001
         print("openl3 unavailable:", repr(e)[:300])
     return models
