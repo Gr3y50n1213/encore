@@ -890,6 +890,22 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_unlike(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_delete_sound_analysis(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_retry_unreadable_sounds(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_run_sound_analysis(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_set_sound_model(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_set_sound_settings(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_sound_settings(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_sound_status(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_stop_sound_analysis(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_download(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_download_marks(
@@ -1249,6 +1265,22 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_unlike(`ptr`: Long,`songIds`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_delete_sound_analysis(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Int
+    external fun uniffi_encore_core_fn_method_encorecore_retry_unreadable_sounds(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Int
+    external fun uniffi_encore_core_fn_method_encorecore_run_sound_analysis(`ptr`: Long,`network`: RustBuffer.ByValue,`power`: RustBuffer.ByValue,
+    ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_set_sound_model(`ptr`: Long,`path`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_set_sound_settings(`ptr`: Long,`settings`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_sound_settings(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_sound_status(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_stop_sound_analysis(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     external fun uniffi_encore_core_fn_method_encorecore_download(`ptr`: Long,`target`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_download_marks(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -1807,6 +1839,30 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_unlike() and 0xFFFF) != 42881) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_delete_sound_analysis() and 0xFFFF) != 32312) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_retry_unreadable_sounds() and 0xFFFF) != 45111) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_run_sound_analysis() and 0xFFFF) != 50394) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_set_sound_model() and 0xFFFF) != 15935) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_set_sound_settings() and 0xFFFF) != 30144) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_sound_settings() and 0xFFFF) != 5764) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_sound_status() and 0xFFFF) != 57063) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_stop_sound_analysis() and 0xFFFF) != 32107) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_download() and 0xFFFF) != 30141) {
@@ -3357,6 +3413,47 @@ public interface EncoreCoreInterface {
      * Unlike songs; every copy of each song (on any album) stops being liked.
      */
     fun `unlike`(`songIds`: List<kotlin.Long>): EditResult
+    
+    /**
+     * Forget every analysis (Settings > Sound analysis > Delete). Returns how many songs.
+     */
+    fun `deleteSoundAnalysis`(): kotlin.UInt
+    
+    /**
+     * Try the songs that could not be read again. Returns how many are waiting again.
+     */
+    fun `retryUnreadableSounds`(): kotlin.UInt
+    
+    /**
+     * Analyse what waits, one song at a time, until done or blocked (off, no model, Wi-Fi only,
+     * charging only, battery saver, heat, offline, a failing server, sign-in). `network` and
+     * `power` are what the device is like now. Call it from the platform's background job;
+     * `stop_sound_analysis` ends it, keeping what was made. Async.
+     */
+    suspend fun `runSoundAnalysis`(`network`: Network, `power`: PowerState): SoundRun
+    
+    /**
+     * Give the core the sound model (`yamnet-v1.bin`, shipped with the app) by path. Call it once
+     * at start; analysis does nothing without it.
+     */
+    fun `setSoundModel`(`path`: kotlin.String)
+    
+    fun `setSoundSettings`(`settings`: SoundSettings)
+    
+    /**
+     * Settings > Sound analysis (off until the person turns it on).
+     */
+    fun `soundSettings`(): SoundSettings
+    
+    /**
+     * How far the library is analysed, with an estimate of the rest.
+     */
+    fun `soundStatus`(): SoundStatus
+    
+    /**
+     * End the run in progress after the song it is on.
+     */
+    fun `stopSoundAnalysis`()
     
     /**
      * Keep a song, album, playlist or mix on this device (board 13, item 3;
@@ -5679,6 +5776,150 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
 
     
     /**
+     * Forget every analysis (Settings > Sound analysis > Delete). Returns how many songs.
+     */
+    @Throws(EncoreException::class)override fun `deleteSoundAnalysis`(): kotlin.UInt {
+            return FfiConverterUInt.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_delete_sound_analysis(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Try the songs that could not be read again. Returns how many are waiting again.
+     */
+    @Throws(EncoreException::class)override fun `retryUnreadableSounds`(): kotlin.UInt {
+            return FfiConverterUInt.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_retry_unreadable_sounds(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Analyse what waits, one song at a time, until done or blocked (off, no model, Wi-Fi only,
+     * charging only, battery saver, heat, offline, a failing server, sign-in). `network` and
+     * `power` are what the device is like now. Call it from the platform's background job;
+     * `stop_sound_analysis` ends it, keeping what was made. Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `runSoundAnalysis`(`network`: Network, `power`: PowerState) : SoundRun {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_run_sound_analysis(
+                uniffiHandle,
+                
+        FfiConverterTypeNetwork.lower(`network`),
+        FfiConverterTypePowerState.lower(`power`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeSoundRun.lift(it) },
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * Give the core the sound model (`yamnet-v1.bin`, shipped with the app) by path. Call it once
+     * at start; analysis does nothing without it.
+     */
+    @Throws(EncoreException::class)override fun `setSoundModel`(`path`: kotlin.String)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_set_sound_model(
+        it,
+        
+        FfiConverterString.lower(`path`),_status)
+}
+    }
+    
+    
+
+    
+    @Throws(EncoreException::class)override fun `setSoundSettings`(`settings`: SoundSettings)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_set_sound_settings(
+        it,
+        
+        FfiConverterTypeSoundSettings.lower(`settings`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Settings > Sound analysis (off until the person turns it on).
+     */
+    @Throws(EncoreException::class)override fun `soundSettings`(): SoundSettings {
+            return FfiConverterTypeSoundSettings.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_sound_settings(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * How far the library is analysed, with an estimate of the rest.
+     */
+    @Throws(EncoreException::class)override fun `soundStatus`(): SoundStatus {
+            return FfiConverterTypeSoundStatus.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_sound_status(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * End the run in progress after the song it is on.
+     */override fun `stopSoundAnalysis`()
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_stop_sound_analysis(
+        it,
+        _status)
+}
+    }
+    
+    
+
+    
+    /**
      * Keep a song, album, playlist or mix on this device (board 13, item 3;
      * board 08). Its songs wait for `run_downloads`. Liked songs and Smart
      * downloads are turned on in `set_download_settings`.
@@ -7640,6 +7881,11 @@ data class CoreEvent (
      * Phase 9, WP1: `SleepTimerChanged`'s timer (None: no timer now).
      */
     var `sleepTimer`: SleepTimer?
+    , 
+    /**
+     * Phase 10: `SoundAnalysisChanged`'s status.
+     */
+    var `sound`: SoundStatus?
     
 ){
     
@@ -7673,6 +7919,7 @@ public object FfiConverterTypeCoreEvent: FfiConverterRustBuffer<CoreEvent> {
             FfiConverterOptionalTypeDownloadProgress.read(buf),
             FfiConverterOptionalString.read(buf),
             FfiConverterOptionalTypeSleepTimer.read(buf),
+            FfiConverterOptionalTypeSoundStatus.read(buf),
         )
     }
 
@@ -7693,7 +7940,8 @@ public object FfiConverterTypeCoreEvent: FfiConverterRustBuffer<CoreEvent> {
             FfiConverterOptionalTypeRemoteCommand.allocationSize(value.`remoteCommand`) +
             FfiConverterOptionalTypeDownloadProgress.allocationSize(value.`download`) +
             FfiConverterOptionalString.allocationSize(value.`widgetProfileId`) +
-            FfiConverterOptionalTypeSleepTimer.allocationSize(value.`sleepTimer`)
+            FfiConverterOptionalTypeSleepTimer.allocationSize(value.`sleepTimer`) +
+            FfiConverterOptionalTypeSoundStatus.allocationSize(value.`sound`)
     )
 
     override fun write(value: CoreEvent, buf: ByteBuffer) {
@@ -7714,6 +7962,7 @@ public object FfiConverterTypeCoreEvent: FfiConverterRustBuffer<CoreEvent> {
             FfiConverterOptionalTypeDownloadProgress.write(value.`download`, buf)
             FfiConverterOptionalString.write(value.`widgetProfileId`, buf)
             FfiConverterOptionalTypeSleepTimer.write(value.`sleepTimer`, buf)
+            FfiConverterOptionalTypeSoundStatus.write(value.`sound`, buf)
     }
 }
 
@@ -9819,6 +10068,58 @@ public object FfiConverterTypePlaylistSummary: FfiConverterRustBuffer<PlaylistSu
 
 
 
+/**
+ * What the platform knows about power, handed to `run_sound_analysis` each time it starts the job.
+ */
+data class PowerState (
+    var `charging`: kotlin.Boolean
+    , 
+    /**
+     * Battery saver (or the OS's equivalent) is on.
+     */
+    var `batterySaver`: kotlin.Boolean
+    , 
+    /**
+     * The device reports a high temperature.
+     */
+    var `hot`: kotlin.Boolean
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypePowerState: FfiConverterRustBuffer<PowerState> {
+    override fun read(buf: ByteBuffer): PowerState {
+        return PowerState(
+            FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: PowerState) = (
+            FfiConverterBoolean.allocationSize(value.`charging`) +
+            FfiConverterBoolean.allocationSize(value.`batterySaver`) +
+            FfiConverterBoolean.allocationSize(value.`hot`)
+    )
+
+    override fun write(value: PowerState, buf: ByteBuffer) {
+            FfiConverterBoolean.write(value.`charging`, buf)
+            FfiConverterBoolean.write(value.`batterySaver`, buf)
+            FfiConverterBoolean.write(value.`hot`, buf)
+    }
+}
+
+
+
 data class ProfileSummary (
     var `profileId`: kotlin.String
     , 
@@ -11184,6 +11485,210 @@ public object FfiConverterTypeSongLyrics: FfiConverterRustBuffer<SongLyrics> {
             FfiConverterBoolean.write(value.`instrumental`, buf)
             FfiConverterOptionalString.write(value.`language`, buf)
             FfiConverterLong.write(value.`fetchedUtcMs`, buf)
+    }
+}
+
+
+
+/**
+ * What one `run_sound_analysis` did.
+ */
+data class SoundRun (
+    var `analysed`: kotlin.UInt
+    , 
+    /**
+     * Songs whose audio could not be read (an unsupported format, a damaged file).
+     */
+    var `unreadable`: kotlin.UInt
+    , 
+    /**
+     * Still to analyse.
+     */
+    var `remaining`: kotlin.UInt
+    , 
+    var `stop`: SoundStop
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSoundRun: FfiConverterRustBuffer<SoundRun> {
+    override fun read(buf: ByteBuffer): SoundRun {
+        return SoundRun(
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterTypeSoundStop.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: SoundRun) = (
+            FfiConverterUInt.allocationSize(value.`analysed`) +
+            FfiConverterUInt.allocationSize(value.`unreadable`) +
+            FfiConverterUInt.allocationSize(value.`remaining`) +
+            FfiConverterTypeSoundStop.allocationSize(value.`stop`)
+    )
+
+    override fun write(value: SoundRun, buf: ByteBuffer) {
+            FfiConverterUInt.write(value.`analysed`, buf)
+            FfiConverterUInt.write(value.`unreadable`, buf)
+            FfiConverterUInt.write(value.`remaining`, buf)
+            FfiConverterTypeSoundStop.write(value.`stop`, buf)
+    }
+}
+
+
+
+/**
+ * Settings > Sound analysis (docs/adr/core-0019). Off until the person turns it on.
+ */
+data class SoundSettings (
+    /**
+     * Whether songs are analysed at all.
+     */
+    var `enabled`: kotlin.Boolean
+    , 
+    /**
+     * Only on an unmetered network (Wi-Fi). On by default.
+     */
+    var `wifiOnly`: kotlin.Boolean
+    , 
+    /**
+     * Only while the device is charging. On by default.
+     */
+    var `chargingOnly`: kotlin.Boolean
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSoundSettings: FfiConverterRustBuffer<SoundSettings> {
+    override fun read(buf: ByteBuffer): SoundSettings {
+        return SoundSettings(
+            FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: SoundSettings) = (
+            FfiConverterBoolean.allocationSize(value.`enabled`) +
+            FfiConverterBoolean.allocationSize(value.`wifiOnly`) +
+            FfiConverterBoolean.allocationSize(value.`chargingOnly`)
+    )
+
+    override fun write(value: SoundSettings, buf: ByteBuffer) {
+            FfiConverterBoolean.write(value.`enabled`, buf)
+            FfiConverterBoolean.write(value.`wifiOnly`, buf)
+            FfiConverterBoolean.write(value.`chargingOnly`, buf)
+    }
+}
+
+
+
+/**
+ * How far the library is analysed, for Settings > Sound analysis and Home's card.
+ */
+data class SoundStatus (
+    var `settings`: SoundSettings
+    , 
+    /**
+     * Songs in the library, analysed, and unreadable.
+     */
+    var `songs`: kotlin.UInt
+    , 
+    var `analysed`: kotlin.UInt
+    , 
+    var `unavailable`: kotlin.UInt
+    , 
+    /**
+     * A run is going now.
+     */
+    var `running`: kotlin.Boolean
+    , 
+    /**
+     * The platform has given the core the sound model.
+     */
+    var `modelLoaded`: kotlin.Boolean
+    , 
+    /**
+     * About how much data the rest will fetch and how long it will take, from what this device
+     * has measured so far (or a starting value before that).
+     */
+    var `bytesEstimate`: kotlin.ULong
+    , 
+    var `minutesEstimate`: kotlin.UInt
+    , 
+    /**
+     * Why the last run stopped, while songs still wait.
+     */
+    var `lastStop`: SoundStop?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSoundStatus: FfiConverterRustBuffer<SoundStatus> {
+    override fun read(buf: ByteBuffer): SoundStatus {
+        return SoundStatus(
+            FfiConverterTypeSoundSettings.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterOptionalTypeSoundStop.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: SoundStatus) = (
+            FfiConverterTypeSoundSettings.allocationSize(value.`settings`) +
+            FfiConverterUInt.allocationSize(value.`songs`) +
+            FfiConverterUInt.allocationSize(value.`analysed`) +
+            FfiConverterUInt.allocationSize(value.`unavailable`) +
+            FfiConverterBoolean.allocationSize(value.`running`) +
+            FfiConverterBoolean.allocationSize(value.`modelLoaded`) +
+            FfiConverterULong.allocationSize(value.`bytesEstimate`) +
+            FfiConverterUInt.allocationSize(value.`minutesEstimate`) +
+            FfiConverterOptionalTypeSoundStop.allocationSize(value.`lastStop`)
+    )
+
+    override fun write(value: SoundStatus, buf: ByteBuffer) {
+            FfiConverterTypeSoundSettings.write(value.`settings`, buf)
+            FfiConverterUInt.write(value.`songs`, buf)
+            FfiConverterUInt.write(value.`analysed`, buf)
+            FfiConverterUInt.write(value.`unavailable`, buf)
+            FfiConverterBoolean.write(value.`running`, buf)
+            FfiConverterBoolean.write(value.`modelLoaded`, buf)
+            FfiConverterULong.write(value.`bytesEstimate`, buf)
+            FfiConverterUInt.write(value.`minutesEstimate`, buf)
+            FfiConverterOptionalTypeSoundStop.write(value.`lastStop`, buf)
     }
 }
 
@@ -13037,7 +13542,11 @@ enum class EventKind {
      * extended, cancelled, put back, ended (or went with the music to another
      * device), or a song or album timer's stop point moved with the queue.
      */
-    SLEEP_TIMER_CHANGED;
+    SLEEP_TIMER_CHANGED,
+    /**
+     * `sound` is set: sound analysis made progress, started, stopped, or its settings changed.
+     */
+    SOUND_ANALYSIS_CHANGED;
 
     
 
@@ -14119,6 +14628,89 @@ public object FfiConverterTypeSongSort: FfiConverterRustBuffer<SongSort> {
 
 
 
+/**
+ * Why a `run_sound_analysis` ended.
+ */
+
+enum class SoundStop {
+    
+    /**
+     * Every song is analysed (or unreadable).
+     */
+    DONE,
+    /**
+     * `stop_sound_analysis` was called; it carries on next time where it was.
+     */
+    STOPPED,
+    /**
+     * Another run is going; this one did nothing.
+     */
+    ALREADY_RUNNING,
+    /**
+     * Sound analysis is switched off in the settings.
+     */
+    NOT_ENABLED,
+    /**
+     * The platform has not given the core the sound model (`set_sound_model`).
+     */
+    NO_MODEL,
+    /**
+     * "Only on Wi-Fi" is on and the network is cellular.
+     */
+    WAITING_FOR_WIFI,
+    /**
+     * "Only while charging" is on and the device is not charging.
+     */
+    WAITING_FOR_POWER,
+    /**
+     * Battery saver is on or the device is hot: it waits.
+     */
+    PAUSED,
+    /**
+     * The device has no connection.
+     */
+    OFFLINE,
+    /**
+     * The media server failed too often in a row (it may be busy): try later.
+     */
+    SERVER_BUSY,
+    /**
+     * The media server's sign-in ended; sign in again.
+     */
+    SIGN_IN_NEEDED,
+    /**
+     * No profile is open (or it is a Guest).
+     */
+    NO_PROFILE;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSoundStop: FfiConverterRustBuffer<SoundStop> {
+    override fun read(buf: ByteBuffer) = try {
+        SoundStop.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: SoundStop) = 4UL
+
+    override fun write(value: SoundStop, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
 
 enum class StartedFrom {
     
@@ -15182,6 +15774,38 @@ public object FfiConverterOptionalTypeSongLyrics: FfiConverterRustBuffer<SongLyr
 /**
  * @suppress
  */
+public object FfiConverterOptionalTypeSoundStatus: FfiConverterRustBuffer<SoundStatus?> {
+    override fun read(buf: ByteBuffer): SoundStatus? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeSoundStatus.read(buf)
+    }
+
+    override fun allocationSize(value: SoundStatus?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeSoundStatus.allocationSize(value)
+        }
+    }
+
+    override fun write(value: SoundStatus?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeSoundStatus.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalTypeSourceToken: FfiConverterRustBuffer<SourceToken?> {
     override fun read(buf: ByteBuffer): SourceToken? {
         if (buf.get().toInt() == 0) {
@@ -15428,6 +16052,38 @@ public object FfiConverterOptionalTypeDropRefusal: FfiConverterRustBuffer<DropRe
         } else {
             buf.put(1)
             FfiConverterTypeDropRefusal.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeSoundStop: FfiConverterRustBuffer<SoundStop?> {
+    override fun read(buf: ByteBuffer): SoundStop? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeSoundStop.read(buf)
+    }
+
+    override fun allocationSize(value: SoundStop?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeSoundStop.allocationSize(value)
+        }
+    }
+
+    override fun write(value: SoundStop?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeSoundStop.write(value, buf)
         }
     }
 }

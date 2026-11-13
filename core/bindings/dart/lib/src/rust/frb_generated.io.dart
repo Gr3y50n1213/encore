@@ -102,6 +102,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected PlaylistSummary dco_decode_box_autoadd_playlist_summary(dynamic raw);
 
+@protected PowerState dco_decode_box_autoadd_power_state(dynamic raw);
+
 @protected QueueEntry dco_decode_box_autoadd_queue_entry(dynamic raw);
 
 @protected QueueState dco_decode_box_autoadd_queue_state(dynamic raw);
@@ -121,6 +123,12 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected Song dco_decode_box_autoadd_song(dynamic raw);
 
 @protected SongLyrics dco_decode_box_autoadd_song_lyrics(dynamic raw);
+
+@protected SoundSettings dco_decode_box_autoadd_sound_settings(dynamic raw);
+
+@protected SoundStatus dco_decode_box_autoadd_sound_status(dynamic raw);
+
+@protected SoundStop dco_decode_box_autoadd_sound_stop(dynamic raw);
 
 @protected SourceToken dco_decode_box_autoadd_source_token(dynamic raw);
 
@@ -376,6 +384,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected SongLyrics? dco_decode_opt_box_autoadd_song_lyrics(dynamic raw);
 
+@protected SoundStatus? dco_decode_opt_box_autoadd_sound_status(dynamic raw);
+
+@protected SoundStop? dco_decode_opt_box_autoadd_sound_stop(dynamic raw);
+
 @protected SourceToken? dco_decode_opt_box_autoadd_source_token(dynamic raw);
 
 @protected SyncStatus? dco_decode_opt_box_autoadd_sync_status(dynamic raw);
@@ -413,6 +425,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected PlaylistEntry dco_decode_playlist_entry(dynamic raw);
 
 @protected PlaylistSummary dco_decode_playlist_summary(dynamic raw);
+
+@protected PowerState dco_decode_power_state(dynamic raw);
 
 @protected PreviousResult dco_decode_previous_result(dynamic raw);
 
@@ -479,6 +493,14 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected SongLyrics dco_decode_song_lyrics(dynamic raw);
 
 @protected SongSort dco_decode_song_sort(dynamic raw);
+
+@protected SoundRun dco_decode_sound_run(dynamic raw);
+
+@protected SoundSettings dco_decode_sound_settings(dynamic raw);
+
+@protected SoundStatus dco_decode_sound_status(dynamic raw);
+
+@protected SoundStop dco_decode_sound_stop(dynamic raw);
 
 @protected SourceToken dco_decode_source_token(dynamic raw);
 
@@ -604,6 +626,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected PlaylistSummary sse_decode_box_autoadd_playlist_summary(SseDeserializer deserializer);
 
+@protected PowerState sse_decode_box_autoadd_power_state(SseDeserializer deserializer);
+
 @protected QueueEntry sse_decode_box_autoadd_queue_entry(SseDeserializer deserializer);
 
 @protected QueueState sse_decode_box_autoadd_queue_state(SseDeserializer deserializer);
@@ -623,6 +647,12 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected Song sse_decode_box_autoadd_song(SseDeserializer deserializer);
 
 @protected SongLyrics sse_decode_box_autoadd_song_lyrics(SseDeserializer deserializer);
+
+@protected SoundSettings sse_decode_box_autoadd_sound_settings(SseDeserializer deserializer);
+
+@protected SoundStatus sse_decode_box_autoadd_sound_status(SseDeserializer deserializer);
+
+@protected SoundStop sse_decode_box_autoadd_sound_stop(SseDeserializer deserializer);
 
 @protected SourceToken sse_decode_box_autoadd_source_token(SseDeserializer deserializer);
 
@@ -878,6 +908,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected SongLyrics? sse_decode_opt_box_autoadd_song_lyrics(SseDeserializer deserializer);
 
+@protected SoundStatus? sse_decode_opt_box_autoadd_sound_status(SseDeserializer deserializer);
+
+@protected SoundStop? sse_decode_opt_box_autoadd_sound_stop(SseDeserializer deserializer);
+
 @protected SourceToken? sse_decode_opt_box_autoadd_source_token(SseDeserializer deserializer);
 
 @protected SyncStatus? sse_decode_opt_box_autoadd_sync_status(SseDeserializer deserializer);
@@ -915,6 +949,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected PlaylistEntry sse_decode_playlist_entry(SseDeserializer deserializer);
 
 @protected PlaylistSummary sse_decode_playlist_summary(SseDeserializer deserializer);
+
+@protected PowerState sse_decode_power_state(SseDeserializer deserializer);
 
 @protected PreviousResult sse_decode_previous_result(SseDeserializer deserializer);
 
@@ -981,6 +1017,14 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected SongLyrics sse_decode_song_lyrics(SseDeserializer deserializer);
 
 @protected SongSort sse_decode_song_sort(SseDeserializer deserializer);
+
+@protected SoundRun sse_decode_sound_run(SseDeserializer deserializer);
+
+@protected SoundSettings sse_decode_sound_settings(SseDeserializer deserializer);
+
+@protected SoundStatus sse_decode_sound_status(SseDeserializer deserializer);
+
+@protected SoundStop sse_decode_sound_stop(SseDeserializer deserializer);
 
 @protected SourceToken sse_decode_source_token(SseDeserializer deserializer);
 
@@ -1106,6 +1150,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_box_autoadd_playlist_summary(PlaylistSummary self, SseSerializer serializer);
 
+@protected void sse_encode_box_autoadd_power_state(PowerState self, SseSerializer serializer);
+
 @protected void sse_encode_box_autoadd_queue_entry(QueueEntry self, SseSerializer serializer);
 
 @protected void sse_encode_box_autoadd_queue_state(QueueState self, SseSerializer serializer);
@@ -1125,6 +1171,12 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_box_autoadd_song(Song self, SseSerializer serializer);
 
 @protected void sse_encode_box_autoadd_song_lyrics(SongLyrics self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_sound_settings(SoundSettings self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_sound_status(SoundStatus self, SseSerializer serializer);
+
+@protected void sse_encode_box_autoadd_sound_stop(SoundStop self, SseSerializer serializer);
 
 @protected void sse_encode_box_autoadd_source_token(SourceToken self, SseSerializer serializer);
 
@@ -1380,6 +1432,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_opt_box_autoadd_song_lyrics(SongLyrics? self, SseSerializer serializer);
 
+@protected void sse_encode_opt_box_autoadd_sound_status(SoundStatus? self, SseSerializer serializer);
+
+@protected void sse_encode_opt_box_autoadd_sound_stop(SoundStop? self, SseSerializer serializer);
+
 @protected void sse_encode_opt_box_autoadd_source_token(SourceToken? self, SseSerializer serializer);
 
 @protected void sse_encode_opt_box_autoadd_sync_status(SyncStatus? self, SseSerializer serializer);
@@ -1417,6 +1473,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_playlist_entry(PlaylistEntry self, SseSerializer serializer);
 
 @protected void sse_encode_playlist_summary(PlaylistSummary self, SseSerializer serializer);
+
+@protected void sse_encode_power_state(PowerState self, SseSerializer serializer);
 
 @protected void sse_encode_previous_result(PreviousResult self, SseSerializer serializer);
 
@@ -1483,6 +1541,14 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_song_lyrics(SongLyrics self, SseSerializer serializer);
 
 @protected void sse_encode_song_sort(SongSort self, SseSerializer serializer);
+
+@protected void sse_encode_sound_run(SoundRun self, SseSerializer serializer);
+
+@protected void sse_encode_sound_settings(SoundSettings self, SseSerializer serializer);
+
+@protected void sse_encode_sound_status(SoundStatus self, SseSerializer serializer);
+
+@protected void sse_encode_sound_stop(SoundStop self, SseSerializer serializer);
 
 @protected void sse_encode_source_token(SourceToken self, SseSerializer serializer);
 
