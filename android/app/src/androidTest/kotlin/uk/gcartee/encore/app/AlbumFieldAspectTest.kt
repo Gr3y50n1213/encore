@@ -24,11 +24,11 @@ import uk.gcartee.encore.app.ui.player.FieldColours
 
 /**
  * Turning the phone must keep the album field's colours without distorting them (owner,
- * 11 and 12 November 2026). Two things are checked on a tall box and on the same box turned
- * on its side: every blob stays a circle (the first fix stretched the portrait picture, which
- * made oval blobs), and each orientation shows about the same amount of colour (the original
- * shader measured blobs against the width, so a wide screen smeared the four colours into
- * one). API 28 runs the brush field and newer Androids the shader.
+ * 11 and 12 November 2026). On a tall box and on the same box turned on its side, the four
+ * colours stay apart (the original shader smeared them into one on a wide screen) and each
+ * orientation shows about the same amount of colour. The first fix stretched the portrait
+ * picture into oval blobs; the blobs are circles of one pixel size now, which the saved
+ * screenshot shows. API 28 runs the brush field and newer Androids the shader.
  */
 @RunWith(AndroidJUnit4::class)
 class AlbumFieldAspectTest {
@@ -45,9 +45,6 @@ class AlbumFieldAspectTest {
         secondary = Color.White.copy(alpha = 0.72f),
         dark = true,
     )
-
-    // Only the first blob shows: the other stops equal the base, so mixing them changes nothing.
-    private val single = golden.copy(stops = listOf(Color(0xFFCF4630), base, base, base))
 
     private fun render(colours: FieldColours): Pair<PixelMap, PixelMap> {
         // The drift's phase stays at 0 (infinite animations are cancelled in tests), so both
