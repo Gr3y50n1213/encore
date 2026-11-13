@@ -49,7 +49,7 @@ def load_models(which):
         for url in urls:
             try:
                 urllib.request.urlretrieve(url, "yamnet.tflite")
-                interp = tf.lite.Interpreter(model_path="yamnet.tflite")
+                interp = tf.lite.Interpreter(model_path="yamnet.tflite", experimental_preserve_all_tensors=True)
                 interp.allocate_tensors()
                 print("yamnet from", url, "input", interp.get_input_details()[0]["shape"],
                       "outputs", [o["shape"].tolist() for o in interp.get_output_details()], flush=True)
@@ -61,7 +61,12 @@ def load_models(which):
         inp = interp.get_input_details()[0]
         frame = int(np.prod(inp["shape"]))
 
-        def embed(w):
+        def embed(w, seconds, pooled):
+            """Mean over the 0.975 s patches of `seconds` taken from the middle of the clip: the 521
+            class scores, or (pooled) the 1024 numbers before the last layer when the file exposes them."""
+            if seconds:
+                mid, half = len(w) // 2, int(seconds * RATE / 2)
+                w = w[max(0, mid - half):mid + half]
             vecs = []
             for start in range(0, max(1, len(w) - frame + 1), frame // 2):
                 chunk = w[start:start + frame]
@@ -69,12 +74,20 @@ def load_models(which):
                     break
                 interp.set_tensor(inp["index"], chunk.reshape(inp["shape"]).astype(np.float32))
                 interp.invoke()
-                out = [interp.get_tensor(o["index"]) for o in interp.get_output_details()]
-                vecs.append(next(o for o in out if o.shape[-1] in (1024, 521)).reshape(-1))
+                if pooled:
+                    cands = [d for d in interp.get_tensor_details() if list(d["shape"]) in ([1, 1024], [1, 1, 1, 1024])]
+                    if not cands:
+                        raise RuntimeError("no 1024-wide tensor to read")
+                    vecs.append(interp.get_tensor(max(cands, key=lambda d: d["index"])["index"]).reshape(-1))
+                else:
+                    out = [interp.get_tensor(o["index"]) for o in interp.get_output_details()]
+                    vecs.append(next(o for o in out if o.shape[-1] in (1024, 521)).reshape(-1))
             return np.mean(vecs, axis=0)
 
-        models["yamnet (Apache-2.0)"] = embed
-    return models
+        for seconds in (30, 20, 10, 5):
+            models[f"yamnet scores, {seconds} s (Apache-2.0)"] = lambda w, s=seconds: embed(w, s if s < 30 else 0, False)
+        for seconds in (30, 10):
+            models[f"yamnet 1024-wide, {seconds} s (Apache-2.0)"] = lambda w, s=seconds: embed(w, s if s < 30 else 0, True)    return models
 
 def metrics(vectors, genre):
     v = np.array(vectors, dtype=float)
