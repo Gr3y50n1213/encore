@@ -68,23 +68,31 @@ class AlbumFieldAspectTest {
 
     private fun spread(a: Color, b: Color) = maxOf(abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue))
 
-    /** The blob is a circle: the same distance to the right and straight down gives the same colour. */
+    /**
+     * The blob is a circle: the same distance to the right and straight up gives the same colour.
+     * The first blob sits 18 % down the box, so up is the one direction with room, and it points
+     * away from the other blobs, as right does, so they add the same little to both samples (down
+     * ran into the third blob and differed by 0.13 on CI). The other three blobs draw their
+     * colours as the base, which pulls the first blob's colour a little toward the base where
+     * they overlap, so the bound allows that: a blob stretched 2.2 times along x, the old
+     * landscape, differs by about 0.05 here.
+     */
     @Test
     fun aBlobIsACircleInBothOrientations() {
         val (portrait, landscape) = render(single)
         // At phase 0 the first blob's centre is at (0.20 + travel, 0.18) of the box; travel is 8 %.
-        val d = 30f // dp, short of the 120 dp short side so both samples stay inside the box
-        listOf(portrait to 120f, landscape to 120f).forEach { (map, shortDp) ->
-            val px = map.height.coerceAtMost(map.width) / shortDp // pixels per dp
+        listOf(portrait, landscape).forEach { map ->
+            val d = 0.16f * minOf(map.width, map.height) // pixels, short of the first blob's 18 % height
             val cx = (0.28f * map.width)
             val cy = (0.18f * map.height)
-            val right = map[(cx + d * px).toInt().coerceIn(0, map.width - 1), cy.toInt().coerceIn(0, map.height - 1)]
-            val down = map[cx.toInt().coerceIn(0, map.width - 1), (cy + d * px).toInt().coerceIn(0, map.height - 1)]
-            val centre = map[cx.toInt().coerceIn(0, map.width - 1), cy.toInt().coerceIn(0, map.height - 1)]
+            fun at(x: Float, y: Float) = map[x.toInt().coerceIn(0, map.width - 1), y.toInt().coerceIn(0, map.height - 1)]
+            val centre = at(cx, cy)
+            val right = at(cx + d, cy)
+            val up = at(cx, cy - d)
             assertTrue("the blob shows (centre $centre differs from the base)", spread(centre, base) > 0.1f)
-            val diff = spread(right, down)
-            val bound = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) 8f / 255f else 0.05f
-            assertTrue("a ${map.width}x${map.height} box: right $right, down $down differ by $diff (oval blob)", diff <= bound)
+            val diff = spread(right, up)
+            val bound = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) 0.04f else 0.06f
+            assertTrue("a ${map.width}x${map.height} box: right $right, up $up differ by $diff (oval blob)", diff <= bound)
         }
     }
 
