@@ -1,6 +1,6 @@
 # Widgets redesign: everything still to fix, check or write (12 November 2026)
 
-Branch `widgets-redesign` (based on `phase9`; neither merged). Last green CI: run 43322617742 on commit 6a4eb86 (API 28, API 36 phone and tablet; only the allowed API 37.0 job is red). The history of the phone tests is in `widget-device-test-2026-11-12.md`; this page is the to-do list.
+Branch `widgets-redesign` (based on `phase9`; neither merged). Last green CI: run 43371385462 on commit 07bd3ac (API 28, API 36 phone and tablet; only the allowed API 37.0 job is red; `collections-play` failed twice on API 28 and passed on the third try, a timing flake in how long the core takes to build the first mixes). The history of the phone tests is in `widget-device-test-2026-11-12.md`; this page is the to-do list.
 
 ## 1. Bugs and shortcomings still open
 
