@@ -87,7 +87,8 @@ def load_models(which):
         for seconds in (30, 20, 10, 5):
             models[f"yamnet scores, {seconds} s (Apache-2.0)"] = lambda w, s=seconds: embed(w, s if s < 30 else 0, False)
         for seconds in (30, 10):
-            models[f"yamnet 1024-wide, {seconds} s (Apache-2.0)"] = lambda w, s=seconds: embed(w, s if s < 30 else 0, True)    return models
+            models[f"yamnet 1024-wide, {seconds} s (Apache-2.0)"] = lambda w, s=seconds: embed(w, s if s < 30 else 0, True)
+    return models
 
 def metrics(vectors, genre):
     v = np.array(vectors, dtype=float)
