@@ -21,5 +21,8 @@ default = ["decode"]
 # Reading a song's audio (a file or a ranged stream) into samples; without it only `analyse` is built.
 decode = ["dep:symphonia"]
 
+[dev-dependencies]
+serde_json.workspace = true
+
 [lints]
 workspace = true

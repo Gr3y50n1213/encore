@@ -1496,6 +1496,94 @@ pub struct MixRef {
     pub mix_id: Option<String>,
 }
 
+// ---------------------------------------------------------------- sound analysis (Phase 10)
+
+/// Settings > Sound analysis (docs/adr/core-0019). Off until the person turns it on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct SoundSettings {
+    /// Whether songs are analysed at all.
+    pub enabled: bool,
+    /// Only on an unmetered network (Wi-Fi). On by default.
+    pub wifi_only: bool,
+    /// Only while the device is charging. On by default.
+    pub charging_only: bool,
+}
+
+/// What the platform knows about power, handed to `run_sound_analysis` each time it starts the job.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct PowerState {
+    pub charging: bool,
+    /// Battery saver (or the OS's equivalent) is on.
+    pub battery_saver: bool,
+    /// The device reports a high temperature.
+    pub hot: bool,
+}
+
+/// Why a `run_sound_analysis` ended.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum SoundStop {
+    /// Every song is analysed (or unreadable).
+    Done,
+    /// `stop_sound_analysis` was called; it carries on next time where it was.
+    Stopped,
+    /// Another run is going; this one did nothing.
+    AlreadyRunning,
+    /// Sound analysis is switched off in the settings.
+    NotEnabled,
+    /// The platform has not given the core the sound model (`set_sound_model`).
+    NoModel,
+    /// "Only on Wi-Fi" is on and the network is cellular.
+    WaitingForWifi,
+    /// "Only while charging" is on and the device is not charging.
+    WaitingForPower,
+    /// Battery saver is on or the device is hot: it waits.
+    Paused,
+    /// The device has no connection.
+    Offline,
+    /// The media server failed too often in a row (it may be busy): try later.
+    ServerBusy,
+    /// The media server's sign-in ended; sign in again.
+    SignInNeeded,
+    /// No profile is open (or it is a Guest).
+    NoProfile,
+}
+
+/// What one `run_sound_analysis` did.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct SoundRun {
+    pub analysed: u32,
+    /// Songs whose audio could not be read (an unsupported format, a damaged file).
+    pub unreadable: u32,
+    /// Still to analyse.
+    pub remaining: u32,
+    pub stop: SoundStop,
+}
+
+/// How far the library is analysed, for Settings > Sound analysis and Home's card.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct SoundStatus {
+    pub settings: SoundSettings,
+    /// Songs in the library, analysed, and unreadable.
+    pub songs: u32,
+    pub analysed: u32,
+    pub unavailable: u32,
+    /// A run is going now.
+    pub running: bool,
+    /// The platform has given the core the sound model.
+    pub model_loaded: bool,
+    /// About how much data the rest will fetch and how long it will take, from what this device
+    /// has measured so far (or a starting value before that).
+    pub bytes_estimate: u64,
+    pub minutes_estimate: u32,
+    /// Why the last run stopped, while songs still wait.
+    pub last_stop: Option<SoundStop>,
+}
+
 // ---------------------------------------------------------------- events
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1554,6 +1642,9 @@ pub enum EventKind {
     /// extended, cancelled, put back, ended (or went with the music to another
     /// device), or a song or album timer's stop point moved with the queue.
     SleepTimerChanged,
+    // Phase 10 (sound analysis).
+    /// `sound` is set: sound analysis made progress, started, stopped, or its settings changed.
+    SoundAnalysisChanged,
 }
 
 /// One event. Only the fields its `kind` names are set.
@@ -1579,6 +1670,8 @@ pub struct CoreEvent {
     pub widget_profile_id: Option<String>,
     /// Phase 9, WP1: `SleepTimerChanged`'s timer (None: no timer now).
     pub sleep_timer: Option<SleepTimer>,
+    /// Phase 10: `SoundAnalysisChanged`'s status.
+    pub sound: Option<SoundStatus>,
 }
 
 impl CoreEvent {
@@ -1601,6 +1694,7 @@ impl CoreEvent {
             download: None,
             widget_profile_id: None,
             sleep_timer: None,
+            sound: None,
         }
     }
 }

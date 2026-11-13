@@ -21,6 +21,7 @@ uniffi = ["dep:uniffi"]
 
 [dependencies]
 uniffi = { workspace = true, optional = true }
+encore-analysis.workspace = true
 encore-lyrics.workspace = true
 encore-recs.workspace = true
 encore-sources.workspace = true

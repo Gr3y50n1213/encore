@@ -71,6 +71,16 @@ pub enum AnalysisError {
     Decode(String),
     /// A format the decoder does not handle (for example Opus).
     Unsupported(String),
+    /// The source failed while being read (a network error, a server that would not serve the
+    /// file): nothing is known about the audio, so the song is tried again later, not marked unreadable.
+    Io(String),
+}
+
+impl AnalysisError {
+    /// Whether the song itself is the problem (never worth trying again) and not the way it was fetched.
+    pub fn is_permanent(&self) -> bool {
+        !matches!(self, AnalysisError::Io(_))
+    }
 }
 
 impl fmt::Display for AnalysisError {
@@ -80,6 +90,7 @@ impl fmt::Display for AnalysisError {
             AnalysisError::Silent => write!(f, "the clip is silent"),
             AnalysisError::Decode(why) => write!(f, "could not read the audio: {why}"),
             AnalysisError::Unsupported(what) => write!(f, "not a format Encore can read: {what}"),
+            AnalysisError::Io(why) => write!(f, "the song could not be fetched: {why}"),
         }
     }
 }

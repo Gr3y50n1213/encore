@@ -33,6 +33,8 @@ pub struct SoundRow {
 pub struct PendingSound {
     pub track_id: i64,
     pub song_key: String,
+    /// The media server the song is on, and its ID there.
+    pub source_id: i64,
     pub source_item_id: String,
     /// The file's container as the media server names it ("mp3", "flac", "opus"), to hint the decoder.
     pub container: Option<String>,
@@ -126,7 +128,7 @@ impl Store {
         limit: u32,
     ) -> Result<Vec<PendingSound>> {
         let mut st = self.conn.prepare(
-            "SELECT t.id, t.song_key, t.source_item_id, t.container, t.duration_ms,
+            "SELECT t.id, t.song_key, t.source_item_id, t.container, t.duration_ms, t.source_id,
                     CASE
                       WHEN EXISTS (SELECT 1 FROM likes l WHERE l.song_key = t.song_key) THEN 0
                       WHEN EXISTS (SELECT 1 FROM play_events p WHERE p.song_key = t.song_key) THEN 1
@@ -146,6 +148,7 @@ impl Store {
                 Ok(PendingSound {
                     track_id: r.get(0)?,
                     song_key: r.get(1)?,
+                    source_id: r.get(5)?,
                     source_item_id: r.get(2)?,
                     container: r.get(3)?,
                     duration_ms: r.get::<_, i64>(4)? as u64,

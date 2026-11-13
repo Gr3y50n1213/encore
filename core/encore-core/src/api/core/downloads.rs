@@ -41,7 +41,7 @@ const DAY_MS: i64 = 86_400_000;
 /// What the platform last said about the network (device-wide).
 #[derive(Debug)]
 pub(super) struct Connectivity {
-    online: bool,
+    pub(super) online: bool,
     network: Network,
     /// The player's fully cached songs, as `cache_key`s.
     cached_keys: Vec<String>,
@@ -247,7 +247,7 @@ impl Inner {
     }
 
     /// Whether this profile can keep downloads: not a Guest (it leaves nothing).
-    fn can_download(&self, p: &Profile) -> Result<(), EncoreError> {
+    pub(super) fn can_download(&self, p: &Profile) -> Result<(), EncoreError> {
         if lock(&p.playback)?.log.mode() == crate::playlog::ListeningMode::Guest {
             return Err(EncoreError::NotAllowed {
                 reason: "Guest can't download: nothing is saved in Guest mode".into(),

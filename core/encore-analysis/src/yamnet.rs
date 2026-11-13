@@ -691,6 +691,78 @@ mod tests {
         assert!(Embedding::decode(&other).is_none());
     }
 
+    /// The waveform `tools/sound-spike/reference_yamnet.py` feeds the original network: three tones
+    /// and a little noise from a 64-bit linear congruential generator.
+    fn reference_wave(n: usize) -> Vec<f32> {
+        let mut state = 12_345u64;
+        (0..n)
+            .map(|i| {
+                let t = i as f64 / 16_000.0;
+                let pi2 = 2.0 * std::f64::consts::PI;
+                let tones = 0.25 * (pi2 * 220.0 * t).sin()
+                    + 0.15 * (pi2 * 1_318.5 * t).sin()
+                    + 0.10 * (pi2 * (300.0 * t + 100.0 * t * t)).sin();
+                state = state
+                    .wrapping_mul(6_364_136_223_846_793_005)
+                    .wrapping_add(1_442_695_040_888_963_407);
+                let noise = (state >> 40) as f64 / f64::from(1u32 << 24) * 2.0 - 1.0;
+                (tones + 0.05 * noise) as f32
+            })
+            .collect()
+    }
+
+    fn cosine(a: &[f32], b: &[f32]) -> f64 {
+        let dot: f64 = a
+            .iter()
+            .zip(b)
+            .map(|(x, y)| f64::from(*x) * f64::from(*y))
+            .sum();
+        let na: f64 = a.iter().map(|x| f64::from(*x).powi(2)).sum::<f64>().sqrt();
+        let nb: f64 = b.iter().map(|x| f64::from(*x).powi(2)).sum::<f64>().sqrt();
+        dot / (na * nb)
+    }
+
+    /// The Rust network against the original TFLite network (int8, from CI) on the same audio.
+    /// The original is integer quantised, so the two differ by that rounding; they agree on what
+    /// the sound is.
+    #[test]
+    fn the_rust_network_agrees_with_the_original() {
+        let reference: serde_json::Value =
+            serde_json::from_str(include_str!("../model/yamnet-reference.json")).unwrap();
+        let wave = reference_wave(15_600 * 2);
+        let model = Yamnet::from_bytes(MODEL).unwrap();
+        for patch in reference["patches"].as_array().unwrap() {
+            let start = patch["start"].as_u64().unwrap() as usize;
+            let numbers = |key: &str| -> Vec<f32> {
+                patch[key]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|v| v.as_f64().unwrap() as f32)
+                    .collect()
+            };
+            let (want_pooled, want_scores) = (numbers("pooled"), numbers("scores"));
+            let got = model.patch(&wave[start..start + PATCH_SAMPLES]);
+            let c_pooled = cosine(&got.pooled, &want_pooled);
+            let c_scores = cosine(&got.scores, &want_scores);
+            let mean_abs: f32 = got
+                .pooled
+                .iter()
+                .zip(&want_pooled)
+                .map(|(a, b)| (a - b).abs())
+                .sum::<f32>()
+                / 1024.0;
+            eprintln!(
+                "patch at {start}: embedding cosine {c_pooled:.4}, mean error {mean_abs:.4}, scores cosine {c_scores:.4}"
+            );
+            assert!(
+                c_pooled > 0.995,
+                "the embedding at {start}: cosine {c_pooled}"
+            );
+            assert!(c_scores > 0.97, "the scores at {start}: cosine {c_scores}");
+        }
+    }
+
     #[test]
     fn how_long_a_clip_takes() {
         let model = Yamnet::from_bytes(MODEL).unwrap();

@@ -23,7 +23,8 @@ pub use yamnet::{
 mod decode;
 #[cfg(feature = "decode")]
 pub use decode::{
-    Analysis, PATCH_HOP, WINDOW_SECONDS, Window, analyse_song, analyse_source, decode_window,
+    Analysis, PATCH_HOP, Ranged, WINDOW_SECONDS, Window, analyse_reader, analyse_song,
+    analyse_source, decode_window,
 };
 
 pub use profile::{

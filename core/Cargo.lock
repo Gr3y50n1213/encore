@@ -517,6 +517,7 @@ version = "0.1.0"
 dependencies = [
  "ebur128",
  "realfft",
+ "serde_json",
  "symphonia",
 ]
 
@@ -528,6 +529,7 @@ version = "0.1.0"
 name = "encore-core"
 version = "0.1.0"
 dependencies = [
+ "encore-analysis",
  "encore-lyrics",
  "encore-recs",
  "encore-sources",

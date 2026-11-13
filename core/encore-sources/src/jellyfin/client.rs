@@ -436,6 +436,24 @@ impl JellyfinClient {
         }
     }
 
+    /// A seekable reader over the song's original file, for sound analysis (Phase 10): each read is
+    /// one small `Range` request, so the server only sends the bytes asked for and never transcodes.
+    /// Use it from a blocking thread (`spawn_blocking`), not from the runtime's own.
+    pub fn range_reader(
+        &self,
+        item_id: &str,
+        runtime: tokio::runtime::Handle,
+    ) -> Result<crate::ranged::RangeReader> {
+        self.token().ok_or(SourceError::SessionExpired)?;
+        let url = self.url(&format!("/Audio/{item_id}/stream"), &[("static", "true")])?;
+        Ok(crate::ranged::RangeReader::new(
+            self.transport.clone(),
+            url,
+            vec![self.auth_header()],
+            runtime,
+        ))
+    }
+
     /// Where to stream a song from (plan section 8: original on fast networks, a
     /// transcode under a cap otherwise).
     pub fn stream(&self, item_id: &str, req: &StreamRequest) -> Result<StreamInfo> {

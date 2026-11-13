@@ -162,6 +162,8 @@ struct Inner {
     transfers: Mutex<downloads::Transfers>,
     /// Phase 9, WP2: the widget snapshot writer's wake-up and write lock.
     widgets: widgets::Widgets,
+    /// Phase 10: the sound model and the analysis run in progress, if any.
+    sound: Mutex<analysis::SoundState>,
 }
 
 /// The Encore core. Create one per app.
@@ -900,6 +902,7 @@ impl EncoreCore {
                 connectivity: Mutex::new(Default::default()),
                 transfers: Mutex::new(Default::default()),
                 widgets: Default::default(),
+                sound: Mutex::new(Default::default()),
             }),
         });
         // Phase 9, WP2: the debounced widget snapshot writer.
@@ -2813,6 +2816,8 @@ impl EncoreCore {
     }
 }
 
+// Phase 10: sound analysis.
+mod analysis;
 mod downloads;
 mod live;
 mod profiles;

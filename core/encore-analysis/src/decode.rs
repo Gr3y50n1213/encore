@@ -69,6 +69,79 @@ pub fn analyse_song(
     Ok(Analysis { profile, embedding })
 }
 
+/// A seekable reader that can say how long the file is once it knows (the ranged reader over HTTP
+/// learns it from the first reply).
+pub trait Ranged: std::io::Read + std::io::Seek + Send + Sync {
+    fn total_len(&self) -> Option<u64>;
+}
+
+/// The reader as the decoder takes it, remembering the first failure of the reader itself.
+/// Symphonia's format probe swallows an I/O error while it tries one format after another and
+/// then says "unsupported format": without this, a media server that failed halfway through a
+/// song would have marked that song as unreadable for good.
+struct ReaderSource<R> {
+    inner: R,
+    failed: std::sync::Arc<std::sync::Mutex<Option<String>>>,
+}
+
+impl<R> ReaderSource<R> {
+    fn note<T>(&self, result: std::io::Result<T>) -> std::io::Result<T> {
+        if let Err(e) = &result
+            && let Ok(mut f) = self.failed.lock()
+            && f.is_none()
+        {
+            *f = Some(e.to_string());
+        }
+        result
+    }
+}
+
+impl<R: Ranged> std::io::Read for ReaderSource<R> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let r = self.inner.read(buf);
+        self.note(r)
+    }
+}
+
+impl<R: Ranged> std::io::Seek for ReaderSource<R> {
+    fn seek(&mut self, to: std::io::SeekFrom) -> std::io::Result<u64> {
+        let r = self.inner.seek(to);
+        self.note(r)
+    }
+}
+
+impl<R: Ranged> MediaSource for ReaderSource<R> {
+    fn is_seekable(&self) -> bool {
+        true
+    }
+
+    fn byte_len(&self) -> Option<u64> {
+        self.inner.total_len()
+    }
+}
+
+/// [`analyse_song`] over a [`Ranged`] reader. A failure of the reader itself is reported as
+/// [`AnalysisError::Io`] (try the song again later), whatever the decoder made of it.
+pub fn analyse_reader<R: Ranged + 'static>(
+    reader: R,
+    extension: Option<&str>,
+    model: Option<&Yamnet>,
+) -> Result<Analysis, AnalysisError> {
+    let failed = std::sync::Arc::new(std::sync::Mutex::new(None));
+    let source = ReaderSource {
+        inner: reader,
+        failed: failed.clone(),
+    };
+    let result = analyse_song(Box::new(source), extension, model);
+    match result {
+        Err(e) if e.is_permanent() => match failed.lock().ok().and_then(|mut f| f.take()) {
+            Some(why) => Err(AnalysisError::Io(why)),
+            None => Err(e),
+        },
+        other => other,
+    }
+}
+
 /// Decode about [`WINDOW_SECONDS`] of the song to mono.
 pub fn decode_window(
     source: Box<dyn MediaSource>,
@@ -86,7 +159,13 @@ pub fn decode_window(
             FormatOptions::default(),
             MetadataOptions::default(),
         )
-        .map_err(|e| AnalysisError::Unsupported(format!("unknown format ({e})")))?;
+        .map_err(|e| match e {
+            // The source failed (not the file): the song says nothing about itself.
+            SymphoniaError::IoError(io) if io.kind() != std::io::ErrorKind::UnexpectedEof => {
+                AnalysisError::Io(io.to_string())
+            }
+            e => AnalysisError::Unsupported(format!("unknown format ({e})")),
+        })?;
     let track = format
         .default_track(TrackType::Audio)
         .ok_or_else(|| AnalysisError::Unsupported("no audio track".into()))?;
@@ -138,7 +217,11 @@ pub fn decode_window(
             Ok(Some(p)) => p,
             Ok(None) => break,
             Err(SymphoniaError::ResetRequired) => break,
-            Err(SymphoniaError::IoError(_)) => break,
+            // The end of the file reads as an unexpected EOF; any other failure is the source's.
+            Err(SymphoniaError::IoError(io)) if io.kind() == std::io::ErrorKind::UnexpectedEof => {
+                break;
+            }
+            Err(SymphoniaError::IoError(io)) => return Err(AnalysisError::Io(io.to_string())),
             Err(e) => return Err(AnalysisError::Decode(e.to_string())),
         };
         if packet.track_id != track_id {
@@ -264,5 +347,62 @@ mod tests {
     fn what_is_not_audio_is_refused() {
         let err = analyse_source(Box::new(Cursor::new(vec![7u8; 5_000])), None).unwrap_err();
         assert!(matches!(err, AnalysisError::Unsupported(_)), "{err}");
+    }
+
+    /// A reader over bytes that starts failing after `ok_bytes` have been read.
+    struct Flaky {
+        data: Cursor<Vec<u8>>,
+        ok_bytes: u64,
+    }
+
+    impl std::io::Read for Flaky {
+        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+            if self.data.position() >= self.ok_bytes {
+                return Err(std::io::Error::other("the server answered 503"));
+            }
+            self.data.read(buf)
+        }
+    }
+
+    impl std::io::Seek for Flaky {
+        fn seek(&mut self, to: std::io::SeekFrom) -> std::io::Result<u64> {
+            self.data.seek(to)
+        }
+    }
+
+    impl Ranged for Flaky {
+        fn total_len(&self) -> Option<u64> {
+            Some(self.data.get_ref().len() as u64)
+        }
+    }
+
+    #[test]
+    fn a_failing_source_is_not_the_songs_fault() {
+        let bytes = wav(&clicks(120.0, 20.0, 44_100), 44_100, 1);
+        // Failing from the first byte, and failing halfway: both are the source's, never "unreadable".
+        for ok_bytes in [0, 60_000] {
+            let reader = Flaky {
+                data: Cursor::new(bytes.clone()),
+                ok_bytes,
+            };
+            let err = analyse_reader(reader, Some("wav"), None).unwrap_err();
+            assert!(
+                matches!(err, AnalysisError::Io(_)),
+                "failing after {ok_bytes} bytes: {err}"
+            );
+            assert!(!err.is_permanent());
+        }
+        // The same bytes through a healthy reader work, and garbage is still the song's fault.
+        let healthy = Flaky {
+            data: Cursor::new(bytes),
+            ok_bytes: u64::MAX,
+        };
+        assert!(analyse_reader(healthy, Some("wav"), None).is_ok());
+        let garbage = Flaky {
+            data: Cursor::new(vec![7u8; 5_000]),
+            ok_bytes: u64::MAX,
+        };
+        let err = analyse_reader(garbage, None, None).unwrap_err();
+        assert!(err.is_permanent(), "{err}");
     }
 }

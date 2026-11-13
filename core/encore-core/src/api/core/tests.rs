@@ -8,6 +8,8 @@ use encore_sources::{FixtureTransport, Transport};
 
 use super::*;
 
+// Phase 10.
+mod analysis;
 mod downloads;
 // Phase 9, WP1.
 mod sleep;

@@ -78,7 +78,11 @@ def load_models(which):
                     cands = [d for d in interp.get_tensor_details() if list(d["shape"]) in ([1, 1024], [1, 1, 1, 1024])]
                     if not cands:
                         raise RuntimeError("no 1024-wide tensor to read")
-                    vecs.append(interp.get_tensor(max(cands, key=lambda d: d["index"])["index"]).reshape(-1))
+                    detail = max(cands, key=lambda d: d["index"])
+                    raw = interp.get_tensor(detail["index"]).reshape(-1)
+                    # An int8 tensor: real = (q - zero_point) * scale.
+                    scale, zero_point = detail["quantization"]
+                    vecs.append((raw.astype(np.float64) - zero_point) * scale if scale else raw.astype(np.float64))
                 else:
                     out = [interp.get_tensor(o["index"]) for o in interp.get_output_details()]
                     vecs.append(next(o for o in out if o.shape[-1] in (1024, 521)).reshape(-1))
