@@ -119,6 +119,7 @@ impl World {
                         server_last_played_utc_ms: None,
                         server_favorite: false,
                         explicit: false,
+                        sound: None,
                     });
                 }
             }

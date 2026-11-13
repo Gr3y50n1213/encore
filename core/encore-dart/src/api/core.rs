@@ -44,6 +44,7 @@ pub use encore_core::api::{
     MixRef, MixRefKind, WidgetAlbum, WidgetMix, WidgetPalette, WidgetPrivacy, WidgetSnapshot,
     WidgetSong,
 };
+pub use encore_core::api::{PowerState, SoundRun, SoundSettings, SoundStatus, SoundStop};
 pub use encore_core::api::{
     SleepFadeAction, SleepFadePlan, SleepTimer, SleepTimerMode, SleepTimerSpec,
 };
@@ -462,6 +463,60 @@ pub struct _CoreEvent {
     pub download: Option<DownloadProgress>,
     pub widget_profile_id: Option<String>,
     pub sleep_timer: Option<SleepTimer>,
+    pub sound: Option<SoundStatus>,
+}
+
+// Phase 10: sound analysis.
+
+#[frb(mirror(SoundSettings))]
+pub struct _SoundSettings {
+    pub enabled: bool,
+    pub wifi_only: bool,
+    pub charging_only: bool,
+}
+
+#[frb(mirror(PowerState))]
+pub struct _PowerState {
+    pub charging: bool,
+    pub battery_saver: bool,
+    pub hot: bool,
+}
+
+#[frb(mirror(SoundStop))]
+pub enum _SoundStop {
+    Done,
+    Stopped,
+    AlreadyRunning,
+    NotEnabled,
+    NoModel,
+    WaitingForWifi,
+    WaitingForPower,
+    Paused,
+    Offline,
+    ServerBusy,
+    SignInNeeded,
+    NoProfile,
+}
+
+#[frb(mirror(SoundRun))]
+pub struct _SoundRun {
+    pub analysed: u32,
+    pub unreadable: u32,
+    pub remaining: u32,
+    pub stop: SoundStop,
+}
+
+#[frb(mirror(SoundStatus))]
+pub struct _SoundStatus {
+    pub settings: SoundSettings,
+    pub songs: u32,
+    pub analysed: u32,
+    pub unavailable: u32,
+    pub running: bool,
+    pub model_loaded: bool,
+    pub bytes_estimate: u64,
+    pub minutes_estimate: u32,
+    pub last_stop: Option<SoundStop>,
 }
 
 // Phase 8: downloads and offline.
@@ -838,6 +893,7 @@ pub enum _EventKind {
     DownloadProgress,
     WidgetSnapshotChanged,
     SleepTimerChanged,
+    SoundAnalysisChanged,
 }
 
 #[frb(mirror(ErrorKind))]
@@ -1841,6 +1897,42 @@ impl Encore {
     #[frb(sync)]
     pub fn stop_downloads(&self) {
         self.core.stop_downloads()
+    }
+    // Phase 10: sound analysis.
+    #[frb(sync)]
+    pub fn set_sound_model(&self, path: String) -> Result<(), ApiError> {
+        Ok(self.core.set_sound_model(path)?)
+    }
+    #[frb(sync)]
+    pub fn sound_settings(&self) -> Result<SoundSettings, ApiError> {
+        Ok(self.core.sound_settings()?)
+    }
+    #[frb(sync)]
+    pub fn set_sound_settings(&self, settings: SoundSettings) -> Result<(), ApiError> {
+        Ok(self.core.set_sound_settings(settings)?)
+    }
+    #[frb(sync)]
+    pub fn sound_status(&self) -> Result<SoundStatus, ApiError> {
+        Ok(self.core.sound_status()?)
+    }
+    #[frb(sync)]
+    pub fn delete_sound_analysis(&self) -> Result<u32, ApiError> {
+        Ok(self.core.delete_sound_analysis()?)
+    }
+    #[frb(sync)]
+    pub fn retry_unreadable_sounds(&self) -> Result<u32, ApiError> {
+        Ok(self.core.retry_unreadable_sounds()?)
+    }
+    pub async fn run_sound_analysis(
+        &self,
+        network: Network,
+        power: PowerState,
+    ) -> Result<SoundRun, ApiError> {
+        Ok(self.core.run_sound_analysis(network, power).await?)
+    }
+    #[frb(sync)]
+    pub fn stop_sound_analysis(&self) {
+        self.core.stop_sound_analysis()
     }
     #[frb(sync)]
     pub fn refresh_smart_downloads(&self) -> Result<u32, ApiError> {

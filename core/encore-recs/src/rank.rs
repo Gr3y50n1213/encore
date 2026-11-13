@@ -16,6 +16,12 @@ use crate::det::Rng;
 use crate::model::Model;
 use crate::{Catalog, Params, bucket_of, weekend};
 
+/// How many songs that sound most like each seed join the candidates (a starting value).
+const SOUND_NEIGHBOURS: usize = 60;
+/// How much a jump in tempo and energy from the song before counts against a pick, next to
+/// the diversity trade-off (a starting value; the plan's "flow", section 21).
+const FLOW_WEIGHT: f64 = 0.15;
+
 /// What a request knows about the moment (the queue, the session).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Context {
@@ -135,6 +141,10 @@ fn candidates(
     // A sample of the same genres (a big library has thousands).
     rng.shuffle(&mut same_genre);
     pool.extend(same_genre.into_iter().take(p.candidates / 2));
+    // Phase 10: what sounds like the session, whatever it is tagged (exact scan, no randomness).
+    for &s in &seeds {
+        pool.extend(cat.nearest_by_sound(s, SOUND_NEIGHBOURS));
+    }
     if seeds.is_empty() || pool.len() < 50 {
         // Nothing to go on: what the user likes most, then the rest by liking.
         // Liking computed once per song, not once per comparison.
@@ -357,7 +367,17 @@ fn pick(model: &Model, cat: &Catalog, ctx: &Context, n: usize, p: &Params) -> Ve
                     .take(10)
                     .map(|&c| model.similarity(cat, c, s.i))
                     .fold(0.0, f64::max);
-                p.diversity_lambda * s.score - (1.0 - p.diversity_lambda) * redundancy
+                // Flow: no jump in tempo or energy from the song before (when both are known).
+                let jump = chosen
+                    .last()
+                    .and_then(|&c| {
+                        let (a, b) = (cat.get(c).sound.as_ref()?, cat.get(s.i).sound.as_ref()?);
+                        crate::sound::flow_cost(a, b)
+                    })
+                    .unwrap_or(0.0);
+                p.diversity_lambda * s.score
+                    - (1.0 - p.diversity_lambda) * redundancy
+                    - FLOW_WEIGHT * jump
             };
             if best.is_none_or(|(_, v)| value > v) {
                 best = Some((x, value));

@@ -302,7 +302,7 @@ fn it_waits_for_wifi_power_and_a_calm_device() {
         run(&core, Network::Wifi, WIFI_CHARGING).stop,
         SoundStop::Offline
     );
-    assert!(server.seen.lock().unwrap().len() > 0);
+    assert!(!server.seen.lock().unwrap().is_empty());
 }
 
 #[test]

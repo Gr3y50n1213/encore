@@ -480,7 +480,9 @@ impl Model {
             .map_or(0.0, |(_, w)| w / top)
     }
 
-    /// How alike two songs are, 0..1: played together, same artist, genres, era.
+    /// How alike two songs are, 0..1: played together, same artist, genres, era, and, when both
+    /// have been analysed, how they sound (Phase 10). "Sounds like" is defined here and nowhere
+    /// else: candidates, diversity, the session's pull, radio and Why this song all ask this.
     pub fn similarity(&self, catalog: &Catalog, a: usize, b: usize) -> f64 {
         if a == b {
             return 1.0;
@@ -504,6 +506,11 @@ impl Model {
             (Some(p), Some(q)) => (1.0 - f64::from((p - q).abs()) / 10.0).max(0.0),
             _ => 0.0,
         };
-        0.5 * co + 0.2 * artist + 0.2 * genre + 0.1 * era
+        match catalog.sound_similarity(a, b) {
+            // Starting values (docs/adr/core-0020): sound leads, what the person plays together
+            // is next; genre tags matter less once the sound is known.
+            Some(sound) => 0.45 * sound + 0.25 * co + 0.10 * artist + 0.10 * genre + 0.10 * era,
+            None => 0.5 * co + 0.2 * artist + 0.2 * genre + 0.1 * era,
+        }
     }
 }

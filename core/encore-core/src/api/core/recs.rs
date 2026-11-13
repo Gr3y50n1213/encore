@@ -102,6 +102,42 @@ fn mix_kind(s: recs::MixSlot) -> MixKind {
     }
 }
 
+/// The analysed songs as the engine wants them, by song key: the projection of the embedding
+/// (empty when only the basic profile exists) and the plain measures.
+fn sounds_of(store: &Store) -> Result<HashMap<String, recs::Sound>, EncoreError> {
+    let mut out = HashMap::new();
+    for row in store.sounds_ok()? {
+        let Some(profile) = row
+            .profile
+            .as_deref()
+            .and_then(encore_analysis::SoundProfile::decode)
+        else {
+            continue;
+        };
+        let projection = match (row.model.as_deref(), row.embedding.as_deref()) {
+            (Some(m), Some(e)) if m == encore_analysis::MODEL_NAME => {
+                encore_analysis::project_encoded(e).unwrap_or_default()
+            }
+            _ => Vec::new(),
+        };
+        let byte = |v: f32| (v.clamp(0.0, 1.0) * 255.0).round() as u8;
+        out.insert(
+            row.song_key,
+            recs::Sound {
+                projection,
+                bpm_tenths: (profile.bpm * 10.0).round().clamp(0.0, 65_535.0) as u16,
+                energy: byte(profile.energy),
+                brightness: byte(profile.brightness),
+                dynamics: byte(profile.dynamics),
+                key: profile
+                    .key
+                    .map_or(255, |k| k.pitch_class % 12 + if k.major { 0 } else { 12 }),
+            },
+        );
+    }
+    Ok(out)
+}
+
 /// The engine's inputs from the store. `learn`: false gives the model only the
 /// library (Guest and Learn-from-my-listening-off use the plain fallbacks).
 fn inputs(
@@ -110,11 +146,15 @@ fn inputs(
 ) -> Result<(recs::Catalog, recs::History, HashMap<String, i64>), EncoreError> {
     let rows = store.recs_songs()?;
     let mut ids = HashMap::new();
+    // What the analysed songs sound like (Phase 10). Without Learn from my listening the engine
+    // still gets it: it is about the songs, not the person.
+    let mut sounds = sounds_of(store)?;
     let songs: Vec<recs::Song> = rows
         .into_iter()
         .map(|r| {
             ids.insert(r.song_key.clone(), r.track_id);
             recs::Song {
+                sound: sounds.remove(&r.song_key),
                 key: r.song_key,
                 title: r.title,
                 artists: r.artists,

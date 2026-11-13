@@ -11,8 +11,11 @@
 
 mod dsp;
 mod profile;
+mod projection;
 mod tempo;
 mod yamnet;
+
+pub use projection::{PROJECTION_DIMS, project_encoded};
 
 pub use yamnet::{
     CLASSES, EMBEDDING_ENCODED_LEN, EMBEDDING_LEN, Embedding, MODEL_NAME, ModelError,

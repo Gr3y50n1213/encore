@@ -105,11 +105,8 @@ impl Reader<'_> {
     }
 
     fn f32s(&mut self, n: usize) -> Result<Vec<f32>, ModelError> {
-        Ok(self
-            .take(n * 4)?
-            .chunks_exact(4)
-            .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
-            .collect())
+        let (chunks, _) = self.take(n * 4)?.as_chunks::<4>();
+        Ok(chunks.iter().map(|b| f32::from_le_bytes(*b)).collect())
     }
 
     /// int8 weights times their per-output-channel scale: `rows` x `cols` values, then the

@@ -18,6 +18,9 @@ pub mod det;
 pub mod mixes;
 pub mod model;
 pub mod rank;
+pub mod sound;
+#[cfg(test)]
+mod sound_tests;
 pub mod stats;
 #[cfg(test)]
 mod tests;
@@ -28,6 +31,7 @@ use serde::{Deserialize, Serialize};
 pub use mixes::{Mix, MixSet, MixSlot, Previous, Shelves, build_mixes, build_shelves};
 pub use model::Model;
 pub use rank::{Context, Pick, Reason, autoplay, radio, score_of, smart_shuffle, sounds_like, why};
+pub use sound::Sound;
 pub use stats::{ShelfStats, Stats, stats};
 
 /// One song of the library, as the engine needs it.
@@ -49,6 +53,10 @@ pub struct Song {
     pub server_favorite: bool,
     /// Tagged explicit (hidden when the profile asks).
     pub explicit: bool,
+    /// What the song sounds like, once it has been analysed (Phase 10). None: the engine
+    /// uses what it knows without it, exactly as version 1 did.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sound: Option<Sound>,
 }
 
 /// The library: songs by song key, one each (a song on two albums is one song).
@@ -56,6 +64,8 @@ pub struct Song {
 pub struct Catalog {
     songs: Vec<Song>,
     index: std::collections::HashMap<String, usize>,
+    /// Each analysed song's sound with the library's mean taken out (`sound::centre`).
+    centred: Vec<Option<sound::Centred>>,
 }
 
 impl Catalog {
@@ -69,7 +79,44 @@ impl Catalog {
             .enumerate()
             .map(|(i, s)| (s.key.clone(), i))
             .collect();
-        Catalog { songs, index }
+        let sounds: Vec<Option<&Sound>> = songs.iter().map(|s| s.sound.as_ref()).collect();
+        let centred = sound::centre(&sounds);
+        Catalog {
+            songs,
+            index,
+            centred,
+        }
+    }
+
+    /// How many songs have been analysed.
+    pub fn analysed(&self) -> usize {
+        self.centred.iter().flatten().count()
+    }
+
+    /// How alike two songs sound, 0 to 1 (negative cosines count as 0); None unless both have a sound.
+    pub fn sound_similarity(&self, a: usize, b: usize) -> Option<f64> {
+        let (x, y) = (
+            self.centred.get(a)?.as_ref()?,
+            self.centred.get(b)?.as_ref()?,
+        );
+        Some(sound::cosine(x, y).max(0.0))
+    }
+
+    /// The `n` songs that sound most like song `i` (never `i` itself), most alike first; ties by
+    /// index so the answer is the same everywhere. Empty when `i` has no sound.
+    pub fn nearest_by_sound(&self, i: usize, n: usize) -> Vec<usize> {
+        let Some(Some(me)) = self.centred.get(i) else {
+            return Vec::new();
+        };
+        let mut all: Vec<(f64, usize)> = self
+            .centred
+            .iter()
+            .enumerate()
+            .filter(|(j, _)| *j != i)
+            .filter_map(|(j, c)| Some((sound::cosine(me, c.as_ref()?), j)))
+            .collect();
+        all.sort_by(|a, b| b.0.total_cmp(&a.0).then(a.1.cmp(&b.1)));
+        all.into_iter().take(n).map(|(_, j)| j).collect()
     }
 
     pub fn len(&self) -> usize {
