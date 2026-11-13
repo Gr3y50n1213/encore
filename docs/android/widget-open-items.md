@@ -26,7 +26,11 @@ reports is on Settings > Lock screen and widgets (`WidgetSizeLog`).
 
 ## 2. Not tested yet (needs a phone, or the owner)
 
-- Landscape (the Now Playing background must change much less; `AlbumFieldAspectTest` covers the math only).
+- Landscape: the Now Playing background now keeps round blobs of the same pixel size at the same screen-relative
+  places (the first fix stretched portrait's picture and the owner did not like the oval look). `AlbumFieldAspectTest`
+  checks roundness and the amount of colour; the owner should look at it on a phone.
+- The press highlight on the widgets' round buttons, covers and tiles (it was a square; each control now has a
+  ripple with a mask in its own shape, `widget_ripple_*`). A press cannot be shown by a screenshot test.
 - Resizing on the launcher (dragging the handles through the buckets).
 - The Now Playing widget on the lock screen.
 - A tap on a Mixes tile and on the hero's play button.
@@ -47,11 +51,15 @@ Done: board 34 spec items 1 to 3 (amended), `PLAN-UX` section 20, `PLAN-ANDROID`
 
 ## 5. Phase 9 follow-ups (not from the redesign)
 
-- Live Updates note wording on Android 16 without QPR1; Live Updates are unverified on a phone.
-- The "Widget profile" row's text wraps.
-- The "Sleep timer set for..." toast shows behind the sheet.
-- A tile's long press opens the Mixes tab, not the mix.
-- Board 31 item 5: per-profile wording.
+Fixed in the "landscape, highlights and follow-ups" round (12 November 2026, needs CI and the owner's phone):
+the Live Updates note now says Android 16 QPR1 (version 16.1); the "Widget profile" row's subtitle is "For new
+widgets" so it no longer wraps; the sleep timer sheet shows the end time in the sheet (and any error under its
+title) instead of a toast hidden behind it; a long press on the Start a mix tile opens the pinned mix on top of the
+Mixes tab (Next up: the tab alone); board 31 item 5 says one timer per device.
+
+Still open:
+
+- Live Updates are unverified on a phone (needs Android 16 QPR1).
 - The tablet log "lost permission to set exact alarms" after an update (not investigated; may affect the sleep timer).
 
 ## 6. Later, in roadmap order

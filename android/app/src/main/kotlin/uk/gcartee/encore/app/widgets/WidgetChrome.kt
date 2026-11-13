@@ -214,12 +214,17 @@ internal fun PlayButton(button: MainButton, buttonsOpen: WidgetTarget?, w: Int, 
         h > 48 -> R.drawable.widget_sq_18
         else -> R.drawable.widget_sq_16
     }
+    val ripple = when {
+        !playing -> R.drawable.widget_ripple_pill
+        h > 48 -> R.drawable.widget_ripple_sq_18
+        else -> R.drawable.widget_ripple_sq_16
+    }
     Box(
         modifier = GlanceModifier
             .width(w.dp)
             .height(h.dp)
             .background(ImageProvider(shape), colorFilter = ColorFilter.tint(ink.container))
-            .clickable(buttonAction(context, intent, buttonsOpen))
+            .clickable(buttonAction(context, intent, buttonsOpen), ripple)
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
@@ -245,12 +250,18 @@ internal fun SkipButton(previous: Boolean, buttonsOpen: WidgetTarget?, w: Int, h
         big -> R.drawable.widget_skip_next_56
         else -> R.drawable.widget_skip_next_48
     }
+    val ripple = when {
+        previous && big -> R.drawable.widget_ripple_skip_prev_56
+        previous -> R.drawable.widget_ripple_skip_prev_48
+        big -> R.drawable.widget_ripple_skip_next_56
+        else -> R.drawable.widget_ripple_skip_next_48
+    }
     Box(
         modifier = GlanceModifier
             .width(w.dp)
             .height(h.dp)
             .background(ImageProvider(shape), colorFilter = ColorFilter.tint(ink.tonal))
-            .clickable(buttonAction(context, WidgetIntents.mediaButton(context, key), buttonsOpen))
+            .clickable(buttonAction(context, WidgetIntents.mediaButton(context, key), buttonsOpen), ripple)
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {

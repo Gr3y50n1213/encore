@@ -70,7 +70,7 @@ class LockScreenWidgetsPageTest {
             }
             // Where Live Updates don't exist the page says so quietly; the banner is for 16 QPR1+.
             if (!LiveUpdates.apiAllows()) {
-                reach("Live Updates need Android 16 or later.", substring = true)
+                reach("Live Updates need Android 16 QPR1", substring = true)
                 assertFalse(has("Open settings"))
             }
             page().performScrollToNode(hasText("Sleep timer Live Update"))

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The press highlight for a widget control of this shape (12 November 2026: the highlight was a square over round buttons, covers and tiles). Glance draws a rectangle unless it is given a ripple with a mask in the control's own shape. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#59808080">
+    <item android:id="@android:id/mask">
+        <shape android:shape="rectangle">
+            <solid android:color="#FFFFFFFF" />
+            <corners android:radius="999dp" />
+        </shape>
+    </item>
+</ripple>

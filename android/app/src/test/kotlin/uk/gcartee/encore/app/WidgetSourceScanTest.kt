@@ -54,6 +54,24 @@ class WidgetSourceScanTest {
     }
 
     @Test
+    fun everyShapedControlHasAPressHighlightInItsOwnShape() {
+        // Glance draws a rectangle on press unless it is given a ripple with a mask (12 November
+        // 2026: the owner saw square highlights over round buttons, covers and tiles). The widget's
+        // own tap (`root.clickable(tap)`, clipped by the system corner radius) is the one exception.
+        val offenders = dir.walkTopDown().filter { it.isFile && it.extension == "kt" }.flatMap { file ->
+            file.readLines().mapIndexedNotNull { i, line ->
+                val clicks = line.contains(".clickable(") && !line.contains("root.clickable(tap)")
+                if (clicks && !line.contains("widget_ripple_") && !line.contains("ripple")) "${file.name}:${i + 1}: ${line.trim()}" else null
+            }
+        }.toList()
+        assertTrue("clickable without a shaped ripple:\n" + offenders.joinToString("\n"), offenders.isEmpty())
+        val rippleDir = File("src/main/res/drawable")
+        val ripples = rippleDir.listFiles { f -> f.name.startsWith("widget_ripple_") }.orEmpty()
+        assertTrue("the ripple drawables exist", ripples.size >= 9)
+        ripples.forEach { assertTrue("${it.name} has a mask", it.readText().contains("@android:id/mask")) }
+    }
+
+    @Test
     fun noWidgetFileUsesTheNetworkOrAFileAddress() {
         val words = listOf("java.net.", "okhttp", "HttpURLConnection", "Uri.fromFile", "file://", "http://", "https://")
         val offenders = dir.walkTopDown().filter { it.isFile && it.extension == "kt" }.flatMap { file ->

@@ -86,7 +86,7 @@ internal fun LockScreenWidgetsPage(onBack: () -> Unit, contentPadding: PaddingVa
         if (LiveUpdates.apiAllows()) {
             if (!canPromote) item { LiveUpdatesOffBanner { LiveUpdates.openSettings(context) } }
         } else {
-            item { Body("Live Updates need Android 16 or later. Timers and downloads use a normal notification.") }
+            item { Body("Live Updates need Android 16 QPR1 (version 16.1) or later. Timers and downloads use a normal notification.") }
         }
         group("Live Updates", listOf(
             Row0("Sleep timer Live Update", "Time left and Add 15 min", { Icons.sleepTimer() }, trailing = {
@@ -109,7 +109,7 @@ internal fun LockScreenWidgetsPage(onBack: () -> Unit, contentPadding: PaddingVa
             }),
         ))
         group("Widgets", listOf(
-            Row0("Widget profile", "The profile a new widget starts with", { Icons.devices() }, right = profileName(choice, profiles)) { profileSheet = true },
+            Row0("Widget profile", "For new widgets", { Icons.devices() }, right = profileName(choice, profiles)) { profileSheet = true },
         ))
         // Debug builds only: the sizes Android reports for each placed widget (One UI's cells differ from Google's).
         if (WidgetSizeLog.enabled(context)) {

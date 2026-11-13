@@ -262,13 +262,17 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
             toaster.show("That album isn't in this library")
         }
     }
-    // Phase 9 (WP8): touch and hold on the Start a mix tile opens the Mixes tab.
+    // Phase 9 (WP8): touch and hold on the Start a mix tile opens the mix the tile starts (the
+    // first pinned mix, as the tile's tap), on top of the Mixes tab; with no pinned mix (Next up)
+    // it is the Mixes tab alone. Board 31 and the tile's own text say "opens the mix in the app".
     LaunchedEffect(openRequest) {
         if (openRequest == MainActivity.OPEN_MIXES) {
             nowPlaying = false
             profiles = false
             nav.select(uk.gcartee.encore.app.ui.nav.Tab.Mixes)
             host.openRequest.value = null
+            val pinned = runCatching { host.core.widgetSnapshot().pinnedMixes.firstOrNull()?.mixId }.getOrNull()
+            if (pinned != null) nav.push(Route.Mix(pinned))
         }
     }
     LaunchedEffect(openRequest) {

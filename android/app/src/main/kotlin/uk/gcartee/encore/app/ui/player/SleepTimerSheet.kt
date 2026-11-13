@@ -41,9 +41,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -99,20 +101,24 @@ fun SleepTimerSheet(host: CoreHost, onDismiss: () -> Unit) {
         }
     }
     var pick by rememberSaveable { mutableStateOf(Pick.THIRTY) }
+    // The app's toast is drawn in the window under this sheet and could not be seen (Phase 9
+    // follow-up, fixed 12 November 2026). A success shows in the sheet itself: it turns to its
+    // running state, "Music fades out at 11:30 PM". A failure is written under the title.
+    var notice by remember { mutableStateOf<String?>(null) }
 
-    /** Starts [chosen] (from Start or from Change time) and says when the music ends. */
+    /** Starts [chosen] (from Start or from Change time); the sheet then shows when the music ends. */
     fun start(chosen: Pick, firstStart: Boolean) {
         runCatching { host.core.setSleepTimer(SleepTimerSpec(chosen.mode, chosen.minutes.toUInt())) }
             .onSuccess { t ->
                 timerState.value = t
+                notice = null
                 // Start is a light confirm; picking another time while running is a tick.
                 haptics.perform(if (firstStart) Haptic.Confirm else Haptic.Tick)
-                toaster.show("Sleep timer set for ${sleepClock(context, t.endsAtUtcMs)}")
                 if (firstStart) actions.askForNotificationsOnce(forSleepTimer = true)
             }
             .onFailure {
                 haptics.perform(Haptic.Reject)
-                toaster.show(it.userMessage())
+                notice = it.userMessage()
             }
     }
 
@@ -120,12 +126,12 @@ fun SleepTimerSheet(host: CoreHost, onDismiss: () -> Unit) {
         runCatching { host.core.extendSleepTimer(ADD_MINUTES.toUInt()) }
             .onSuccess { t ->
                 timerState.value = t
+                notice = null
                 haptics.perform(Haptic.Tick)
-                toaster.show("Sleep timer set for ${sleepClock(context, t.endsAtUtcMs)}")
             }
             .onFailure {
                 haptics.perform(Haptic.Reject)
-                toaster.show(it.userMessage())
+                notice = it.userMessage()
             }
     }
 
@@ -147,7 +153,7 @@ fun SleepTimerSheet(host: CoreHost, onDismiss: () -> Unit) {
                     )
                 }
             }
-            .onFailure { toaster.show(it.userMessage()) }
+            .onFailure { notice = it.userMessage() }
     }
 
     ModalBottomSheet(
@@ -163,6 +169,14 @@ fun SleepTimerSheet(host: CoreHost, onDismiss: () -> Unit) {
                 .padding(bottom = (Grid.base * 2).dp),
         ) {
             Text("Sleep timer", style = type.sheetTitle, modifier = Modifier.semantics { heading() })
+            notice?.let {
+                Text(
+                    it,
+                    style = type.caption,
+                    color = scheme.error,
+                    modifier = Modifier.padding(top = 2.dp).semantics { liveRegion = LiveRegionMode.Polite },
+                )
+            }
             if (timer == null) {
                 // Not running: the presets, then Start.
                 Text(
@@ -211,7 +225,8 @@ fun SleepTimerSheet(host: CoreHost, onDismiss: () -> Unit) {
                     },
                     style = type.caption,
                     color = scheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp),
+                    // Read out when it changes: it replaces the confirmation toast the sheet hid.
+                    modifier = Modifier.padding(top = 2.dp).semantics { liveRegion = LiveRegionMode.Polite },
                 )
                 Text(
                     countdown(left),

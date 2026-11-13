@@ -192,7 +192,7 @@ private fun Tile(t: TileData, fit: CollectionFit, stale: Boolean, fs: Float, mod
         modifier = modifier
             .height(height.dp)
             .background(ImageProvider(R.drawable.widget_card_18), colorFilter = ColorFilter.tint(cardTint))
-            .clickable(t.action)
+            .clickable(t.action, R.drawable.widget_ripple_card_18)
             .semantics { contentDescription = t.label },
     ) {
         if (p != null) {
@@ -252,7 +252,7 @@ private fun Hero(t: TileData, stale: Boolean, ink: WidgetInk, fs: Float) {
         modifier = GlanceModifier
             .fillMaxWidth()
             .height(CollectionSizing.HERO_H.dp)
-            .clickable(t.action)
+            .clickable(t.action, R.drawable.widget_ripple_hero)
             .semantics { contentDescription = t.label },
         verticalAlignment = Alignment.CenterVertically,
     ) {

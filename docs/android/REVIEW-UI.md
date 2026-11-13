@@ -102,6 +102,7 @@ Decisions the owner made after using the app with their own library, which overr
 | --- | --- | --- |
 | The sleep timer sheet, not running | Presets in rows (5, 10, 15, 30, 45, 60 minutes, then End of this song and End of this album), one line saying what will happen ("Music fades out over the last 10 seconds" or "Music stops after this song"), a Start button, and "Music pauses at ..." beneath it | Board 31's Android panel |
 | The sleep timer sheet, running | The time left, "Music fades out at ...", a wavy bar from when it was set to when it ends, Add 15 min and Cancel timer, and Change time with 15, 30, 45 and 60 minutes, End of song and End of album | Board 31's Android panel |
+| Start and Add 15 min | No toast (12 November 2026): the app's toast is drawn in the window under a sheet and was never seen. The sheet turns to its running state, which says when the music fades out and is read out by TalkBack; an error is written under the sheet's title | Phase 9 follow-up |
 | Cancel | No confirmation. The sheet closes, then "Timer cancelled" with Undo for 5 seconds | PLAN-UX section 20 and board 31, both satisfied |
 | The sheet opened from Now Playing | Takes the album's colors, like the other sheets opened there | The polish round's rule (9 November) |
 | Where the timer is set | Now Playing's More, Settings > Playback and quality (a row showing Off or "Ends at ..."), and a tap on the card | Board 31 |

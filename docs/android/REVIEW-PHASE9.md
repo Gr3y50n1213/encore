@@ -74,8 +74,8 @@ Checked against the "done when" line (*a widget set to one profile never shows a
 
 ## Follow-ups
 
-- Board 31 item 5's per-profile wording needs fixing to "per device".
-- The "Sleep timer set for ..." toast is drawn behind the open sheet.
-- The tile's touch and hold opens the Mixes tab, not the specific mix.
+- ~~Board 31 item 5's per-profile wording needs fixing to "per device".~~ Fixed 12 November 2026.
+- ~~The "Sleep timer set for ..." toast is drawn behind the open sheet.~~ Fixed 12 November 2026: the sheet's own running state shows when the music fades out, and an error is written under the title.
+- ~~The tile's touch and hold opens the Mixes tab, not the specific mix.~~ Fixed 12 November 2026: it opens the pinned mix on top of the tab.
 - Shuffle and repeat were left off the wide Now Playing widget.
 - Recap widget: Phase 11.
