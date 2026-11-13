@@ -33,10 +33,12 @@ pub struct Sound {
 
 /// A song's projection with the library's mean taken out, and its squared length, for exact
 /// cosine similarity in integers.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Centred {
     pub v: Vec<i32>,
     pub norm2: i64,
+    /// The length, the square root of `norm2` (correctly rounded, so the same everywhere), made once.
+    pub norm: f64,
 }
 
 /// Centre every sound by the mean of all of them. Centring before comparing is a measured gain
@@ -60,14 +62,20 @@ pub(crate) fn centre(sounds: &[Option<&Sound>]) -> Vec<Option<Centred>> {
         .iter()
         .map(|s| {
             let s = s.filter(|s| s.projection.len() == DIMS)?;
+            // The projection is at most 1020 in size; anything past 1024 is clamped, so the
+            // centred values stay within 2048 and a dot product fits 32 bits (128 x 2048^2).
             let v: Vec<i32> = s
                 .projection
                 .iter()
                 .zip(&mean)
-                .map(|(p, m)| (i64::from(*p) - m) as i32)
+                .map(|(p, m)| (i64::from((*p).clamp(-1024, 1024)) - m) as i32)
                 .collect();
-            let norm2 = v.iter().map(|x| i64::from(*x) * i64::from(*x)).sum();
-            Some(Centred { v, norm2 })
+            let norm2: i64 = v.iter().map(|x| i64::from(*x) * i64::from(*x)).sum();
+            Some(Centred {
+                v,
+                norm2,
+                norm: (norm2 as f64).sqrt(),
+            })
         })
         .collect()
 }
@@ -78,12 +86,9 @@ pub(crate) fn cosine(a: &Centred, b: &Centred) -> f64 {
     if a.norm2 == 0 || b.norm2 == 0 {
         return 0.0;
     }
-    let dot: i64 =
-        a.v.iter()
-            .zip(&b.v)
-            .map(|(x, y)| i64::from(*x) * i64::from(*y))
-            .sum();
-    dot as f64 / ((a.norm2 as f64).sqrt() * (b.norm2 as f64).sqrt())
+    // 32-bit products and sums: at most 128 x 2048 x 2048, well within range, and it vectorises.
+    let dot: i32 = a.v.iter().zip(&b.v).map(|(x, y)| x * y).sum();
+    f64::from(dot) / (a.norm * b.norm)
 }
 
 /// How far apart two tempos are as a share, 0 (the same, or half or double time) to 1; None when

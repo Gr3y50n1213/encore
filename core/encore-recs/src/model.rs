@@ -21,6 +21,15 @@ use crate::{
     Catalog, DAY_MS, History, NotInterestedReason, Outcome, Params, Scope, bucket_of, weekend,
 };
 
+/// Analysed songs the person must have a verdict on before their taste in sound is trusted.
+const MIN_SOUND_VERDICTS: u32 = 8;
+/// A taste cosine of 0.5 (songs that sound very much like what they like) is a full lean.
+const SOUND_FIT_SCALE: f64 = 2.0;
+/// How far what a song sounds like can move a never-played song's liking.
+const SOUND_LEAN: f64 = 0.25;
+/// How many never-played songs that fit the person's taste in sound join the candidates.
+const SOUND_TASTE_PICKS: usize = 100;
+
 /// One song's facts.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct SongFacts {
@@ -66,6 +75,14 @@ pub struct Model {
     artist_when: HashMap<String, [f64; 8]>,
     /// Each artist's finished plays and (faded) early skips, for exploration.
     artist_record: HashMap<String, (u32, u32)>,
+    /// Phase 10: the direction in sound space the person's plays point to, a unit vector over the
+    /// centred projection: toward what they finished and liked, away from what they skipped.
+    /// None until a few analysed songs have been learned from.
+    sound_taste: Option<Vec<f64>>,
+    /// The learned ranker, when this profile has one that earned its place (`learn::train`).
+    ranker: Option<std::sync::Arc<crate::learn::Ranker>>,
+    /// See `taste_pool`.
+    taste_pool: Vec<usize>,
 }
 
 fn add_pair(pairs: &mut HashMap<(usize, usize), f64>, a: usize, b: usize, w: f64) {
@@ -332,6 +349,52 @@ impl Model {
         }
         // Shrunk toward 0.5: one liked song doesn't make an artist a favourite.
         let shrink = |(s, c): (f64, u32)| (s + 0.5 * 2.0) / (f64::from(c) + 2.0);
+        // The taste in sound space (Phase 10): every analysed song the person has a verdict on
+        // pulls the direction toward it (finished, liked) or away from it (skipped), by that
+        // verdict's strength, each song as a unit vector so a song played a hundred times does not
+        // outweigh a hundred songs. Songs nobody has played are then judged by it (`liking`).
+        let sound_taste: Option<Vec<f64>> = {
+            let mut t = vec![0f64; crate::sound::DIMS];
+            let mut learned = 0;
+            for (i, f) in facts.iter().enumerate() {
+                let Some(c) = catalog.centred(i) else {
+                    continue;
+                };
+                if !f.known || f.raw == 0.0 || c.norm2 == 0 {
+                    continue;
+                }
+                let w = f.raw.clamp(-3.0, 3.0) / c.norm;
+                for (a, v) in t.iter_mut().zip(&c.v) {
+                    *a += w * f64::from(*v);
+                }
+                learned += 1;
+            }
+            let norm = t.iter().map(|x| x * x).sum::<f64>().sqrt();
+            (learned >= MIN_SOUND_VERDICTS && norm > 0.0)
+                .then(|| t.iter().map(|x| x / norm).collect())
+        };
+        // The never-played songs that sound most like what they like.
+        let taste_pool: Vec<usize> = match &sound_taste {
+            Some(t) => {
+                let mut fits: Vec<(f64, usize)> = (0..n)
+                    .filter(|&i| !facts[i].known)
+                    .filter_map(|i| {
+                        let c = catalog.centred(i).filter(|c| c.norm2 > 0)?;
+                        let dot: f64 = t.iter().zip(&c.v).map(|(a, v)| a * f64::from(*v)).sum();
+                        Some((dot / c.norm, i))
+                    })
+                    .collect();
+                let best =
+                    |a: &(f64, usize), b: &(f64, usize)| b.0.total_cmp(&a.0).then(a.1.cmp(&b.1));
+                if fits.len() > SOUND_TASTE_PICKS {
+                    fits.select_nth_unstable_by(SOUND_TASTE_PICKS, best);
+                    fits.truncate(SOUND_TASTE_PICKS);
+                }
+                fits.sort_by(best);
+                fits.into_iter().map(|x| x.1).collect()
+            }
+            None => Vec::new(),
+        };
         Model {
             now_utc_ms,
             utc_offset_minutes,
@@ -354,7 +417,38 @@ impl Model {
             artist_skips,
             artist_when,
             artist_record,
+            taste_pool,
+            sound_taste,
+            ranker: None,
         }
+    }
+
+    /// This model with a learned ranker (or none): picks are scored by it when it is usable.
+    pub fn with_ranker(mut self, ranker: Option<std::sync::Arc<crate::learn::Ranker>>) -> Model {
+        self.ranker = ranker;
+        self
+    }
+
+    pub fn ranker(&self) -> Option<&crate::learn::Ranker> {
+        self.ranker.as_deref()
+    }
+
+    /// How well a song's sound fits what the person likes, -1 to 1 (the cosine with their taste
+    /// direction); None when the song has no sound or the taste is not known yet.
+    pub fn sound_fit(&self, catalog: &Catalog, i: usize) -> Option<f64> {
+        let t = self.sound_taste.as_ref()?;
+        let c = catalog.centred(i)?;
+        if c.norm2 == 0 {
+            return None;
+        }
+        let dot: f64 = t.iter().zip(&c.v).map(|(a, v)| a * f64::from(*v)).sum();
+        Some(dot / c.norm)
+    }
+
+    /// The never-played songs that fit the person's taste in sound best, best first (made once
+    /// with the model): candidates that let the engine look past the few songs it has heard.
+    pub fn taste_pool(&self) -> &[usize] {
+        &self.taste_pool
     }
 
     /// The best guess of how much the user likes a song, 0..1: what was learned
@@ -363,6 +457,20 @@ impl Model {
         if self.facts[i].known {
             return self.affinity[i];
         }
+        // A song nobody has played, that has been analysed: what it sounds like says as much as
+        // its tags, and when they disagree both count (starting values, docs/adr/core-0020).
+        if let Some(fit) = self.sound_fit(catalog, i) {
+            let tags = self.tag_liking(catalog, i);
+            let sound = 0.5 + 0.5 * (fit * SOUND_FIT_SCALE).clamp(-1.0, 1.0);
+            // A guess never outranks what the person has shown: kept within what a song they
+            // finished once or twice earns.
+            return (0.5 + 0.6 * (tags - 0.5) + SOUND_LEAN * (sound - 0.5)).clamp(0.2, 0.68);
+        }
+        self.tag_liking(catalog, i)
+    }
+
+    /// What the artist and genres say about a song nobody has played, 0..1.
+    fn tag_liking(&self, catalog: &Catalog, i: usize) -> f64 {
         let s = catalog.get(i);
         let artist = s
             .artists

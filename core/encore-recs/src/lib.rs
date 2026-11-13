@@ -15,6 +15,7 @@
 #![forbid(unsafe_code)]
 
 pub mod det;
+pub mod learn;
 pub mod mixes;
 pub mod model;
 pub mod rank;
@@ -93,6 +94,11 @@ impl Catalog {
         self.centred.iter().flatten().count()
     }
 
+    /// Song `i`'s sound with the library's mean taken out, when it has been analysed.
+    pub(crate) fn centred(&self, i: usize) -> Option<&sound::Centred> {
+        self.centred.get(i)?.as_ref()
+    }
+
     /// How alike two songs sound, 0 to 1 (negative cosines count as 0); None unless both have a sound.
     pub fn sound_similarity(&self, a: usize, b: usize) -> Option<f64> {
         let (x, y) = (
@@ -115,8 +121,15 @@ impl Catalog {
             .filter(|(j, _)| *j != i)
             .filter_map(|(j, c)| Some((sound::cosine(me, c.as_ref()?), j)))
             .collect();
-        all.sort_by(|a, b| b.0.total_cmp(&a.0).then(a.1.cmp(&b.1)));
-        all.into_iter().take(n).map(|(_, j)| j).collect()
+        // Only the top `n` are ordered: a partial selection, then a sort of those.
+        let by_closeness =
+            |a: &(f64, usize), b: &(f64, usize)| b.0.total_cmp(&a.0).then(a.1.cmp(&b.1));
+        if all.len() > n {
+            all.select_nth_unstable_by(n, by_closeness);
+            all.truncate(n);
+        }
+        all.sort_by(by_closeness);
+        all.into_iter().map(|(_, j)| j).collect()
     }
 
     pub fn len(&self) -> usize {

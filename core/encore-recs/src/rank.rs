@@ -13,6 +13,7 @@ use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 
 use crate::det::Rng;
+use crate::learn::Features;
 use crate::model::Model;
 use crate::{Catalog, Params, bucket_of, weekend};
 
@@ -145,6 +146,10 @@ fn candidates(
     for &s in &seeds {
         pool.extend(cat.nearest_by_sound(s, SOUND_NEIGHBOURS));
     }
+    // And what sounds like what the person likes, though nobody has played it yet: with a short
+    // history this is most of what lets the engine look past the few songs it has heard (in the
+    // replay, taking it out cost the light listeners 3 to 5 points of early skips).
+    pool.extend(model.taste_pool().iter().copied());
     if seeds.is_empty() || pool.len() < 50 {
         // Nothing to go on: what the user likes most, then the rest by liking.
         // Liking computed once per song, not once per comparison.
@@ -208,17 +213,62 @@ fn session_fit(model: &Model, cat: &Catalog, ctx: &Context, i: usize) -> (f64, O
     (fit.clamp(0.0, 1.0), best_seed)
 }
 
+/// The signals the score (hand-tuned or learned) is made of, for song `i` in this context: the
+/// same function makes the ranker's training examples and scores picks, so they cannot disagree.
+/// Returns them with the fit with the session and the seed it fits best.
+pub(crate) fn features_of(
+    model: &Model,
+    cat: &Catalog,
+    ctx: &Context,
+    i: usize,
+    bucket: u8,
+    wk: bool,
+) -> (Features, f64, Option<usize>) {
+    let (fit, best_seed) = session_fit(model, cat, ctx, i);
+    let time = (model.time_fit(cat, i, bucket, wk) * 2.0).min(1.0);
+    let taste = model.sound_fit(cat, i);
+    let like_the_seed = best_seed.and_then(|s| cat.sound_similarity(s, i));
+    let jump = ctx.seeds.first().and_then(|k| cat.find(k)).and_then(|s| {
+        crate::sound::flow_cost(cat.get(s).sound.as_ref()?, cat.get(i).sound.as_ref()?)
+    });
+    let x: Features = [
+        model.liking(cat, i) as f32,
+        fit as f32,
+        time as f32,
+        model.freshness(i) as f32,
+        model.skip_rate(cat, i) as f32,
+        taste.unwrap_or(0.0) as f32,
+        f32::from(u8::from(taste.is_some())),
+        like_the_seed.unwrap_or(0.0) as f32,
+        jump.unwrap_or(0.0) as f32,
+    ];
+    (x, fit, best_seed)
+}
+
+/// Section 21's hand-tuned score from the signals: 0.35 liking + 0.20 session fit + 0.15
+/// time of day + 0.10 freshness - 0.20 recent skip rate.
+pub(crate) fn hand_score(x: &Features) -> f64 {
+    0.35 * f64::from(x[0])
+        + 0.20 * f64::from(x[1])
+        + 0.15 * f64::from(x[2])
+        + 0.10 * f64::from(x[3])
+        - 0.20 * f64::from(x[4])
+}
+
 fn score_all(model: &Model, cat: &Catalog, ctx: &Context, pool: &[usize]) -> Vec<Scored> {
     let bucket = bucket_of(model.now_utc_ms, model.utc_offset_minutes);
     let wk = weekend(model.now_utc_ms, model.utc_offset_minutes);
+    let ranker = model.ranker().filter(|r| r.usable());
     let mut out: Vec<Scored> = pool
         .iter()
         .map(|&i| {
-            let (fit, best_seed) = session_fit(model, cat, ctx, i);
-            let time = (model.time_fit(cat, i, bucket, wk) * 2.0).min(1.0);
-            let score =
-                0.35 * model.liking(cat, i) + 0.20 * fit + 0.15 * time + 0.10 * model.freshness(i)
-                    - 0.20 * model.skip_rate(cat, i);
+            let (x, fit, best_seed) = features_of(model, cat, ctx, i, bucket, wk);
+            // The learned ranker when the profile has one that earned its place; else the
+            // hand-tuned score.
+            let score = match ranker {
+                Some(r) => r.probability(&x),
+                None => hand_score(&x),
+            };
             Scored {
                 i,
                 score,
