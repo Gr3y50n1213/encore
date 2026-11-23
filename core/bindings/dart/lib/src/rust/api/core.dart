@@ -520,6 +520,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  SyncStatus  syncStatus();
 
 
+ Future<bool>  trainRankerIfDue();
+
+
  void  trustCertificate({required String address , required String sha256 });
 
 

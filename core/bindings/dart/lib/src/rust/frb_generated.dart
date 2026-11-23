@@ -69,7 +69,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
                   String get codegenVersion => '2.13.0';
 
                   @override
-                  int get rustContentHash => -2035826471;
+                  int get rustContentHash => -571607362;
 
                   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
                     stem: 'encore_dart',
@@ -412,6 +412,8 @@ Future<List<SyncResult>> crateApiCoreEncoreSyncLibrary({required Encore that });
 Future<SyncStatus> crateApiCoreEncoreSyncNow({required Encore that });
 
 SyncStatus crateApiCoreEncoreSyncStatus({required Encore that });
+
+Future<bool> crateApiCoreEncoreTrainRankerIfDue({required Encore that });
 
 void crateApiCoreEncoreTrustCertificate({required Encore that , required String address , required String sha256 });
 
@@ -4779,13 +4781,38 @@ sse_encode_bool(keepPlaying, serializer);
         );
         
 
+@override Future<bool> crateApiCoreEncoreTrainRankerIfDue({required Encore that })  { return handler.executeNormal(NormalTask(
+            callFfi: (port_) {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
+            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 167, port: port_);
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_api_error,
+        )
+        ,
+            constMeta: kCrateApiCoreEncoreTrainRankerIfDueConstMeta,
+            argValues: [that],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiCoreEncoreTrainRankerIfDueConstMeta => const TaskConstMeta(
+            debugName: "Encore_train_ranker_if_due",
+            argNames: ["that"],
+        );
+        
+
 @override void crateApiCoreEncoreTrustCertificate({required Encore that , required String address , required String sha256 })  { return handler.executeSync(SyncTask(
             callFfi: () {
               
             final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
 sse_encode_String(address, serializer);
 sse_encode_String(sha256, serializer);
-            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 167)!;
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 168)!;
             
             },
             codec: 
@@ -4811,7 +4838,7 @@ sse_encode_String(sha256, serializer);
               
             final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
 sse_encode_String(editId, serializer);
-            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 168)!;
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 169)!;
             
             },
             codec: 
@@ -4836,7 +4863,7 @@ sse_encode_String(editId, serializer);
             callFfi: () {
               
             final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
-            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 169)!;
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 170)!;
             
             },
             codec: 
@@ -4862,7 +4889,7 @@ sse_encode_String(editId, serializer);
               
             final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
 sse_encode_list_prim_i_64_strict(songIds, serializer);
-            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 170)!;
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 171)!;
             
             },
             codec: 
@@ -4889,7 +4916,7 @@ sse_encode_list_prim_i_64_strict(songIds, serializer);
             final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
 sse_encode_String(profileId, serializer);
 sse_encode_opt_String(pin, serializer);
-            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 171)!;
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 172)!;
             
             },
             codec: 
@@ -4915,7 +4942,7 @@ sse_encode_opt_String(pin, serializer);
               
             final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
 sse_encode_i_64(songId, serializer);
-            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 172)!;
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 173)!;
             
             },
             codec: 
@@ -4940,7 +4967,7 @@ sse_encode_i_64(songId, serializer);
             callFfi: () {
               
             final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerEncore(that, serializer);
-            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 173)!;
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 174)!;
             
             },
             codec: 
@@ -4965,7 +4992,7 @@ sse_encode_i_64(songId, serializer);
             callFfi: () {
               
             final serializer = SseSerializer(generalizedFrbRustBinding);
-            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 174)!;
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 175)!;
             
             },
             codec: 
@@ -4990,7 +5017,7 @@ sse_encode_i_64(songId, serializer);
             callFfi: () {
               
             final serializer = SseSerializer(generalizedFrbRustBinding);
-            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 175)!;
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 176)!;
             
             },
             codec: 
@@ -5015,7 +5042,7 @@ sse_encode_i_64(songId, serializer);
             callFfi: () {
               
             final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_String(name, serializer);
-            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 176)!;
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 177)!;
             
             },
             codec: 
@@ -9947,6 +9974,9 @@ sse_encode_bool(self.nowPlaying, serializer);
 
 
  SyncStatus  syncStatus()=>RustLib.instance.api.crateApiCoreEncoreSyncStatus(that: this, );
+
+
+ Future<bool>  trainRankerIfDue()=>RustLib.instance.api.crateApiCoreEncoreTrainRankerIfDue(that: this, );
 
 
  void  trustCertificate({required String address , required String sha256 })=>RustLib.instance.api.crateApiCoreEncoreTrustCertificate(that: this, address: address, sha256: sha256);

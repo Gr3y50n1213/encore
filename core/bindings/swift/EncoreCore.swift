@@ -1704,6 +1704,15 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     func suggestionStats() throws  -> SuggestionStats
     
     /**
+     * Train this profile's learned ranker if it is due (docs/adr/core-0020): with a companion
+     * server, the server trains it from every device's plays and this device keeps a copy;
+     * without one, it trains here. Call it from the platform's background job (while charging).
+     * Nothing happens for Guest or with learning off, or below a few hundred plays. Returns
+     * whether a new one was saved. Async.
+     */
+    func trainRankerIfDue() async throws  -> Bool
+    
+    /**
      * Why this song (board 38): one or two reasons and up to two "sounds like".
      */
     func whyThisSong(songId: Int64) throws  -> WhyThisSong
@@ -4132,6 +4141,29 @@ open func suggestionStats()throws  -> SuggestionStats  {
             self.uniffiCloneHandle(),uniffiCallStatus
     )
 })
+}
+    
+    /**
+     * Train this profile's learned ranker if it is due (docs/adr/core-0020): with a companion
+     * server, the server trains it from every device's plays and this device keeps a copy;
+     * without one, it trains here. Call it from the platform's background job (while charging).
+     * Nothing happens for Guest or with learning off, or below a few hundred plays. Returns
+     * whether a new one was saved. Async.
+     */
+open func trainRankerIfDue()async throws  -> Bool  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_train_ranker_if_due(
+                        self.uniffiCloneHandle()
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_i8,
+            completeFunc: ffi_encore_core_rust_future_complete_i8,
+            freeFunc: ffi_encore_core_rust_future_free_i8,
+            liftFunc: FfiConverterBool.lift,
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
 }
     
     /**
@@ -17836,6 +17868,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_suggestion_stats() != 33503) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_train_ranker_if_due() != 30378) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_why_this_song() != 5198) {

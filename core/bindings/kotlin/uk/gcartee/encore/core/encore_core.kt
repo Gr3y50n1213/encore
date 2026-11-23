@@ -1032,6 +1032,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_suggestion_stats(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_train_ranker_if_due(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_why_this_song(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_cancel_sleep_timer(
@@ -1407,6 +1409,8 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_suggestion_stats(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_train_ranker_if_due(`ptr`: Long,
+    ): Long
     external fun uniffi_encore_core_fn_method_encorecore_why_this_song(`ptr`: Long,`songId`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_cancel_sleep_timer(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -2052,6 +2056,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_suggestion_stats() and 0xFFFF) != 33503) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_train_ranker_if_due() and 0xFFFF) != 30378) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_why_this_song() and 0xFFFF) != 5198) {
@@ -3817,6 +3824,15 @@ public interface EncoreCoreInterface {
      * How suggestions are doing (board 38, note 7): local, the last 4 weeks.
      */
     fun `suggestionStats`(): SuggestionStats
+    
+    /**
+     * Train this profile's learned ranker if it is due (docs/adr/core-0020): with a companion
+     * server, the server trains it from every device's plays and this device keeps a copy;
+     * without one, it trains here. Call it from the platform's background job (while charging).
+     * Nothing happens for Guest or with learning off, or below a few hundred plays. Returns
+     * whether a new one was saved. Async.
+     */
+    suspend fun `trainRankerIfDue`(): kotlin.Boolean
     
     /**
      * Why this song (board 38): one or two reasons and up to two "sounds like".
@@ -7133,6 +7149,34 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
     )
     }
     
+
+    
+    /**
+     * Train this profile's learned ranker if it is due (docs/adr/core-0020): with a companion
+     * server, the server trains it from every device's plays and this device keeps a copy;
+     * without one, it trains here. Call it from the platform's background job (while charging).
+     * Nothing happens for Guest or with learning off, or below a few hundred plays. Returns
+     * whether a new one was saved. Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `trainRankerIfDue`() : kotlin.Boolean {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_train_ranker_if_due(
+                uniffiHandle,
+                
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_i8(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_i8(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_i8(future) },
+        // lift function
+        { FfiConverterBoolean.lift(it) },
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
 
     
     /**

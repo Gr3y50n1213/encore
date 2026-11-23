@@ -40,7 +40,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -2035826471;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -571607362;
 
 // Section: executor
 
@@ -8410,6 +8410,62 @@ fn wire__crate__api__core__Encore_sync_status_impl(
         },
     )
 }
+fn wire__crate__api__core__Encore_train_ranker_if_due_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "Encore_train_ranker_if_due",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Encore>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::core::ApiError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok =
+                            crate::api::core::Encore::train_ranker_if_due(&*api_that_guard).await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__core__Encore_trust_certificate_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -12778,6 +12834,12 @@ fn pde_ffi_dispatcher_primary_impl(
         }
         164 => wire__crate__api__core__Encore_sync_library_impl(port, ptr, rust_vec_len, data_len),
         165 => wire__crate__api__core__Encore_sync_now_impl(port, ptr, rust_vec_len, data_len),
+        167 => wire__crate__api__core__Encore_train_ranker_if_due_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
         _ => unreachable!(),
     }
 }
@@ -12957,16 +13019,16 @@ fn pde_ffi_dispatcher_sync_impl(
         161 => wire__crate__api__core__Encore_stream_quality_impl(ptr, rust_vec_len, data_len),
         162 => wire__crate__api__core__Encore_suggestion_stats_impl(ptr, rust_vec_len, data_len),
         166 => wire__crate__api__core__Encore_sync_status_impl(ptr, rust_vec_len, data_len),
-        167 => wire__crate__api__core__Encore_trust_certificate_impl(ptr, rust_vec_len, data_len),
-        168 => wire__crate__api__core__Encore_undo_impl(ptr, rust_vec_len, data_len),
-        169 => wire__crate__api__core__Encore_undo_queue_impl(ptr, rust_vec_len, data_len),
-        170 => wire__crate__api__core__Encore_unlike_impl(ptr, rust_vec_len, data_len),
-        171 => wire__crate__api__core__Encore_unlock_profile_impl(ptr, rust_vec_len, data_len),
-        172 => wire__crate__api__core__Encore_why_this_song_impl(ptr, rust_vec_len, data_len),
-        173 => wire__crate__api__core__Encore_widget_snapshot_impl(ptr, rust_vec_len, data_len),
-        174 => wire__crate__api__hello__app_name_impl(ptr, rust_vec_len, data_len),
-        175 => wire__crate__api__hello__core_version_impl(ptr, rust_vec_len, data_len),
-        176 => wire__crate__api__hello__hello_impl(ptr, rust_vec_len, data_len),
+        168 => wire__crate__api__core__Encore_trust_certificate_impl(ptr, rust_vec_len, data_len),
+        169 => wire__crate__api__core__Encore_undo_impl(ptr, rust_vec_len, data_len),
+        170 => wire__crate__api__core__Encore_undo_queue_impl(ptr, rust_vec_len, data_len),
+        171 => wire__crate__api__core__Encore_unlike_impl(ptr, rust_vec_len, data_len),
+        172 => wire__crate__api__core__Encore_unlock_profile_impl(ptr, rust_vec_len, data_len),
+        173 => wire__crate__api__core__Encore_why_this_song_impl(ptr, rust_vec_len, data_len),
+        174 => wire__crate__api__core__Encore_widget_snapshot_impl(ptr, rust_vec_len, data_len),
+        175 => wire__crate__api__hello__app_name_impl(ptr, rust_vec_len, data_len),
+        176 => wire__crate__api__hello__core_version_impl(ptr, rust_vec_len, data_len),
+        177 => wire__crate__api__hello__hello_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
