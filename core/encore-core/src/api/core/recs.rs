@@ -26,6 +26,8 @@ const PINNED_KEY: &str = "pinnedMixes";
 const HIDDEN_KEY: &str = "hiddenMixes";
 const TITLES_KEY: &str = "recentTitles";
 const ADVENTURE_KEY: &str = "recs.adventurousness";
+/// The mood mixes opened (Browse by mood), kept so pins, downloads and widgets find them.
+const MOOD_MIXES_KEY: &str = "moodMixes";
 /// The learned ranker and what it was trained from (`recs::learn::Trained`; docs/adr/core-0020).
 const RANKER_KEY: &str = "trainedRanker";
 
@@ -101,6 +103,7 @@ fn mix_kind(s: recs::MixSlot) -> MixKind {
         recs::MixSlot::Stretch => MixKind::Stretch,
         recs::MixSlot::Family => MixKind::Family,
         recs::MixSlot::Starter => MixKind::Starter,
+        recs::MixSlot::Mood => MixKind::Mood,
     }
 }
 
@@ -654,6 +657,13 @@ impl Inner {
         if let Some(m) = self.pinned(store).into_iter().find(|m| m.id == mix_id) {
             return Some((m, true, 0));
         }
+        if mix_id.starts_with("mood-") {
+            let kept: Vec<recs::Mix> = Self::stored(store, MOOD_MIXES_KEY)?;
+            return kept
+                .into_iter()
+                .find(|m| m.id == mix_id)
+                .map(|m| (m, false, 0));
+        }
         let set: recs::MixSet = Self::stored(store, MIX_SET_KEY)?;
         let made = set.made_utc_ms;
         set.mixes
@@ -920,6 +930,7 @@ impl EncoreCore {
         lock(&p.store)?.raise_state(encore_store::EPOCH_KEY, now)?;
         lock(&p.store)?.set_recs_state(MIX_SET_KEY, None)?;
         lock(&p.store)?.set_recs_state(RANKER_KEY, None)?;
+        lock(&p.store)?.set_recs_state(MOOD_MIXES_KEY, None)?;
         self.inner.record_event(
             &p,
             "resetSuggestions",
@@ -943,8 +954,9 @@ impl EncoreCore {
             store.raise_state(encore_store::CLEARED_KEY, now)?;
             let n = store.clear_history_before(now)?;
             store.set_recs_state(MIX_SET_KEY, None)?;
-            // A ranker learned from those plays goes with them.
+            // A ranker learned from those plays goes with them, and the mood mixes it ordered.
             store.set_recs_state(RANKER_KEY, None)?;
+            store.set_recs_state(MOOD_MIXES_KEY, None)?;
             n
         };
         self.inner.record_event(
@@ -987,6 +999,22 @@ impl EncoreCore {
         .await
     }
 
+    /// Browse by mood (board 07; Phase 10): the moods this library has, from what its songs sound
+    /// like, each with at least 25 songs, in a fixed order. Empty until enough songs are analysed
+    /// (sound analysis is off until the person turns it on). Open one with `mix(mix_id)`.
+    pub fn moods(&self) -> Result<Vec<MoodTile>, EncoreError> {
+        let p = self.inner.profile()?;
+        let (_, catalog, _) = self.inner.recs_model(&p)?;
+        Ok(recs::moods::moods(&catalog)
+            .into_iter()
+            .map(|m| MoodTile {
+                mix_id: format!("mood-{}", m.id),
+                title: m.title.to_owned(),
+                song_count: u32::try_from(m.songs.len()).unwrap_or(u32::MAX),
+            })
+            .collect())
+    }
+
     /// Train this profile's learned ranker if it is due (docs/adr/core-0020): with a companion
     /// server, the server trains it from every device's plays and this device keeps a copy;
     /// without one, it trains here. Call it from the platform's background job (while charging).
@@ -1000,7 +1028,23 @@ impl EncoreCore {
     /// A mix's page (board 15), each song with one reason.
     pub fn mix(&self, mix_id: String) -> Result<MixPage, EncoreError> {
         let p = self.inner.profile()?;
-        let (_, _, ids) = self.inner.recs_model(&p)?;
+        let (model, catalog, ids) = self.inner.recs_model(&p)?;
+        if let Some(mood) = mix_id.strip_prefix("mood-") {
+            // A mood's mix is made fresh each time it opens (Phase 10), then kept so a pin, a
+            // download or a widget finds it.
+            let made =
+                recs::build_mood_mix(&model, &catalog, &params(), mood).ok_or_else(|| {
+                    EncoreError::NotFound {
+                        reason: "This mood has too few songs for now".into(),
+                    }
+                })?;
+            let store = lock(&p.store)?;
+            let mut kept: Vec<recs::Mix> =
+                Inner::stored(&store, MOOD_MIXES_KEY).unwrap_or_default();
+            kept.retain(|m| m.id != made.id);
+            kept.push(made);
+            Inner::store_json(&store, MOOD_MIXES_KEY, &kept)?;
+        }
         let store = lock(&p.store)?;
         let (m, pinned, made) =
             self.inner

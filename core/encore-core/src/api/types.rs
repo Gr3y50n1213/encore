@@ -1005,6 +1005,8 @@ pub enum MixKind {
     Family,
     /// No plays yet: from the media server's favourites and most played.
     Starter,
+    /// Browse by mood: a mood from what songs sound like (Phase 10).
+    Mood,
 }
 
 /// A mix tile (Home's Made for you, the Mixes tab).
@@ -1069,6 +1071,19 @@ pub struct MixSong {
 pub struct MixPage {
     pub summary: MixSummary,
     pub songs: Vec<MixSong>,
+}
+
+/// A tile of Browse by mood (board 07; Phase 10): a mood this library has, from what its songs
+/// sound like. Open it with `mix(mix_id)`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct MoodTile {
+    /// `mood-<id>`, the same every day.
+    pub mix_id: String,
+    /// 2 to 4 plain words tied to what is measured ("Calm and Warm").
+    pub title: String,
+    /// The library's songs in this mood (at least 25).
+    pub song_count: u32,
 }
 
 /// One shelf of How suggestions are doing (board 38, note 7): the last 4 weeks.

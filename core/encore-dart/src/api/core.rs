@@ -17,7 +17,7 @@ pub use encore_core::api::{
     Adventurousness, ArtworkPalette, CompanionDevice, DropPreview, DropRefusal, DropTarget,
     DropTargetKind, EditResult, ExportSummary, GuestSession, Home, InterruptionKind,
     LyricBackground, LyricGap, LyricLine, LyricMatch, LyricSide, LyricWord, LyricsFormat,
-    LyricsOrigin, LyricsSync, MixKind, MixPage, MixShelf, MixSong, MixState, MixSummary,
+    LyricsOrigin, LyricsSync, MixKind, MixPage, MixShelf, MixSong, MixState, MixSummary, MoodTile,
     NotInterestedItem, NotInterestedReason, PaletteScheme, PaletteSwatch, PickReason, RadioSeed,
     ReasonKind, SentEdits, ShelfStat, Singer, SingerKind, SkipOrigin, SkipTarget, SongLyrics,
     SuggestionStats, TimeOfDay, WhyThisSong,
@@ -190,6 +190,7 @@ pub enum _MixKind {
     Stretch,
     Family,
     Starter,
+    Mood,
 }
 
 #[frb(mirror(MixSummary))]
@@ -235,6 +236,13 @@ pub struct _MixSong {
 pub struct _MixPage {
     pub summary: MixSummary,
     pub songs: Vec<MixSong>,
+}
+
+#[frb(mirror(MoodTile))]
+pub struct _MoodTile {
+    pub mix_id: String,
+    pub title: String,
+    pub song_count: u32,
 }
 
 #[frb(mirror(ShelfStat))]
@@ -1933,6 +1941,10 @@ impl Encore {
     #[frb(sync)]
     pub fn stop_sound_analysis(&self) {
         self.core.stop_sound_analysis()
+    }
+    #[frb(sync)]
+    pub fn moods(&self) -> Result<Vec<MoodTile>, ApiError> {
+        Ok(self.core.moods()?)
     }
     pub async fn train_ranker_if_due(&self) -> Result<bool, ApiError> {
         Ok(self.core.train_ranker_if_due().await?)

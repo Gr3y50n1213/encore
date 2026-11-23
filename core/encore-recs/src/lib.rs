@@ -18,6 +18,7 @@ pub mod det;
 pub mod learn;
 pub mod mixes;
 pub mod model;
+pub mod moods;
 pub mod rank;
 pub mod sound;
 #[cfg(test)]
@@ -29,7 +30,9 @@ pub mod titles;
 
 use serde::{Deserialize, Serialize};
 
-pub use mixes::{Mix, MixSet, MixSlot, Previous, Shelves, build_mixes, build_shelves};
+pub use mixes::{
+    Mix, MixSet, MixSlot, Previous, Shelves, build_mixes, build_mood_mix, build_shelves,
+};
 pub use model::Model;
 pub use rank::{Context, Pick, Reason, autoplay, radio, score_of, smart_shuffle, sounds_like, why};
 pub use sound::Sound;
