@@ -26,6 +26,8 @@ const PINNED_KEY: &str = "pinnedMixes";
 const HIDDEN_KEY: &str = "hiddenMixes";
 const TITLES_KEY: &str = "recentTitles";
 const ADVENTURE_KEY: &str = "recs.adventurousness";
+/// The learned ranker and what it was trained from (`recs::learn::Trained`; docs/adr/core-0020).
+const RANKER_KEY: &str = "trainedRanker";
 
 /// The model, the catalog it was built on, and song key to track ID.
 pub(crate) type Built = (
@@ -261,7 +263,19 @@ impl Inner {
             return Ok((c.model.clone(), c.catalog.clone(), c.ids.clone()));
         }
         let (catalog, history, ids) = inputs(&*lock(&p.store)?, learn)?;
-        let model = recs::Model::build(&history, &catalog, &params(), now, self.utc_offset(p));
+        // The learned ranker, when this profile has one from this learning epoch (Phase 10).
+        let trained: Option<recs::learn::Trained> = if learn {
+            Self::stored(&*lock(&p.store)?, RANKER_KEY)
+        } else {
+            None
+        };
+        let ranker = trained
+            .as_ref()
+            .and_then(|t| t.ranker_for(&history))
+            .cloned()
+            .map(Arc::new);
+        let model = recs::Model::build(&history, &catalog, &params(), now, self.utc_offset(p))
+            .with_ranker(ranker);
         let cache = RecsCache {
             fingerprint,
             built_utc_ms: now,
@@ -905,6 +919,7 @@ impl EncoreCore {
         let now = now_ms();
         lock(&p.store)?.raise_state(encore_store::EPOCH_KEY, now)?;
         lock(&p.store)?.set_recs_state(MIX_SET_KEY, None)?;
+        lock(&p.store)?.set_recs_state(RANKER_KEY, None)?;
         self.inner.record_event(
             &p,
             "resetSuggestions",
@@ -928,6 +943,8 @@ impl EncoreCore {
             store.raise_state(encore_store::CLEARED_KEY, now)?;
             let n = store.clear_history_before(now)?;
             store.set_recs_state(MIX_SET_KEY, None)?;
+            // A ranker learned from those plays goes with them.
+            store.set_recs_state(RANKER_KEY, None)?;
             n
         };
         self.inner.record_event(
@@ -968,6 +985,16 @@ impl EncoreCore {
             home
         })
         .await
+    }
+
+    /// Train this profile's learned ranker if it is due (docs/adr/core-0020): with a companion
+    /// server, the server trains it from every device's plays and this device keeps a copy;
+    /// without one, it trains here. Call it from the platform's background job (while charging).
+    /// Nothing happens for Guest or with learning off, or below a few hundred plays. Returns
+    /// whether a new one was saved. Async.
+    pub async fn train_ranker_if_due(&self) -> Result<bool, EncoreError> {
+        let inner = self.inner.clone();
+        self.spawn(async move { train_ranker(&inner).await }).await
     }
 
     /// A mix's page (board 15), each song with one reason.
@@ -1386,4 +1413,56 @@ async fn server_set(inner: &Arc<Inner>, regenerate: bool) -> Option<recs::MixSet
         let _ = Inner::store_json(&store, MIX_SET_KEY, &set);
     }
     Some(set)
+}
+
+/// [`EncoreCore::train_ranker_if_due`].
+async fn train_ranker(inner: &Arc<Inner>) -> Result<bool, EncoreError> {
+    let p = inner.profile()?;
+    if !inner.learns(&p)? {
+        return Ok(false);
+    }
+    let last: Option<recs::learn::Trained> = Inner::stored(&*lock(&p.store)?, RANKER_KEY);
+    let fresh = match server_ranker(inner, &p).await {
+        // The server answered: its copy is the one (it saw every device's plays).
+        Some(from_server) => from_server.filter(|t| last.as_ref() != Some(t)),
+        None => {
+            let offset = inner.utc_offset(&p);
+            tokio::task::block_in_place(|| -> Result<_, EncoreError> {
+                // The lock is let go before training: it can take a while on a phone.
+                let (catalog, history, _) = inputs(&*lock(&p.store)?, true)?;
+                let now = now_ms();
+                Ok(recs::learn::due(last.as_ref(), &history, now)
+                    .then(|| recs::learn::retrain(&history, &catalog, &params(), now, offset)))
+            })?
+        }
+    };
+    let Some(t) = fresh else {
+        return Ok(false);
+    };
+    Inner::store_json(&*lock(&p.store)?, RANKER_KEY, &t)?;
+    // The next pick is scored by it.
+    *lock(&p.recs)? = None;
+    Ok(true)
+}
+
+/// The learned ranker from the companion server: Some(None) when it has none yet, None when the
+/// profile has no server or it did not answer (the device trains itself).
+async fn server_ranker(inner: &Arc<Inner>, p: &Profile) -> Option<Option<recs::learn::Trained>> {
+    let s = lock(&p.companion).ok()?.clone()?;
+    let offset = inner.utc_offset(p);
+    let ask = || {
+        let s = &s;
+        super::sync_loop::signed(inner, s, move |a| async move {
+            s.client.recs_model(&a, offset).await
+        })
+    };
+    let reply = match ask().await {
+        // No song list there yet: send it, then ask again.
+        Err(crate::companion::CompanionError::Refused(_)) => {
+            upload_catalog(inner, p, &s).await.ok()?;
+            ask().await.ok()?
+        }
+        other => other.ok()?,
+    };
+    Some(serde_json::from_value(reply).ok().flatten())
 }

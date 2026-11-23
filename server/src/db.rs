@@ -99,6 +99,9 @@ pub(crate) type Result<T> = std::result::Result<T, rusqlite::Error>;
 
 /// When the profile's listening history was last cleared (UTC ms), in profile_state.
 pub(crate) const CLEARED_KEY: &str = "clearedBeforeUtcMs";
+/// The profile's learned ranker and what it was trained from (`encore_recs::learn::Trained` as
+/// JSON; docs/adr/core-0020), in profile_state. Cleared with the listening history.
+pub(crate) const RANKER_KEY: &str = "trainedRanker";
 
 /// How long the same refresh token may be retried while its replacement is unused.
 pub(crate) const RETRY_WINDOW_MS: i64 = 120_000;
@@ -545,6 +548,11 @@ impl Db {
                     "DELETE FROM mix_sets WHERE profile_id = ?1",
                     [authed.profile_id],
                 )?;
+                // A ranker learned from the cleared plays goes with them.
+                tx.execute(
+                    "DELETE FROM profile_state WHERE profile_id = ?1 AND key = ?2",
+                    params![authed.profile_id, RANKER_KEY],
+                )?;
             }
             if matches!(e.kind.as_str(), "play" | "lyricJump") && e.created_utc_ms < cleared_before
             {
@@ -700,6 +708,26 @@ impl Db {
             "INSERT INTO mix_sets (profile_id, set_json) VALUES (?1, ?2)
              ON CONFLICT (profile_id) DO UPDATE SET set_json = excluded.set_json",
             params![profile_id, json],
+        )?;
+        Ok(())
+    }
+
+    /// A value in profile_state.
+    pub(crate) fn profile_value(&self, profile_id: i64, key: &str) -> Result<Option<String>> {
+        self.conn()
+            .query_row(
+                "SELECT value FROM profile_state WHERE profile_id = ?1 AND key = ?2",
+                params![profile_id, key],
+                |r| r.get(0),
+            )
+            .optional()
+    }
+
+    pub(crate) fn put_profile_value(&self, profile_id: i64, key: &str, value: &str) -> Result<()> {
+        self.conn().execute(
+            "INSERT INTO profile_state (profile_id, key, value) VALUES (?1, ?2, ?3)
+             ON CONFLICT (profile_id, key) DO UPDATE SET value = excluded.value",
+            params![profile_id, key, value],
         )?;
         Ok(())
     }

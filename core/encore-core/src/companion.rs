@@ -427,6 +427,25 @@ impl Client {
         Ok(v["set"].clone())
     }
 
+    /// `POST /recs/model`: the profile's learned ranker (`encore_recs::learn::Trained`), trained
+    /// there first when due; null until the profile has enough plays.
+    pub(crate) async fn recs_model(
+        &self,
+        access: &str,
+        utc_offset_minutes: i32,
+    ) -> Result<Value, CompanionError> {
+        let v = self
+            .send(
+                Method::Post,
+                "/recs/model",
+                Some(access),
+                Some(json!({ "utcOffsetMinutes": utc_offset_minutes })),
+                Duration::from_secs(60),
+            )
+            .await?;
+        Ok(v["trained"].clone())
+    }
+
     /// `DELETE /devices/{id}`.
     /// `PATCH /devices/{id}`: board 12's Rename.
     pub(crate) async fn rename_device(

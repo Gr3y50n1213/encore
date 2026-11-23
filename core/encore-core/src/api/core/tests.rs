@@ -1472,6 +1472,50 @@ fn reset_and_clear_behave_differently() {
     assert!(block(core.home()).unwrap().recently_played.is_empty());
 }
 
+/// Phase 10 (docs/adr/core-0020): the learned ranker trains only when due, keeps a note of it,
+/// and Reset suggestions and Clear listening history start it over; Guest trains nothing.
+#[test]
+fn the_learned_ranker_trains_when_due_and_resets_with_the_history() {
+    let dir = temp_dir("ranker");
+    let (core, _) = core_on_recording(&dir);
+    signed_in(&core);
+    block(core.sync_library()).unwrap();
+    let ids: Vec<i64> = core
+        .songs(SongSort::Title, 0, 1000)
+        .unwrap()
+        .iter()
+        .map(|s| s.id)
+        .collect();
+    // Two thirds of the library, so autoplay has songs not heard today (the 24-hour rule).
+    let heard = &ids[..ids.len() * 2 / 3];
+    listen(&core, heard, 120);
+    assert!(!block(core.train_ranker_if_due()).unwrap(), "too few plays");
+    listen(&core, heard, 200);
+    assert!(
+        block(core.train_ranker_if_due()).unwrap(),
+        "320 plays: trained"
+    );
+    assert!(!block(core.train_ranker_if_due()).unwrap(), "not due again");
+    // Picks still work with whatever it learned (or the hand-tuned score if it didn't pass).
+    let state = core
+        .play(vec![ids[0]], 0, StartedFrom::Songs, None)
+        .unwrap();
+    core.playback_started(state.current.unwrap().uid, 60)
+        .unwrap();
+    assert_eq!(core.refresh_autoplay().unwrap().autoplay.len(), 10);
+
+    core.reset_suggestions().unwrap();
+    assert!(
+        !block(core.train_ranker_if_due()).unwrap(),
+        "a new epoch with no plays"
+    );
+    core.set_listening_mode(ListeningMode::Guest).unwrap();
+    assert!(
+        !block(core.train_ranker_if_due()).unwrap(),
+        "Guest trains nothing"
+    );
+}
+
 /// Board 38: Private listening ends after 2 hours of silence.
 #[test]
 fn private_listening_ends_after_two_hours_of_silence() {

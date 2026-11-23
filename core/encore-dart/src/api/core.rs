@@ -1934,6 +1934,9 @@ impl Encore {
     pub fn stop_sound_analysis(&self) {
         self.core.stop_sound_analysis()
     }
+    pub async fn train_ranker_if_due(&self) -> Result<bool, ApiError> {
+        Ok(self.core.train_ranker_if_due().await?)
+    }
     #[frb(sync)]
     pub fn refresh_smart_downloads(&self) -> Result<u32, ApiError> {
         Ok(self.core.refresh_smart_downloads()?)

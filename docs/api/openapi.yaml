@@ -309,6 +309,34 @@ paths:
                   builtNow: { type: boolean }
         "404": { $ref: "#/components/responses/Error" }
         "503": { description: The build took too long and there is no earlier set. }
+  /recs/model:
+    post:
+      summary: The profile's learned ranker, trained first when it is due.
+      description: |
+        Trained from the synced plays and the catalog when encore-recs' `learn::due` says so
+        (300 plays in the learning epoch and none trained yet, 200 new plays, or a week with new
+        plays, or the history was cleared). Waits up to 30 s; slower training finishes in the
+        background and the last one is sent. Clear listening history deletes it.
+        404 when no catalog has been sent yet. docs/adr/core-0020.
+      security: [{ access: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                utcOffsetMinutes: { type: integer }
+      responses:
+        "200":
+          description: The last training (encore-recs learn::Trained, null before the first) and whether it ran now.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trained: { type: [object, "null"] }
+                  trainedNow: { type: boolean }
+        "404": { $ref: "#/components/responses/Error" }
   /ws:
     get:
       summary: The device's live link, a WebSocket (presence, handoff, remote control, sync nudges).

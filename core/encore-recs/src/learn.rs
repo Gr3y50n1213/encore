@@ -286,8 +286,8 @@ pub fn fit(examples: &[Example]) -> Ranker {
         .iter()
         .map(|e| {
             let mut b = [0u8; FEATURES];
-            for f in 0..FEATURES {
-                b[f] = bin_of(f, e.x[f]) as u8;
+            for (f, slot) in b.iter_mut().enumerate() {
+                *slot = bin_of(f, e.x[f]) as u8;
             }
             b
         })
@@ -471,6 +471,84 @@ pub fn judge(all: &[Example]) -> Option<Ranker> {
     Some(ranker)
 }
 
+/// Labelled plays are counted again after this many new ones.
+pub const RETRAIN_AFTER_PLAYS: u32 = 200;
+/// Or after this long, if there was at least one new play.
+pub const RETRAIN_AFTER_MS: i64 = 7 * 86_400_000;
+
+/// What a profile's last training left behind: the ranker, if one earned its place, and what it
+/// was trained from. Kept by the device (`recs_state`) and the companion server, so training runs
+/// only when [`due`] says so, and a ranker from before Reset suggestions is never used.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Trained {
+    /// The learning epoch it was trained in (`History::epoch_start_utc_ms`).
+    pub epoch_start_utc_ms: i64,
+    pub trained_utc_ms: i64,
+    /// The plays it counted ([`plays_in_epoch`]) when it was trained.
+    pub plays: u32,
+    /// None when there was not enough to learn from, or it did not beat the hand-tuned score.
+    pub ranker: Option<Ranker>,
+}
+
+impl Trained {
+    /// The ranker to score with for this history: only one from the same epoch that this build
+    /// can run. A Reset suggestions (a new epoch) drops it at once, before any new training.
+    pub fn ranker_for(&self, history: &History) -> Option<&Ranker> {
+        self.ranker
+            .as_ref()
+            .filter(|r| r.usable() && self.epoch_start_utc_ms == history.epoch_start_utc_ms)
+    }
+}
+
+/// The finished plays in the current learning epoch: what training can learn from.
+pub fn plays_in_epoch(history: &History) -> u32 {
+    history
+        .plays
+        .iter()
+        .filter(|p| p.started_utc_ms >= history.epoch_start_utc_ms && p.outcome.is_some())
+        .count()
+        .try_into()
+        .unwrap_or(u32::MAX)
+}
+
+/// Whether training is worth running now: the history was cleared under a ranker, or there is
+/// enough to learn from and nothing was trained in this epoch, or [`RETRAIN_AFTER_PLAYS`] plays came since, or a week passed with new plays.
+/// The same rule on the device and the server.
+pub fn due(last: Option<&Trained>, history: &History, now_utc_ms: i64) -> bool {
+    let plays = plays_in_epoch(history);
+    // Fewer plays than it learned from: the history was cleared, so a ranker that learned from
+    // those plays must go now (retraining notes "nothing yet" when too little is left).
+    if last.is_some_and(|l| l.ranker.is_some() && plays < l.plays) {
+        return true;
+    }
+    if (plays as usize) < MIN_EXAMPLES {
+        return false;
+    }
+    let Some(last) = last else {
+        return true;
+    };
+    last.epoch_start_utc_ms != history.epoch_start_utc_ms
+        || plays >= last.plays.saturating_add(RETRAIN_AFTER_PLAYS)
+        || (plays > last.plays && now_utc_ms - last.trained_utc_ms >= RETRAIN_AFTER_MS)
+}
+
+/// Train now and note it ([`train`], with what [`due`] needs next time).
+pub fn retrain(
+    history: &History,
+    catalog: &Catalog,
+    p: &Params,
+    now_utc_ms: i64,
+    utc_offset_minutes: i32,
+) -> Trained {
+    Trained {
+        epoch_start_utc_ms: history.epoch_start_utc_ms,
+        trained_utc_ms: now_utc_ms,
+        plays: plays_in_epoch(history),
+        ranker: train(history, catalog, p, now_utc_ms, utc_offset_minutes),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -539,6 +617,84 @@ mod tests {
                     .is_some_and(|r| r.holdout_auc >= r.hand_auc + 0.01),
             "{r:?}"
         );
+    }
+
+    fn history_of(plays: usize, epoch: i64) -> History {
+        History {
+            plays: (0..plays)
+                .map(|i| crate::Play {
+                    song_key: format!("s{i}"),
+                    started_utc_ms: 1_000 + i as i64,
+                    utc_offset_minutes: 0,
+                    listened_ms: 200_000,
+                    outcome: Some(Outcome::Finished),
+                    app_chosen: true,
+                    strong_intent: false,
+                })
+                .collect(),
+            epoch_start_utc_ms: epoch,
+            ..History::default()
+        }
+    }
+
+    #[test]
+    fn training_is_due_by_plays_time_and_epoch() {
+        let day = 86_400_000;
+        assert!(
+            !due(None, &history_of(MIN_EXAMPLES - 1, 0), 0),
+            "too little to learn from"
+        );
+        let h = history_of(400, 0);
+        assert!(due(None, &h, 0), "never trained");
+        let last = Trained {
+            epoch_start_utc_ms: 0,
+            trained_utc_ms: 0,
+            plays: 400,
+            ranker: None,
+        };
+        assert!(!due(Some(&last), &h, 30 * day), "nothing new, however old");
+        let more = history_of(450, 0);
+        assert!(!due(Some(&last), &more, day), "a few new plays, this week");
+        assert!(
+            due(Some(&last), &more, RETRAIN_AFTER_MS),
+            "new plays and a week old"
+        );
+        assert!(due(Some(&last), &history_of(600, 0), day), "200 new plays");
+        // Reset suggestions: a new epoch. Plays before it don't count, and a new epoch with
+        // enough plays trains again whatever the count was.
+        assert_eq!(plays_in_epoch(&history_of(1000, 1_400)), 600);
+        assert!(due(Some(&last), &history_of(1000, 1_400), day));
+        assert!(
+            !due(Some(&last), &history_of(400, 1_200), day),
+            "200 plays since the reset"
+        );
+        // Clear listening history under a ranker: it goes, even with too little left to train.
+        let r = judge(&sound_matters(1200, 3)).expect("passes");
+        let with = Trained {
+            ranker: Some(r),
+            ..last.clone()
+        };
+        assert!(due(Some(&with), &history_of(10, 0), day));
+        assert!(
+            !due(Some(&last), &history_of(10, 0), day),
+            "nothing to drop"
+        );
+    }
+
+    #[test]
+    fn a_ranker_from_before_reset_is_not_used() {
+        let all = sound_matters(1200, 3);
+        let r = judge(&all).expect("passes");
+        let t = Trained {
+            epoch_start_utc_ms: 0,
+            trained_utc_ms: 0,
+            plays: 1200,
+            ranker: Some(r),
+        };
+        assert!(t.ranker_for(&history_of(10, 0)).is_some());
+        assert!(t.ranker_for(&history_of(10, 5)).is_none());
+        let json = serde_json::to_string(&t).unwrap();
+        assert_eq!(serde_json::from_str::<Trained>(&json).unwrap(), t);
     }
 
     #[test]

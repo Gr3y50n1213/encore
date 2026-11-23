@@ -8,6 +8,9 @@
 //! - `POST /recs/home`: today's mix set, built at the first request after 06:00 in
 //!   the profile's time zone, after 25 new plays, or on Regenerate; never
 //!   replacing the set a device says is playing.
+//! - `POST /recs/model`: the profile's learned ranker (Phase 10, docs/adr/core-0020),
+//!   trained here from every device's plays when it is due (`learn::due`, the same rule
+//!   a device without a server follows), so phones don't spend the battery on it.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -25,6 +28,16 @@ use crate::{AppState, now_ms};
 
 /// The longest a build may take (smartPicks.budgets.mixBuildSeconds).
 const BUILD_LIMIT: Duration = Duration::from_secs(20);
+/// The longest a device waits for training; it goes on and is kept if it takes longer.
+const TRAIN_LIMIT: Duration = Duration::from_secs(30);
+
+/// The profile's stored ranker, if any.
+fn trained_of(state: &AppState, profile_id: i64) -> Result<Option<recs::learn::Trained>, ApiError> {
+    Ok(state
+        .db
+        .profile_value(profile_id, crate::db::RANKER_KEY)?
+        .and_then(|j| serde_json::from_str(&j).ok()))
+}
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct CatalogBody {
@@ -278,6 +291,7 @@ pub(crate) async fn home(
         .db
         .mix_set(d.profile_id)?
         .and_then(|j| serde_json::from_str(&j).ok());
+    let trained = trained_of(&state, d.profile_id)?;
     let now = now_ms();
     let profile = d.profile_id;
     let built = tokio::time::timeout(
@@ -287,7 +301,13 @@ pub(crate) async fn home(
             let catalog = recs::Catalog::new(songs);
             let history = history_from(&events, &catalog);
             let p = recs::Params::default();
-            let model = recs::Model::build(&history, &catalog, &p, now, body.utc_offset_minutes);
+            let ranker = trained
+                .as_ref()
+                .and_then(|t| t.ranker_for(&history))
+                .cloned()
+                .map(Arc::new);
+            let model = recs::Model::build(&history, &catalog, &p, now, body.utc_offset_minutes)
+                .with_ranker(ranker);
             if let Some(old) = &old
                 && !due(old, &model, now, body.utc_offset_minutes, &body)
             {
@@ -338,4 +358,66 @@ pub(crate) async fn home(
         state.db.put_mix_set(profile, &json)?;
     }
     Ok(Json(HomeReply { set, built_now }))
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub(crate) struct ModelBody {
+    utc_offset_minutes: i32,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ModelReply {
+    /// None until the profile has enough plays to train from.
+    trained: Option<recs::learn::Trained>,
+    trained_now: bool,
+}
+
+/// `POST /recs/model`: the profile's learned ranker, trained first when it is due. Training that
+/// takes longer than [`TRAIN_LIMIT`] finishes in the background and the last one is sent.
+pub(crate) async fn model(
+    State(state): State<Arc<AppState>>,
+    Device(d): Device,
+    Json(body): Json<ModelBody>,
+) -> Result<Json<ModelReply>, ApiError> {
+    let Some((_, songs)) = state.db.catalog(d.profile_id)? else {
+        return Err(ApiError::NotFound(
+            "No song list yet: a device sends one after its next library sync.".into(),
+        ));
+    };
+    let last = trained_of(&state, d.profile_id)?;
+    let events = state.db.all_events(d.profile_id)?;
+    let now = now_ms();
+    let profile = d.profile_id;
+    let (held, worker) = (last.clone(), state.clone());
+    let job =
+        tokio::task::spawn_blocking(move || -> Result<Option<recs::learn::Trained>, String> {
+            let songs: Vec<recs::Song> = serde_json::from_str(&songs).map_err(|e| e.to_string())?;
+            let catalog = recs::Catalog::new(songs);
+            let history = history_from(&events, &catalog);
+            if !recs::learn::due(held.as_ref(), &history, now) {
+                return Ok(None);
+            }
+            let p = recs::Params::default();
+            let t = recs::learn::retrain(&history, &catalog, &p, now, body.utc_offset_minutes);
+            let json = serde_json::to_string(&t).map_err(|e| e.to_string())?;
+            worker
+                .db
+                .put_profile_value(profile, crate::db::RANKER_KEY, &json)
+                .map_err(|e| e.to_string())?;
+            Ok(Some(t))
+        });
+    match tokio::time::timeout(TRAIN_LIMIT, job).await {
+        Ok(Ok(Ok(Some(t)))) => Ok(Json(ModelReply {
+            trained: Some(t),
+            trained_now: true,
+        })),
+        Ok(Ok(Ok(None))) | Err(_) => Ok(Json(ModelReply {
+            trained: last,
+            trained_now: false,
+        })),
+        Ok(Ok(Err(e))) => Err(ApiError::Internal(format!("training: {e}"))),
+        Ok(Err(e)) => Err(ApiError::Internal(format!("training: {e}"))),
+    }
 }
