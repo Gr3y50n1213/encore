@@ -657,12 +657,13 @@ impl Inner {
         if let Some(m) = self.pinned(store).into_iter().find(|m| m.id == mix_id) {
             return Some((m, true, 0));
         }
+        // A mood's mix as last opened; else today's set, where a new listener's calm and lively
+        // mixes are mood mixes too.
         if mix_id.starts_with("mood-") {
-            let kept: Vec<recs::Mix> = Self::stored(store, MOOD_MIXES_KEY)?;
-            return kept
-                .into_iter()
-                .find(|m| m.id == mix_id)
-                .map(|m| (m, false, 0));
+            let kept: Vec<recs::Mix> = Self::stored(store, MOOD_MIXES_KEY).unwrap_or_default();
+            if let Some(m) = kept.into_iter().find(|m| m.id == mix_id) {
+                return Some((m, false, 0));
+            }
         }
         let set: recs::MixSet = Self::stored(store, MIX_SET_KEY)?;
         let made = set.made_utc_ms;

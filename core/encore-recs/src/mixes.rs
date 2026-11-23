@@ -424,6 +424,33 @@ pub fn build_mood_mix(model: &Model, cat: &Catalog, p: &Params, mood_id: &str) -
     })
 }
 
+/// While Encore is still learning (under `full_from_plays`), what songs sound like already says
+/// something listening history can't yet (PLAN-PRODUCT 7.1, cold start): up to two mood mixes, a
+/// calm one and a lively one, added to the set once the library has those moods. Their ids are
+/// the moods' own (`mood-<id>`), so opening one from Browse by mood is the same mix.
+fn with_sound_mixes(
+    mut set: MixSet,
+    model: &Model,
+    cat: &Catalog,
+    p: &Params,
+    prev: &Previous<'_>,
+) -> MixSet {
+    const CALM: [&str; 3] = ["calm-warm", "quiet-bright", "slow-easy"];
+    const LIVELY: [&str; 3] = ["upbeat-fast", "bright-lively", "heavy-dark"];
+    for group in [CALM, LIVELY] {
+        let made = group.iter().find_map(|id| {
+            let mix = build_mood_mix(model, cat, p, id)?;
+            let fresh =
+                !prev.hidden.contains(&mix.id) && !set.mixes.iter().any(|m| m.title == mix.title);
+            fresh.then_some(mix)
+        });
+        if let Some(mix) = made {
+            set.mixes.push(mix);
+        }
+    }
+    set
+}
+
 /// The daily mixes (Home's Made for you and the Mixes tab).
 pub fn build_mixes(model: &Model, cat: &Catalog, p: &Params, prev: &Previous<'_>) -> MixSet {
     let day = local_day(model.now_utc_ms, model.utc_offset_minutes);
@@ -546,7 +573,7 @@ pub fn build_mixes(model: &Model, cat: &Catalog, p: &Params, prev: &Previous<'_>
             &mut row,
             &mut used,
         );
-        return set;
+        return with_sound_mixes(set, model, cat, p, prev);
     }
 
     if set.learning {
@@ -598,7 +625,7 @@ pub fn build_mixes(model: &Model, cat: &Catalog, p: &Params, prev: &Previous<'_>
                 set.mixes.push(m);
             }
         }
-        return set;
+        return with_sound_mixes(set, model, cat, p, prev);
     }
 
     // The full set: cluster the songs the user enjoys.

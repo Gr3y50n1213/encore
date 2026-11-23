@@ -311,6 +311,40 @@ mod tests {
     }
 
     #[test]
+    fn a_new_listener_gets_a_calm_and_a_lively_mix_from_how_the_library_sounds() {
+        let cat = library(600, 5);
+        let p = crate::Params::default();
+        let model = crate::Model::build(&crate::History::default(), &cat, &p, 1_800_000_000_000, 0);
+        let set = crate::build_mixes(&model, &cat, &p, &crate::Previous::default());
+        let moods: Vec<&str> = set
+            .mixes
+            .iter()
+            .filter(|m| m.slot == crate::MixSlot::Mood)
+            .map(|m| m.id.as_str())
+            .collect();
+        assert_eq!(moods, ["mood-calm-warm", "mood-upbeat-fast"], "{set:?}");
+        // Hidden today: the next mood of the same kind instead.
+        let hidden = vec!["mood-calm-warm".to_string()];
+        let prev = crate::Previous {
+            hidden: &hidden,
+            ..crate::Previous::default()
+        };
+        let set = crate::build_mixes(&model, &cat, &p, &prev);
+        assert!(set.mixes.iter().any(|m| m.id == "mood-quiet-bright"));
+        assert!(set.mixes.iter().all(|m| m.id != "mood-calm-warm"));
+        // A library with no sound: no mood mixes, the rest as before.
+        let mut plain: Vec<crate::Song> = cat.songs().to_vec();
+        for s in &mut plain {
+            s.sound = None;
+        }
+        let plain = Catalog::new(plain);
+        let model =
+            crate::Model::build(&crate::History::default(), &plain, &p, 1_800_000_000_000, 0);
+        let set = crate::build_mixes(&model, &plain, &p, &crate::Previous::default());
+        assert!(set.mixes.iter().all(|m| m.slot != crate::MixSlot::Mood));
+    }
+
+    #[test]
     fn the_same_library_gives_the_same_moods() {
         assert_eq!(moods(&library(400, 7)), moods(&library(400, 7)));
     }
