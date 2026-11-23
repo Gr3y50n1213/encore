@@ -13,7 +13,28 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 /// Every migration, oldest first. Append only.
-const MIGRATIONS: &[&str] = &[V1, V2];
+const MIGRATIONS: &[&str] = &[V1, V2, V3];
+
+/// Shared sound analysis (Phase 10, docs/adr/core-0019): one row per song per media server,
+/// made by whichever device analysed it first (`sound.rs`), and short claims so two devices
+/// don't work on the same song at once. About songs, not people.
+const V3: &str = r#"
+CREATE TABLE sounds (
+    media_server_id TEXT    NOT NULL,
+    song_key        TEXT    NOT NULL,
+    version         INTEGER NOT NULL,
+    row_json        TEXT    NOT NULL,
+    updated_utc_ms  INTEGER NOT NULL,
+    PRIMARY KEY (media_server_id, song_key)
+);
+CREATE TABLE sound_claims (
+    media_server_id TEXT    NOT NULL,
+    song_key        TEXT    NOT NULL,
+    device_id       TEXT    NOT NULL,
+    until_utc_ms    INTEGER NOT NULL,
+    PRIMARY KEY (media_server_id, song_key)
+);
+"#;
 
 /// Smart picks on the server (Phase 5; docs/adr/core-0013): the song list a
 /// device sends (the server has no media-server token of its own), today's mix
@@ -710,6 +731,111 @@ impl Db {
             params![profile_id, json],
         )?;
         Ok(())
+    }
+
+    /// The media server a profile belongs to (what shared sound rows are scoped to).
+    pub(crate) fn media_server_of(&self, profile_id: i64) -> Result<Option<String>> {
+        self.conn()
+            .query_row(
+                "SELECT media_server_id FROM profiles WHERE id = ?1",
+                [profile_id],
+                |r| r.get(0),
+            )
+            .optional()
+    }
+
+    /// The shared sound rows held for these keys (JSON as stored).
+    pub(crate) fn sounds(&self, server: &str, keys: &[String]) -> Result<Vec<String>> {
+        let c = self.conn();
+        let mut st = c.prepare_cached(
+            "SELECT row_json FROM sounds WHERE media_server_id = ?1 AND song_key = ?2",
+        )?;
+        let mut out = Vec::new();
+        for k in keys {
+            if let Some(j) = st.query_row(params![server, k], |r| r.get(0)).optional()? {
+                out.push(j);
+            }
+        }
+        Ok(out)
+    }
+
+    /// Grant this device the keys no row is held for and no other device holds a live claim on.
+    pub(crate) fn claim_sounds(
+        &self,
+        server: &str,
+        device_id: &str,
+        keys: &[String],
+        now: i64,
+    ) -> Result<Vec<String>> {
+        let mut c = self.conn();
+        let tx = c.transaction()?;
+        let mut granted = Vec::new();
+        for k in keys {
+            let held: bool = tx
+                .query_row(
+                    "SELECT 1 FROM sounds WHERE media_server_id = ?1 AND song_key = ?2",
+                    params![server, k],
+                    |_| Ok(()),
+                )
+                .optional()?
+                .is_some();
+            if held {
+                continue;
+            }
+            let other: Option<String> = tx
+                .query_row(
+                    "SELECT device_id FROM sound_claims
+                     WHERE media_server_id = ?1 AND song_key = ?2 AND until_utc_ms > ?3",
+                    params![server, k, now],
+                    |r| r.get(0),
+                )
+                .optional()?;
+            if other.as_deref().is_some_and(|d| d != device_id) {
+                continue;
+            }
+            tx.execute(
+                "INSERT INTO sound_claims (media_server_id, song_key, device_id, until_utc_ms)
+                 VALUES (?1, ?2, ?3, ?4)
+                 ON CONFLICT (media_server_id, song_key) DO UPDATE
+                 SET device_id = excluded.device_id, until_utc_ms = excluded.until_utc_ms",
+                params![server, k, device_id, now + crate::sound::CLAIM_MS],
+            )?;
+            granted.push(k.clone());
+        }
+        // Old claims are of no use to anyone.
+        tx.execute("DELETE FROM sound_claims WHERE until_utc_ms <= ?1", [now])?;
+        tx.commit()?;
+        Ok(granted)
+    }
+
+    /// Keep rows a device made: a row replaces one of an older version, never a newer one.
+    /// Returns how many were stored.
+    pub(crate) fn put_sounds(
+        &self,
+        server: &str,
+        rows: &[(String, u32, String)],
+        now: i64,
+    ) -> Result<u32> {
+        let mut c = self.conn();
+        let tx = c.transaction()?;
+        let mut stored = 0;
+        for (key, version, json) in rows {
+            stored += tx.execute(
+                "INSERT INTO sounds (media_server_id, song_key, version, row_json, updated_utc_ms)
+                 VALUES (?1, ?2, ?3, ?4, ?5)
+                 ON CONFLICT (media_server_id, song_key) DO UPDATE
+                 SET version = excluded.version, row_json = excluded.row_json,
+                     updated_utc_ms = excluded.updated_utc_ms
+                 WHERE excluded.version > sounds.version",
+                params![server, key, version, json, now],
+            )? as u32;
+            tx.execute(
+                "DELETE FROM sound_claims WHERE media_server_id = ?1 AND song_key = ?2",
+                params![server, key],
+            )?;
+        }
+        tx.commit()?;
+        Ok(stored)
     }
 
     /// A value in profile_state.

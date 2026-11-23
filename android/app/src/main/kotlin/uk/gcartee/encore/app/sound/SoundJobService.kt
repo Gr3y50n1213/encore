@@ -45,8 +45,10 @@ class SoundJobService : JobService() {
                         // The settings changed under the job: schedule with them as they are now.
                         // (Android ending the job is onStopJob's; Stop from the app stays stopped.)
                         SoundStop.WAITING_FOR_WIFI, SoundStop.WAITING_FOR_POWER -> reschedule = true
-                        // The daily job may leave songs for the run job.
-                        SoundStop.DONE -> reschedule = run.remaining > 0u
+                        // The daily job may leave songs for the run job. (After the run job, songs
+                        // still waiting are ones another device is analysing: the daily job looks
+                        // again, so a run never starts straight after one that found nothing.)
+                        SoundStop.DONE -> reschedule = params.jobId == SoundScheduler.JOB_DAILY && run.remaining > 0u
                         // The server failed three songs in a row (the daily job tries again);
                         // not enabled, no model, sign-in needed, already running: nothing to do.
                         else -> {}

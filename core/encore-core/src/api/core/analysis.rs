@@ -19,6 +19,7 @@ use encore_analysis::{MODEL_NAME, Ranged, VERSION, Yamnet, analyse_reader};
 use encore_sources::ranged::RangeReader;
 use encore_store::{SoundRow, Store};
 
+use super::sync_loop::{Session, signed};
 use super::{EncoreCore, Inner, Profile, lock, now_ms};
 use crate::api::types::*;
 
@@ -37,6 +38,124 @@ const SONG_GAP: Duration = if cfg!(test) {
 const SERVER_FAILURES_BEFORE_STOP: u32 = 3;
 /// Progress events at most this often.
 const PROGRESS_EVERY: Duration = Duration::from_secs(2);
+/// Rows sent to the companion server at a time.
+const SHARE_EVERY: usize = 20;
+/// Songs looked up and claimed at a time (the server takes up to 50 claims).
+const BATCH: u32 = 16;
+
+/// A row as the companion server keeps it (`server/src/sound.rs`), bytes as hex.
+fn shared_of(r: &SoundRow) -> serde_json::Value {
+    serde_json::json!({
+        "songKey": r.song_key, "version": r.version, "state": r.state, "reason": r.reason,
+        "profile": r.profile.as_deref().map(hex), "model": r.model,
+        "embedding": r.embedding.as_deref().map(hex), "analysedUtcMs": r.analysed_utc_ms,
+    })
+}
+
+/// A row from the companion server, if it is one this build would have made: the same version,
+/// and either unreadable or made with the same model. Anything else is analysed here.
+fn row_of(v: &serde_json::Value) -> Option<SoundRow> {
+    let bytes = |k: &str| match &v[k] {
+        serde_json::Value::Null => Some(None),
+        serde_json::Value::String(s) => unhex(s).map(Some),
+        _ => None,
+    };
+    let row = SoundRow {
+        song_key: v["songKey"].as_str()?.to_owned(),
+        version: u32::try_from(v["version"].as_u64()?).ok()?,
+        state: v["state"].as_str()?.to_owned(),
+        reason: v["reason"].as_str().map(str::to_owned),
+        profile: bytes("profile")?,
+        model: v["model"].as_str().map(str::to_owned),
+        embedding: bytes("embedding")?,
+        analysed_utc_ms: v["analysedUtcMs"].as_i64()?,
+    };
+    let usable = row.version == u32::from(VERSION)
+        && match row.state.as_str() {
+            "unavailable" => true,
+            "ok" => row.profile.is_some() && row.model.as_deref() == Some(MODEL_NAME),
+            _ => false,
+        };
+    usable.then_some(row)
+}
+
+fn hex(b: &[u8]) -> String {
+    b.iter().map(|x| format!("{x:02x}")).collect()
+}
+
+fn unhex(s: &str) -> Option<Vec<u8>> {
+    if !s.len().is_multiple_of(2) {
+        return None;
+    }
+    (0..s.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(s.get(i..i + 2)?, 16).ok())
+        .collect()
+}
+
+/// With a companion server: take what another device already worked out for these songs, and
+/// claim the rest so no other device works on them at the same time. Returns the songs this
+/// device should analyse (all of them when the server doesn't answer: it works alone then).
+async fn share_first(
+    inner: &Inner,
+    p: &Profile,
+    s: &Session,
+    batch: Vec<encore_store::PendingSound>,
+) -> Result<Vec<encore_store::PendingSound>, EncoreError> {
+    let keys: Vec<String> = batch.iter().map(|b| b.song_key.clone()).collect();
+    let keys = &keys;
+    let Ok(found) = signed(inner, s, move |a| async move {
+        s.client.sound_lookup(&a, keys).await
+    })
+    .await
+    else {
+        return Ok(batch);
+    };
+    let mut known = std::collections::HashSet::new();
+    {
+        let store = lock(&p.store)?;
+        for row in found.iter().filter_map(row_of) {
+            store.put_sound(&row)?;
+            known.insert(row.song_key);
+        }
+    }
+    let rest: Vec<encore_store::PendingSound> = batch
+        .into_iter()
+        .filter(|b| !known.contains(&b.song_key))
+        .collect();
+    let keys: Vec<String> = rest.iter().map(|b| b.song_key.clone()).collect();
+    if keys.is_empty() {
+        return Ok(rest);
+    }
+    let keys = &keys;
+    match signed(inner, s, move |a| async move {
+        s.client.sound_claim(&a, keys).await
+    })
+    .await
+    {
+        Ok(granted) => Ok(rest
+            .into_iter()
+            .filter(|b| granted.contains(&b.song_key))
+            .collect()),
+        Err(_) => Ok(rest),
+    }
+}
+
+/// Send what this device made to the companion server, for the other devices. Best effort: a
+/// row that doesn't get there is still used here.
+async fn share_rows(inner: &Inner, s: &Session, rows: &mut Vec<SoundRow>) {
+    if rows.is_empty() {
+        return;
+    }
+    let body: Vec<serde_json::Value> = rows.iter().map(shared_of).collect();
+    let body = &body;
+    let _ = signed(inner, s, move |a| async move {
+        s.client.put_sounds(&a, body).await
+    })
+    .await;
+    rows.clear();
+}
+
 /// What a song costs before this device has measured any: about 1.2 MB over the network, 3 s of work.
 const DEFAULT_BYTES_PER_SONG: u64 = 1_200_000;
 const DEFAULT_MS_PER_SONG: u64 = 3_000;
@@ -261,6 +380,10 @@ impl EncoreCore {
 
         let (mut analysed, mut unreadable) = (0u32, 0u32);
         let mut tried = std::collections::HashSet::new();
+        // With a companion server, the devices of the same media server share the work.
+        let shared = lock(&p.companion)?.clone();
+        let mut queue = std::collections::VecDeque::new();
+        let mut outbox: Vec<SoundRow> = Vec::new();
         let mut server_failures = 0u32;
         let mut last_emit = Instant::now();
         let stop = loop {
@@ -289,14 +412,29 @@ impl EncoreCore {
             if power.battery_saver || power.hot {
                 break SoundStop::Paused;
             }
-            let next = lock(&p.store)?
-                .pending_sounds(u32::from(VERSION), MODEL_NAME, 16)?
-                .into_iter()
-                .find(|s| !tried.contains(&s.track_id));
-            let Some(song) = next else {
-                break SoundStop::Done;
+            if queue.is_empty() {
+                // Songs tried this run and still waiting (the server failed them, or another
+                // device has them) are passed over, so ask for that many more.
+                let limit = BATCH.saturating_add(u32::try_from(tried.len()).unwrap_or(u32::MAX));
+                let batch: Vec<encore_store::PendingSound> = lock(&p.store)?
+                    .pending_sounds(u32::from(VERSION), MODEL_NAME, limit)?
+                    .into_iter()
+                    .filter(|s| !tried.contains(&s.track_id))
+                    .take(BATCH as usize)
+                    .collect();
+                if batch.is_empty() {
+                    break SoundStop::Done;
+                }
+                tried.extend(batch.iter().map(|s| s.track_id));
+                match &shared {
+                    Some(s) => queue.extend(share_first(&inner, &p, s, batch).await?),
+                    None => queue.extend(batch),
+                }
+                continue;
+            }
+            let Some(song) = queue.pop_front() else {
+                continue;
             };
-            tried.insert(song.track_id);
             let Ok(source) = inner.source(&p, song.source_id) else {
                 break SoundStop::SignInNeeded;
             };
@@ -336,6 +474,9 @@ impl EncoreCore {
                         analysed_utc_ms: now_ms(),
                     };
                     lock(&p.store)?.put_sound(&row)?;
+                    if shared.is_some() {
+                        outbox.push(row);
+                    }
                     analysed += 1;
                     let mut s = lock(&inner.sound)?;
                     s.songs += 1;
@@ -355,6 +496,9 @@ impl EncoreCore {
                         analysed_utc_ms: now_ms(),
                     };
                     lock(&p.store)?.put_sound(&row)?;
+                    if shared.is_some() {
+                        outbox.push(row);
+                    }
                     unreadable += 1;
                 }
                 Err(_) => {
@@ -365,12 +509,20 @@ impl EncoreCore {
                     }
                 }
             }
+            if let Some(s) = &shared
+                && outbox.len() >= SHARE_EVERY
+            {
+                share_rows(&inner, s, &mut outbox).await;
+            }
             if last_emit.elapsed() >= PROGRESS_EVERY {
                 last_emit = Instant::now();
                 inner.emit_sound(&p);
             }
             tokio::time::sleep(SONG_GAP).await;
         };
+        if let Some(s) = &shared {
+            share_rows(&inner, s, &mut outbox).await;
+        }
         let remaining = {
             let c = lock(&p.store)?.sound_counts()?;
             c.songs.saturating_sub(c.analysed + c.unavailable)

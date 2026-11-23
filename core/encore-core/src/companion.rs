@@ -446,6 +446,66 @@ impl Client {
         Ok(v["trained"].clone())
     }
 
+    /// `POST /sound/lookup`: the shared sound rows for up to 200 song keys (docs/adr/core-0019).
+    pub(crate) async fn sound_lookup(
+        &self,
+        access: &str,
+        keys: &[String],
+    ) -> Result<Vec<Value>, CompanionError> {
+        let v = self
+            .send(
+                Method::Post,
+                "/sound/lookup",
+                Some(access),
+                Some(json!({ "keys": keys })),
+                Self::QUICK,
+            )
+            .await?;
+        Ok(v["sounds"].as_array().cloned().unwrap_or_default())
+    }
+
+    /// `POST /sound/claim`: the keys this device may analyse (no one else is on them).
+    pub(crate) async fn sound_claim(
+        &self,
+        access: &str,
+        keys: &[String],
+    ) -> Result<Vec<String>, CompanionError> {
+        let v = self
+            .send(
+                Method::Post,
+                "/sound/claim",
+                Some(access),
+                Some(json!({ "keys": keys })),
+                Self::QUICK,
+            )
+            .await?;
+        Ok(v["granted"]
+            .as_array()
+            .map(|a| {
+                a.iter()
+                    .filter_map(|k| k.as_str().map(str::to_owned))
+                    .collect()
+            })
+            .unwrap_or_default())
+    }
+
+    /// `PUT /sound`: rows this device made, for the other devices.
+    pub(crate) async fn put_sounds(
+        &self,
+        access: &str,
+        rows: &[Value],
+    ) -> Result<(), CompanionError> {
+        self.send(
+            Method::Put,
+            "/sound",
+            Some(access),
+            Some(json!({ "sounds": rows })),
+            Duration::from_secs(60),
+        )
+        .await
+        .map(drop)
+    }
+
     /// `DELETE /devices/{id}`.
     /// `PATCH /devices/{id}`: board 12's Rename.
     pub(crate) async fn rename_device(

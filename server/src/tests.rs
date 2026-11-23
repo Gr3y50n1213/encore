@@ -803,6 +803,136 @@ async fn the_server_trains_the_ranker_when_due_and_clears_it_with_the_history() 
     assert_eq!(r["trained"], Value::Null, "gone with the history");
 }
 
+/// Phase 10 (docs/adr/core-0019): a song is analysed once per media server. A device claims
+/// it, the others are kept off it for an hour, the row it sends is what they look up, and only
+/// keys a device asks about come back.
+#[tokio::test]
+async fn devices_share_sound_analysis_and_never_work_on_the_same_song() {
+    let (app, _) = server();
+    let token = |v: Value| v["access_token"].as_str().unwrap().to_owned();
+    let phone = token(sign_in(&app, "good-sam", "phone").await);
+    let tablet = token(sign_in(&app, "good-sam", "tablet").await);
+    let keys = json!({ "keys": ["a", "b", "c"] });
+
+    let (s, r) = call(
+        &app,
+        "POST",
+        "/sound/claim",
+        Some(&phone),
+        Some(keys.clone()),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{r}");
+    assert_eq!(r["granted"], json!(["a", "b", "c"]));
+    let (_, r) = call(
+        &app,
+        "POST",
+        "/sound/claim",
+        Some(&tablet),
+        Some(keys.clone()),
+    )
+    .await;
+    assert_eq!(r["granted"], json!([]), "the phone is on them");
+    let (_, r) = call(
+        &app,
+        "POST",
+        "/sound/claim",
+        Some(&phone),
+        Some(keys.clone()),
+    )
+    .await;
+    assert_eq!(
+        r["granted"],
+        json!(["a", "b", "c"]),
+        "a device may claim again"
+    );
+
+    let row = |k: &str, version: u32| {
+        json!({ "songKey": k, "version": version, "state": "ok", "reason": null, "profile": "0a0b",
+                "model": "yamnet-v1", "embedding": "ff00", "analysedUtcMs": 5 })
+    };
+    let (s, r) = call(
+        &app,
+        "PUT",
+        "/sound",
+        Some(&phone),
+        Some(
+            json!({ "sounds": [row("a", 1), { "songKey": "b", "version": 1, "state": "unavailable",
+            "reason": "no decoder for Opus", "profile": null, "model": null, "embedding": null,
+            "analysedUtcMs": 6 }] }),
+        ),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{r}");
+    assert_eq!(r["stored"], 2);
+    // An older version never replaces a newer one.
+    call(
+        &app,
+        "PUT",
+        "/sound",
+        Some(&phone),
+        Some(json!({ "sounds": [row("a", 2)] })),
+    )
+    .await;
+    let (_, r) = call(
+        &app,
+        "PUT",
+        "/sound",
+        Some(&tablet),
+        Some(json!({ "sounds": [row("a", 1)] })),
+    )
+    .await;
+    assert_eq!(r["stored"], 0);
+
+    let (_, r) = call(
+        &app,
+        "POST",
+        "/sound/lookup",
+        Some(&tablet),
+        Some(keys.clone()),
+    )
+    .await;
+    let sounds = r["sounds"].as_array().unwrap();
+    assert_eq!(sounds.len(), 2, "{r}");
+    assert_eq!(sounds[0]["version"], 2);
+    assert_eq!(sounds[1]["reason"], "no decoder for Opus");
+    // Analysed songs can't be claimed; c is still the phone's.
+    let (_, r) = call(&app, "POST", "/sound/claim", Some(&tablet), Some(keys)).await;
+    assert_eq!(r["granted"], json!([]));
+
+    // Shapes a real row never has are refused whole.
+    let mut bad = row("d", 1);
+    bad["profile"] = json!("not hex");
+    let (s, _) = call(
+        &app,
+        "PUT",
+        "/sound",
+        Some(&phone),
+        Some(json!({ "sounds": [bad] })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+    let many: Vec<String> = (0..201).map(|i| format!("k{i}")).collect();
+    let (s, _) = call(
+        &app,
+        "POST",
+        "/sound/lookup",
+        Some(&phone),
+        Some(json!({ "keys": many })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+    let (s, _) = call(
+        &app,
+        "POST",
+        "/sound/lookup",
+        None,
+        Some(json!({ "keys": [] })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::UNAUTHORIZED);
+}
+
 #[test]
 fn the_servers_history_merges_likes_and_not_interested_by_the_latest_change() {
     let ev = |id: &str, kind: &str, hlc: &str, device: &str, payload: Value| Event {
