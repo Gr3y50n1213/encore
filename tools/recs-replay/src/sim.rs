@@ -56,6 +56,9 @@ pub struct Profile {
     pub tag_noise: f64,
 }
 
+// One argument per field of the listener table below, read as a row: a struct literal per row
+// would say the same with each field name repeated six times.
+#[allow(clippy::too_many_arguments)]
 const fn profile(
     name: &'static str,
     artists: usize,
