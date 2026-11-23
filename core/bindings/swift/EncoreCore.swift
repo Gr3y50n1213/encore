@@ -1617,6 +1617,13 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     func mix(mixId: String) throws  -> MixPage
     
     /**
+     * Browse by mood (board 07; Phase 10): the moods this library has, from what its songs sound
+     * like, each with at least 25 songs, in a fixed order. Empty until enough songs are analysed
+     * (sound analysis is off until the person turns it on). Open one with `mix(mix_id)`.
+     */
+    func moods() throws  -> [MoodTile]
+    
+    /**
      * More like this (+1.5 for the song and its neighbours here; not a like) or
      * Fewer like this (-1). Show a one-line confirmation.
      */
@@ -3929,6 +3936,20 @@ open func mix(mixId: String)throws  -> MixPage  {
     uniffi_encore_core_fn_method_encorecore_mix(
             self.uniffiCloneHandle(),
         FfiConverterString.lower(mixId),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Browse by mood (board 07; Phase 10): the moods this library has, from what its songs sound
+     * like, each with at least 25 songs, in a fixed order. Empty until enough songs are analysed
+     * (sound analysis is off until the person turns it on). Open one with `mix(mix_id)`.
+     */
+open func moods()throws  -> [MoodTile]  {
+    return try  FfiConverterSequenceTypeMoodTile.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_moods(
+            self.uniffiCloneHandle(),uniffiCallStatus
     )
 })
 }
@@ -7246,6 +7267,86 @@ public func FfiConverterTypeMixSummary_lift(_ buf: RustBuffer) throws -> MixSumm
 #endif
 public func FfiConverterTypeMixSummary_lower(_ value: MixSummary) -> RustBuffer {
     return FfiConverterTypeMixSummary.lower(value)
+}
+
+
+/**
+ * A tile of Browse by mood (board 07; Phase 10): a mood this library has, from what its songs
+ * sound like. Open it with `mix(mix_id)`.
+ */
+public struct MoodTile: Equatable, Hashable {
+    /**
+     * `mood-<id>`, the same every day.
+     */
+    public var mixId: String
+    /**
+     * 2 to 4 plain words tied to what is measured ("Calm and Warm").
+     */
+    public var title: String
+    /**
+     * The library's songs in this mood (at least 25).
+     */
+    public var songCount: UInt32
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * `mood-<id>`, the same every day.
+         */mixId: String, 
+        /**
+         * 2 to 4 plain words tied to what is measured ("Calm and Warm").
+         */title: String, 
+        /**
+         * The library's songs in this mood (at least 25).
+         */songCount: UInt32) {
+        self.mixId = mixId
+        self.title = title
+        self.songCount = songCount
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension MoodTile: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeMoodTile: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> MoodTile {
+        return
+            try MoodTile(
+                mixId: FfiConverterString.read(from: &buf), 
+                title: FfiConverterString.read(from: &buf), 
+                songCount: FfiConverterUInt32.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: MoodTile, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.mixId, into: &buf)
+        FfiConverterString.write(value.title, into: &buf)
+        FfiConverterUInt32.write(value.songCount, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMoodTile_lift(_ buf: RustBuffer) throws -> MoodTile {
+    return try FfiConverterTypeMoodTile.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMoodTile_lower(_ value: MoodTile) -> RustBuffer {
+    return FfiConverterTypeMoodTile.lower(value)
 }
 
 
@@ -13193,6 +13294,10 @@ public enum MixKind: Equatable, Hashable {
      * No plays yet: from the media server's favourites and most played.
      */
     case starter
+    /**
+     * Browse by mood: a mood from what songs sound like (Phase 10).
+     */
+    case mood
 
 
 
@@ -13228,6 +13333,8 @@ public struct FfiConverterTypeMixKind: FfiConverterRustBuffer {
         
         case 7: return .starter
         
+        case 8: return .mood
+        
         default: throw UniffiInternalError.unexpectedEnumCase
         }
     }
@@ -13262,6 +13369,10 @@ public struct FfiConverterTypeMixKind: FfiConverterRustBuffer {
         
         case .starter:
             writeInt(&buf, Int32(7))
+        
+        
+        case .mood:
+            writeInt(&buf, Int32(8))
         
         }
     }
@@ -16858,6 +16969,31 @@ fileprivate struct FfiConverterSequenceTypeMixSummary: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterSequenceTypeMoodTile: FfiConverterRustBuffer {
+    typealias SwiftType = [MoodTile]
+
+    public static func write(_ value: [MoodTile], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeMoodTile.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [MoodTile] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [MoodTile]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeMoodTile.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterSequenceTypeNotInterestedItem: FfiConverterRustBuffer {
     typealias SwiftType = [NotInterestedItem]
 
@@ -17823,6 +17959,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_mix() != 9008) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_moods() != 6881) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_more_like_this() != 23956) {

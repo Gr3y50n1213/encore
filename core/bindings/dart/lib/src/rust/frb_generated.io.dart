@@ -250,6 +250,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected List<MixSummary> dco_decode_list_mix_summary(dynamic raw);
 
+@protected List<MoodTile> dco_decode_list_mood_tile(dynamic raw);
+
 @protected List<NotInterestedItem> dco_decode_list_not_interested_item(dynamic raw);
 
 @protected List<OutputDevice> dco_decode_list_output_device(dynamic raw);
@@ -327,6 +329,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected MixState dco_decode_mix_state(dynamic raw);
 
 @protected MixSummary dco_decode_mix_summary(dynamic raw);
+
+@protected MoodTile dco_decode_mood_tile(dynamic raw);
 
 @protected Network dco_decode_network(dynamic raw);
 
@@ -774,6 +778,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected List<MixSummary> sse_decode_list_mix_summary(SseDeserializer deserializer);
 
+@protected List<MoodTile> sse_decode_list_mood_tile(SseDeserializer deserializer);
+
 @protected List<NotInterestedItem> sse_decode_list_not_interested_item(SseDeserializer deserializer);
 
 @protected List<OutputDevice> sse_decode_list_output_device(SseDeserializer deserializer);
@@ -851,6 +857,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected MixState sse_decode_mix_state(SseDeserializer deserializer);
 
 @protected MixSummary sse_decode_mix_summary(SseDeserializer deserializer);
+
+@protected MoodTile sse_decode_mood_tile(SseDeserializer deserializer);
 
 @protected Network sse_decode_network(SseDeserializer deserializer);
 
@@ -1298,6 +1306,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected void sse_encode_list_mix_summary(List<MixSummary> self, SseSerializer serializer);
 
+@protected void sse_encode_list_mood_tile(List<MoodTile> self, SseSerializer serializer);
+
 @protected void sse_encode_list_not_interested_item(List<NotInterestedItem> self, SseSerializer serializer);
 
 @protected void sse_encode_list_output_device(List<OutputDevice> self, SseSerializer serializer);
@@ -1375,6 +1385,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_mix_state(MixState self, SseSerializer serializer);
 
 @protected void sse_encode_mix_summary(MixSummary self, SseSerializer serializer);
+
+@protected void sse_encode_mood_tile(MoodTile self, SseSerializer serializer);
 
 @protected void sse_encode_network(Network self, SseSerializer serializer);
 

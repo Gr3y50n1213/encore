@@ -40,7 +40,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -571607362;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 179103919;
 
 // Section: executor
 
@@ -2898,6 +2898,52 @@ fn wire__crate__api__core__Encore_mix_impl(
                 }
                 let api_that_guard = api_that_guard.unwrap();
                 let output_ok = crate::api::core::Encore::mix(&*api_that_guard, api_mix_id)?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__core__Encore_moods_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "Encore_moods",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Encore>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, crate::api::core::ApiError>((move || {
+                let mut api_that_guard = None;
+                let decode_indices_ =
+                    flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                        flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                            &api_that, 0, false,
+                        ),
+                    ]);
+                for i in decode_indices_ {
+                    match i {
+                        0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                        _ => unreachable!(),
+                    }
+                }
+                let api_that_guard = api_that_guard.unwrap();
+                let output_ok = crate::api::core::Encore::moods(&*api_that_guard)?;
                 std::result::Result::Ok(output_ok)
             })())
         },
@@ -9196,6 +9242,12 @@ const _: fn() = || {
         let _: i64 = MixSummary.made_utc_ms;
     }
     {
+        let MoodTile = None::<crate::api::core::MoodTile>.unwrap();
+        let _: String = MoodTile.mix_id;
+        let _: String = MoodTile.title;
+        let _: u32 = MoodTile.song_count;
+    }
+    {
         let NotInterestedItem = None::<crate::api::core::NotInterestedItem>.unwrap();
         let _: Option<i64> = NotInterestedItem.song_id;
         let _: Option<String> = NotInterestedItem.artist;
@@ -10594,6 +10646,18 @@ impl SseDecode for Vec<crate::api::core::MixSummary> {
     }
 }
 
+impl SseDecode for Vec<crate::api::core::MoodTile> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::core::MoodTile>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<crate::api::core::NotInterestedItem> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -11011,6 +11075,7 @@ impl SseDecode for crate::api::core::MixKind {
             4 => crate::api::core::MixKind::Stretch,
             5 => crate::api::core::MixKind::Family,
             6 => crate::api::core::MixKind::Starter,
+            7 => crate::api::core::MixKind::Mood,
             _ => unreachable!("Invalid variant for MixKind: {}", inner),
         };
     }
@@ -11121,6 +11186,20 @@ impl SseDecode for crate::api::core::MixSummary {
             song_count: var_songCount,
             pinned: var_pinned,
             made_utc_ms: var_madeUtcMs,
+        };
+    }
+}
+
+impl SseDecode for crate::api::core::MoodTile {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_mixId = <String>::sse_decode(deserializer);
+        let mut var_title = <String>::sse_decode(deserializer);
+        let mut var_songCount = <u32>::sse_decode(deserializer);
+        return crate::api::core::MoodTile {
+            mix_id: var_mixId,
+            title: var_title,
+            song_count: var_songCount,
         };
     }
 }
@@ -12787,54 +12866,54 @@ fn pde_ffi_dispatcher_primary_impl(
         49 => wire__crate__api__core__Encore_home_impl(port, ptr, rust_vec_len, data_len),
         55 => wire__crate__api__core__Encore_lyrics_impl(port, ptr, rust_vec_len, data_len),
         56 => wire__crate__api__core__Encore_lyrics_raw_impl(port, ptr, rust_vec_len, data_len),
-        83 => {
+        84 => {
             wire__crate__api__core__Encore_playlist_palette_impl(port, ptr, rust_vec_len, data_len)
         }
-        88 => wire__crate__api__core__Encore_pull_from_impl(port, ptr, rust_vec_len, data_len),
-        91 => wire__crate__api__core__Encore_quick_connect_start_impl(
+        89 => wire__crate__api__core__Encore_pull_from_impl(port, ptr, rust_vec_len, data_len),
+        92 => wire__crate__api__core__Encore_quick_connect_start_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        92 => wire__crate__api__core__Encore_quick_connect_wait_impl(
+        93 => wire__crate__api__core__Encore_quick_connect_wait_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        96 => {
+        97 => {
             wire__crate__api__core__Encore_regenerate_mixes_impl(port, ptr, rust_vec_len, data_len)
         }
-        97 => wire__crate__api__core__Encore_remote_command_impl(port, ptr, rust_vec_len, data_len),
-        98 => wire__crate__api__core__Encore_remote_queue_impl(port, ptr, rust_vec_len, data_len),
-        104 => wire__crate__api__core__Encore_remove_profile_from_device_impl(
+        98 => wire__crate__api__core__Encore_remote_command_impl(port, ptr, rust_vec_len, data_len),
+        99 => wire__crate__api__core__Encore_remote_queue_impl(port, ptr, rust_vec_len, data_len),
+        105 => wire__crate__api__core__Encore_remove_profile_from_device_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        109 => wire__crate__api__core__Encore_rename_device_impl(port, ptr, rust_vec_len, data_len),
-        115 => {
+        110 => wire__crate__api__core__Encore_rename_device_impl(port, ptr, rust_vec_len, data_len),
+        116 => {
             wire__crate__api__core__Encore_restore_profile_impl(port, ptr, rust_vec_len, data_len)
         }
-        119 => wire__crate__api__core__Encore_revoke_device_impl(port, ptr, rust_vec_len, data_len),
-        120 => wire__crate__api__core__Encore_run_downloads_impl(port, ptr, rust_vec_len, data_len),
-        121 => wire__crate__api__core__Encore_run_sound_analysis_impl(
+        120 => wire__crate__api__core__Encore_revoke_device_impl(port, ptr, rust_vec_len, data_len),
+        121 => wire__crate__api__core__Encore_run_downloads_impl(port, ptr, rust_vec_len, data_len),
+        122 => wire__crate__api__core__Encore_run_sound_analysis_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        125 => wire__crate__api__core__Encore_send_edits_impl(port, ptr, rust_vec_len, data_len),
-        142 => wire__crate__api__core__Encore_sign_in_impl(port, ptr, rust_vec_len, data_len),
-        143 => wire__crate__api__core__Encore_sign_out_impl(port, ptr, rust_vec_len, data_len),
-        163 => {
+        126 => wire__crate__api__core__Encore_send_edits_impl(port, ptr, rust_vec_len, data_len),
+        143 => wire__crate__api__core__Encore_sign_in_impl(port, ptr, rust_vec_len, data_len),
+        144 => wire__crate__api__core__Encore_sign_out_impl(port, ptr, rust_vec_len, data_len),
+        164 => {
             wire__crate__api__core__Encore_switch_profile_impl(port, ptr, rust_vec_len, data_len)
         }
-        164 => wire__crate__api__core__Encore_sync_library_impl(port, ptr, rust_vec_len, data_len),
-        165 => wire__crate__api__core__Encore_sync_now_impl(port, ptr, rust_vec_len, data_len),
-        167 => wire__crate__api__core__Encore_train_ranker_if_due_impl(
+        165 => wire__crate__api__core__Encore_sync_library_impl(port, ptr, rust_vec_len, data_len),
+        166 => wire__crate__api__core__Encore_sync_now_impl(port, ptr, rust_vec_len, data_len),
+        168 => wire__crate__api__core__Encore_train_ranker_if_due_impl(
             port,
             ptr,
             rust_vec_len,
@@ -12901,134 +12980,137 @@ fn pde_ffi_dispatcher_sync_impl(
         53 => wire__crate__api__core__Encore_liked_songs_impl(ptr, rust_vec_len, data_len),
         54 => wire__crate__api__core__Encore_lyric_line_tapped_impl(ptr, rust_vec_len, data_len),
         57 => wire__crate__api__core__Encore_mix_impl(ptr, rust_vec_len, data_len),
-        58 => wire__crate__api__core__Encore_more_like_this_impl(ptr, rust_vec_len, data_len),
-        59 => wire__crate__api__core__Encore_move_in_playlist_impl(ptr, rust_vec_len, data_len),
-        60 => wire__crate__api__core__Encore_move_in_queue_impl(ptr, rust_vec_len, data_len),
-        61 => wire__crate__api__core__Encore_next_impl(ptr, rust_vec_len, data_len),
-        62 => wire__crate__api__core__Encore_next_target_impl(ptr, rust_vec_len, data_len),
-        63 => wire__crate__api__core__Encore_not_in_this_mix_impl(ptr, rust_vec_len, data_len),
-        64 => {
+        58 => wire__crate__api__core__Encore_moods_impl(ptr, rust_vec_len, data_len),
+        59 => wire__crate__api__core__Encore_more_like_this_impl(ptr, rust_vec_len, data_len),
+        60 => wire__crate__api__core__Encore_move_in_playlist_impl(ptr, rust_vec_len, data_len),
+        61 => wire__crate__api__core__Encore_move_in_queue_impl(ptr, rust_vec_len, data_len),
+        62 => wire__crate__api__core__Encore_next_impl(ptr, rust_vec_len, data_len),
+        63 => wire__crate__api__core__Encore_next_target_impl(ptr, rust_vec_len, data_len),
+        64 => wire__crate__api__core__Encore_not_in_this_mix_impl(ptr, rust_vec_len, data_len),
+        65 => {
             wire__crate__api__core__Encore_not_interested_artist_impl(ptr, rust_vec_len, data_len)
         }
-        65 => wire__crate__api__core__Encore_not_interested_list_impl(ptr, rust_vec_len, data_len),
-        66 => wire__crate__api__core__Encore_not_interested_song_impl(ptr, rust_vec_len, data_len),
-        67 => wire__crate__api__core__Encore_open_profile_impl(ptr, rust_vec_len, data_len),
-        68 => wire__crate__api__core__Encore_output_devices_impl(ptr, rust_vec_len, data_len),
-        69 => wire__crate__api__core__Encore_pause_download_impl(ptr, rust_vec_len, data_len),
-        70 => wire__crate__api__core__Encore_pending_edits_impl(ptr, rust_vec_len, data_len),
-        71 => wire__crate__api__core__Encore_pin_mix_impl(ptr, rust_vec_len, data_len),
-        72 => wire__crate__api__core__Encore_play_impl(ptr, rust_vec_len, data_len),
-        73 => wire__crate__api__core__Encore_play_mix_impl(ptr, rust_vec_len, data_len),
-        74 => wire__crate__api__core__Encore_play_next_impl(ptr, rust_vec_len, data_len),
-        75 => wire__crate__api__core__Encore_playback_ended_impl(ptr, rust_vec_len, data_len),
-        76 => wire__crate__api__core__Encore_playback_interrupted_impl(ptr, rust_vec_len, data_len),
-        77 => wire__crate__api__core__Encore_playback_paused_impl(ptr, rust_vec_len, data_len),
-        78 => wire__crate__api__core__Encore_playback_progress_impl(ptr, rust_vec_len, data_len),
-        79 => wire__crate__api__core__Encore_playback_resumed_impl(ptr, rust_vec_len, data_len),
-        80 => wire__crate__api__core__Encore_playback_seeked_impl(ptr, rust_vec_len, data_len),
-        81 => wire__crate__api__core__Encore_playback_started_impl(ptr, rust_vec_len, data_len),
-        82 => wire__crate__api__core__Encore_playlist_impl(ptr, rust_vec_len, data_len),
-        84 => wire__crate__api__core__Encore_playlists_impl(ptr, rust_vec_len, data_len),
-        85 => wire__crate__api__core__Encore_previous_impl(ptr, rust_vec_len, data_len),
-        86 => wire__crate__api__core__Encore_previous_target_impl(ptr, rust_vec_len, data_len),
-        87 => wire__crate__api__core__Encore_profiles_impl(ptr, rust_vec_len, data_len),
-        89 => wire__crate__api__core__Encore_queue_impl(ptr, rust_vec_len, data_len),
-        90 => wire__crate__api__core__Encore_quick_connect_cancel_impl(ptr, rust_vec_len, data_len),
-        93 => wire__crate__api__core__Encore_recent_searches_impl(ptr, rust_vec_len, data_len),
-        94 => wire__crate__api__core__Encore_refresh_autoplay_impl(ptr, rust_vec_len, data_len),
-        95 => {
+        66 => wire__crate__api__core__Encore_not_interested_list_impl(ptr, rust_vec_len, data_len),
+        67 => wire__crate__api__core__Encore_not_interested_song_impl(ptr, rust_vec_len, data_len),
+        68 => wire__crate__api__core__Encore_open_profile_impl(ptr, rust_vec_len, data_len),
+        69 => wire__crate__api__core__Encore_output_devices_impl(ptr, rust_vec_len, data_len),
+        70 => wire__crate__api__core__Encore_pause_download_impl(ptr, rust_vec_len, data_len),
+        71 => wire__crate__api__core__Encore_pending_edits_impl(ptr, rust_vec_len, data_len),
+        72 => wire__crate__api__core__Encore_pin_mix_impl(ptr, rust_vec_len, data_len),
+        73 => wire__crate__api__core__Encore_play_impl(ptr, rust_vec_len, data_len),
+        74 => wire__crate__api__core__Encore_play_mix_impl(ptr, rust_vec_len, data_len),
+        75 => wire__crate__api__core__Encore_play_next_impl(ptr, rust_vec_len, data_len),
+        76 => wire__crate__api__core__Encore_playback_ended_impl(ptr, rust_vec_len, data_len),
+        77 => wire__crate__api__core__Encore_playback_interrupted_impl(ptr, rust_vec_len, data_len),
+        78 => wire__crate__api__core__Encore_playback_paused_impl(ptr, rust_vec_len, data_len),
+        79 => wire__crate__api__core__Encore_playback_progress_impl(ptr, rust_vec_len, data_len),
+        80 => wire__crate__api__core__Encore_playback_resumed_impl(ptr, rust_vec_len, data_len),
+        81 => wire__crate__api__core__Encore_playback_seeked_impl(ptr, rust_vec_len, data_len),
+        82 => wire__crate__api__core__Encore_playback_started_impl(ptr, rust_vec_len, data_len),
+        83 => wire__crate__api__core__Encore_playlist_impl(ptr, rust_vec_len, data_len),
+        85 => wire__crate__api__core__Encore_playlists_impl(ptr, rust_vec_len, data_len),
+        86 => wire__crate__api__core__Encore_previous_impl(ptr, rust_vec_len, data_len),
+        87 => wire__crate__api__core__Encore_previous_target_impl(ptr, rust_vec_len, data_len),
+        88 => wire__crate__api__core__Encore_profiles_impl(ptr, rust_vec_len, data_len),
+        90 => wire__crate__api__core__Encore_queue_impl(ptr, rust_vec_len, data_len),
+        91 => wire__crate__api__core__Encore_quick_connect_cancel_impl(ptr, rust_vec_len, data_len),
+        94 => wire__crate__api__core__Encore_recent_searches_impl(ptr, rust_vec_len, data_len),
+        95 => wire__crate__api__core__Encore_refresh_autoplay_impl(ptr, rust_vec_len, data_len),
+        96 => {
             wire__crate__api__core__Encore_refresh_smart_downloads_impl(ptr, rust_vec_len, data_len)
         }
-        99 => wire__crate__api__core__Encore_remove_all_downloads_impl(ptr, rust_vec_len, data_len),
-        100 => wire__crate__api__core__Encore_remove_download_impl(ptr, rust_vec_len, data_len),
-        101 => {
+        100 => {
+            wire__crate__api__core__Encore_remove_all_downloads_impl(ptr, rust_vec_len, data_len)
+        }
+        101 => wire__crate__api__core__Encore_remove_download_impl(ptr, rust_vec_len, data_len),
+        102 => {
             wire__crate__api__core__Encore_remove_from_playlist_impl(ptr, rust_vec_len, data_len)
         }
-        102 => wire__crate__api__core__Encore_remove_from_queue_impl(ptr, rust_vec_len, data_len),
-        103 => {
+        103 => wire__crate__api__core__Encore_remove_from_queue_impl(ptr, rust_vec_len, data_len),
+        104 => {
             wire__crate__api__core__Encore_remove_not_interested_impl(ptr, rust_vec_len, data_len)
         }
-        105 => wire__crate__api__core__Encore_remove_profile_pin_impl(ptr, rust_vec_len, data_len),
-        106 => {
+        106 => wire__crate__api__core__Encore_remove_profile_pin_impl(ptr, rust_vec_len, data_len),
+        107 => {
             wire__crate__api__core__Encore_remove_recent_search_impl(ptr, rust_vec_len, data_len)
         }
-        107 => wire__crate__api__core__Encore_remove_server_impl(ptr, rust_vec_len, data_len),
-        108 => wire__crate__api__core__Encore_remove_unplayed_downloads_impl(
+        108 => wire__crate__api__core__Encore_remove_server_impl(ptr, rust_vec_len, data_len),
+        109 => wire__crate__api__core__Encore_remove_unplayed_downloads_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        110 => wire__crate__api__core__Encore_rename_playlist_impl(ptr, rust_vec_len, data_len),
-        111 => wire__crate__api__core__Encore_rename_profile_impl(ptr, rust_vec_len, data_len),
-        112 => wire__crate__api__core__Encore_reorder_profiles_impl(ptr, rust_vec_len, data_len),
-        113 => wire__crate__api__core__Encore_replay_from_history_impl(ptr, rust_vec_len, data_len),
-        114 => wire__crate__api__core__Encore_reset_suggestions_impl(ptr, rust_vec_len, data_len),
-        116 => wire__crate__api__core__Encore_restore_sleep_timer_impl(ptr, rust_vec_len, data_len),
-        117 => {
+        111 => wire__crate__api__core__Encore_rename_playlist_impl(ptr, rust_vec_len, data_len),
+        112 => wire__crate__api__core__Encore_rename_profile_impl(ptr, rust_vec_len, data_len),
+        113 => wire__crate__api__core__Encore_reorder_profiles_impl(ptr, rust_vec_len, data_len),
+        114 => wire__crate__api__core__Encore_replay_from_history_impl(ptr, rust_vec_len, data_len),
+        115 => wire__crate__api__core__Encore_reset_suggestions_impl(ptr, rust_vec_len, data_len),
+        117 => wire__crate__api__core__Encore_restore_sleep_timer_impl(ptr, rust_vec_len, data_len),
+        118 => {
             wire__crate__api__core__Encore_retry_failed_downloads_impl(ptr, rust_vec_len, data_len)
         }
-        118 => {
+        119 => {
             wire__crate__api__core__Encore_retry_unreadable_sounds_impl(ptr, rust_vec_len, data_len)
         }
-        122 => {
+        123 => {
             wire__crate__api__core__Encore_save_mix_as_playlist_impl(ptr, rust_vec_len, data_len)
         }
-        123 => wire__crate__api__core__Encore_search_impl(ptr, rust_vec_len, data_len),
-        124 => wire__crate__api__core__Encore_search_downloaded_impl(ptr, rust_vec_len, data_len),
-        126 => wire__crate__api__core__Encore_servers_impl(ptr, rust_vec_len, data_len),
-        127 => wire__crate__api__core__Encore_set_adventurousness_impl(ptr, rust_vec_len, data_len),
-        128 => wire__crate__api__core__Encore_set_autoplay_impl(ptr, rust_vec_len, data_len),
-        129 => wire__crate__api__core__Encore_set_connectivity_impl(ptr, rust_vec_len, data_len),
-        130 => {
+        124 => wire__crate__api__core__Encore_search_impl(ptr, rust_vec_len, data_len),
+        125 => wire__crate__api__core__Encore_search_downloaded_impl(ptr, rust_vec_len, data_len),
+        127 => wire__crate__api__core__Encore_servers_impl(ptr, rust_vec_len, data_len),
+        128 => wire__crate__api__core__Encore_set_adventurousness_impl(ptr, rust_vec_len, data_len),
+        129 => wire__crate__api__core__Encore_set_autoplay_impl(ptr, rust_vec_len, data_len),
+        130 => wire__crate__api__core__Encore_set_connectivity_impl(ptr, rust_vec_len, data_len),
+        131 => {
             wire__crate__api__core__Encore_set_download_settings_impl(ptr, rust_vec_len, data_len)
         }
-        131 => wire__crate__api__core__Encore_set_listening_mode_impl(ptr, rust_vec_len, data_len),
-        132 => wire__crate__api__core__Encore_set_playback_capabilities_impl(
+        132 => wire__crate__api__core__Encore_set_listening_mode_impl(ptr, rust_vec_len, data_len),
+        133 => wire__crate__api__core__Encore_set_playback_capabilities_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        133 => wire__crate__api__core__Encore_set_profile_pin_impl(ptr, rust_vec_len, data_len),
-        134 => wire__crate__api__core__Encore_set_repeat_impl(ptr, rust_vec_len, data_len),
-        135 => wire__crate__api__core__Encore_set_shuffle_impl(ptr, rust_vec_len, data_len),
-        136 => wire__crate__api__core__Encore_set_sleep_timer_impl(ptr, rust_vec_len, data_len),
-        137 => {
+        134 => wire__crate__api__core__Encore_set_profile_pin_impl(ptr, rust_vec_len, data_len),
+        135 => wire__crate__api__core__Encore_set_repeat_impl(ptr, rust_vec_len, data_len),
+        136 => wire__crate__api__core__Encore_set_shuffle_impl(ptr, rust_vec_len, data_len),
+        137 => wire__crate__api__core__Encore_set_sleep_timer_impl(ptr, rust_vec_len, data_len),
+        138 => {
             wire__crate__api__core__Encore_set_sleep_timer_seconds_impl(ptr, rust_vec_len, data_len)
         }
-        138 => wire__crate__api__core__Encore_set_sound_model_impl(ptr, rust_vec_len, data_len),
-        139 => wire__crate__api__core__Encore_set_sound_settings_impl(ptr, rust_vec_len, data_len),
-        140 => wire__crate__api__core__Encore_set_stream_quality_impl(ptr, rust_vec_len, data_len),
-        141 => wire__crate__api__core__Encore_set_volume_level_impl(ptr, rust_vec_len, data_len),
-        144 => wire__crate__api__core__Encore_skip_next_impl(ptr, rust_vec_len, data_len),
-        145 => wire__crate__api__core__Encore_skip_previous_impl(ptr, rust_vec_len, data_len),
-        146 => wire__crate__api__core__Encore_sleep_fade_plan_impl(ptr, rust_vec_len, data_len),
-        147 => wire__crate__api__core__Encore_sleep_timer_impl(ptr, rust_vec_len, data_len),
-        148 => wire__crate__api__core__Encore_sleep_timer_ended_impl(ptr, rust_vec_len, data_len),
-        149 => wire__crate__api__core__Encore_smart_shuffle_impl(ptr, rust_vec_len, data_len),
-        150 => wire__crate__api__core__Encore_song_impl(ptr, rust_vec_len, data_len),
-        151 => wire__crate__api__core__Encore_songs_impl(ptr, rust_vec_len, data_len),
-        152 => wire__crate__api__core__Encore_sound_settings_impl(ptr, rust_vec_len, data_len),
-        153 => wire__crate__api__core__Encore_sound_status_impl(ptr, rust_vec_len, data_len),
-        154 => wire__crate__api__core__Encore_start_guest_impl(ptr, rust_vec_len, data_len),
-        155 => wire__crate__api__core__Encore_start_radio_impl(ptr, rust_vec_len, data_len),
-        156 => wire__crate__api__core__Encore_stop_downloads_impl(ptr, rust_vec_len, data_len),
-        157 => wire__crate__api__core__Encore_stop_events_impl(ptr, rust_vec_len, data_len),
-        158 => wire__crate__api__core__Encore_stop_remote_control_impl(ptr, rust_vec_len, data_len),
-        159 => wire__crate__api__core__Encore_stop_sound_analysis_impl(ptr, rust_vec_len, data_len),
-        160 => wire__crate__api__core__Encore_stream_for_impl(ptr, rust_vec_len, data_len),
-        161 => wire__crate__api__core__Encore_stream_quality_impl(ptr, rust_vec_len, data_len),
-        162 => wire__crate__api__core__Encore_suggestion_stats_impl(ptr, rust_vec_len, data_len),
-        166 => wire__crate__api__core__Encore_sync_status_impl(ptr, rust_vec_len, data_len),
-        168 => wire__crate__api__core__Encore_trust_certificate_impl(ptr, rust_vec_len, data_len),
-        169 => wire__crate__api__core__Encore_undo_impl(ptr, rust_vec_len, data_len),
-        170 => wire__crate__api__core__Encore_undo_queue_impl(ptr, rust_vec_len, data_len),
-        171 => wire__crate__api__core__Encore_unlike_impl(ptr, rust_vec_len, data_len),
-        172 => wire__crate__api__core__Encore_unlock_profile_impl(ptr, rust_vec_len, data_len),
-        173 => wire__crate__api__core__Encore_why_this_song_impl(ptr, rust_vec_len, data_len),
-        174 => wire__crate__api__core__Encore_widget_snapshot_impl(ptr, rust_vec_len, data_len),
-        175 => wire__crate__api__hello__app_name_impl(ptr, rust_vec_len, data_len),
-        176 => wire__crate__api__hello__core_version_impl(ptr, rust_vec_len, data_len),
-        177 => wire__crate__api__hello__hello_impl(ptr, rust_vec_len, data_len),
+        139 => wire__crate__api__core__Encore_set_sound_model_impl(ptr, rust_vec_len, data_len),
+        140 => wire__crate__api__core__Encore_set_sound_settings_impl(ptr, rust_vec_len, data_len),
+        141 => wire__crate__api__core__Encore_set_stream_quality_impl(ptr, rust_vec_len, data_len),
+        142 => wire__crate__api__core__Encore_set_volume_level_impl(ptr, rust_vec_len, data_len),
+        145 => wire__crate__api__core__Encore_skip_next_impl(ptr, rust_vec_len, data_len),
+        146 => wire__crate__api__core__Encore_skip_previous_impl(ptr, rust_vec_len, data_len),
+        147 => wire__crate__api__core__Encore_sleep_fade_plan_impl(ptr, rust_vec_len, data_len),
+        148 => wire__crate__api__core__Encore_sleep_timer_impl(ptr, rust_vec_len, data_len),
+        149 => wire__crate__api__core__Encore_sleep_timer_ended_impl(ptr, rust_vec_len, data_len),
+        150 => wire__crate__api__core__Encore_smart_shuffle_impl(ptr, rust_vec_len, data_len),
+        151 => wire__crate__api__core__Encore_song_impl(ptr, rust_vec_len, data_len),
+        152 => wire__crate__api__core__Encore_songs_impl(ptr, rust_vec_len, data_len),
+        153 => wire__crate__api__core__Encore_sound_settings_impl(ptr, rust_vec_len, data_len),
+        154 => wire__crate__api__core__Encore_sound_status_impl(ptr, rust_vec_len, data_len),
+        155 => wire__crate__api__core__Encore_start_guest_impl(ptr, rust_vec_len, data_len),
+        156 => wire__crate__api__core__Encore_start_radio_impl(ptr, rust_vec_len, data_len),
+        157 => wire__crate__api__core__Encore_stop_downloads_impl(ptr, rust_vec_len, data_len),
+        158 => wire__crate__api__core__Encore_stop_events_impl(ptr, rust_vec_len, data_len),
+        159 => wire__crate__api__core__Encore_stop_remote_control_impl(ptr, rust_vec_len, data_len),
+        160 => wire__crate__api__core__Encore_stop_sound_analysis_impl(ptr, rust_vec_len, data_len),
+        161 => wire__crate__api__core__Encore_stream_for_impl(ptr, rust_vec_len, data_len),
+        162 => wire__crate__api__core__Encore_stream_quality_impl(ptr, rust_vec_len, data_len),
+        163 => wire__crate__api__core__Encore_suggestion_stats_impl(ptr, rust_vec_len, data_len),
+        167 => wire__crate__api__core__Encore_sync_status_impl(ptr, rust_vec_len, data_len),
+        169 => wire__crate__api__core__Encore_trust_certificate_impl(ptr, rust_vec_len, data_len),
+        170 => wire__crate__api__core__Encore_undo_impl(ptr, rust_vec_len, data_len),
+        171 => wire__crate__api__core__Encore_undo_queue_impl(ptr, rust_vec_len, data_len),
+        172 => wire__crate__api__core__Encore_unlike_impl(ptr, rust_vec_len, data_len),
+        173 => wire__crate__api__core__Encore_unlock_profile_impl(ptr, rust_vec_len, data_len),
+        174 => wire__crate__api__core__Encore_why_this_song_impl(ptr, rust_vec_len, data_len),
+        175 => wire__crate__api__core__Encore_widget_snapshot_impl(ptr, rust_vec_len, data_len),
+        176 => wire__crate__api__hello__app_name_impl(ptr, rust_vec_len, data_len),
+        177 => wire__crate__api__hello__core_version_impl(ptr, rust_vec_len, data_len),
+        178 => wire__crate__api__hello__hello_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -14312,6 +14394,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::MixKind> {
             crate::api::core::MixKind::Stretch => 4.into_dart(),
             crate::api::core::MixKind::Family => 5.into_dart(),
             crate::api::core::MixKind::Starter => 6.into_dart(),
+            crate::api::core::MixKind::Mood => 7.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -14485,6 +14568,28 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<crate::api::core::MixSummary>>
     for crate::api::core::MixSummary
 {
     fn into_into_dart(self) -> FrbWrapper<crate::api::core::MixSummary> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::MoodTile> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.mix_id.into_into_dart().into_dart(),
+            self.0.title.into_into_dart().into_dart(),
+            self.0.song_count.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<crate::api::core::MoodTile>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<crate::api::core::MoodTile>>
+    for crate::api::core::MoodTile
+{
+    fn into_into_dart(self) -> FrbWrapper<crate::api::core::MoodTile> {
         self.into()
     }
 }
@@ -16951,6 +17056,16 @@ impl SseEncode for Vec<crate::api::core::MixSummary> {
     }
 }
 
+impl SseEncode for Vec<crate::api::core::MoodTile> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::core::MoodTile>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Vec<crate::api::core::NotInterestedItem> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -17307,6 +17422,7 @@ impl SseEncode for crate::api::core::MixKind {
                 crate::api::core::MixKind::Stretch => 4,
                 crate::api::core::MixKind::Family => 5,
                 crate::api::core::MixKind::Starter => 6,
+                crate::api::core::MixKind::Mood => 7,
                 _ => {
                     unimplemented!("");
                 }
@@ -17399,6 +17515,15 @@ impl SseEncode for crate::api::core::MixSummary {
         <u32>::sse_encode(self.song_count, serializer);
         <bool>::sse_encode(self.pinned, serializer);
         <i64>::sse_encode(self.made_utc_ms, serializer);
+    }
+}
+
+impl SseEncode for crate::api::core::MoodTile {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.mix_id, serializer);
+        <String>::sse_encode(self.title, serializer);
+        <u32>::sse_encode(self.song_count, serializer);
     }
 }
 

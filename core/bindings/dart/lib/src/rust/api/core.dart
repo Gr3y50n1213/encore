@@ -190,6 +190,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  MixPage  mix({required String mixId });
 
 
+ List<MoodTile>  moods();
+
+
  void  moreLikeThis({required PlatformInt64 songId });
 
 
@@ -1642,6 +1645,7 @@ drift,
 stretch,
 family,
 starter,
+mood,
                     ;
                     
                 }
@@ -1791,6 +1795,31 @@ final PlatformInt64 madeUtcMs;
             other is MixSummary &&
                 runtimeType == other.runtimeType
                 && mixId == other.mixId&& kind == other.kind&& title == other.title&& subtitle == other.subtitle&& coverSongIds == other.coverSongIds&& songCount == other.songCount&& pinned == other.pinned&& madeUtcMs == other.madeUtcMs;
+
+            }
+
+class MoodTile  {
+                final String mixId;
+final String title;
+final int songCount;
+
+                const MoodTile({required this.mixId ,required this.title ,required this.songCount ,});
+
+
+
+
+
+        @override
+        int get hashCode => mixId.hashCode^title.hashCode^songCount.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is MoodTile &&
+                runtimeType == other.runtimeType
+                && mixId == other.mixId&& title == other.title&& songCount == other.songCount;
 
             }
 

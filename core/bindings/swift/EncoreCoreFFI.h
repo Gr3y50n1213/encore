@@ -1004,6 +1004,11 @@ uint64_t uniffi_encore_core_fn_method_encorecore_home(uint64_t ptr
 RustBuffer uniffi_encore_core_fn_method_encorecore_mix(uint64_t ptr, RustBuffer mix_id, RustCallStatus *_Nonnull out_status
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_MOODS
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_MOODS
+RustBuffer uniffi_encore_core_fn_method_encorecore_moods(uint64_t ptr, RustCallStatus *_Nonnull out_status
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_MORE_LIKE_THIS
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_MORE_LIKE_THIS
 void uniffi_encore_core_fn_method_encorecore_more_like_this(uint64_t ptr, int64_t song_id, RustCallStatus *_Nonnull out_status
@@ -2327,6 +2332,12 @@ uint16_t uniffi_encore_core_checksum_method_encorecore_home(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_MIX
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_MIX
 uint16_t uniffi_encore_core_checksum_method_encorecore_mix(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_MOODS
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_MOODS
+uint16_t uniffi_encore_core_checksum_method_encorecore_moods(void
     
 );
 #endif

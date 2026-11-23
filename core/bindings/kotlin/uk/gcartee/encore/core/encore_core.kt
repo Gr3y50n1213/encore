@@ -1002,6 +1002,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_mix(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_moods(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_more_like_this(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_not_in_this_mix(
@@ -1378,6 +1380,8 @@ internal object UniffiLib {
     external fun uniffi_encore_core_fn_method_encorecore_home(`ptr`: Long,
     ): Long
     external fun uniffi_encore_core_fn_method_encorecore_mix(`ptr`: Long,`mixId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_moods(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_more_like_this(`ptr`: Long,`songId`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
@@ -2011,6 +2015,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_mix() and 0xFFFF) != 9008) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_moods() and 0xFFFF) != 6881) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_more_like_this() and 0xFFFF) != 23956) {
@@ -3737,6 +3744,13 @@ public interface EncoreCoreInterface {
      * A mix's page (board 15), each song with one reason.
      */
     fun `mix`(`mixId`: kotlin.String): MixPage
+    
+    /**
+     * Browse by mood (board 07; Phase 10): the moods this library has, from what its songs sound
+     * like, each with at least 25 songs, in a fixed order. Empty until enough songs are analysed
+     * (sound analysis is off until the person turns it on). Open one with `mix(mix_id)`.
+     */
+    fun `moods`(): List<MoodTile>
     
     /**
      * More like this (+1.5 for the song and its neighbours here; not a like) or
@@ -6867,6 +6881,25 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
 
     
     /**
+     * Browse by mood (board 07; Phase 10): the moods this library has, from what its songs sound
+     * like, each with at least 25 songs, in a fixed order. Empty until enough songs are analysed
+     * (sound analysis is off until the person turns it on). Open one with `mix(mix_id)`.
+     */
+    @Throws(EncoreException::class)override fun `moods`(): List<MoodTile> {
+            return FfiConverterSequenceTypeMoodTile.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_moods(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
      * More like this (+1.5 for the song and its neighbours here; not a like) or
      * Fewer like this (-1). Show a one-line confirmation.
      */
@@ -9660,6 +9693,62 @@ public object FfiConverterTypeMixSummary: FfiConverterRustBuffer<MixSummary> {
             FfiConverterUInt.write(value.`songCount`, buf)
             FfiConverterBoolean.write(value.`pinned`, buf)
             FfiConverterLong.write(value.`madeUtcMs`, buf)
+    }
+}
+
+
+
+/**
+ * A tile of Browse by mood (board 07; Phase 10): a mood this library has, from what its songs
+ * sound like. Open it with `mix(mix_id)`.
+ */
+data class MoodTile (
+    /**
+     * `mood-<id>`, the same every day.
+     */
+    var `mixId`: kotlin.String
+    , 
+    /**
+     * 2 to 4 plain words tied to what is measured ("Calm and Warm").
+     */
+    var `title`: kotlin.String
+    , 
+    /**
+     * The library's songs in this mood (at least 25).
+     */
+    var `songCount`: kotlin.UInt
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeMoodTile: FfiConverterRustBuffer<MoodTile> {
+    override fun read(buf: ByteBuffer): MoodTile {
+        return MoodTile(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterUInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: MoodTile) = (
+            FfiConverterString.allocationSize(value.`mixId`) +
+            FfiConverterString.allocationSize(value.`title`) +
+            FfiConverterUInt.allocationSize(value.`songCount`)
+    )
+
+    override fun write(value: MoodTile, buf: ByteBuffer) {
+            FfiConverterString.write(value.`mixId`, buf)
+            FfiConverterString.write(value.`title`, buf)
+            FfiConverterUInt.write(value.`songCount`, buf)
     }
 }
 
@@ -13884,7 +13973,11 @@ enum class MixKind {
     /**
      * No plays yet: from the media server's favourites and most played.
      */
-    STARTER;
+    STARTER,
+    /**
+     * Browse by mood: a mood from what songs sound like (Phase 10).
+     */
+    MOOD;
 
     
 
@@ -16664,6 +16757,34 @@ public object FfiConverterSequenceTypeMixSummary: FfiConverterRustBuffer<List<Mi
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeMixSummary.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeMoodTile: FfiConverterRustBuffer<List<MoodTile>> {
+    override fun read(buf: ByteBuffer): List<MoodTile> {
+        val len = buf.getInt()
+        return List<MoodTile>(len) {
+            FfiConverterTypeMoodTile.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<MoodTile>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeMoodTile.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<MoodTile>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeMoodTile.write(it, buf)
         }
     }
 }
