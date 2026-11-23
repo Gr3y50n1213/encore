@@ -9,6 +9,10 @@ The plan's thirteen phases and their "done when" lines are unchanged. What chang
 - **Android and Windows and Linux do not wait for Apple.** The master plan built Apple first and then brought the other platforms in at Phase 6. With separate tracks, Android and Windows and Linux follow Phases 2 to 5 in the same order as Apple, building the same things for their platform, as soon as the core part exists. Phase 6's list (Media3 on Android, the Rust audio engine, SMTC and MPRIS on desktop, cut-outs and fold postures, swipes, drag and drop) is added to those phases in the table below. Phase 6's "done when" is the joint gate, and the owner checks it.
 - **A phase is finished for the whole project** when every track's part has passed and the owner has checked its "done when" line on real devices.
 
+## Build order change (owner, 23 November 2026)
+
+Phase 12 (more sources) is built before Phase 11 (year-end recap). The owner's words: "functionality before looks". The numbers keep their meaning everywhere; only the order changes: 10, then 12, then 11, then 13. Widget and other visual polish waits until then.
+
 ## The master roadmap (word for word from the plan)
 
 The plan's first sentence below, "Build one great experience on Apple devices first", described one builder working alone. With separate tracks, the rules in "How the tracks fit together" above decide the order; everything else below is unchanged.
