@@ -160,17 +160,19 @@ private fun TileRow(row: List<TileData>, cols: Int, fit: CollectionFit, stale: B
         // Fewer tiles than columns: each keeps the width it has in a full row and the group sits in the middle.
         Row(modifier = GlanceModifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             row.forEachIndexed { i, tile ->
-                if (i > 0) Spacer(GlanceModifier.width(CollectionSizing.GAP.dp))
-                Tile(tile, fit, stale, fs, GlanceModifier.width(centerWidth.dp))
+                Tile(tile, fit, stale, fs, GlanceModifier.width(centerWidth.dp + if (i > 0) CollectionSizing.GAP.dp else 0.dp).padding(start = if (i > 0) CollectionSizing.GAP.dp else 0.dp))
             }
         }
         return
     }
+    // A Glance row holds at most 10 children. A gap Spacer between tiles made a wide widget's
+    // 6 columns 11 children and the widget failed to draw (the owner's S20 FE, 24 November
+    // 2026), so each tile after the first carries the gap as its own start padding.
     Row(modifier = GlanceModifier.fillMaxWidth()) {
-        for (i in 0 until cols) {
-            if (i > 0) Spacer(GlanceModifier.width(CollectionSizing.GAP.dp))
+        for (i in 0 until cols.coerceAtMost(MAX_ROW_CHILDREN)) {
+            val cell = GlanceModifier.defaultWeight().padding(start = if (i > 0) CollectionSizing.GAP.dp else 0.dp)
             val tile = row.getOrNull(i)
-            if (tile == null) Spacer(GlanceModifier.defaultWeight()) else Tile(tile, fit, stale, fs, GlanceModifier.defaultWeight())
+            if (tile == null) Spacer(cell) else Tile(tile, fit, stale, fs, cell)
         }
     }
 }
@@ -279,3 +281,6 @@ private fun Hero(t: TileData, stale: Boolean, ink: WidgetInk, fs: Float) {
         Spacer(GlanceModifier.width(4.dp))
     }
 }
+
+/** The most children Glance allows in a Row or Column. */
+private const val MAX_ROW_CHILDREN = 10

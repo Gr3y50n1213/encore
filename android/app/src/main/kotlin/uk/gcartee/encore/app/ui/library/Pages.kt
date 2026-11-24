@@ -440,6 +440,28 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
     val target = uk.gcartee.encore.app.core.playlistTarget(playlistId)
     var confirmRemove by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf(false) }
+    // Owner, 24 November 2026: "we need to be able to delete playlists". It goes from the
+    // server and every device, with no Undo, so it asks first.
+    var deleting by remember { mutableStateOf(false) }
+    if (deleting) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { deleting = false },
+            title = { Text("Delete “$name”?") },
+            text = { Text("It's removed from your server and every device. The songs stay in your library.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    deleting = false
+                    runCatching { host.core.deletePlaylist(playlistId) }
+                        .onSuccess {
+                            actions.toaster.show("Deleted $name")
+                            onBack()
+                        }
+                        .onFailure { actions.toaster.show(it.userMessage()) }
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { deleting = false }) { Text("Cancel") } },
+        )
+    }
     if (renaming) {
         var typed by remember { mutableStateOf(name) }
         fun save() {
@@ -494,6 +516,7 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
                                 val editIcon = Icons.edit()
                                 val addIcon = Icons.playlistAdd()
                                 val selectIcon = Icons.check()
+                                val deleteIcon = Icons.delete()
                                 uk.gcartee.encore.app.ui.components.ActionSheet(
                                     onDismiss = { open = false },
                                     header = { SheetHeader(name, songs(detail.playlist.songCount.toInt())) { Box(Modifier.size(56.dp).clip(RoundedCornerShape(14.dp))) { MosaicFill(playable.take(4).map { it.id }, Modifier.fillMaxSize()) } } },
@@ -507,6 +530,7 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
                                             if (playable.isEmpty()) null else selection?.let { sel -> uk.gcartee.encore.app.ui.components.SheetAction("Select songs", selectIcon) { sel.start() } },
                                             uk.gcartee.encore.app.ui.components.SheetAction("Rename", editIcon) { renaming = true },
                                         ),
+                                        listOf(uk.gcartee.encore.app.ui.components.SheetAction("Delete playlist", deleteIcon, destructive = true) { deleting = true }),
                                     ),
                                 )
                             }
