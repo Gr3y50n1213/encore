@@ -2666,9 +2666,10 @@ impl EncoreCore {
     }
 
     /// A song's lyrics, read and ready to draw (board 10); None when it has none.
-    /// Kept per song: once fetched they show offline. They are fetched again after
-    /// `lyrics.refreshAfterDays`, or sooner when the server's copy of the song
-    /// changes. When the server can't be reached the kept copy is used, however old.
+    /// Kept per song: once fetched they show offline. They are checked again after
+    /// an hour (`LYRICS_RECHECK_MS`; at most `lyrics.refreshAfterDays`), or sooner when the
+    /// server's copy of the song changes. When the server can't be reached the kept copy is
+    /// used, however old.
     /// A file that can't be read counts as no lyrics, so the view never fails. Async.
     pub async fn lyrics(&self, song_id: i64) -> Result<Option<SongLyrics>, EncoreError> {
         let inner = self.inner.clone();
@@ -2693,7 +2694,7 @@ impl EncoreCore {
                 )))
             };
             if let Some(c) = &cached
-                && now - c.fetched_utc_ms < t.lyrics_refresh_after_ms
+                && now - c.fetched_utc_ms < t.lyrics_refresh_after_ms.min(LYRICS_RECHECK_MS)
             {
                 return from_cache(c);
             }
@@ -2850,3 +2851,8 @@ fn downloads_file_url(path: &Path) -> String {
         .map(|u| u.to_string())
         .unwrap_or_else(|_| format!("file://{}", path.display()))
 }
+
+/// Lyrics kept on the device are checked against the server again after an hour. The owner
+/// (24 November 2026) replaced a song's lyrics file with a word-timed one; the song itself
+/// didn't change on the server, so the week-old copy kept showing lines only.
+const LYRICS_RECHECK_MS: i64 = 60 * 60 * 1000;
