@@ -39,6 +39,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -115,11 +116,18 @@ fun OutputSheet(host: CoreHost, playingHere: Boolean, onDismiss: () -> Unit) {
             Spacer(Modifier.height((Grid.base * 2).dp))
             Column(verticalArrangement = Arrangement.spacedBy(SHEET_ROW_GAP_DP.dp)) {
                 // Item 3: this device, lit while the music is coming from it.
+                // Item 3's tap: while another device is controlled from here, it brings the music back.
+                val controlling by uk.gcartee.encore.app.playback.RemoteControl.device.collectAsState()
                 GroupRow(
                     first = true,
                     last = false,
                     color = if (playingHere) scheme.secondaryContainer else scheme.surfaceContainerHigh,
                     contentColor = if (playingHere) scheme.onSecondaryContainer else scheme.onSurface,
+                    onClick = if (controlling == null) null else ({
+                        uk.gcartee.encore.app.playback.RemoteControl.playHere { actions.toaster.show(it.userMessage()) }
+                        haptics.perform(Haptic.Confirm)
+                        onDismiss()
+                    }),
                 ) {
                     IconDisc(
                         if (tablet) Icons.tablet() else Icons.phone(),
@@ -178,7 +186,12 @@ fun OutputSheet(host: CoreHost, playingHere: Boolean, onDismiss: () -> Unit) {
                                             moving = dev.deviceId
                                             scope.launch {
                                                 runCatching { host.core.handOffTo(dev.deviceId) }
-                                                    .onSuccess { haptics.perform(Haptic.Confirm); onDismiss() }
+                                                    .onSuccess {
+                                                        haptics.perform(Haptic.Confirm)
+                                                        // Like Spotify: this device now controls the music there.
+                                                        uk.gcartee.encore.app.playback.RemoteControl.start(dev.deviceId)
+                                                        onDismiss()
+                                                    }
                                                     .onFailure { haptics.perform(Haptic.Reject); actions.toaster.show(it.userMessage()) }
                                                 moving = null
                                             }
@@ -210,7 +223,8 @@ fun OutputSheet(host: CoreHost, playingHere: Boolean, onDismiss: () -> Unit) {
                                     DropdownMenu(menu, onDismissRequest = { menu = false }, shape = RoundedCornerShape(16.dp), containerColor = scheme.surfaceContainerHigh) {
                                         DropdownMenuItem(text = { Text("Control only") }, onClick = {
                                             menu = false
-                                            runCatching { host.core.controlOnly(dev.deviceId) }.onSuccess { actions.toaster.show("Controlling ${dev.name}") }
+                                            uk.gcartee.encore.app.playback.RemoteControl.start(dev.deviceId)
+                                            actions.toaster.show("Controlling ${dev.name}")
                                         })
                                         DropdownMenuItem(text = { Text("Rename") }, onClick = { menu = false; rename = dev })
                                     }
@@ -299,7 +313,10 @@ fun ContinueBanner(host: CoreHost, device: OutputDevice?, onDone: () -> Unit) {
                 FilledTonalButton(onClick = {
                     scope.launch {
                         runCatching { host.core.pullFrom(dev.deviceId) }
-                            .onSuccess { haptics.perform(Haptic.Confirm) }
+                            .onSuccess {
+                                haptics.perform(Haptic.Confirm)
+                                uk.gcartee.encore.app.playback.RemoteControl.stop()
+                            }
                             .onFailure { haptics.perform(Haptic.Reject); actions.toaster.show(it.userMessage()) }
                         onDone()
                     }

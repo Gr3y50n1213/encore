@@ -144,6 +144,7 @@ fun NowPlayingScreen(
     var heart by remember { mutableStateOf(false) }
     var endOfQueue by remember { mutableStateOf(false) }
     val playingFrom by host.playingFrom.collectAsState()
+    val remoteDevice by uk.gcartee.encore.app.playback.RemoteControl.device.collectAsState()
     val privateOn by host.privateListening.collectAsState()
     val remoteChanges by host.remoteChanges.collectAsState()
     LaunchedEffect(remoteChanges, song.id) { liked = actions.isLiked(song) }
@@ -258,7 +259,8 @@ fun NowPlayingScreen(
                             heart = true
                         }, onMenu = { menu = true }, onEnd = { endOfQueue = it })
                         PlayerPanel.Lyrics -> LyricsPanel(host, song, position, content, onSeek = { PlaybackHub.seekAndPlay(context, it) }, modifier = Modifier.fillMaxSize().fadingEdges())
-                        PlayerPanel.Queue -> QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize().fadingEdges(), onColour = colours.base)
+                        PlayerPanel.Queue -> remoteDevice?.let { d -> RemoteQueuePanel(host, d, content, Modifier.fillMaxSize().fadingEdges()) }
+                            ?: QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize().fadingEdges(), onColour = colours.base)
                     }
                 }
                 Box { FieldSheetTheme(colours) { SongMenu(song, expanded = menu, onDismiss = { menu = false }, place = MenuPlace(chosenBy = entry.chosenBy)) } }
@@ -369,6 +371,11 @@ fun NowPlayingScreen(
                             size = transport,
                         )
                     }
+                    // Board 12: while another device plays, its capsule and volume.
+                    remoteDevice?.let { d ->
+                        Spacer(Modifier.height(if (dense) Grid.base.dp else (Grid.base * 1.5f).dp))
+                        RemoteCapsule(d, content)
+                    }
                     Spacer(Modifier.height(if (dense) (Grid.base * 1.5f).dp else (Grid.base * 3).dp))
                     // Item 8: Lyrics, Output and Queue, one connected group.
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)) {
@@ -432,7 +439,7 @@ fun NowPlayingScreen(
                     }
                     Box(Modifier.weight(1f - TV_LEFT).fillMaxSize().fadingEdges()) {
                         when (panel) {
-                            PlayerPanel.Queue -> QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Lyrics }, modifier = Modifier.fillMaxSize(), onColour = colours.base)
+                            PlayerPanel.Queue -> remoteDevice?.let { d -> RemoteQueuePanel(host, d, content, Modifier.fillMaxSize()) } ?: QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Lyrics }, modifier = Modifier.fillMaxSize(), onColour = colours.base)
                             else -> LyricsPanel(host, song, position, content, onSeek = { PlaybackHub.seekAndPlay(context, it) }, modifier = Modifier.fillMaxSize())
                         }
                     }
@@ -470,7 +477,7 @@ fun NowPlayingScreen(
                 Box(Modifier.weight(1f).fillMaxWidth().fadingEdges()) {
                     when (panel) {
                         PlayerPanel.Lyrics -> LyricsPanel(host, song, position, content, onSeek = { PlaybackHub.seekAndPlay(context, it) }, modifier = Modifier.fillMaxSize())
-                        else -> QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize(), onColour = colours.base)
+                        else -> remoteDevice?.let { d -> RemoteQueuePanel(host, d, content, Modifier.fillMaxSize()) } ?: QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize(), onColour = colours.base)
                     }
                 }
                 controls(true, TransportSize.Medium)

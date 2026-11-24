@@ -153,12 +153,31 @@ class AppActions(
         }.onFailure { refuse(it); return }
         host.playingFrom.value = label
         PlaybackHub.playCurrent(context)
-        if (hadQueue) toaster.show("Replaced queue") { runCatching { core.undoQueue() }; PlaybackHub.playCurrent(context) }
+        val there = uk.gcartee.encore.app.playback.RemoteControl.device.value
+        if (there != null) toaster.show("Playing on ${there.name}")
+        else if (hadQueue) toaster.show("Replaced queue") { runCatching { core.undoQueue() }; PlaybackHub.playCurrent(context) }
     }
 
-    fun playNext(songs: List<Song>) = queueEdit("Playing next") { core.playNext(songs.map { it.id }) }
+    fun playNext(songs: List<Song>) {
+        // Board 12: while another device is controlled, its queue changes instead.
+        val there = uk.gcartee.encore.app.playback.RemoteControl.device.value
+        if (there != null) {
+            uk.gcartee.encore.app.playback.RemoteControl.send(uk.gcartee.encore.core.RemoteCommandKind.PLAY_NEXT, songIds = songs.map { it.id })
+            toaster.show("Playing next on ${there.name}")
+            return
+        }
+        queueEdit("Playing next") { core.playNext(songs.map { it.id }) }
+    }
 
-    fun addToQueue(songs: List<Song>) = queueEdit("Added to Up Next") { core.addToUpNext(songs.map { it.id }) }
+    fun addToQueue(songs: List<Song>) {
+        val there = uk.gcartee.encore.app.playback.RemoteControl.device.value
+        if (there != null) {
+            uk.gcartee.encore.app.playback.RemoteControl.send(uk.gcartee.encore.core.RemoteCommandKind.ADD_TO_UP_NEXT, songIds = songs.map { it.id })
+            toaster.show("Added to Up Next on ${there.name}")
+            return
+        }
+        queueEdit("Added to Up Next") { core.addToUpNext(songs.map { it.id }) }
+    }
 
     private fun queueEdit(message: String, edit: () -> Unit) {
         runCatching(edit)

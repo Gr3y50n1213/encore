@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,6 +55,7 @@ import uk.gcartee.encore.tokens.EncoreTokens.Radius
 @Composable
 fun MiniPlayer(host: CoreHost, state: PlayerState, onExpand: () -> Unit, modifier: Modifier = Modifier, bar: Boolean = false, onArtBounds: (androidx.compose.ui.geometry.Rect) -> Unit = {}) {
     val entry = state.entry ?: return
+    val there by uk.gcartee.encore.app.playback.RemoteControl.device.collectAsState()
     val context = LocalContext.current
     val type = LocalEncoreType.current
     var endOfQueue by remember { mutableStateOf(false) }
@@ -117,7 +119,12 @@ fun MiniPlayer(host: CoreHost, state: PlayerState, onExpand: () -> Unit, modifie
                     Column(Modifier.weight(1f)) {
                         Text(song.title, style = type.songRowTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
-                            if (endOfQueue && slot == Slot.Current) "End of queue" else song.artist,
+                            when {
+                                endOfQueue && slot == Slot.Current -> "End of queue"
+                                // Board 12: while another device plays, say which.
+                                there != null && slot == Slot.Current -> "On ${there?.name} · ${song.artist}"
+                                else -> song.artist
+                            },
                             style = type.body,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,

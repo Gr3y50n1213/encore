@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -165,7 +166,12 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     val type = LocalEncoreType.current
     val haptics = rememberHaptics()
     val nav = rememberNavigator()
-    val player by PlaybackHub.state.collectAsState(PlayerState())
+    val playerHere by PlaybackHub.state.collectAsState(PlayerState())
+    // Board 12: while another device is controlled from here, the mini player and Now
+    // Playing show that device's song and state (RemoteControl), Spotify-style.
+    androidx.compose.runtime.LaunchedEffect(host) { uk.gcartee.encore.app.playback.RemoteControl.bind(host) }
+    val playerThere by uk.gcartee.encore.app.playback.RemoteControl.state.collectAsState(null)
+    val player = playerThere ?: playerHere
     var nowPlaying by rememberSaveable { mutableStateOf(false) }
     // Where the mini player is and how big the screen is, for the morph between them.
     var miniBar by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
@@ -298,7 +304,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
         host.events.collect { e ->
             when (e.kind) {
                 // Board 12: Continue only while this device isn't playing; the core decides when.
-                EventKind.CONTINUE_AVAILABLE -> if (!player.isPlaying) continueFrom = e.device
+                EventKind.CONTINUE_AVAILABLE -> if (!playerHere.isPlaying && !uk.gcartee.encore.app.playback.RemoteControl.active) continueFrom = e.device
                 EventKind.HANDOFF_FAILED -> {
                     haptics.perform(Haptic.Reject)
                     toaster.show(e.handoff?.reason ?: "Couldn't move the music")
@@ -371,6 +377,10 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                                 else fadeIn(tween(220)) togetherWith fadeOut(tween(160))
                             },
                             label = "page",
+                            // Owner, 24 November 2026: a field near the bottom (the companion
+                            // server's address) was typed into behind the keyboard. Pages end
+                            // above the keyboard, so the focused field scrolls into view.
+                            modifier = Modifier.imePadding(),
                         ) { (tab, route) ->
                             // Board 29, item 2: on expanded windows Library is a 340 dp list with the
                             // chosen album, artist or playlist open beside it, two panes 12 dp apart.
@@ -656,7 +666,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
         }
         if (primer) NotificationPrimer(forSleepTimer = primerForSleep, onDone = { host.notificationPrimer.value = false })
         output?.let { tint ->
-            uk.gcartee.encore.app.ui.player.FieldSheetTheme(tint) { OutputSheet(host, playingHere = player.isPlaying, onDismiss = { output = null }) }
+            uk.gcartee.encore.app.ui.player.FieldSheetTheme(tint) { OutputSheet(host, playingHere = playerHere.isPlaying, onDismiss = { output = null }) }
         }
     }
 }

@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import uk.gcartee.encore.core.RemoteCommandKind
 import uk.gcartee.encore.core.SkipOrigin
 
 /**
@@ -60,25 +61,58 @@ object PlaybackHub {
         future.addListener({ playback.value?.let(action) }, context.mainExecutor)
     }
 
-    fun playCurrent(context: Context) = withPlayback(context) { it.playCurrent() }
+    // While another device is controlled from here (RemoteControl), every control acts there.
+
+    /** Plays the core's current song; while controlling, the new queue goes to that device. */
+    fun playCurrent(context: Context) {
+        if (RemoteControl.active) RemoteControl.playQueueThere { android.util.Log.w("PlaybackHub", "couldn't play there: ${it.message}") }
+        else withPlayback(context) { it.playCurrent() }
+    }
     /** Load the core's current song if it isn't loaded; otherwise carry on where it is. */
     fun loadCurrent(context: Context) = withPlayback(context) { it.loadCurrent() }
     /** The queue now starts on the song already playing (a radio from it): carry on. */
-    fun continueCurrent(context: Context) = withPlayback(context) { it.continueCurrent() }
-    fun togglePlay(context: Context) = withPlayback(context) { it.togglePlay() }
-    fun next(context: Context) = withPlayback(context) { it.next(SkipOrigin.BUTTON) }
-    fun previous(context: Context) = withPlayback(context) { it.previous(SkipOrigin.BUTTON) }
-    fun seekTo(context: Context, ms: Long) = withPlayback(context) { it.seekTo(ms) }
+    fun continueCurrent(context: Context) {
+        if (RemoteControl.active) RemoteControl.playQueueThere { android.util.Log.w("PlaybackHub", "couldn't play there: ${it.message}") }
+        else withPlayback(context) { it.continueCurrent() }
+    }
+    fun togglePlay(context: Context) {
+        if (RemoteControl.active) RemoteControl.toggle() else withPlayback(context) { it.togglePlay() }
+    }
+    fun next(context: Context) {
+        if (RemoteControl.active) RemoteControl.send(RemoteCommandKind.NEXT) else withPlayback(context) { it.next(SkipOrigin.BUTTON) }
+    }
+    fun previous(context: Context) {
+        if (RemoteControl.active) RemoteControl.send(RemoteCommandKind.PREVIOUS) else withPlayback(context) { it.previous(SkipOrigin.BUTTON) }
+    }
+    fun seekTo(context: Context, ms: Long) {
+        if (RemoteControl.active) RemoteControl.send(RemoteCommandKind.SEEK_TO, positionMs = ms) else withPlayback(context) { it.seekTo(ms) }
+    }
 
     /** Board 10, item 7: a tapped lyric plays from its line, whether or not it was paused. */
-    fun seekAndPlay(context: Context, ms: Long) = withPlayback(context) {
-        it.seekTo(ms)
-        it.play()
+    fun seekAndPlay(context: Context, ms: Long) {
+        if (RemoteControl.active) {
+            RemoteControl.send(RemoteCommandKind.SEEK_TO, positionMs = ms)
+            RemoteControl.send(RemoteCommandKind.PLAY)
+            return
+        }
+        withPlayback(context) {
+            it.seekTo(ms)
+            it.play()
+        }
     }
 
     /** Board 42: a completed swipe is a skip exactly like the button, with origin Swipe. */
-    fun swipeNext(context: Context) = withPlayback(context) { it.next(SkipOrigin.SWIPE) }
-    fun swipePrevious(context: Context) = withPlayback(context) { it.previous(SkipOrigin.SWIPE) }
-    fun startScan(context: Context, forward: Boolean) = withPlayback(context) { it.startScan(forward) }
-    fun stopScan(context: Context) = withPlayback(context) { it.stopScan() }
+    fun swipeNext(context: Context) {
+        if (RemoteControl.active) RemoteControl.send(RemoteCommandKind.NEXT) else withPlayback(context) { it.next(SkipOrigin.SWIPE) }
+    }
+    fun swipePrevious(context: Context) {
+        if (RemoteControl.active) RemoteControl.send(RemoteCommandKind.PREVIOUS) else withPlayback(context) { it.previous(SkipOrigin.SWIPE) }
+    }
+    // Holding the skip buttons scans through this device's song only.
+    fun startScan(context: Context, forward: Boolean) {
+        if (!RemoteControl.active) withPlayback(context) { it.startScan(forward) }
+    }
+    fun stopScan(context: Context) {
+        if (!RemoteControl.active) withPlayback(context) { it.stopScan() }
+    }
 }
