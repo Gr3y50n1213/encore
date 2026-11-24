@@ -92,13 +92,15 @@ impl Store {
         Ok(stats)
     }
 
-    /// Every item ID mirrored from a source, for working out removals.
+    /// Every item ID mirrored from a source, for working out removals. A playlist made
+    /// here that the server hasn't made yet has no server ID, so it can't be "gone".
     pub fn mirrored_item_ids(&self, source_id: i64) -> Result<HashSet<String>> {
         let mut st = self.conn.prepare(
             "SELECT source_item_id FROM tracks WHERE source_id = ?1
              UNION ALL SELECT source_item_id FROM albums WHERE source_id = ?1
              UNION ALL SELECT source_item_id FROM artists WHERE source_id = ?1
-             UNION ALL SELECT source_item_id FROM playlists WHERE source_id = ?1",
+             UNION ALL SELECT source_item_id FROM playlists WHERE source_id = ?1
+                 AND substr(source_item_id, 1, 6) <> 'local:'",
         )?;
         let ids = st.query_map([source_id], |r| r.get::<_, String>(0))?;
         Ok(ids.collect::<rusqlite::Result<_>>()?)
@@ -340,7 +342,13 @@ const TABLES: [(&str, i64); 4] = [
 
 fn remove_items(tx: &Transaction<'_>, source_id: i64, item_ids: &[&str]) -> Result<usize> {
     let mut removed = 0;
-    for item in item_ids {
+    // The owner's phone, 24 November 2026: a new playlist whose creation was still
+    // waiting was listed as "gone from the server" by the next pull and deleted, songs
+    // and all. Only the server's own IDs can be gone from it.
+    for item in item_ids
+        .iter()
+        .filter(|i| !i.starts_with(LOCAL_ITEM_PREFIX))
+    {
         for (table, kind) in TABLES {
             let id: Option<i64> = tx
                 .prepare_cached(&format!(
@@ -650,6 +658,28 @@ pub(crate) mod tests {
             .unwrap();
         store.apply_delta(src, &sample_delta()).unwrap();
         assert_eq!(count(&store, "playlist_items"), 2);
+    }
+
+    /// The owner's phone, 24 November 2026: a playlist made on the phone, its creation held
+    /// up, vanished at the next pull because the pull's removal list named it.
+    #[test]
+    fn a_quick_pull_never_removes_a_playlist_the_server_hasnt_made_yet() {
+        let (store, src) = store_with_source();
+        store.apply_delta(src, &sample_delta()).unwrap();
+        store
+            .conn
+            .execute(
+                "INSERT INTO playlists (source_id, source_item_id, name, search_name)
+                 VALUES (?1, 'local:01K', 'Road trip', 'road trip')",
+                [src],
+            )
+            .unwrap();
+        assert!(!store.mirrored_item_ids(src).unwrap().contains("local:01K"));
+        let mut quick = sample_delta();
+        quick.full = false;
+        quick.removed_item_ids = vec!["local:01K".into()];
+        store.apply_delta(src, &quick).unwrap();
+        assert_eq!(count(&store, "playlists"), 2, "the new playlist stays");
     }
 
     #[test]
