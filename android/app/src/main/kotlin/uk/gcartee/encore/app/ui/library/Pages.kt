@@ -406,6 +406,36 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
     val download = uk.gcartee.encore.app.ui.components.LocalDownloads.current.playlist(playlistId)
     val target = uk.gcartee.encore.app.core.playlistTarget(playlistId)
     var confirmRemove by remember { mutableStateOf(false) }
+    var renaming by remember { mutableStateOf(false) }
+    if (renaming) {
+        var typed by remember { mutableStateOf(name) }
+        fun save() {
+            val wanted = typed.trim()
+            renaming = false
+            if (wanted.isEmpty() || wanted == name) return
+            runCatching { host.core.renamePlaylist(playlistId, wanted) }
+                .onSuccess { r ->
+                    version++
+                    actions.toaster.show("Renamed to $wanted") { r.editId?.let { runCatching { host.core.undo(it) } }; version++ }
+                }
+                .onFailure { actions.toaster.show(it.userMessage()) }
+        }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { renaming = false },
+            title = { Text("Rename playlist") },
+            text = {
+                androidx.compose.material3.OutlinedTextField(
+                    typed,
+                    { typed = it },
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Done),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { save() }),
+                )
+            },
+            confirmButton = { androidx.compose.material3.TextButton(onClick = { save() }, enabled = typed.isNotBlank()) { Text("Rename") } },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { renaming = false }) { Text("Cancel") } },
+        )
+    }
     Box(Modifier.fillMaxSize().background(tint.brush)) {
         LazyColumn(contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding() + (Grid.base * 2).dp)) {
             item {
@@ -418,6 +448,29 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
                     onPlay = if (ids.isEmpty()) null else ({ actions.play(ids, 0, StartedFrom.PLAYLIST, playlistId.toString(), name) }),
                     onShuffle = if (ids.isEmpty()) null else ({ actions.play(ids, ids.indices.random(), StartedFrom.PLAYLIST, playlistId.toString(), name, shuffle = true) }),
                     third = downloadButton(tint, download) { actions.tapDownload(target, name, download) { confirmRemove = true } },
+                    trailing = {
+                        // More: Play next, Add to queue and Rename (owner, 24 November 2026:
+                        // there was no way to rename a playlist). The new name goes to the
+                        // server like every playlist edit, so every device gets it.
+                        var open by remember { mutableStateOf(false) }
+                        Box {
+                            PageButton(tint, { open = true }) { Icon(Icons.more(), contentDescription = "More") }
+                            if (open) {
+                                val next = Icons.playNext()
+                                val queue = Icons.queue()
+                                val editIcon = Icons.edit()
+                                uk.gcartee.encore.app.ui.components.ActionSheet(
+                                    onDismiss = { open = false },
+                                    header = { SheetHeader(name, songs(detail.playlist.songCount.toInt())) { Box(Modifier.size(56.dp).clip(RoundedCornerShape(14.dp))) { MosaicFill(playable.take(4).map { it.id }, Modifier.fillMaxSize()) } } },
+                                    quick = listOf(
+                                        uk.gcartee.encore.app.ui.components.SheetAction("Play next", next) { actions.playNext(playable) },
+                                        uk.gcartee.encore.app.ui.components.SheetAction("Add to queue", queue) { actions.addToQueue(playable) },
+                                    ),
+                                    groups = listOf(listOf(uk.gcartee.encore.app.ui.components.SheetAction("Rename", editIcon) { renaming = true })),
+                                )
+                            }
+                        }
+                    },
                 ) {
                     // The server's playlist image, over a mosaic of its first songs for playlists without one.
                     Box {
