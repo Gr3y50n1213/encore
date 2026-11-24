@@ -284,8 +284,12 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
     val download = uk.gcartee.encore.app.ui.components.LocalDownloads.current.album(album.id)
     val target = uk.gcartee.encore.app.core.albumTarget(album.id)
     var confirmRemove by remember { mutableStateOf(false) }
-    val more = remember(album.id) {
-        runCatching { host.core.search(album.artist).albums.filter { it.artist == album.artist && it.id != album.id }.take(12) }.getOrDefault(emptyList())
+    // A search of the whole library: off the main thread, so the page opens at once and the
+    // row fills in when it is ready (owner, 23 November 2026: pages felt laggy).
+    val more by androidx.compose.runtime.produceState(emptyList<uk.gcartee.encore.core.AlbumSummary>(), album.id) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching { host.core.search(album.artist).albums.filter { it.artist == album.artist && it.id != album.id }.take(12) }.getOrDefault(emptyList())
+        }
     }
     val type = LocalEncoreType.current
     Box(Modifier.fillMaxSize().background(tint.brush)) {
@@ -522,7 +526,18 @@ fun ArtistScreen(host: CoreHost, artistId: Long, playingSongId: Long?, onBack: (
 fun MixScreen(host: CoreHost, mixId: String, playingSongId: Long?, onBack: () -> Unit, contentPadding: PaddingValues) {
     val actions = LocalAppActions.current
     var version by remember { mutableIntStateOf(0) }
-    val page: MixPage? = remember(mixId, version) { runCatching { host.core.mix(mixId) }.getOrNull() }
+    // A mix can be made as it opens (a mood's): off the main thread. Until the first answer the
+    // page is blank, then it keeps the last one while a change reloads it.
+    var loaded by remember(mixId) { mutableStateOf(false) }
+    val latest: MixPage? by androidx.compose.runtime.produceState<MixPage?>(null, mixId, version) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { runCatching { host.core.mix(mixId) }.getOrNull() }
+        loaded = true
+    }
+    if (!loaded) {
+        Box(Modifier.fillMaxSize())
+        return
+    }
+    val page = latest
     if (page == null) {
         EmptyState("This mix has been replaced", "Today's mixes are on the Mixes tab.")
         return

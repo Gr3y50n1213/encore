@@ -19,7 +19,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -89,6 +88,11 @@ import uk.gcartee.encore.app.playback.PlaybackHub
 import uk.gcartee.encore.app.ui.nav.Route
 import uk.gcartee.encore.app.ui.theme.LocalEncoreType
 import uk.gcartee.encore.core.ChosenBy
+import uk.gcartee.encore.core.PlaylistSummary
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import uk.gcartee.encore.core.DropTarget
 import uk.gcartee.encore.core.DropTargetKind
 import uk.gcartee.encore.core.NotInterestedReason
@@ -405,106 +409,202 @@ private fun SongSheetHeader(song: Song, liked: Boolean, onLike: () -> Unit) {
 
 private const val HEADER_ART_DP = 56
 private const val HEADER_ART_RADIUS_DP = 14
-/** Board 13, item 2: several playlists can be ticked at once, plus a New Playlist row. */
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Board 13, item 2, the way Apple Music and Spotify do it (owner, 23 November 2026): the
+ * playlists that already hold the song open ticked, a tap adds or removes it there and then,
+ * and nothing waits for a Save. New playlist takes a name and makes it with the song in it.
+ * Closing the sheet says what changed, with Undo. Everything that reads or writes the library
+ * runs off the main thread, so the sheet opens at once however often it is used.
+ */
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AddToPlaylistSheet(songs: List<Song>, onDone: () -> Unit) {
     val actions = LocalAppActions.current
     val core = actions.host.core
     val type = LocalEncoreType.current
-    val playlists = remember { runCatching { core.playlists(0u, 500u) }.getOrDefault(emptyList()) }
+    val haptics = rememberHaptics()
+    val scope = rememberCoroutineScope()
+    val ids = remember(songs) { songs.map { it.id } }
+    var playlists by remember { mutableStateOf<List<PlaylistSummary>?>(null) }
+    // Ticked: the playlists that hold every one of these songs, as they are now.
     val ticked = remember { mutableStateListOf<Long>() }
+    val before = remember { mutableStateListOf<Long>() }
+    val busy = remember { mutableStateListOf<Long>() }
+    val edits = remember { mutableListOf<String>() }
     var newName by remember { mutableStateOf("") }
     var creating by remember { mutableStateOf(false) }
     val scheme = MaterialTheme.colorScheme
     val rowTitle = type.listRowTitle.copy(fontSize = 16.sp)
     val nameField = remember { FocusRequester() }
+
+    suspend fun load(): List<PlaylistSummary> = withContext(Dispatchers.IO) {
+        runCatching { core.playlists(0u, 500u) }.getOrDefault(emptyList())
+    }
+    LaunchedEffect(Unit) {
+        val list = load()
+        val held = withContext(Dispatchers.IO) {
+            list.filter { p ->
+                runCatching {
+                    val inside = core.playlist(p.id).entries.mapNotNull { it.song?.id }.toHashSet()
+                    ids.all { it in inside }
+                }.getOrDefault(false)
+            }.map { it.id }
+        }
+        ticked.addAll(held)
+        before.addAll(held)
+        playlists = list
+    }
+
+    fun toggle(p: PlaylistSummary) {
+        if (p.id in busy) return
+        val on = p.id in ticked
+        busy.add(p.id)
+        // The tick changes at once; it goes back if the change is refused.
+        if (on) ticked.remove(p.id) else ticked.add(p.id)
+        haptics.perform(if (on) Haptic.ToggleOff else Haptic.ToggleOn)
+        scope.launch {
+            val r = withContext(Dispatchers.IO) {
+                runCatching {
+                    if (on) {
+                        val positions = core.playlist(p.id).entries.filter { e -> e.song?.id?.let { it in ids } == true }.map { it.position }
+                        if (positions.isEmpty()) null else core.removeFromPlaylist(p.id, positions)
+                    } else {
+                        core.addTo(DropTarget(DropTargetKind.PLAYLIST, p.id), ids, null, false)
+                    }
+                }
+            }
+            busy.remove(p.id)
+            r.onSuccess { e -> e?.editId?.let(edits::add) }
+                .onFailure {
+                    if (on) ticked.add(p.id) else ticked.remove(p.id)
+                    actions.toaster.show(it.userMessage())
+                }
+        }
+    }
+
+    fun create() {
+        val name = newName.trim()
+        if (name.isEmpty()) return
+        creating = false
+        newName = ""
+        scope.launch {
+            val r = withContext(Dispatchers.IO) {
+                runCatching {
+                    val e = core.addTo(DropTarget(DropTargetKind.NEW_PLAYLIST, null), ids, null, false)
+                    e.editId?.let(edits::add)
+                    e.playlistId?.also { pid -> core.renamePlaylist(pid, name).editId?.let(edits::add) }
+                }
+            }
+            r.onSuccess { pid ->
+                haptics.perform(Haptic.Confirm)
+                val list = load()
+                // The new playlist first, ticked.
+                playlists = list.sortedByDescending { it.id == pid }
+                pid?.let { ticked.add(it) }
+            }.onFailure { actions.toaster.show(it.userMessage()) }
+        }
+    }
+
+    // What changed, once, as the sheet closes: "Added to Road trip", "Removed from Chill".
+    fun finish() {
+        val names = playlists.orEmpty().associate { it.id to it.name }
+        val added = ticked.filter { it !in before }.mapNotNull { names[it] }
+        val removed = before.filter { it !in ticked }.mapNotNull { names[it] }
+        onDone()
+        if (added.isEmpty() && removed.isEmpty()) return
+        fun words(verb: String, list: List<String>) = if (list.size == 1) "$verb ${list[0]}" else "$verb ${list.size} playlists"
+        val msg = listOfNotNull(
+            words("Added to", added).takeIf { added.isNotEmpty() },
+            words("Removed from", removed).takeIf { removed.isNotEmpty() },
+        ).joinToString(" · ")
+        val undo = edits.toList().reversed()
+        // Undo comes after the sheet has gone, so it runs here, not in the sheet's scope.
+        actions.toaster.show(msg) { undo.forEach { runCatching { core.undo(it) } } }
+    }
+
     // The app's sheet look (ActionSheet): one rounded tonal group, New playlist first, a
     // ticked playlist lit. Over Now Playing it comes in the album's colours.
     ModalBottomSheet(
-        onDismissRequest = onDone,
+        onDismissRequest = { finish() },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = scheme.surfaceContainerLow,
     ) {
         Column(Modifier.navigationBarsPadding().padding(horizontal = (Grid.base * 2).dp)) {
-            Text(if (songs.size == 1) "Add “${songs[0].title}” to" else "Add ${songs.size} songs to", style = type.sheetTitle, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = Grid.base.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (songs.size == 1) "Add “${songs[0].title}” to" else "Add ${songs.size} songs to",
+                    style = type.sheetTitle,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f).padding(horizontal = Grid.base.dp),
+                )
+                // Nothing to save: Done only closes.
+                TextButton(onClick = { finish() }) { Text("Done") }
+            }
             Spacer(Modifier.height((Grid.base * 2).dp))
-            LazyColumn(
-                Modifier.heightIn(max = 420.dp).clip(RoundedCornerShape(SHEET_LIST_RADIUS_DP.dp)),
-                verticalArrangement = Arrangement.spacedBy(SHEET_ROW_GAP_DP.dp),
-            ) {
-                item {
-                    // Tapped, the row becomes the name's field, with the keyboard up.
-                    GroupRow(first = true, last = playlists.isEmpty(), onClick = if (creating) null else ({ creating = true })) {
-                        IconDisc(Icons.add())
-                        Spacer(Modifier.width((Grid.base * 2).dp))
-                        if (creating) {
-                            OutlinedTextField(
-                                newName,
-                                { newName = it },
-                                placeholder = { Text("Playlist name") },
-                                singleLine = true,
-                                modifier = Modifier.weight(1f).focusRequester(nameField),
-                            )
-                            LaunchedEffect(Unit) { runCatching { nameField.requestFocus() } }
-                        } else {
-                            Text("New playlist", style = rowTitle)
+            val list = playlists
+            if (list == null) {
+                Box(Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) { androidx.compose.material3.LoadingIndicator() }
+            } else {
+                LazyColumn(
+                    Modifier.heightIn(max = 460.dp).clip(RoundedCornerShape(SHEET_LIST_RADIUS_DP.dp)),
+                    verticalArrangement = Arrangement.spacedBy(SHEET_ROW_GAP_DP.dp),
+                ) {
+                    item(key = "new") {
+                        // Tapped, the row becomes the name's field, with the keyboard up;
+                        // the check (or the keyboard's Done) makes the playlist.
+                        GroupRow(first = true, last = list.isEmpty(), onClick = if (creating) null else ({ creating = true })) {
+                            IconDisc(Icons.add())
+                            Spacer(Modifier.width((Grid.base * 2).dp))
+                            if (creating) {
+                                OutlinedTextField(
+                                    newName,
+                                    { newName = it },
+                                    placeholder = { Text("Playlist name") },
+                                    singleLine = true,
+                                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Done),
+                                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { create() }),
+                                    modifier = Modifier.weight(1f).focusRequester(nameField),
+                                )
+                                Spacer(Modifier.width(Grid.base.dp))
+                                androidx.compose.material3.FilledIconButton(
+                                    onClick = { create() },
+                                    enabled = newName.isNotBlank(),
+                                    modifier = Modifier.size(48.dp),
+                                ) { Icon(Icons.check(), contentDescription = "Create playlist") }
+                                LaunchedEffect(Unit) { runCatching { nameField.requestFocus() } }
+                            } else {
+                                Text("New playlist", style = rowTitle)
+                            }
+                        }
+                    }
+                    itemsIndexed(list, key = { _, p -> p.id }) { i, p ->
+                        val on = p.id in ticked
+                        GroupRow(
+                            first = false,
+                            last = i == list.lastIndex,
+                            color = if (on) scheme.secondaryContainer else scheme.surfaceContainerHigh,
+                            contentColor = if (on) scheme.onSecondaryContainer else scheme.onSurface,
+                            role = Role.Checkbox,
+                            onClick = { toggle(p) },
+                        ) {
+                            IconDisc(Icons.queue())
+                            Spacer(Modifier.width((Grid.base * 2).dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(p.name, style = rowTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(
+                                    if (on) "Added" else if (p.songCount == 1u) "1 song" else "${p.songCount} songs",
+                                    style = type.caption,
+                                    color = if (on) scheme.onSecondaryContainer else scheme.onSurfaceVariant,
+                                )
+                            }
+                            Spacer(Modifier.width(Grid.base.dp))
+                            Checkbox(checked = on, onCheckedChange = null)
                         }
                     }
                 }
-                itemsIndexed(playlists, key = { _, p -> p.id }) { i, p ->
-                    val on = p.id in ticked
-                    GroupRow(
-                        first = false,
-                        last = i == playlists.lastIndex,
-                        color = if (on) scheme.secondaryContainer else scheme.surfaceContainerHigh,
-                        contentColor = if (on) scheme.onSecondaryContainer else scheme.onSurface,
-                        role = Role.Checkbox,
-                        onClick = { if (on) ticked.remove(p.id) else ticked.add(p.id) },
-                    ) {
-                        IconDisc(Icons.queue())
-                        Spacer(Modifier.width((Grid.base * 2).dp))
-                        Text(p.name, style = rowTitle, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                        Spacer(Modifier.width(Grid.base.dp))
-                        Checkbox(checked = on, onCheckedChange = null)
-                    }
-                }
             }
-            Row(Modifier.fillMaxWidth().padding(vertical = (Grid.base * 2).dp)) {
-                TextButton(onClick = onDone) { Text("Cancel") }
-                Spacer(Modifier.weight(1f))
-                Button(
-                    enabled = ticked.isNotEmpty() || (creating && newName.isNotBlank()),
-                    onClick = {
-                        val ids = songs.map { it.id }
-                        val edits = mutableListOf<String>()
-                        var added = 0u
-                        var already = 0u
-                        val failure = runCatching {
-                            ticked.forEach { pid ->
-                                val r = core.addTo(DropTarget(DropTargetKind.PLAYLIST, pid), ids, null, false)
-                                r.editId?.let(edits::add)
-                                added += r.added
-                                already += r.alreadyThere
-                            }
-                            if (creating && newName.isNotBlank()) {
-                                val r = core.addTo(DropTarget(DropTargetKind.NEW_PLAYLIST, null), ids, null, false)
-                                r.editId?.let(edits::add)
-                                added += r.added
-                                r.playlistId?.let { core.renamePlaylist(it, newName.trim()) }
-                            }
-                        }.exceptionOrNull()
-                        onDone()
-                        if (failure != null) {
-                            actions.toaster.show(failure.userMessage())
-                        } else {
-                            // The toast of section 26: "Added {added} · {already_there} already there".
-                            val msg = if (already > 0u) "Added $added · $already already there" else "Added $added"
-                            actions.toaster.show(msg) { edits.reversed().forEach { runCatching { core.undo(it) } } }
-                        }
-                    },
-                ) { Text("Done") }
-            }
+            Spacer(Modifier.height((Grid.base * 2).dp))
         }
     }
 }
