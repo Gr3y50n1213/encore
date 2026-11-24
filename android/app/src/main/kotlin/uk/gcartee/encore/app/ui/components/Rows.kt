@@ -7,6 +7,9 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -84,6 +87,15 @@ fun SongRow(
         Modifier
             .fillMaxWidth()
             .heightIn(min = (TouchTarget.android + Grid.base).dp)
+            // Encore TV: a remote's Menu key opens the song's menu, as holding OK does.
+            .onKeyEvent { e ->
+                if (onLongClick != null && e.key == androidx.compose.ui.input.key.Key.Menu && e.type == androidx.compose.ui.input.key.KeyEventType.KeyUp) {
+                    onLongClick()
+                    true
+                } else {
+                    false
+                }
+            }
             .combinedClickable(
                 onClick = {
                     if (playable) {
@@ -186,7 +198,8 @@ fun AlbumTile(album: AlbumSummary, onClick: () -> Unit, onLongClick: (() -> Unit
             }
             .combinedClickable(
                 interactionSource = press,
-                indication = null,
+                // A press scales the tile; on a TV the remote's focus ring shows too.
+                indication = tvIndication(),
                 onClick = onClick,
                 onLongClick = onLongClick?.let { { haptics.perform(Haptic.LongPress); it() } },
             ),
@@ -262,3 +275,8 @@ private const val LIST_ROW_RADIUS_DP = 16
 /** List rows' art: 56 dp, 12 dp corners (a circle for artists). */
 const val LIST_ART_DP = 56
 const val LIST_ART_RADIUS_DP = 12
+
+/** Encore TV: the theme's ripple, which draws the remote's focus ring; none on a phone. */
+@Composable
+fun tvIndication(): androidx.compose.foundation.Indication? =
+    if (uk.gcartee.encore.app.ui.tv.LocalTv.current) androidx.compose.foundation.LocalIndication.current else null

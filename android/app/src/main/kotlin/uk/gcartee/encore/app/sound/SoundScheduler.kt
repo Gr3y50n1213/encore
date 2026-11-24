@@ -30,6 +30,12 @@ object SoundScheduler {
     /** At profile open, when the settings change, and when a run stops for its conditions. */
     fun resume(context: Context, replace: Boolean = false) {
         val js = context.getSystemService(JobScheduler::class.java) ?: return
+        // Encore TV (1 GB projectors): no analysis here; a phone does it and shares it.
+        if (uk.gcartee.encore.app.ui.tv.isTv(context)) {
+            js.cancel(JOB_RUN)
+            js.cancel(JOB_DAILY)
+            return
+        }
         daily(context, js)
         val status = runCatching { CoreHost.get(context).core.soundStatus() }.getOrNull()
         val settings = status?.settings

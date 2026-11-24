@@ -475,13 +475,15 @@ private fun SuggestionsPage(host: CoreHost, onBack: () -> Unit, contentPadding: 
     val notInterested = remember(version) { runCatching { host.core.notInterestedList() }.getOrDefault(emptyList()) }
     var confirmReset by remember { mutableStateOf(false) }
     val sound by uk.gcartee.encore.app.ui.sound.rememberSoundStatus(host)
+    val context = LocalContext.current
     Page("Mixes and suggestions", onBack, contentPadding) {
         item { Label("How adventurous") }
         // The rows bring their own margins, so they line up with the groups below.
         item { AdventurousChoice(level) { l -> runCatching { host.core.setAdventurousness(l) }.onSuccess { level = l } } }
         item { Spacer(Modifier.height(Grid.base.dp)) }
         // Phase 10: what songs sound like (mock-up 44, board 2).
-        group(null, listOf(Row0("Sound analysis", "What your songs sound like, for better suggestions", { Icons.spark() }, right = uk.gcartee.encore.app.ui.sound.soundSummary(sound)) {
+        // Encore TV: sound analysis runs on phones only.
+        if (!uk.gcartee.encore.app.ui.tv.isTv(context)) group(null, listOf(Row0("Sound analysis", "What your songs sound like, for better suggestions", { Icons.spark() }, right = uk.gcartee.encore.app.ui.sound.soundSummary(sound)) {
             actions.open(Route.Settings("sound"))
         }))
         group("Not interested", notInterested.map { item ->

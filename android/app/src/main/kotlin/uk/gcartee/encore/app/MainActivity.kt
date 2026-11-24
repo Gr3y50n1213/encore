@@ -30,9 +30,16 @@ class MainActivity : ComponentActivity() {
         if (intent?.getStringExtra(EXTRA_OPEN) == OPEN_SLEEP_TIMER) host.openRequest.value = OPEN_SLEEP_TIMER
         openFromWidget(intent) // Phase 9 (WP6)
         playFromSearch(intent)
+        // Encore TV (the projector build, or any television): its layout, focus and limits.
+        val tv = uk.gcartee.encore.app.ui.tv.isTv(this)
         setContent {
-            EncoreTheme {
-                EncoreRoot(host)
+            androidx.compose.runtime.CompositionLocalProvider(uk.gcartee.encore.app.ui.tv.LocalTv provides tv) {
+                EncoreTheme {
+                    uk.gcartee.encore.app.ui.tv.TvFocus {
+                        EncoreRoot(host)
+                        if (tv) uk.gcartee.encore.app.ui.tv.CrashReport()
+                    }
+                }
             }
         }
     }

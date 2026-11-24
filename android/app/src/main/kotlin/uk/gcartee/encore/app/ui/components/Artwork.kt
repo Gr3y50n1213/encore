@@ -75,7 +75,7 @@ fun Artwork(
 }
 
 object ArtworkCache {
-    private val memory = object : LruCache<String, ImageBitmap>(48 * 1024 * 1024) {
+    private val memory = object : LruCache<String, ImageBitmap>(MEMORY_CACHE_BYTES) {
         override fun sizeOf(key: String, value: ImageBitmap) = value.width * value.height * 4
     }
 
@@ -206,3 +206,9 @@ fun ProfileAvatar(
         }
     }
 }
+
+/**
+ * Cover art kept in memory: an eighth of what Android lets the app use, at most 48 MB, so a
+ * 1 GB projector (Encore TV) keeps fewer covers instead of running short.
+ */
+private val MEMORY_CACHE_BYTES: Int = (Runtime.getRuntime().maxMemory() / 8).coerceAtMost(48L * 1024 * 1024).toInt()

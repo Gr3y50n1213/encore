@@ -190,6 +190,10 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     // tint is the album's colours when More opened it, none otherwise.
     var sleepSheet by remember { mutableStateOf(false) }
     var sleepTint by remember { mutableStateOf<uk.gcartee.encore.app.ui.player.FieldColours?>(null) }
+    // Sleep mode (mock-up 45): over everything, until Back, its own button or a swipe down.
+    var sleepMode by rememberSaveable { mutableStateOf(false) }
+    // Encore TV: a projector's picture can be cut at its edges, so pages keep clear of them.
+    val tv = uk.gcartee.encore.app.ui.tv.LocalTv.current
     var addingAccount by rememberSaveable { mutableStateOf(false) }
     var continueFrom by remember { mutableStateOf<OutputDevice?>(null) }
     var switches by remember { mutableIntStateOf(0) }
@@ -325,7 +329,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
             return@CompositionLocalProvider
         }
         Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-            Row(Modifier.fillMaxSize()) {
+            Row(Modifier.fillMaxSize().let { if (tv) it.padding(horizontal = TV_OVERSCAN_X_DP.dp, vertical = TV_OVERSCAN_Y_DP.dp) else it }) {
                 if (railLabelled) {
                     // Board 29, item 1: the expanded rail, 240 dp, labels beside the icons, on Large windows.
                     ExpandedRail(host, nav.tab, onTab = { nav.select(it) }, onOpen = actions.open, onProfile = { profiles = true })
@@ -583,6 +587,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                     },
                     onOutput = { output = it },
                     onSleepTimer = { sleepTint = it; sleepSheet = true },
+                    onSleepMode = { sleepMode = true },
                     onArtBounds = { rect, shrinks ->
                         if (expand.value >= 0.999f && rect.usable()) {
                             val spot = ArtSpot(rect, shrinks)
@@ -593,6 +598,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                     onScrubHeld = { scrubHeld = it },
                 )
             }
+            if (sleepMode) uk.gcartee.encore.app.ui.player.SleepModeScreen(host, onExit = { sleepMode = false }, onSleepTimer = { sleepTint = null; sleepSheet = true })
             // Toasts above everything, so one from Now Playing is seen there too: over the
             // page they sit above the mini player; over Now Playing, under its top bar. They
             // never cover controls (board 20) and take the app's own colours.
@@ -833,3 +839,7 @@ private class ArtSpot(val rect: androidx.compose.ui.geometry.Rect, val shrinks: 
 /** A rect worth morphing to: finite, and not empty. */
 private fun androidx.compose.ui.geometry.Rect.usable(): Boolean =
     left.isFinite() && top.isFinite() && right.isFinite() && bottom.isFinite() && width > 1f && height > 1f
+
+/** Encore TV: the margins Android TV keeps clear of a picture's edges (overscan), in dp. */
+private const val TV_OVERSCAN_X_DP = 40
+private const val TV_OVERSCAN_Y_DP = 20

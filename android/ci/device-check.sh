@@ -11,9 +11,9 @@ set -euo pipefail
 apks="${1:?usage: device-check.sh <apk folder>}"
 out=device-check
 mkdir -p "$out"
-debug="$(find "$apks" -name app-debug.apk | head -n 1)"
-tests="$(find "$apks" -name app-debug-androidTest.apk | head -n 1)"
-release="$(find "$apks" -name app-release.apk | head -n 1)"
+debug="$(find "$apks" -name app-phone-debug.apk | head -n 1)"
+tests="$(find "$apks" -name app-phone-debug-androidTest.apk | head -n 1)"
+release="$(find "$apks" -name app-phone-release.apk | head -n 1)"
 test -n "$debug" && test -n "$tests" && test -n "$release"
 
 # On any failure, keep the device log and print the crash, so the job says why.

@@ -282,7 +282,7 @@ private fun MadeForYou(home: Home, data: HomeData, onOpenMix: (String) -> Unit, 
                             scaleX = scale
                             scaleY = scale
                         }
-                        .clickable(interactionSource = press, indication = null) { onOpenMix(m.mixId) },
+                        .clickable(interactionSource = press, indication = uk.gcartee.encore.app.ui.components.tvIndication()) { onOpenMix(m.mixId) },
                 ) {
                     MosaicFill(m.coverSongIds, Modifier.size(tile).clip(MaterialTheme.shapes.extraLarge))
                     Spacer(Modifier.height(6.dp))

@@ -68,6 +68,21 @@ android {
         }
     }
 
+    // Two apps from one code base: the phone and tablet app, and Encore TV for a projector or
+    // an Android TV (mock-up 45, owner, 23 November 2026). The TV one is its own app beside the
+    // phone one, with a TV launcher entry; the code is shared and asks ui/tv/Tv.kt's isTv().
+    flavorDimensions += "device"
+    productFlavors {
+        create("phone") {
+            dimension = "device"
+            isDefault = true
+        }
+        create("tv") {
+            dimension = "device"
+            applicationIdSuffix = ".tv"
+        }
+    }
+
     buildFeatures {
         compose = true
         resValues = true
@@ -337,10 +352,13 @@ androidComponents {
         }
         variant.sources.assets?.addGeneratedSourceDirectory(licenceAssets, LicenceAssets::outputDir)
         variant.sources.assets?.addGeneratedSourceDirectory(soundModelAssets, SoundModelAssets::outputDir)
+        val tv = variant.flavorName == "tv"
         variant.resValues.put(
             variant.makeResValueKey("string", "app_name"),
-            appName.map { ResValue(it, "From core/encore-core/src/brand.rs") },
+            appName.map { ResValue(if (tv) "$it TV" else it, "From core/encore-core/src/brand.rs") },
         )
+        // Encore TV: read by ui/tv/Tv.kt's isTv().
+        variant.resValues.put(variant.makeResValueKey("bool", "tv_build"), ResValue(tv.toString(), "The TV flavor"))
     }
 }
 

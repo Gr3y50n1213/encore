@@ -328,6 +328,8 @@ fun SoundHomeCard(host: CoreHost, modifier: Modifier = Modifier) {
     val haptics = rememberHaptics()
     val type = LocalEncoreType.current
     val scheme = MaterialTheme.colorScheme
+    // Encore TV: sound analysis runs on phones, never on a 1 GB projector.
+    if (uk.gcartee.encore.app.ui.tv.LocalTv.current) return
     val prefs = remember { context.getSharedPreferences(CARD_PREFS, Context.MODE_PRIVATE) }
     var seen by remember { mutableStateOf(prefs.getBoolean(cardKey(host), false)) }
     val status by rememberSoundStatus(host)
@@ -424,6 +426,8 @@ fun MoodTiles(host: CoreHost, onOpen: (Route) -> Unit) {
     LaunchedEffect(step, s.settings.enabled) {
         moods = withContext(Dispatchers.IO) { runCatching { host.core.moods() }.getOrDefault(emptyList()) }
     }
+    // Encore TV analyses nothing itself: moods show only when there are some.
+    if (moods.isEmpty() && uk.gcartee.encore.app.ui.tv.LocalTv.current) return
     if (moods.isEmpty() && !s.settings.enabled && s.analysed == 0u) {
         uk.gcartee.encore.app.ui.library.SectionTitle("Browse by mood")
         Surface(
