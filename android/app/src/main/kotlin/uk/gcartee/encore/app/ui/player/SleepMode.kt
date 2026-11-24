@@ -8,6 +8,23 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -94,7 +111,13 @@ private val SLEEP_ICON = Color(0xFF8A847A)
 /** What the screen asks of the display's brightness (0 to 1); a projector may ignore it. */
 private const val SLEEP_BRIGHTNESS = 0.08f
 private const val CONTROLS_MS = 5_000L
-private const val LINE_FADE_MS = 400
+/** How long the controls take to slide in: slow enough to read as calm, not as a cut. */
+private const val MOVE_MS = 450
+private const val MODE_FADE_MS = 600
+private const val COLOUR_MS = 900
+private const val DIM_MS = 1_200
+
+private enum class SleepView { NOTHING, TITLE, LYRICS }
 
 @Composable
 fun SleepModeScreen(host: CoreHost, onExit: () -> Unit, onSleepTimer: () -> Unit) {
@@ -111,7 +134,6 @@ fun SleepModeScreen(host: CoreHost, onExit: () -> Unit, onSleepTimer: () -> Unit
         val window = activity?.window
         val before = window?.attributes?.screenBrightness ?: WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
         window?.let { w ->
-            w.attributes = w.attributes.apply { screenBrightness = SLEEP_BRIGHTNESS }
             WindowCompat.getInsetsController(w, view).apply {
                 systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                 hide(WindowInsetsCompat.Type.systemBars())
@@ -126,6 +148,14 @@ fun SleepModeScreen(host: CoreHost, onExit: () -> Unit, onSleepTimer: () -> Unit
         }
     }
     LaunchedEffect(state.isPlaying) { view.keepScreenOn = state.isPlaying }
+    // The room dims over a second instead of all at once.
+    LaunchedEffect(Unit) {
+        val window = context.findActivity()?.window ?: return@LaunchedEffect
+        val from = window.attributes.screenBrightness.takeIf { it in 0f..1f } ?: 0.5f
+        animate(from, SLEEP_BRIGHTNESS, animationSpec = tween(DIM_MS, easing = LinearOutSlowInEasing)) { v, _ ->
+            window.attributes = window.attributes.apply { screenBrightness = v }
+        }
+    }
 
     // The controls: shown by a key or a tap, hidden again five seconds after the last one.
     var shown by remember { mutableStateOf(false) }
@@ -196,45 +226,59 @@ fun SleepModeScreen(host: CoreHost, onExit: () -> Unit, onSleepTimer: () -> Unit
         val gap: Dp = (maxWidth.value * if (tv) 0.024f else 0.05f).coerceIn(16f, 40f).dp
         val type = LocalEncoreType.current
         val song = entry?.song
-        Column(
-            Modifier.fillMaxSize().padding(horizontal = maxWidth * 0.1f).padding(bottom = if (shown) 96.dp else 0.dp),
-            verticalArrangement = Arrangement.spacedBy(gap, Alignment.CenterVertically),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            if (song == null) {
-                Text("Nothing is playing", style = type.body.copy(fontSize = near), color = SLEEP_NEAR, textAlign = TextAlign.Center)
-            } else if (!synced || l == null) {
-                // A song without synced lyrics: its title and artist, big and quiet.
-                Text(song.title, style = type.body.copy(fontSize = now * 0.9f, lineHeight = now * 1.1f, fontWeight = FontWeight.Bold), color = SLEEP_NOW, textAlign = TextAlign.Center)
-                Text(song.artist, style = type.body.copy(fontSize = near), color = SLEEP_NEAR, textAlign = TextAlign.Center)
-            } else {
-                Crossfade(targetState = current, animationSpec = tween(LINE_FADE_MS), label = "line") { i ->
-                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(gap), horizontalAlignment = Alignment.CenterHorizontally) {
-                        val before = l.lines.getOrNull(i - 1)?.text.orEmpty()
-                        // Before the first line: the song's title, then the first line to come.
-                        val sung = if (i < 0) song.title else l.lines[i].text
-                        val after = l.lines.getOrNull(i + 1)?.text.orEmpty()
-                        Text(before, style = type.body.copy(fontSize = far, lineHeight = far * 1.25f, fontWeight = FontWeight.SemiBold), color = SLEEP_FAR, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        Text(sung, style = type.body.copy(fontSize = now, lineHeight = now * 1.2f, fontWeight = FontWeight.Bold), color = SLEEP_NOW, textAlign = TextAlign.Center, maxLines = 3, overflow = TextOverflow.Ellipsis)
-                        Text(after, style = type.body.copy(fontSize = near, lineHeight = near * 1.25f, fontWeight = FontWeight.SemiBold), color = SLEEP_NEAR, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    }
+        // The controls make room by sliding the words up, never by a jump.
+        val room by animateDpAsState(if (shown) 96.dp else 0.dp, tween(MOVE_MS, easing = FastOutSlowInEasing), label = "room")
+        val mode = when {
+            song == null -> SleepView.NOTHING
+            !synced || l == null -> SleepView.TITLE
+            else -> SleepView.LYRICS
+        }
+        Crossfade(
+            targetState = mode,
+            animationSpec = tween(MODE_FADE_MS),
+            label = "view",
+            modifier = Modifier.fillMaxSize().padding(horizontal = maxWidth * 0.1f).padding(bottom = room),
+        ) { m ->
+            when (m) {
+                SleepView.NOTHING -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Nothing is playing", style = type.body.copy(fontSize = near), color = SLEEP_NEAR, textAlign = TextAlign.Center)
                 }
+                // A song without synced lyrics: its title and artist, big and quiet.
+                SleepView.TITLE -> Column(
+                    Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(gap, Alignment.CenterVertically),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(song?.title.orEmpty(), style = type.body.copy(fontSize = now * 0.9f, lineHeight = now * 1.1f, fontWeight = FontWeight.Bold), color = SLEEP_NOW, textAlign = TextAlign.Center)
+                    Text(song?.artist.orEmpty(), style = type.body.copy(fontSize = near), color = SLEEP_NEAR, textAlign = TextAlign.Center)
+                }
+                SleepView.LYRICS -> SleepLyrics(
+                    lines = l?.lines?.map { it.text }.orEmpty(),
+                    current = current,
+                    title = song?.title.orEmpty(),
+                    style = type.body.copy(fontSize = now, lineHeight = now * 1.2f, fontWeight = FontWeight.Bold),
+                    gap = gap,
+                )
             }
         }
-        if (song != null && !shown) {
+        AnimatedVisibility(
+            song != null && !shown,
+            enter = fadeIn(tween(MODE_FADE_MS)),
+            exit = fadeOut(tween(200)),
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 28.dp, start = 32.dp, end = 32.dp),
+        ) {
             Text(
-                "${song.title} · ${song.artist}",
+                song?.let { "${it.title} · ${it.artist}" }.orEmpty(),
                 style = type.caption,
                 color = SLEEP_FAR,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 28.dp, start = 32.dp, end = 32.dp),
             )
         }
         AnimatedVisibility(
             shown,
-            enter = fadeIn(tween(200)),
-            exit = fadeOut(tween(400)),
+            enter = fadeIn(tween(MOVE_MS)) + slideInVertically(tween(MOVE_MS, easing = FastOutSlowInEasing)) { it / 3 },
+            exit = fadeOut(tween(MOVE_MS)) + slideOutVertically(tween(MOVE_MS, easing = FastOutSlowInEasing)) { it / 3 },
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 32.dp),
         ) {
             val timer by rememberSleepTimer(host)
@@ -263,6 +307,75 @@ fun SleepModeScreen(host: CoreHost, onExit: () -> Unit, onSleepTimer: () -> Unit
         }
     }
 }
+
+/**
+ * The lines as one strip that glides: the sung line in the middle, the one before above and
+ * the next one below, smaller and dimmer. When the line changes each one moves to its new
+ * place, size and colour on a soft spring (no bounce) instead of the whole set fading out and
+ * in. Position, size and colour are read only while drawing, so a moving line never asks the
+ * text to be measured again; that was the stutter.
+ */
+@Composable
+private fun SleepLyrics(lines: List<String>, current: Int, title: String, style: TextStyle, gap: Dp) {
+    val density = LocalDensity.current
+    val gapPx = with(density) { gap.toPx() }
+    val fallback = with(density) { style.fontSize.toPx() * 1.2f }
+    // Each line's height at full size, once it has been laid out.
+    val heights = remember(lines) { mutableStateMapOf<Int, Int>() }
+    fun h(i: Int): Float = heights[i]?.toFloat() ?: fallback
+    fun offset(i: Int): Float {
+        val role = i - current
+        val half = h(current) / 2f
+        return when {
+            role == 0 -> 0f
+            role == 1 -> half + gapPx + h(i) * NEXT_SCALE / 2f
+            role >= 2 -> half + gapPx + h(current + 1) * NEXT_SCALE + gapPx + h(i) * EDGE_SCALE / 2f
+            role == -1 -> -(half + gapPx + h(i) * PREV_SCALE / 2f)
+            else -> -(half + gapPx + h(current - 1) * PREV_SCALE + gapPx + h(i) * EDGE_SCALE / 2f)
+        }
+    }
+    Box(Modifier.fillMaxSize().clipToBounds(), contentAlignment = Alignment.Center) {
+        // -1 is the song's title, shown before the first line.
+        for (i in (current - 2).coerceAtLeast(-1)..(current + 2).coerceAtMost(lines.lastIndex)) {
+            key(title, i) {
+                val role = (i - current).coerceIn(-2, 2)
+                val move = spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = LINE_STIFFNESS)
+                val y = animateFloatAsState(offset(i), move, label = "y")
+                val scale = animateFloatAsState(
+                    when (role) { 0 -> 1f; 1 -> NEXT_SCALE; -1 -> PREV_SCALE; else -> EDGE_SCALE },
+                    move,
+                    label = "scale",
+                )
+                val colour = animateColorAsState(
+                    when (role) { 0 -> SLEEP_NOW; 1 -> SLEEP_NEAR; -1 -> SLEEP_FAR; else -> SLEEP_BG },
+                    tween(COLOUR_MS),
+                    label = "colour",
+                )
+                BasicText(
+                    if (i < 0) title else lines[i],
+                    style = style.copy(textAlign = TextAlign.Center),
+                    color = { colour.value },
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onSizeChanged { heights[i] = it.height }
+                        .graphicsLayer {
+                            translationY = y.value
+                            scaleX = scale.value
+                            scaleY = scale.value
+                        },
+                )
+            }
+        }
+    }
+}
+
+private const val NEXT_SCALE = 0.58f
+private const val PREV_SCALE = 0.5f
+private const val EDGE_SCALE = 0.42f
+/** Between Compose's low and very low stiffness: about half a second to settle, no overshoot. */
+private const val LINE_STIFFNESS = 120f
 
 @Composable
 private fun SleepButton(icon: Painter, label: String, colour: Color, size: Dp = 52.dp, shape: androidx.compose.ui.graphics.Shape = CircleShape, modifier: Modifier = Modifier, onClick: () -> Unit) {
