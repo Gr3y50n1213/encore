@@ -1349,9 +1349,8 @@ impl EncoreCore {
                 records
                     .iter()
                     .find_map(|r| {
-                        let crate::source_any::CompanionCredential::Jellyfin(t) =
-                            sources.get(&r.id)?.companion_credential()?;
-                        Some((r.server_id.clone(), t))
+                        let c = sources.get(&r.id)?.companion_credential()?;
+                        Some((r.server_id.clone(), c.media_token().to_owned()))
                     })
                     .ok_or_else(|| EncoreError::SessionExpired {
                         reason: "Sign in to your media server first".into(),

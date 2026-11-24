@@ -29,7 +29,8 @@ use tokio::sync::Notify;
 
 pub use auth::{CheckError, CheckFuture, CheckedUser, JellyfinCheck, MediaCheck};
 pub use config::{
-    BIND_ENV, Config, DATA_DIR_ENV, DEFAULT_BIND, JELLYFIN_URLS_ENV, bind_address, jellyfin_urls,
+    BIND_ENV, Config, DATA_DIR_ENV, DEFAULT_BIND, JELLYFIN_URLS_ENV, MEDIA_URLS_ENV, bind_address,
+    jellyfin_urls,
 };
 pub use db::{DeviceRow, Event, Status};
 pub use live::{MAX_MESSAGE_BYTES, MAX_PER_SECOND, PING_EVERY};

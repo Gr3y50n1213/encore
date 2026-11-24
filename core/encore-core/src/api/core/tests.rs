@@ -164,6 +164,100 @@ fn library_flow_over_http_against_the_replay_server() {
     assert_eq!(core.playlist(list).unwrap().entries.len(), before);
 }
 
+/// Phase 12, stage 1 (ADR core-0021): the production path against a real Navidrome, which
+/// CI starts in Docker on a small library of made-up tone files (core.yml, "navidrome").
+/// Recognise it, sign in, sync, read lyrics, edit a playlist end to end, like a song.
+#[test]
+#[ignore = "needs a Navidrome: NAVIDROME_URL, NAVIDROME_USER, NAVIDROME_PASSWORD, NAVIDROME_SONGS"]
+fn navidrome_flow_over_http() {
+    let env = |k: &str| std::env::var(k).unwrap_or_else(|_| panic!("set {k}"));
+    let songs: usize = env("NAVIDROME_SONGS").parse().unwrap();
+    let dir = temp_dir("navidrome");
+    let core = EncoreCore::new(CoreConfig {
+        data_dir: dir.0.to_string_lossy().into_owned(),
+        device_id: "device-navidrome".into(),
+        device_name: "Test".into(),
+        platform: "test".into(),
+    })
+    .unwrap();
+
+    let check = block(core.check_address(env("NAVIDROME_URL"))).unwrap();
+    assert_eq!(check.kind, ServerKind::Subsonic);
+    assert!(check.name.to_lowercase().contains("navidrome"), "{check:?}");
+    let signed = block(core.sign_in(
+        check.base_url.clone(),
+        env("NAVIDROME_USER"),
+        env("NAVIDROME_PASSWORD"),
+    ))
+    .unwrap();
+    assert!(signed.token.starts_with("subsonic1:"));
+    assert!(
+        !signed.token.contains(&env("NAVIDROME_PASSWORD")),
+        "the password is never kept"
+    );
+
+    let synced = block(core.sync_library()).unwrap();
+    assert_eq!(synced[0].songs as usize, songs, "{synced:?}");
+    let all = core.songs(SongSort::Title, 0, 1000).unwrap();
+    assert_eq!(all.len(), songs);
+
+    // The one song with a sidecar .lrc has timed lyrics.
+    let lyrics = all
+        .iter()
+        .find_map(|s| block(core.lyrics(s.id)).ok().flatten())
+        .expect("a song with lyrics");
+    assert_eq!(lyrics.sync_level, LyricsSync::Line);
+
+    // A new playlist made here reaches the server, then a rename, a removal and a delete.
+    let made = core
+        .add_to(
+            DropTarget {
+                kind: DropTargetKind::NewPlaylist,
+                id: None,
+            },
+            vec![all[0].id, all[1].id, all[2].id],
+            None,
+            false,
+        )
+        .unwrap();
+    let list = made.playlist_id.unwrap();
+    core.rename_playlist(list, "From CI".into()).unwrap();
+    let sent = block(core.send_edits()).unwrap();
+    assert_eq!((sent.refused, sent.waiting), (0, 0), "{sent:?}");
+    block(core.sync_library()).unwrap();
+    let on_server = core
+        .playlists(0, 50)
+        .unwrap()
+        .into_iter()
+        .find(|p| p.name == "From CI")
+        .expect("the playlist came back from the server");
+    assert_eq!(on_server.song_count, 3);
+    core.remove_from_playlist(on_server.id, vec![1]).unwrap();
+    block(core.send_edits()).unwrap();
+    block(core.sync_library()).unwrap();
+    assert_eq!(core.playlist(on_server.id).unwrap().entries.len(), 2);
+    core.delete_playlist(on_server.id).unwrap();
+    block(core.send_edits()).unwrap();
+    block(core.sync_library()).unwrap();
+    assert!(
+        core.playlists(0, 50)
+            .unwrap()
+            .iter()
+            .all(|p| p.name != "From CI")
+    );
+
+    // A like is a star on the server, and comes back from it.
+    core.like(vec![all[0].id]).unwrap();
+    block(core.send_edits()).unwrap();
+    block(core.sync_library()).unwrap();
+    assert!(
+        core.liked_songs(0, 10)
+            .unwrap()
+            .iter()
+            .any(|s| s.id == all[0].id)
+    );
+}
+
 /// Dart can release the last reference on another runtime's worker; dropping a
 /// tokio runtime there panics unless it is shut down in the background.
 #[test]

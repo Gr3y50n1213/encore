@@ -14,6 +14,7 @@ use axum::extract::{ConnectInfo, FromRequestParts, Path, State};
 use axum::http::StatusCode;
 use axum::http::request::Parts;
 use encore_sources::jellyfin::{DeviceInfo, JellyfinClient};
+use encore_sources::subsonic::{SubsonicClient, SubsonicCredentials, server_id_for};
 use encore_sources::{SourceError, Transport};
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -109,9 +110,51 @@ impl JellyfinCheck {
     }
 }
 
+impl JellyfinCheck {
+    /// A Navidrome or other OpenSubsonic sign-in (ADR core-0021, point 9): its user name and
+    /// salted token are tried on the trusted addresses, and kept nowhere. The account is
+    /// named by the address that accepted it, never by what the device says, so a Subsonic
+    /// sign-in can only ever reach its own profile.
+    async fn check_subsonic(&self, creds: SubsonicCredentials) -> Result<CheckedUser, CheckError> {
+        let mut rejected = false;
+        let mut last_error = None;
+        for url in &self.urls {
+            let client = SubsonicClient::new(
+                self.transport.clone(),
+                url.clone(),
+                "Encore companion".into(),
+                Duration::from_secs(10),
+            )
+            .signed_in(creds.clone());
+            match client.me().await {
+                Ok(me) => {
+                    return Ok(CheckedUser {
+                        user_id: format!("subsonic:{}:{}", server_id_for(url), me.user_name),
+                        user_name: me.user_name,
+                    });
+                }
+                Err(SourceError::SessionExpired | SourceError::WrongCredentials) => rejected = true,
+                // Not a Subsonic server (a Jellyfin address in the same list): try the next.
+                Err(SourceError::Protocol(_)) => {}
+                Err(e) => last_error = Some(e.to_string()),
+            }
+        }
+        Err(if rejected {
+            CheckError::Rejected
+        } else if let Some(e) = last_error {
+            CheckError::Unreachable(e)
+        } else {
+            CheckError::UnknownServer
+        })
+    }
+}
+
 impl MediaCheck for JellyfinCheck {
     fn check<'a>(&'a self, server_id: &'a str, token: &'a str) -> CheckFuture<'a> {
         Box::pin(async move {
+            if let Some(creds) = SubsonicCredentials::from_token_string(token) {
+                return self.check_subsonic(creds).await;
+            }
             let url = self.url_for(server_id).await?;
             let me = self
                 .client(&url)

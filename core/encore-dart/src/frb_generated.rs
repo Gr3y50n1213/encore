@@ -9400,6 +9400,7 @@ const _: fn() = || {
     }
     {
         let ServerCheck = None::<crate::api::core::ServerCheck>.unwrap();
+        let _: crate::api::core::ServerKind = ServerCheck.kind;
         let _: String = ServerCheck.base_url;
         let _: String = ServerCheck.name;
         let _: String = ServerCheck.version;
@@ -12108,17 +12109,31 @@ impl SseDecode for crate::api::core::SentEdits {
 impl SseDecode for crate::api::core::ServerCheck {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_kind = <crate::api::core::ServerKind>::sse_decode(deserializer);
         let mut var_baseUrl = <String>::sse_decode(deserializer);
         let mut var_name = <String>::sse_decode(deserializer);
         let mut var_version = <String>::sse_decode(deserializer);
         let mut var_serverId = <String>::sse_decode(deserializer);
         let mut var_plainHttpOnLocalNetwork = <bool>::sse_decode(deserializer);
         return crate::api::core::ServerCheck {
+            kind: var_kind,
             base_url: var_baseUrl,
             name: var_name,
             version: var_version,
             server_id: var_serverId,
             plain_http_on_local_network: var_plainHttpOnLocalNetwork,
+        };
+    }
+}
+
+impl SseDecode for crate::api::core::ServerKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::core::ServerKind::Jellyfin,
+            1 => crate::api::core::ServerKind::Subsonic,
+            _ => unreachable!("Invalid variant for ServerKind: {}", inner),
         };
     }
 }
@@ -15304,6 +15319,7 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<crate::api::core::SentEdits>>
 impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::ServerCheck> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
+            self.0.kind.into_into_dart().into_dart(),
             self.0.base_url.into_into_dart().into_dart(),
             self.0.name.into_into_dart().into_dart(),
             self.0.version.into_into_dart().into_dart(),
@@ -15324,6 +15340,27 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<crate::api::core::ServerCheck>
     for crate::api::core::ServerCheck
 {
     fn into_into_dart(self) -> FrbWrapper<crate::api::core::ServerCheck> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::ServerKind> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self.0 {
+            crate::api::core::ServerKind::Jellyfin => 0.into_dart(),
+            crate::api::core::ServerKind::Subsonic => 1.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<crate::api::core::ServerKind>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<crate::api::core::ServerKind>>
+    for crate::api::core::ServerKind
+{
+    fn into_into_dart(self) -> FrbWrapper<crate::api::core::ServerKind> {
         self.into()
     }
 }
@@ -18297,11 +18334,28 @@ impl SseEncode for crate::api::core::SentEdits {
 impl SseEncode for crate::api::core::ServerCheck {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::core::ServerKind>::sse_encode(self.kind, serializer);
         <String>::sse_encode(self.base_url, serializer);
         <String>::sse_encode(self.name, serializer);
         <String>::sse_encode(self.version, serializer);
         <String>::sse_encode(self.server_id, serializer);
         <bool>::sse_encode(self.plain_http_on_local_network, serializer);
+    }
+}
+
+impl SseEncode for crate::api::core::ServerKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::core::ServerKind::Jellyfin => 0,
+                crate::api::core::ServerKind::Subsonic => 1,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
     }
 }
 

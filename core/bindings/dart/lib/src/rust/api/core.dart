@@ -2451,20 +2451,21 @@ final int waiting;
             }
 
 class ServerCheck  {
-                final String baseUrl;
+                final ServerKind kind;
+final String baseUrl;
 final String name;
 final String version;
 final String serverId;
 final bool plainHttpOnLocalNetwork;
 
-                const ServerCheck({required this.baseUrl ,required this.name ,required this.version ,required this.serverId ,required this.plainHttpOnLocalNetwork ,});
+                const ServerCheck({required this.kind ,required this.baseUrl ,required this.name ,required this.version ,required this.serverId ,required this.plainHttpOnLocalNetwork ,});
 
 
 
 
 
         @override
-        int get hashCode => baseUrl.hashCode^name.hashCode^version.hashCode^serverId.hashCode^plainHttpOnLocalNetwork.hashCode;
+        int get hashCode => kind.hashCode^baseUrl.hashCode^name.hashCode^version.hashCode^serverId.hashCode^plainHttpOnLocalNetwork.hashCode;
 
 
 
@@ -2473,9 +2474,16 @@ final bool plainHttpOnLocalNetwork;
             identical(this, other) ||
             other is ServerCheck &&
                 runtimeType == other.runtimeType
-                && baseUrl == other.baseUrl&& name == other.name&& version == other.version&& serverId == other.serverId&& plainHttpOnLocalNetwork == other.plainHttpOnLocalNetwork;
+                && kind == other.kind&& baseUrl == other.baseUrl&& name == other.name&& version == other.version&& serverId == other.serverId&& plainHttpOnLocalNetwork == other.plainHttpOnLocalNetwork;
 
             }
+
+enum ServerKind {
+                    jellyfin,
+subsonic,
+                    ;
+                    
+                }
 
 class ServerRow  {
                 final PlatformInt64 sourceId;

@@ -26,6 +26,18 @@ pub enum AnySource {
 pub enum CompanionCredential {
     /// A Jellyfin access token.
     Jellyfin(String),
+    /// A Subsonic saved sign-in (`SubsonicCredentials::to_token_string`): user name and salted
+    /// token or API key, never a password.
+    Subsonic(String),
+}
+
+impl CompanionCredential {
+    /// What `/auth/exchange` takes as `media_token`: the companion tells the kinds apart.
+    pub fn media_token(&self) -> &str {
+        match self {
+            CompanionCredential::Jellyfin(t) | CompanionCredential::Subsonic(t) => t,
+        }
+    }
 }
 
 impl AnySource {
@@ -80,8 +92,10 @@ impl AnySource {
                 .client
                 .token_for_companion_sign_in()
                 .map(|t| CompanionCredential::Jellyfin(t.to_owned())),
-            // The companion checks Subsonic sign-ins in Phase 12's companion step.
-            AnySource::Subsonic(_) => None,
+            AnySource::Subsonic(s) => s
+                .client
+                .credentials()
+                .map(|c| CompanionCredential::Subsonic(c.to_token_string())),
         }
     }
 }

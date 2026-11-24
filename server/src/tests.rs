@@ -1352,3 +1352,33 @@ async fn the_live_link_is_bounded() {
         "replaced by a newer connection"
     );
 }
+
+/// ADR core-0021, point 9: a Navidrome sign-in is checked on a trusted address and the
+/// account is named by that address, whatever server ID the device sends.
+#[tokio::test]
+async fn a_subsonic_sign_in_is_checked_on_the_trusted_address_and_named_by_it() {
+    use crate::auth::MediaCheck;
+    let fixtures = std::fs::read_to_string(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../tools/fixtures/subsonic/server.json"
+    ))
+    .unwrap();
+    let transport = Arc::new(encore_sources::FixtureTransport::from_json(&fixtures).unwrap());
+    let url = url::Url::parse("http://navidrome.local:4533/").unwrap();
+    let check = crate::JellyfinCheck::new(vec![url.clone()], transport);
+    let user = check
+        .check(
+            "anything-the-device-claims",
+            "subsonic1:u=listener&t=26719a1196d2a940705a59634eb18eab&s=c19b2d",
+        )
+        .await
+        .unwrap();
+    assert_eq!(user.user_name, "listener");
+    assert_eq!(
+        user.user_id,
+        format!(
+            "subsonic:{}:listener",
+            encore_sources::subsonic::server_id_for(&url)
+        )
+    );
+}

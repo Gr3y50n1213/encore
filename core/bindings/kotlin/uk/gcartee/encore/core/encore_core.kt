@@ -1679,7 +1679,7 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_encore_core_checksum_method_encorecore_lyric_line_tapped() and 0xFFFF) != 50507) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if ((lib.uniffi_encore_core_checksum_method_encorecore_lyrics() and 0xFFFF) != 53568) {
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_lyrics() and 0xFFFF) != 21438) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_lyrics_raw() and 0xFFFF) != 18296) {
@@ -3155,9 +3155,10 @@ public interface EncoreCoreInterface {
     
     /**
      * A song's lyrics, read and ready to draw (board 10); None when it has none.
-     * Kept per song: once fetched they show offline. They are fetched again after
-     * `lyrics.refreshAfterDays`, or sooner when the server's copy of the song
-     * changes. When the server can't be reached the kept copy is used, however old.
+     * Kept per song: once fetched they show offline. They are checked again after
+     * an hour (`LYRICS_RECHECK_MS`; at most `lyrics.refreshAfterDays`), or sooner when the
+     * server's copy of the song changes. When the server can't be reached the kept copy is
+     * used, however old.
      * A file that can't be read counts as no lyrics, so the view never fails. Async.
      */
     suspend fun `lyrics`(`songId`: kotlin.Long): SongLyrics?
@@ -4713,9 +4714,10 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
     
     /**
      * A song's lyrics, read and ready to draw (board 10); None when it has none.
-     * Kept per song: once fetched they show offline. They are fetched again after
-     * `lyrics.refreshAfterDays`, or sooner when the server's copy of the song
-     * changes. When the server can't be reached the kept copy is used, however old.
+     * Kept per song: once fetched they show offline. They are checked again after
+     * an hour (`LYRICS_RECHECK_MS`; at most `lyrics.refreshAfterDays`), or sooner when the
+     * server's copy of the song changes. When the server can't be reached the kept copy is
+     * used, however old.
      * A file that can't be read counts as no lyrics, so the view never fails. Async.
      */
     @Throws(EncoreException::class)
@@ -10944,6 +10946,11 @@ public object FfiConverterTypeSentEdits: FfiConverterRustBuffer<SentEdits> {
 
 data class ServerCheck (
     /**
+     * Jellyfin, or Navidrome and other OpenSubsonic servers (ADR core-0021).
+     */
+    var `kind`: ServerKind
+    , 
+    /**
      * The address that answered; pass it to the sign-in calls.
      */
     var `baseUrl`: kotlin.String
@@ -10974,6 +10981,7 @@ data class ServerCheck (
 public object FfiConverterTypeServerCheck: FfiConverterRustBuffer<ServerCheck> {
     override fun read(buf: ByteBuffer): ServerCheck {
         return ServerCheck(
+            FfiConverterTypeServerKind.read(buf),
             FfiConverterString.read(buf),
             FfiConverterString.read(buf),
             FfiConverterString.read(buf),
@@ -10983,6 +10991,7 @@ public object FfiConverterTypeServerCheck: FfiConverterRustBuffer<ServerCheck> {
     }
 
     override fun allocationSize(value: ServerCheck) = (
+            FfiConverterTypeServerKind.allocationSize(value.`kind`) +
             FfiConverterString.allocationSize(value.`baseUrl`) +
             FfiConverterString.allocationSize(value.`name`) +
             FfiConverterString.allocationSize(value.`version`) +
@@ -10991,6 +11000,7 @@ public object FfiConverterTypeServerCheck: FfiConverterRustBuffer<ServerCheck> {
     )
 
     override fun write(value: ServerCheck, buf: ByteBuffer) {
+            FfiConverterTypeServerKind.write(value.`kind`, buf)
             FfiConverterString.write(value.`baseUrl`, buf)
             FfiConverterString.write(value.`name`, buf)
             FfiConverterString.write(value.`version`, buf)
@@ -14571,6 +14581,43 @@ public object FfiConverterTypeResultKind: FfiConverterRustBuffer<ResultKind> {
     override fun allocationSize(value: ResultKind) = 4UL
 
     override fun write(value: ResultKind, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+/**
+ * The kind of media server at an address. Quick Connect is Jellyfin's only.
+ */
+
+enum class ServerKind {
+    
+    JELLYFIN,
+    SUBSONIC;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeServerKind: FfiConverterRustBuffer<ServerKind> {
+    override fun read(buf: ByteBuffer) = try {
+        ServerKind.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: ServerKind) = 4UL
+
+    override fun write(value: ServerKind, buf: ByteBuffer) {
         buf.putInt(value.ordinal + 1)
     }
 }

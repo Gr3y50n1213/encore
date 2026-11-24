@@ -468,6 +468,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected ServerCheck dco_decode_server_check(dynamic raw);
 
+@protected ServerKind dco_decode_server_kind(dynamic raw);
+
 @protected ServerRow dco_decode_server_row(dynamic raw);
 
 @protected ShelfStat dco_decode_shelf_stat(dynamic raw);
@@ -996,6 +998,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 @protected ServerCheck sse_decode_server_check(SseDeserializer deserializer);
 
+@protected ServerKind sse_decode_server_kind(SseDeserializer deserializer);
+
 @protected ServerRow sse_decode_server_row(SseDeserializer deserializer);
 
 @protected ShelfStat sse_decode_shelf_stat(SseDeserializer deserializer);
@@ -1523,6 +1527,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 @protected void sse_encode_sent_edits(SentEdits self, SseSerializer serializer);
 
 @protected void sse_encode_server_check(ServerCheck self, SseSerializer serializer);
+
+@protected void sse_encode_server_kind(ServerKind self, SseSerializer serializer);
 
 @protected void sse_encode_server_row(ServerRow self, SseSerializer serializer);
 
