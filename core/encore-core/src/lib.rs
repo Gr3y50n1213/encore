@@ -21,6 +21,7 @@ pub mod pin;
 pub mod playlog;
 pub mod queue;
 pub mod signal;
+pub mod source_any;
 pub mod tokens;
 
 #[cfg(feature = "uniffi")]

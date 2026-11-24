@@ -447,10 +447,7 @@ impl EncoreCore {
             let Ok(source) = inner.source(&p, song.source_id) else {
                 break SoundStop::SignInNeeded;
             };
-            let reader = match source
-                .client
-                .range_reader(&song.source_item_id, handle.clone())
-            {
+            let reader = match source.range_reader(&song.source_item_id, handle.clone()) {
                 Ok(r) => r,
                 Err(_) => break SoundStop::SignInNeeded,
             };

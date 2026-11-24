@@ -27,6 +27,8 @@ pub struct CoreConfig {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
 pub struct ServerCheck {
+    /// Jellyfin, or Navidrome and other OpenSubsonic servers (ADR core-0021).
+    pub kind: ServerKind,
     /// The address that answered; pass it to the sign-in calls.
     pub base_url: String,
     pub name: String,
@@ -34,6 +36,14 @@ pub struct ServerCheck {
     pub server_id: String,
     /// Plain http on the local network: show the quiet warning (board 21).
     pub plain_http_on_local_network: bool,
+}
+
+/// The kind of media server at an address. Quick Connect is Jellyfin's only.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum ServerKind {
+    Jellyfin,
+    Subsonic,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

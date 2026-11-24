@@ -13,7 +13,19 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use encore_sources::http::HttpTransport;
 use encore_sources::jellyfin::{self, DeviceInfo, JellyfinClient, ServerInfo, Session};
-use encore_sources::{JellyfinSource, MediaSource, Transport};
+use encore_sources::subsonic::{SubsonicClient, SubsonicCredentials};
+use encore_sources::{JellyfinSource, MediaSource, SourceKind, SubsonicSource, Transport};
+
+/// What a new sign-in stores about its server, whatever its kind.
+struct NewAccount<'a> {
+    kind: &'a str,
+    name: &'a str,
+    base_url: &'a str,
+    server_id: &'a str,
+    version: &'a str,
+    user_id: &'a str,
+    user_name: &'a str,
+}
 use encore_store::{
     CachedLyrics, CachedPalette, NewSource, Page, SearchLimits, SourceRecord, Store,
     TopResult as StoreTop,
@@ -126,7 +138,7 @@ impl Playback {
 struct Profile {
     id: String,
     store: Mutex<Store>,
-    sources: Mutex<HashMap<i64, Arc<JellyfinSource>>>,
+    sources: Mutex<HashMap<i64, Arc<crate::source_any::AnySource>>>,
     playback: Mutex<Playback>,
     /// The clock for library edits' events (plan section 5).
     edits_clock: Mutex<HlcClock>,
@@ -240,14 +252,40 @@ impl Inner {
         let t = tokens();
         let plan = jellyfin::plan_address(&address, &t.https_ports, t.http_port)?;
         let transport = self.transport_for(self.pin_for(&address).as_deref())?;
-        let info = jellyfin::probe(
-            transport,
+        let info = match jellyfin::probe(
+            transport.clone(),
             &plan,
             &self.device(),
             Duration::from_secs(t.probe_timeout_seconds),
         )
-        .await?;
+        .await
+        {
+            Ok(info) => info,
+            // Not Jellyfin there: maybe Navidrome or another OpenSubsonic server (core-0021).
+            Err(jellyfin_error) => {
+                for url in &plan.candidates {
+                    let client = SubsonicClient::new(
+                        transport.clone(),
+                        url.clone(),
+                        APP_NAME.to_owned(),
+                        Duration::from_secs(t.probe_timeout_seconds),
+                    );
+                    if let Ok(s) = client.server_info().await {
+                        return Ok(ServerCheck {
+                            kind: ServerKind::Subsonic,
+                            base_url: s.base_url.to_string(),
+                            name: s.name,
+                            version: s.version,
+                            server_id: s.server_id,
+                            plain_http_on_local_network: s.warning.is_some(),
+                        });
+                    }
+                }
+                return Err(jellyfin_error.into());
+            }
+        };
         Ok(ServerCheck {
+            kind: ServerKind::Jellyfin,
             base_url: info.base_url.to_string(),
             name: info.name,
             version: info.version,
@@ -269,6 +307,48 @@ impl Inner {
         Ok((client, info))
     }
 
+    /// A Subsonic client for an address the user typed (core-0021).
+    async fn subsonic_for(
+        &self,
+        base_url: &str,
+    ) -> Result<(SubsonicClient, encore_sources::subsonic::SubsonicInfo), EncoreError> {
+        let url = url::Url::parse(base_url).map_err(|e| EncoreError::InvalidAddress {
+            reason: e.to_string(),
+        })?;
+        let transport = self.transport_for(self.pin_for(base_url).as_deref())?;
+        let client = SubsonicClient::new(transport, url, APP_NAME.to_owned(), REQUEST_TIMEOUT);
+        let info = client.server_info().await?;
+        let client = client.with_extensions(info.extensions.clone());
+        Ok((client, info))
+    }
+
+    /// Sign in to a Subsonic server: only the user name and a salted token are kept.
+    fn complete_subsonic_sign_in(
+        &self,
+        client: SubsonicClient,
+        info: encore_sources::subsonic::SubsonicInfo,
+        creds: SubsonicCredentials,
+    ) -> Result<SignedIn, EncoreError> {
+        let user = creds.user.clone();
+        let token = creds.to_token_string();
+        let source = crate::source_any::AnySource::Subsonic(SubsonicSource {
+            client: client.signed_in(creds),
+        });
+        self.finish_sign_in(
+            NewAccount {
+                kind: "subsonic",
+                name: &info.name,
+                base_url: info.base_url.as_str(),
+                server_id: &info.server_id,
+                version: &info.version,
+                user_id: &user,
+                user_name: &user,
+            },
+            token,
+            source,
+        )
+    }
+
     /// Store the account, open its profile and return what the app keeps.
     fn complete_sign_in(
         &self,
@@ -276,23 +356,49 @@ impl Inner {
         info: ServerInfo,
         session: Session,
     ) -> Result<SignedIn, EncoreError> {
-        let id = profile_id(&info.server_id, &session.user_id);
+        // The client used to sign in already holds the session.
+        let source = crate::source_any::AnySource::Jellyfin(JellyfinSource {
+            client: client.signed_in(session.token.clone(), session.user_id.clone()),
+            quick_connect: true,
+        });
+        self.finish_sign_in(
+            NewAccount {
+                kind: "jellyfin",
+                name: &info.name,
+                base_url: info.base_url.as_str(),
+                server_id: &info.server_id,
+                version: &info.version,
+                user_id: &session.user_id,
+                user_name: &session.user_name,
+            },
+            session.token,
+            source,
+        )
+    }
+
+    fn finish_sign_in(
+        &self,
+        account: NewAccount<'_>,
+        token: String,
+        source: crate::source_any::AnySource,
+    ) -> Result<SignedIn, EncoreError> {
+        let id = profile_id(account.server_id, account.user_id);
         let path = self.store_path(&id);
         if let Some(dir) = path.parent() {
             std::fs::create_dir_all(dir).map_err(|e| EncoreError::Storage {
                 reason: format!("couldn't create the profile folder ({e})"),
             })?;
         }
-        let pin = self.pin_for(info.base_url.as_str());
+        let pin = self.pin_for(account.base_url);
         let store = Store::open(&path)?;
         let source_id = store.add_source(&NewSource {
-            kind: "jellyfin",
-            name: &info.name,
-            base_url: info.base_url.as_str(),
-            server_id: &info.server_id,
-            server_version: Some(&info.version),
-            user_id: &session.user_id,
-            user_name: &session.user_name,
+            kind: account.kind,
+            name: account.name,
+            base_url: account.base_url,
+            server_id: account.server_id,
+            server_version: Some(account.version),
+            user_id: account.user_id,
+            user_name: account.user_name,
             pinned_cert_sha256: pin.as_deref(),
             created_utc_ms: now_ms(),
         })?;
@@ -305,14 +411,9 @@ impl Inner {
             &id,
             vec![SourceToken {
                 source_id,
-                token: session.token.clone(),
+                token: token.clone(),
             }],
         )?;
-        // The client used to sign in already holds the session.
-        let source = JellyfinSource {
-            client: client.signed_in(session.token.clone(), session.user_id.clone()),
-            quick_connect: true,
-        };
         if let Ok(p) = self.profile() {
             lock(&p.sources)?.insert(source_id, Arc::new(source));
         }
@@ -320,8 +421,8 @@ impl Inner {
             credential_key: credential_key(&id, source_id),
             profile_id: id,
             source_id,
-            token: session.token,
-            user_name: session.user_name,
+            token,
+            user_name: account.user_name.to_owned(),
         })
     }
 
@@ -329,17 +430,29 @@ impl Inner {
         &self,
         record: &SourceRecord,
         token: &str,
-    ) -> Result<JellyfinSource, EncoreError> {
+    ) -> Result<crate::source_any::AnySource, EncoreError> {
         let url = url::Url::parse(&record.base_url).map_err(|e| EncoreError::InvalidAddress {
             reason: e.to_string(),
         })?;
         let transport = self.transport_for(record.pinned_cert_sha256.as_deref())?;
+        if record.kind == SourceKind::Subsonic.as_str() {
+            let creds = SubsonicCredentials::from_token_string(token).ok_or_else(|| {
+                EncoreError::SessionExpired {
+                    reason: "Sign in to this server again".into(),
+                }
+            })?;
+            let client = SubsonicClient::new(transport, url, APP_NAME.to_owned(), REQUEST_TIMEOUT)
+                .signed_in(creds);
+            return Ok(crate::source_any::AnySource::Subsonic(SubsonicSource {
+                client,
+            }));
+        }
         let client = JellyfinClient::new(transport, url, self.device(), REQUEST_TIMEOUT)
             .signed_in(token.to_owned(), record.user_id.clone());
-        Ok(JellyfinSource {
+        Ok(crate::source_any::AnySource::Jellyfin(JellyfinSource {
             client,
             quick_connect: true,
-        })
+        }))
     }
 
     fn open_profile(&self, id: &str, tokens_in: Vec<SourceToken>) -> Result<(), EncoreError> {
@@ -509,7 +622,11 @@ impl Inner {
             .collect()
     }
 
-    fn source(&self, p: &Profile, source_id: i64) -> Result<Arc<JellyfinSource>, EncoreError> {
+    fn source(
+        &self,
+        p: &Profile,
+        source_id: i64,
+    ) -> Result<Arc<crate::source_any::AnySource>, EncoreError> {
         lock(&p.sources)?
             .get(&source_id)
             .cloned()
@@ -580,7 +697,7 @@ fn edit_result(a: edits::Applied, now: i64) -> EditResult {
 /// Send the waiting edits of every signed-in server.
 async fn send_all(inner: &Inner) -> Result<SentEdits, EncoreError> {
     let p = inner.profile()?;
-    let sources: Vec<(i64, Arc<JellyfinSource>)> = lock(&p.sources)?
+    let sources: Vec<(i64, Arc<crate::source_any::AnySource>)> = lock(&p.sources)?
         .iter()
         .map(|(k, v)| (*k, v.clone()))
         .collect();
@@ -955,9 +1072,20 @@ impl EncoreCore {
     ) -> Result<SignedIn, EncoreError> {
         let inner = self.inner.clone();
         self.spawn(async move {
-            let (client, info) = inner.client_for(&base_url).await?;
-            let session = client.sign_in(&username, &password).await?;
-            inner.complete_sign_in(client, info, session)
+            // Jellyfin, or else an OpenSubsonic server at the same address (core-0021).
+            match inner.client_for(&base_url).await {
+                Ok((client, info)) => {
+                    let session = client.sign_in(&username, &password).await?;
+                    inner.complete_sign_in(client, info, session)
+                }
+                Err(jellyfin_error) => {
+                    let Ok((client, info)) = inner.subsonic_for(&base_url).await else {
+                        return Err(jellyfin_error);
+                    };
+                    let creds = client.sign_in(&username, &password).await?;
+                    inner.complete_subsonic_sign_in(client, info, creds)
+                }
+            }
         })
         .await
     }
@@ -1221,8 +1349,9 @@ impl EncoreCore {
                 records
                     .iter()
                     .find_map(|r| {
-                        let t = sources.get(&r.id)?.client.token_for_companion_sign_in()?;
-                        Some((r.server_id.clone(), t.to_owned()))
+                        let crate::source_any::CompanionCredential::Jellyfin(t) =
+                            sources.get(&r.id)?.companion_credential()?;
+                        Some((r.server_id.clone(), t))
                     })
                     .ok_or_else(|| EncoreError::SessionExpired {
                         reason: "Sign in to your media server first".into(),
@@ -1519,7 +1648,7 @@ impl EncoreCore {
         let inner = self.inner.clone();
         self.spawn(async move {
             let p = inner.profile()?;
-            let sources: Vec<(i64, Arc<JellyfinSource>)> = lock(&p.sources)?
+            let sources: Vec<(i64, Arc<crate::source_any::AnySource>)> = lock(&p.sources)?
                 .iter()
                 .map(|(k, v)| (*k, v.clone()))
                 .collect();
@@ -1552,11 +1681,10 @@ impl EncoreCore {
                 }
                 let stats = stats?;
                 // The user's image, for the switcher's avatar (best effort).
-                if let Ok(me) = source.client.me().await {
-                    let avatar = me
-                        .image_tag
-                        .as_deref()
-                        .map(|tag| (source.client.base_url().as_str(), me.user_id.as_str(), tag));
+                if let Ok(avatar) = source.avatar().await {
+                    let avatar = avatar
+                        .as_ref()
+                        .map(|(base, user, tag)| (base.as_str(), user.as_str(), tag.as_str()));
                     lock(&inner.registry)?.set_avatar(&p.id, avatar)?;
                 }
                 {
@@ -1598,7 +1726,7 @@ impl EncoreCore {
             // Phase 9, WP2: the widgets' "Server not reachable" follows.
             inner.widgets_soon();
             if let Some(s) = source {
-                s.client.sign_out().await?;
+                s.sign_out().await?;
             }
             Ok(())
         })
