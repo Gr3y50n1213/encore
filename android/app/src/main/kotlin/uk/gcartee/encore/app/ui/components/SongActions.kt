@@ -565,7 +565,8 @@ fun WhyThisSongSheet(song: Song, onDone: () -> Unit) {
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(SHEET_ROW_GAP_DP.dp)) {
                     like.forEachIndexed { i, s ->
-                        GroupRow(first = i == 0, last = i == like.lastIndex) {
+                        // Mock-up 44, board 4: a tap opens the song's album.
+                        GroupRow(first = i == 0, last = i == like.lastIndex, onClick = s.albumId?.let { { onDone(); actions.goToAlbum(s) } }) {
                             Artwork(uk.gcartee.encore.core.ArtworkOf.SONG, s.id, LIKE_ART_DP.dp, Modifier.size(LIKE_ART_DP.dp), cornerRadius = LIKE_ART_RADIUS_DP.dp)
                             Spacer(Modifier.width((Grid.base * 2).dp))
                             Column(Modifier.weight(1f)) {

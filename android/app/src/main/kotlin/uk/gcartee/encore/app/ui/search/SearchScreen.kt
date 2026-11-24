@@ -177,10 +177,12 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
                         }
                     }
                 }
-                // Item 3: the tile grid under the recents. Moods come from audio analysis
-                // (Phase 10), so for now the tiles open the library's own ways in.
+                // Item 3: the tile grid under the recents: the library's own ways in, then the
+                // moods from sound analysis (Phase 10).
                 item { SectionTitle("Browse") }
                 item { BrowseTiles(host, onLibrary) }
+                // Phase 10 (mock-up 44, board 3): moods from what the songs sound like.
+                item { Column { uk.gcartee.encore.app.ui.sound.MoodTiles(host, ::open) } }
             }
             results == null || isEmpty(results) -> if (scope == "Downloaded") {
                 // Board 20, item 6: offer every source when only downloads were searched.

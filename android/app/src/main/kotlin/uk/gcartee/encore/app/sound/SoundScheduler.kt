@@ -41,6 +41,10 @@ object SoundScheduler {
         if (waiting) run(context, js, settings, replace)
     }
 
+    /** The run job is waiting for its conditions or running (Settings > Sound analysis' states). */
+    fun isScheduled(context: Context): Boolean =
+        context.getSystemService(JobScheduler::class.java)?.getPendingJob(JOB_RUN) != null
+
     private fun run(context: Context, js: JobScheduler, s: SoundSettings, replace: Boolean) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val rules = "${s.wifiOnly}/${s.chargingOnly}"
