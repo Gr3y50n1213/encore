@@ -793,6 +793,46 @@ impl Editor<'_> {
         Ok(edit_id)
     }
 
+    /// Delete a playlist here and on the server (owner, 24 November 2026: "we need to be
+    /// able to delete playlists"). Its waiting writes go with it. One made here that the
+    /// server never saw is only forgotten. There is no Undo; the app asks first.
+    pub fn delete_playlist(&mut self, id: i64) -> Result<String, EditError> {
+        let rec = self
+            .store
+            .playlist_record(id)?
+            .ok_or(EditError::NotFound("playlist"))?;
+        if !rec.can_edit {
+            return Err(EditError::Refused(Refusal::PlaylistReadOnly));
+        }
+        let never_sent = rec.source_item_id.starts_with(LOCAL_ITEM_PREFIX);
+        let edit_id = new_id();
+        self.store.in_transaction(|store| {
+            store.cancel_pending_for_playlist(id)?;
+            store.delete_playlist_row(id)?;
+            self.record(
+                "playlistDelete",
+                &edit_id,
+                serde_json::json!({
+                    "source": rec.source_id,
+                    "playlist": rec.source_item_id,
+                    "name": rec.name,
+                }),
+                None,
+                (!never_sent).then(|| {
+                    (
+                        rec.source_id,
+                        None,
+                        vec![QueuedOp::Delete {
+                            item_id: rec.source_item_id.clone(),
+                        }],
+                    )
+                }),
+            )
+            .map_err(as_store)
+        })?;
+        Ok(edit_id)
+    }
+
     /// Remember how to undo a queue change (Up Next, Play Next): the queue keeps the
     /// state itself; this gives it an edit ID like every other edit.
     pub fn queue_edit(&mut self) -> Result<String, EditError> {

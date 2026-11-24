@@ -644,6 +644,18 @@ impl JellyfinClient {
                 message: resp.text().chars().take(500).collect(),
             });
         }
+        // Jellyfin answers a delete the user may not make with 401, the same as an ended
+        // sign-in. If the sign-in still works, it was "not allowed", so the write is dropped
+        // rather than retried for ever.
+        if resp.status == 401
+            && matches!(edit, ServerEdit::DeletePlaylist { .. })
+            && self.me().await.is_ok()
+        {
+            return Err(SourceError::Server {
+                status: 403,
+                message: "this server doesn't allow deleting it".into(),
+            });
+        }
         let resp = Self::check(resp, SourceError::SessionExpired)?;
         Ok(match edit {
             ServerEdit::CreatePlaylist { .. } => {

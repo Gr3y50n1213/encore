@@ -750,6 +750,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_current_profile(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_delete_playlist(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_delete_profile_everywhere(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_disconnect_companion(
@@ -1128,6 +1130,8 @@ internal object UniffiLib {
     external fun uniffi_encore_core_fn_method_encorecore_connect_companion(`ptr`: Long,`url`: RustBuffer.ByValue,
     ): Long
     external fun uniffi_encore_core_fn_method_encorecore_current_profile(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_delete_playlist(`ptr`: Long,`playlistId`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_delete_profile_everywhere(`ptr`: Long,`profileId`: RustBuffer.ByValue,`typedName`: RustBuffer.ByValue,
     ): Long
@@ -1637,6 +1641,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_current_profile() and 0xFFFF) != 14260) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_delete_playlist() and 0xFFFF) != 33900) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_delete_profile_everywhere() and 0xFFFF) != 47212) {
@@ -3072,6 +3079,12 @@ public interface EncoreCoreInterface {
     fun `currentProfile`(): kotlin.String?
     
     /**
+     * Delete a playlist, here at once and on the media server as soon as it can be
+     * reached. No Undo: ask first.
+     */
+    fun `deletePlaylist`(`playlistId`: kotlin.Long): EditResult
+    
+    /**
      * Board 19's "Delete profile and its data", for the open profile: its
      * history, likes, playlists made here, settings and tokens, on the companion
      * server (every device signed in to it stops syncing) and on this device. The
@@ -4433,6 +4446,25 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
     UniffiLib.uniffi_encore_core_fn_method_encorecore_current_profile(
         it,
         _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Delete a playlist, here at once and on the media server as soon as it can be
+     * reached. No Undo: ask first.
+     */
+    @Throws(EncoreException::class)override fun `deletePlaylist`(`playlistId`: kotlin.Long): EditResult {
+            return FfiConverterTypeEditResult.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_delete_playlist(
+        it,
+        
+        FfiConverterLong.lower(`playlistId`),_status)
 }
     }
     )

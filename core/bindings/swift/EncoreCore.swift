@@ -943,6 +943,12 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     func currentProfile()  -> String?
     
     /**
+     * Delete a playlist, here at once and on the media server as soon as it can be
+     * reached. No Undo: ask first.
+     */
+    func deletePlaylist(playlistId: Int64) throws  -> EditResult
+    
+    /**
      * Board 19's "Delete profile and its data", for the open profile: its
      * history, likes, playlists made here, settings and tokens, on the companion
      * server (every device signed in to it stops syncing) and on this device. The
@@ -2155,6 +2161,20 @@ open func currentProfile() -> String?  {
         uniffiCallStatus in
     uniffi_encore_core_fn_method_encorecore_current_profile(
             self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Delete a playlist, here at once and on the media server as soon as it can be
+     * reached. No Undo: ask first.
+     */
+open func deletePlaylist(playlistId: Int64)throws  -> EditResult  {
+    return try  FfiConverterTypeEditResult_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_delete_playlist(
+            self.uniffiCloneHandle(),
+        FfiConverterInt64.lower(playlistId),uniffiCallStatus
     )
 })
 }
@@ -17581,6 +17601,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_current_profile() != 14260) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_delete_playlist() != 33900) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_delete_profile_everywhere() != 47212) {

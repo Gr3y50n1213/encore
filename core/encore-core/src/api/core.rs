@@ -2467,6 +2467,20 @@ impl EncoreCore {
         })
     }
 
+    /// Delete a playlist, here at once and on the media server as soon as it can be
+    /// reached. No Undo: ask first.
+    pub fn delete_playlist(&self, playlist_id: i64) -> Result<EditResult, EncoreError> {
+        self.edit(|ed, _| {
+            let id = ed.delete_playlist(playlist_id)?;
+            Ok(edits::Applied {
+                edit_id: Some(id),
+                added: 0,
+                already_there: 0,
+                playlist_id: None,
+            })
+        })
+    }
+
     /// Undo an edit (the toast's Undo, or Command/Ctrl+Z), within
     /// `gestures.dragAndDrop.shortcutUndoMs` (10 s). Undo is one event too; it
     /// can't itself be undone. Refused with `NotAllowed` when too late.

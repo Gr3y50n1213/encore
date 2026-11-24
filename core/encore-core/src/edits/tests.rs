@@ -649,6 +649,46 @@ fn a_playlist_made_offline_gets_its_server_id_before_later_writes() {
     assert_eq!(f.server.items(&server_id), ["s30", "s31", "s32", "s40"]);
 }
 
+/// Owner, 24 November 2026: "we need to be able to delete playlists".
+#[test]
+fn a_deleted_playlist_goes_here_and_on_the_server_and_its_waiting_writes_go_too() {
+    let mut f = fixture();
+    let road = f.road;
+    f.server.set(Mode::Down);
+    let songs = f.songs(&["s70"]);
+    f.edit(T0, |ed| ed.add(Target::Playlist(road), &songs, None, false))
+        .unwrap();
+    f.edit(T0, |ed| ed.delete_playlist(road)).unwrap();
+    assert!(
+        f.store
+            .lock()
+            .unwrap()
+            .playlist_record(road)
+            .unwrap()
+            .is_none()
+    );
+    f.server.set(Mode::Up);
+    let r = f.flush();
+    assert_eq!((r.sent, r.waiting), (1, 0), "only the delete is sent");
+    assert!(
+        matches!(&f.server.sent()[..], [ServerEdit::DeletePlaylist { playlist_id }] if playlist_id == "srv-road")
+    );
+    assert!(!f.server.playlists.lock().unwrap().contains_key("srv-road"));
+
+    // One made here and never sent is only forgotten.
+    let more = f.songs(&["s71"]);
+    f.server.set(Mode::Down);
+    let made = f
+        .edit(T0, |ed| ed.add(Target::NewPlaylist, &more, None, false))
+        .unwrap()
+        .playlist_id
+        .unwrap();
+    f.edit(T0, |ed| ed.delete_playlist(made)).unwrap();
+    f.server.set(Mode::Up);
+    f.flush();
+    assert_eq!(f.server.sent().len(), 1, "nothing more reaches the server");
+}
+
 /// The owner's server, 24 November 2026: the server lost the owner of a playlist made on
 /// the phone, refused every later change to it (403), and the refused write held up the
 /// whole queue. The user's version becomes a playlist of their own, and later writes go.
