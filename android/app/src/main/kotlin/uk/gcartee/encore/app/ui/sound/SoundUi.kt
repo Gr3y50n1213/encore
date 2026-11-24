@@ -282,7 +282,7 @@ fun SoundAnalysisPage(host: CoreHost, onBack: () -> Unit, contentPadding: Paddin
         }
         group("Songs", songRows)
         item {
-            uk.gcartee.encore.app.ui.settings.Body("Only about 130 numbers per song are kept. No audio leaves your devices or your server.")
+            uk.gcartee.encore.app.ui.settings.Body("Only about 1,600 small numbers per song are kept, never the audio. No audio leaves your devices or your server.")
         }
     }
     if (confirmDelete) {
@@ -372,7 +372,7 @@ fun SoundHomeCard(host: CoreHost, modifier: Modifier = Modifier) {
                 ),
             )
             Spacer(Modifier.height((Grid.base * 1.5f).dp))
-            Text("Only about 130 numbers per song are kept. No audio leaves your devices or your server.", style = type.body.copy(fontSize = 14.sp, lineHeight = 20.sp), color = scheme.onSurfaceVariant)
+            Text("Only about 1,600 small numbers per song are kept, never the audio. No audio leaves your devices or your server.", style = type.body.copy(fontSize = 14.sp, lineHeight = 20.sp), color = scheme.onSurfaceVariant)
             Spacer(Modifier.height((Grid.base * 2).dp))
             Row(horizontalArrangement = Arrangement.spacedBy(Grid.base.dp)) {
                 Button(onClick = {

@@ -93,7 +93,7 @@ Phase 10's "done when" line is *v2 beats v1's early-skip rate in an offline repl
 
 ## Follow-ups
 
-- **The screens say "Only about 130 numbers per song are kept." The database keeps about 1,600.** The text is in `SoundUi.kt` (two places: the settings page and Home's card) and in mock-up 44 (two places). 130 is the engine's in-memory summary (a 128-number projection and five values). The profile database keeps the 1,024-number embedding and 521 class scores (1,546 bytes) and a 58-byte profile per song. It is Kotlin text, not a string resource, and this commit does not edit it. Suggested text: "Only about 1,600 numbers per song are kept, never the audio. No audio leaves your devices or your servers."
+- **Fixed after this review (24 November 2026):** the screens and mock-up 44 said "about 130 numbers per song are kept"; the database keeps about 1,600 (the 1,024-number embedding and 521 class scores, one byte each, and a small profile). They now say "about 1,600 small numbers per song are kept, never the audio".
 - **Delete sound analysis does not delete the shared rows on the companion server,** and the dialog says "Turning it on again starts over". With a companion server it doesn't: the next run takes the rows back. The owner decides whether Delete should also delete from the server, or the dialog should say so (see the core review).
 - **Find out why the Mixes tile test fails on API 28.** Five of the last eight branch runs, and `main` before Phase 10.
 - **Pin Glance's 10-child limit with a test,** for example a scan of every `Row` and `Column` in `widgets/` or a gallery case with the widest size.
