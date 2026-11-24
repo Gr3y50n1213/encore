@@ -281,6 +281,11 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
     val ids = remember(detail) { detail.songs.map { it.id } }
     val multiDisc = remember(detail) { detail.songs.mapNotNull { it.discNumber }.distinct().size > 1 }
     SystemBarIconsFor(tint.top)
+    // Mock-up 46: the whole album to a playlist in one go, or pick songs from it.
+    uk.gcartee.encore.app.ui.components.SelectableSongs(detail.songs)
+    val selection = uk.gcartee.encore.app.ui.components.LocalSongSelection.current
+    var addAll by remember { mutableStateOf(false) }
+    if (addAll) uk.gcartee.encore.app.ui.components.AddToPlaylistSheet(detail.songs) { addAll = false }
     val download = uk.gcartee.encore.app.ui.components.LocalDownloads.current.album(album.id)
     val target = uk.gcartee.encore.app.core.albumTarget(album.id)
     var confirmRemove by remember { mutableStateOf(false) }
@@ -315,6 +320,8 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
                                 val queue = Icons.queue()
                                 val downloadIcon = if (download == null) Icons.download() else Icons.delete()
                                 val artistIcon = Icons.artist()
+                                val addIcon = Icons.playlistAdd()
+                                val selectIcon = Icons.check()
                                 uk.gcartee.encore.app.ui.components.ActionSheet(
                                     onDismiss = { open = false },
                                     header = { SheetHeader(album.title, album.artist) { Artwork(ArtworkOf.ALBUM, album.id, 56.dp, Modifier.size(56.dp), cornerRadius = 14.dp) } },
@@ -326,7 +333,13 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
                                             if (download == null) actions.download(target, album.title) else confirmRemove = true
                                         },
                                     ),
-                                    groups = listOf(listOf(uk.gcartee.encore.app.ui.components.SheetAction("Go to artist", artistIcon) { detail.songs.firstOrNull()?.let(actions::goToArtist) })),
+                                    groups = listOf(
+                                        listOfNotNull(
+                                            uk.gcartee.encore.app.ui.components.SheetAction("Add all to a playlist", addIcon) { addAll = true },
+                                            selection?.let { sel -> uk.gcartee.encore.app.ui.components.SheetAction("Select songs", selectIcon) { sel.start() } },
+                                            uk.gcartee.encore.app.ui.components.SheetAction("Go to artist", artistIcon) { detail.songs.firstOrNull()?.let(actions::goToArtist) },
+                                        ),
+                                    ),
                                 )
                             }
                         }
@@ -402,6 +415,26 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
     val playable = remember(detail) { detail.entries.mapNotNull { it.song } }
     val ids = remember(playable) { playable.map { it.id } }
     val name = detail.playlist.name
+    // Mock-up 46: picked songs can leave this playlist together, with one Undo.
+    val removePicked: (List<uk.gcartee.encore.core.Song>) -> Unit = remember(detail) {
+        { picked ->
+            val wanted = picked.mapTo(HashSet()) { it.id }
+            val positions = detail.entries.filter { e -> e.song?.id?.let { it in wanted } == true }.map { it.position }
+            if (positions.isNotEmpty()) {
+                runCatching { host.core.removeFromPlaylist(playlistId, positions) }
+                    .onSuccess { r ->
+                        version++
+                        val n = positions.size
+                        actions.toaster.show(if (n == 1) "Removed 1 song from $name" else "Removed $n songs from $name") { r.editId?.let { runCatching { host.core.undo(it) } }; version++ }
+                    }
+                    .onFailure { actions.toaster.show(it.userMessage()) }
+            }
+        }
+    }
+    uk.gcartee.encore.app.ui.components.SelectableSongs(playable, removePicked)
+    val selection = uk.gcartee.encore.app.ui.components.LocalSongSelection.current
+    var addAll by remember { mutableStateOf(false) }
+    if (addAll) uk.gcartee.encore.app.ui.components.AddToPlaylistSheet(playable) { addAll = false }
     val removeIcon = Icons.remove()
     val download = uk.gcartee.encore.app.ui.components.LocalDownloads.current.playlist(playlistId)
     val target = uk.gcartee.encore.app.core.playlistTarget(playlistId)
@@ -459,6 +492,8 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
                                 val next = Icons.playNext()
                                 val queue = Icons.queue()
                                 val editIcon = Icons.edit()
+                                val addIcon = Icons.playlistAdd()
+                                val selectIcon = Icons.check()
                                 uk.gcartee.encore.app.ui.components.ActionSheet(
                                     onDismiss = { open = false },
                                     header = { SheetHeader(name, songs(detail.playlist.songCount.toInt())) { Box(Modifier.size(56.dp).clip(RoundedCornerShape(14.dp))) { MosaicFill(playable.take(4).map { it.id }, Modifier.fillMaxSize()) } } },
@@ -466,7 +501,13 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
                                         uk.gcartee.encore.app.ui.components.SheetAction("Play next", next) { actions.playNext(playable) },
                                         uk.gcartee.encore.app.ui.components.SheetAction("Add to queue", queue) { actions.addToQueue(playable) },
                                     ),
-                                    groups = listOf(listOf(uk.gcartee.encore.app.ui.components.SheetAction("Rename", editIcon) { renaming = true })),
+                                    groups = listOf(
+                                        listOfNotNull(
+                                            if (playable.isEmpty()) null else uk.gcartee.encore.app.ui.components.SheetAction("Add all to a playlist", addIcon) { addAll = true },
+                                            if (playable.isEmpty()) null else selection?.let { sel -> uk.gcartee.encore.app.ui.components.SheetAction("Select songs", selectIcon) { sel.start() } },
+                                            uk.gcartee.encore.app.ui.components.SheetAction("Rename", editIcon) { renaming = true },
+                                        ),
+                                    ),
                                 )
                             }
                         }
@@ -530,6 +571,7 @@ fun ArtistScreen(host: CoreHost, artistId: Long, playingSongId: Long?, onBack: (
     }
     val name = detail.artist.name
     val ids = remember(songs) { songs.map { it.id } }
+    uk.gcartee.encore.app.ui.components.SelectableSongs(songs)
     val tint = PageTint(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.onSurface, MaterialTheme.colorScheme.onSurfaceVariant, themed = true)
     LazyColumn(Modifier.fillMaxSize().background(tint.field), contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding() + (Grid.base * 2).dp)) {
         item {
@@ -603,6 +645,8 @@ fun MixScreen(host: CoreHost, mixId: String, playingSongId: Long?, onBack: () ->
     val field = uk.gcartee.encore.app.ui.player.rememberFieldColours(host, firstSong?.albumId)
     SystemBarIconsFor(field.base)
     val ids = remember(page) { page.songs.map { it.song.id } }
+    val mixSongs = remember(page) { page.songs.map { it.song } }
+    uk.gcartee.encore.app.ui.components.SelectableSongs(mixSongs)
     var pinned by remember(summary.pinned) { mutableStateOf(summary.pinned) }
     val notIcon = Icons.block()
     val download = uk.gcartee.encore.app.ui.components.LocalDownloads.current.mix(mixId)

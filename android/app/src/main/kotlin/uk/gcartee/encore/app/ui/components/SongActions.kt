@@ -19,7 +19,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.material3.Checkbox
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
@@ -335,6 +334,9 @@ fun SongMenu(song: Song, expanded: Boolean, onDismiss: () -> Unit, place: MenuPl
         val saved = song.id in downloads.saved || song.id in downloads.pending
         val downloadIcon = if (saved) Icons.delete() else Icons.download()
         val target = uk.gcartee.encore.app.core.songTarget(song.id)
+        // Mock-up 46: Select starts picking songs with this one picked.
+        val selection = LocalSongSelection.current
+        val selectIcon = Icons.check()
         ActionSheet(
             onDismiss = onDismiss,
             header = {
@@ -353,6 +355,7 @@ fun SongMenu(song: Song, expanded: Boolean, onDismiss: () -> Unit, place: MenuPl
             ),
             groups = listOf(
                 listOfNotNull(
+                    selection?.let { sel -> SheetAction("Select", selectIcon) { sel.start(song) } },
                     if (saved) {
                         SheetAction("Remove download", downloadIcon) { actions.removeDownload(target, song.title) }
                     } else {
@@ -426,9 +429,11 @@ fun AddToPlaylistSheet(songs: List<Song>, onDone: () -> Unit) {
     val scope = rememberCoroutineScope()
     val ids = remember(songs) { songs.map { it.id } }
     var playlists by remember { mutableStateOf<List<PlaylistSummary>?>(null) }
-    // Ticked: the playlists that hold every one of these songs, as they are now.
-    val ticked = remember { mutableStateListOf<Long>() }
-    val before = remember { mutableStateListOf<Long>() }
+    // How many of these songs each playlist holds, now and when the sheet opened. All of
+    // them is a tick, some a dash (mock-up 46), none an empty box.
+    val held = remember { androidx.compose.runtime.mutableStateMapOf<Long, Int>() }
+    val before = remember { HashMap<Long, Int>() }
+    val n = ids.size
     val busy = remember { mutableStateListOf<Long>() }
     val edits = remember { mutableListOf<String>() }
     var newName by remember { mutableStateOf("") }
@@ -442,25 +447,28 @@ fun AddToPlaylistSheet(songs: List<Song>, onDone: () -> Unit) {
     }
     LaunchedEffect(Unit) {
         val list = load()
-        val held = withContext(Dispatchers.IO) {
-            list.filter { p ->
-                runCatching {
+        val counts = withContext(Dispatchers.IO) {
+            list.associate { p ->
+                p.id to runCatching {
                     val inside = core.playlist(p.id).entries.mapNotNull { it.song?.id }.toHashSet()
-                    ids.all { it in inside }
-                }.getOrDefault(false)
-            }.map { it.id }
+                    ids.count { it in inside }
+                }.getOrDefault(0)
+            }
         }
-        ticked.addAll(held)
-        before.addAll(held)
+        held.putAll(counts)
+        before.putAll(counts)
         playlists = list
     }
 
     fun toggle(p: PlaylistSummary) {
         if (p.id in busy) return
-        val on = p.id in ticked
+        // A tick takes them all out; a dash or an empty box adds the ones missing (the core
+        // never adds a song twice).
+        val was = held[p.id] ?: 0
+        val on = was == n
         busy.add(p.id)
-        // The tick changes at once; it goes back if the change is refused.
-        if (on) ticked.remove(p.id) else ticked.add(p.id)
+        // The mark changes at once; it goes back if the change is refused.
+        held[p.id] = if (on) 0 else n
         haptics.perform(if (on) Haptic.ToggleOff else Haptic.ToggleOn)
         scope.launch {
             val r = withContext(Dispatchers.IO) {
@@ -476,7 +484,7 @@ fun AddToPlaylistSheet(songs: List<Song>, onDone: () -> Unit) {
             busy.remove(p.id)
             r.onSuccess { e -> e?.editId?.let(edits::add) }
                 .onFailure {
-                    if (on) ticked.add(p.id) else ticked.remove(p.id)
+                    held[p.id] = was
                     actions.toaster.show(it.userMessage())
                 }
         }
@@ -500,7 +508,7 @@ fun AddToPlaylistSheet(songs: List<Song>, onDone: () -> Unit) {
                 val list = load()
                 // The new playlist first, ticked.
                 playlists = list.sortedByDescending { it.id == pid }
-                pid?.let { ticked.add(it) }
+                pid?.let { held[it] = n }
             }.onFailure { actions.toaster.show(it.userMessage()) }
         }
     }
@@ -508,8 +516,8 @@ fun AddToPlaylistSheet(songs: List<Song>, onDone: () -> Unit) {
     // What changed, once, as the sheet closes: "Added to Road trip", "Removed from Chill".
     fun finish() {
         val names = playlists.orEmpty().associate { it.id to it.name }
-        val added = ticked.filter { it !in before }.mapNotNull { names[it] }
-        val removed = before.filter { it !in ticked }.mapNotNull { names[it] }
+        val added = held.filter { (id, k) -> k > (before[id] ?: 0) }.keys.mapNotNull { names[it] }
+        val removed = held.filter { (id, k) -> k < (before[id] ?: 0) }.keys.mapNotNull { names[it] }
         onDone()
         if (added.isEmpty() && removed.isEmpty()) return
         fun words(verb: String, list: List<String>) = if (list.size == 1) "$verb ${list[0]}" else "$verb ${list.size} playlists"
@@ -579,7 +587,9 @@ fun AddToPlaylistSheet(songs: List<Song>, onDone: () -> Unit) {
                         }
                     }
                     itemsIndexed(list, key = { _, p -> p.id }) { i, p ->
-                        val on = p.id in ticked
+                        val k = held[p.id] ?: 0
+                        val on = k == n
+                        val some = k in 1 until n
                         GroupRow(
                             first = false,
                             last = i == list.lastIndex,
@@ -593,13 +603,26 @@ fun AddToPlaylistSheet(songs: List<Song>, onDone: () -> Unit) {
                             Column(Modifier.weight(1f)) {
                                 Text(p.name, style = rowTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 Text(
-                                    if (on) "Added" else if (p.songCount == 1u) "1 song" else "${p.songCount} songs",
+                                    when {
+                                        on && n > 1 -> "All $n already here"
+                                        on -> "Added"
+                                        some -> "$k of $n already here"
+                                        p.songCount == 1u -> "1 song"
+                                        else -> "${p.songCount} songs"
+                                    },
                                     style = type.caption,
                                     color = if (on) scheme.onSecondaryContainer else scheme.onSurfaceVariant,
                                 )
                             }
                             Spacer(Modifier.width(Grid.base.dp))
-                            Checkbox(checked = on, onCheckedChange = null)
+                            androidx.compose.material3.TriStateCheckbox(
+                                state = when {
+                                    on -> androidx.compose.ui.state.ToggleableState.On
+                                    some -> androidx.compose.ui.state.ToggleableState.Indeterminate
+                                    else -> androidx.compose.ui.state.ToggleableState.Off
+                                },
+                                onClick = null,
+                            )
                         }
                     }
                 }

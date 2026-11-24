@@ -308,12 +308,17 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     }
     BackHandler(enabled = nowPlaying) { nowPlaying = false }
     BackHandler(enabled = !nowPlaying && nav.canGoBack) { nav.back() }
+    // Mock-up 46: picking songs ends when the page changes, Now Playing opens, or on Back.
+    val selection = remember { uk.gcartee.encore.app.ui.components.SongSelection() }
+    LaunchedEffect(nav.tab, nav.top, nowPlaying, switches) { selection.clear() }
+    BackHandler(enabled = selection.active) { selection.clear() }
 
     CompositionLocalProvider(
         LocalAppActions provides actions,
         uk.gcartee.encore.app.ui.components.LocalDownloads provides downloadView,
         uk.gcartee.encore.app.ui.components.LocalDownloadProgress provides downloadProgress,
         uk.gcartee.encore.app.ui.components.LocalTopBanner provides bannerTop,
+        uk.gcartee.encore.app.ui.components.LocalSongSelection provides selection,
     ) {
         if (addingAccount) {
             // Board 14, item 4: the onboarding flow; the new profile opens when sign-in succeeds.
@@ -436,6 +441,11 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                         // behind it (an album's colour, the status bar's icons) and moves its
                         // content down by the pill's height (LocalTopBanner), so it covers nothing.
                         OfflineBanner(offline, Modifier.align(Alignment.TopCenter), onHeight = { bannerPx = it })
+                        uk.gcartee.encore.app.ui.components.SelectionTopBar(selection, Modifier.align(Alignment.TopCenter))
+                        uk.gcartee.encore.app.ui.components.SelectionBar(
+                            selection,
+                            Modifier.align(Alignment.BottomCenter).padding(bottom = with(LocalDensity.current) { miniHeight.toDp() }),
+                        )
                     }
                 }
             }
@@ -577,6 +587,8 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                         }
                     },
             ) {
+                // The queue's rows don't pick songs.
+                CompositionLocalProvider(uk.gcartee.encore.app.ui.components.LocalSongSelection provides null) {
                 NowPlayingScreen(
                     host,
                     player,
@@ -597,6 +609,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                     },
                     onScrubHeld = { scrubHeld = it },
                 )
+                }
             }
             if (sleepMode) uk.gcartee.encore.app.ui.player.SleepModeScreen(host, onExit = { sleepMode = false }, onSleepTimer = { sleepTint = null; sleepSheet = true })
             // Toasts above everything, so one from Now Playing is seen there too: over the

@@ -42,7 +42,10 @@ fun SongItem(
     toStart: SwipeAction? = defaultSwipes(song).second,
 ) {
     var menu by remember { mutableStateOf(false) }
-    SwipeRow(toEnd = toEnd, toStart = toStart, rowColor = rowColor) {
+    // Mock-up 46: no swipes while picking songs; a tap picks.
+    val selection = LocalSongSelection.current
+    val picking = selection?.active == true
+    SwipeRow(toEnd = if (picking) null else toEnd, toStart = if (picking) null else toStart, rowColor = rowColor) {
         Box {
             SongRow(
                 song,
@@ -53,6 +56,7 @@ fun SongItem(
                 subtitle = subtitle,
                 contentColor = contentColor,
                 secondaryColor = secondaryColor,
+                selection = selection,
             )
             SongMenu(song, expanded = menu, onDismiss = { menu = false }, place = place)
         }

@@ -6,6 +6,8 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
@@ -73,9 +75,22 @@ fun SongRow(
     subtitle: String? = song.artist,
     contentColor: Color = MaterialTheme.colorScheme.onSurface,
     secondaryColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    selection: SongSelection? = null,
 ) {
     val type = LocalEncoreType.current
     val haptics = rememberHaptics()
+    // Mock-up 46: while picking, a tap or a long press picks the song instead.
+    val picking = selection?.active == true
+    val picked = picking && selection?.isPicked(song.id) == true
+    val pickedTint by androidx.compose.animation.animateColorAsState(
+        if (picked) MaterialTheme.colorScheme.primary.copy(alpha = PICKED_TINT) else Color.Transparent,
+        tween(PICK_TINT_MS),
+        label = "picked",
+    )
+    if (selection != null) {
+        androidx.compose.runtime.DisposableEffect(selection, song.id) { onDispose { selection.rows.remove(song.id) } }
+    }
+    val tv = uk.gcartee.encore.app.ui.tv.LocalTv.current
     // Phase 8 (boards 08, 11, 20): a downloaded song carries a quiet mark; offline, a
     // song that can't play dims and a tap shakes with the reason instead of playing.
     val downloads = LocalDownloads.current
@@ -96,9 +111,14 @@ fun SongRow(
                     false
                 }
             }
+            .selectableRow(selection, song)
+            .background(pickedTint, androidx.compose.foundation.shape.RoundedCornerShape(PICKED_RADIUS_DP.dp))
             .combinedClickable(
                 onClick = {
-                    if (playable) {
+                    if (picking) {
+                        selection?.toggle(song)
+                        haptics.perform(Haptic.ToggleOn)
+                    } else if (playable) {
                         onClick()
                     } else {
                         haptics.perform(Haptic.Reject)
@@ -106,21 +126,38 @@ fun SongRow(
                         actions.toaster.show(NOT_DOWNLOADED)
                     }
                 },
-                onLongClick = onLongClick?.let { { haptics.perform(Haptic.LongPress); it() } },
-                onLongClickLabel = onLongClick?.let { "More options" },
+                onLongClick = if (picking) ({ selection?.toggle(song); haptics.perform(Haptic.ToggleOn) }) else onLongClick?.let { { haptics.perform(Haptic.LongPress); it() } },
+                onLongClickLabel = if (picking) "Select" else onLongClick?.let { "More options" },
             )
             .semantics {
-                if (playing) stateDescription = "Playing"
+                if (picking) stateDescription = if (picked) "Selected" else "Not selected"
+                else if (playing) stateDescription = "Playing"
                 else if (!playable) stateDescription = "Not downloaded"
             }
-            .graphicsLayer { alpha = if (playable) 1f else OFFLINE_DIM }
+            .graphicsLayer { alpha = if (playable || picking) 1f else OFFLINE_DIM }
             .shaking(shake)
             .padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         when {
-            // The cover is held to its row size; without it, it fills the row width.
-            showArtwork -> Artwork(ArtworkOf.SONG, song.id, ROW_ART_DP.dp, Modifier.size(ROW_ART_DP.dp))
+            picking && selection != null -> SelectMark(selection, song, if (showArtwork) ROW_ART_DP.dp else NUMBER_DP.dp)
+            // The cover is held to its row size; without it, it fills the row width. A tap on
+            // it starts picking songs, as in Gmail (not on a TV, where it would be one more stop).
+            showArtwork -> Artwork(
+                ArtworkOf.SONG,
+                song.id,
+                ROW_ART_DP.dp,
+                Modifier.size(ROW_ART_DP.dp).let { m ->
+                    if (selection != null && !tv) {
+                        m.clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)).clickable(onClickLabel = "Select") {
+                            haptics.perform(Haptic.LongPress)
+                            selection.start(song)
+                        }
+                    } else {
+                        m
+                    }
+                },
+            )
             else -> Column(Modifier.width(NUMBER_DP.dp), horizontalAlignment = Alignment.Start) {
                 if (playing) LevelBars(contentColor) else Text(
                     trackNumber?.toString().orEmpty(),
@@ -262,6 +299,9 @@ fun ListRow(title: String, subtitle: String?, onClick: () -> Unit, onLongClick: 
 
 // Sizes measured from boards 06 and 08 (Android phone).
 const val ROW_ART_DP = 48
+private const val PICKED_TINT = 0.14f
+private const val PICKED_RADIUS_DP = 16
+private const val PICK_TINT_MS = 180
 const val NUMBER_DP = 28
 const val TILE_ART_DP = 172
 const val TILE_RADIUS_DP = 20

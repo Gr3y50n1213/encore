@@ -314,6 +314,8 @@ private fun SongsList(host: CoreHost, sort: SongSort, generation: Int, playingSo
     }
     val state = rememberLazyListState()
     LoadMore(state, pager)
+    // Mock-up 46: Select all picks the songs loaded so far.
+    uk.gcartee.encore.app.ui.components.SelectableSongs(pager.items)
     LazyColumn(state = state, contentPadding = PaddingValues(bottom = padding.calculateBottomPadding())) {
         itemsIndexed(pager.items, key = { _, s -> s.id }) { i, song ->
             uk.gcartee.encore.app.ui.components.SongItem(song, playing = song.id == playingSongId, onClick = {

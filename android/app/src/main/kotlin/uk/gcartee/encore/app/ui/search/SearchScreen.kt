@@ -139,6 +139,9 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
             edge = (Grid.base * 2).dp,
         )
         val results = shown
+        // Mock-up 46: Select all picks every song found, title matches then lyric matches.
+        val found = remember(results) { results?.let { r -> r.songs + r.lyrics.map { it.song }.filter { s -> r.songs.none { it.id == s.id } } }.orEmpty() }
+        uk.gcartee.encore.app.ui.components.SelectableSongs(found)
         val listState = rememberLazyListState()
         LaunchedEffect(listState) {
             // SWIPE down on results dismisses the keyboard.

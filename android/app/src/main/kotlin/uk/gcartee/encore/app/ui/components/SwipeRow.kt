@@ -1,6 +1,15 @@
 package uk.gcartee.encore.app.ui.components
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -131,33 +140,46 @@ fun SwipeRow(
             },
     ) {
         shown?.let { a ->
-            val bg = if (a.destructive) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer
-            val fg = if (a.destructive) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSecondaryContainer
-            // Only the strip the row has slid away from shows the action, as a rounded
-            // container, so rows over an album's gradient need no solid backing.
-            val radius = SWIPE_RADIUS_DP.dp
-            Row(
+            // Mock-up 46, the owner's Gmail swipe (24 November 2026): a bubble opens in the
+            // strip the row has left. It is a circle while it grows to the row's height, then
+            // stretches into a pill that follows the finger; it fills with colour, and its
+            // icon pops, once letting go would act. The theme colour for Play next and Add to
+            // queue, red to remove. The words went: the icon says it, TalkBack reads the name.
+            val scheme = MaterialTheme.colorScheme
+            val still = uk.gcartee.encore.app.ui.onboarding.reduceMotion()
+            val soft = if (a.destructive) scheme.errorContainer else scheme.primaryContainer
+            val strong = if (a.destructive) scheme.error else scheme.primary
+            val onSoft = if (a.destructive) scheme.onErrorContainer else scheme.onPrimaryContainer
+            val onStrong = if (a.destructive) scheme.onError else scheme.onPrimary
+            val fill by animateColorAsState(if (armed) strong else soft, spring(stiffness = Spring.StiffnessMediumLow), label = "fill")
+            val ink by animateColorAsState(if (armed) onStrong else onSoft, spring(stiffness = Spring.StiffnessMediumLow), label = "ink")
+            val pop by animateFloatAsState(
+                if (armed && !still) ICON_POP else 1f,
+                spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                label = "pop",
+            )
+            val icon = a.icon()
+            Box(
                 Modifier
                     .matchParentSize()
-                    .drawWithContent {
-                        val row = this
+                    .drawBehind {
                         val o = offset.value
-                        val left = if (o > 0f) 0f else size.width + o
-                        val right = if (o > 0f) o else size.width
-                        val r = radius.toPx()
-                        clipPath(androidx.compose.ui.graphics.Path().apply {
-                            addRoundRect(androidx.compose.ui.geometry.RoundRect(left, 0f, right, size.height, androidx.compose.ui.geometry.CornerRadius(r)))
-                        }) { row.drawContent() }
-                    }
-                    .background(if (armed) bg else bg.copy(alpha = 0.6f))
-                    .padding(horizontal = (Grid.base * 3).dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = if (offset.value > 0f) androidx.compose.foundation.layout.Arrangement.Start else androidx.compose.foundation.layout.Arrangement.End,
-            ) {
-                Icon(a.icon(), contentDescription = null, tint = fg)
-                Spacer(Modifier.width(Grid.base.dp))
-                Text(a.label, style = LocalEncoreType.current.songRowTitle, color = fg)
-            }
+                        val gap = BLOB_GAP_DP.dp.toPx()
+                        val tallest = size.height - 2 * BLOB_INSET_DP.dp.toPx()
+                        val wide = abs(o) - 2 * gap
+                        if (wide <= 0f) return@drawBehind
+                        // Under the row's height it is a circle; reduce motion skips to the pill.
+                        val h = if (still) tallest else minOf(wide, tallest)
+                        val w = maxOf(wide, h)
+                        val left = if (o > 0f) gap else size.width - gap - w
+                        val top = (size.height - h) / 2f
+                        drawRoundRect(fill, topLeft = Offset(left, top), size = Size(w, h), cornerRadius = CornerRadius(h / 2f))
+                        val side = minOf(ICON_DP.dp.toPx(), h * ICON_SHARE) * pop
+                        translate(left + (w - side) / 2f, top + (h - side) / 2f) {
+                            with(icon) { draw(Size(side, side), colorFilter = ColorFilter.tint(ink)) }
+                        }
+                    },
+            )
         }
         Box(Modifier.graphicsLayer { translationX = offset.value }.background(rowColor.copy(alpha = if (offset.value == 0f) 0f else 1f))) {
             content()
@@ -165,4 +187,8 @@ fun SwipeRow(
     }
 }
 
-private const val SWIPE_RADIUS_DP = 16
+private const val BLOB_GAP_DP = 8
+private const val BLOB_INSET_DP = 4
+private const val ICON_DP = 24
+private const val ICON_SHARE = 0.55f
+private const val ICON_POP = 1.2f
