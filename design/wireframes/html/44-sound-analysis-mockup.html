@@ -1,0 +1,215 @@
+<title>Encore Sound Screens</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout concept: Encore's own dark Material 3 Expressive look, five phone screens in a wrapping grid, each with a short note on what it does and who sees it. */
+:root {
+  --bg: #f3f1f7; --panel: #ffffff; --ink: #1b1a22; --muted: #5d5b6b; --line: #dcd8e6;
+  --screen: #ffffff; --surface: #f1eef8; --surface2: #e6e1f2; --on-surface: #1d1b24; --on-muted: #5f5b70;
+  --primary: #5b3fd0; --on-primary: #ffffff; --tonal: #e3dcfb; --on-tonal: #2a1a73;
+  --good: #1f7a4d; --warn: #9a5b00; --bad: #b3261e;
+  --leaf-a: #d9d0f7; --leaf-b: #cfe6dc; --leaf-c: #f6dccb; --leaf-d: #d3e0f7; --leaf-e: #efd5e6; --leaf-f: #e8e4c8;
+  --on-leaf: #231f33;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f0e14; --panel: #17161d; --ink: #ece9f5; --muted: #a29fb4; --line: #2b2938;
+  --screen: #121118; --surface: #1c1a24; --surface2: #262331; --on-surface: #ece9f5; --on-muted: #a9a5bd;
+  --primary: #b9a7ff; --on-primary: #2a1a73; --tonal: #3a3262; --on-tonal: #e6deff;
+  --good: #7ed3a4; --warn: #f0c06a; --bad: #f2a29b;
+  --leaf-a: #3b3363; --leaf-b: #244237; --leaf-c: #4a3326; --leaf-d: #25364f; --leaf-e: #4b2c3f; --leaf-f: #3f3d22;
+  --on-leaf: #efeaff; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0f0e14; --panel: #17161d; --ink: #ece9f5; --muted: #a29fb4; --line: #2b2938;
+  --screen: #121118; --surface: #1c1a24; --surface2: #262331; --on-surface: #ece9f5; --on-muted: #a9a5bd;
+  --primary: #b9a7ff; --on-primary: #2a1a73; --tonal: #3a3262; --on-tonal: #e6deff;
+  --good: #7ed3a4; --warn: #f0c06a; --bad: #f2a29b;
+  --leaf-a: #3b3363; --leaf-b: #244237; --leaf-c: #4a3326; --leaf-d: #25364f; --leaf-e: #4b2c3f; --leaf-f: #3f3d22;
+  --on-leaf: #efeaff; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding-block: 28px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); line-height: 1.45; }
+.wrap { max-width: 1240px; margin: 0 auto; }
+h1 { font-size: clamp(26px, 4vw, 36px); margin: 0 0 6px; letter-spacing: -0.02em; text-wrap: balance; }
+.lede { color: var(--muted); max-width: 64ch; margin: 0 0 26px; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; color: var(--muted); margin-bottom: 26px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 34px 28px; align-items: start; }
+figure { margin: 0; min-width: 0; }
+.cap { margin-top: 14px; max-width: 360px; }
+.cap b { display: block; font-size: 15px; margin-bottom: 3px; }
+.cap span { color: var(--muted); font-size: 13.5px; }
+.tag { display: inline-block; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 2px 9px; margin-bottom: 8px; }
+.phone { width: 100%; max-width: 360px; background: var(--screen); border-radius: 32px; border: 1px solid var(--line); overflow: hidden; color: var(--on-surface); box-shadow: 0 1px 0 var(--line); }
+.status { display: flex; justify-content: space-between; font-size: 12px; padding: 12px 22px 6px; color: var(--on-muted); }
+.pad { padding: 8px 18px 20px; }
+.title { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; margin: 8px 0 14px; }
+.sub { color: var(--on-muted); font-size: 13.5px; }
+.card { background: var(--surface); border-radius: 24px; padding: 16px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 22px; border-radius: 24px; font-weight: 600; font-size: 14.5px; border: 0; }
+.btn.fill { background: var(--primary); color: var(--on-primary); }
+.btn.tonal { background: var(--tonal); color: var(--on-tonal); }
+.btn.text { background: transparent; color: var(--primary); }
+.row { display: flex; align-items: center; gap: 12px; padding: 12px 4px; min-height: 56px; }
+.row + .row { border-top: 1px solid var(--line); }
+.row .t { flex: 1; min-width: 0; font-size: 15px; }
+.row .t small { display: block; color: var(--on-muted); font-size: 12.5px; margin-top: 1px; }
+.disc { width: 40px; height: 40px; border-radius: 14px; background: var(--tonal); display: grid; place-items: center; color: var(--on-tonal); flex: none; }
+.disc svg { width: 22px; height: 22px; }
+.sw { width: 52px; height: 32px; border-radius: 16px; background: var(--surface2); position: relative; flex: none; border: 2px solid var(--line); }
+.sw::after { content: ""; position: absolute; top: 4px; left: 5px; width: 18px; height: 18px; border-radius: 50%; background: var(--on-muted); }
+.sw.on { background: var(--primary); border-color: var(--primary); }
+.sw.on::after { left: 25px; width: 22px; height: 22px; top: 3px; background: var(--on-primary); }
+.group-label { font-size: 13px; font-weight: 600; letter-spacing: .02em; color: var(--primary); margin: 18px 4px 4px; }
+.big { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.bar { height: 14px; margin: 14px 0 8px; }
+.bar svg { width: 100%; height: 100%; display: block; }
+.pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 99px; background: var(--tonal); color: var(--on-tonal); }
+.state { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 18px; background: var(--surface2); font-size: 13.5px; margin-top: 12px; }
+.state b { display: block; }
+.moods { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mood { min-height: 92px; padding: 14px; color: var(--on-leaf); font-weight: 700; font-size: 16px; display: flex; flex-direction: column; justify-content: flex-end; }
+.mood small { font-weight: 500; font-size: 12px; opacity: .8; margin-top: 2px; }
+.mood:nth-child(4n+1), .mood:nth-child(4n+4) { border-radius: 30px 8px 30px 8px; }
+.mood:nth-child(4n+2), .mood:nth-child(4n+3) { border-radius: 8px 30px 8px 30px; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 14px; }
+.chip { border: 1px solid var(--line); border-radius: 12px; padding: 7px 14px; font-size: 13.5px; }
+.chip.on { background: var(--tonal); color: var(--on-tonal); border-color: transparent; }
+.cover { width: 44px; height: 44px; border-radius: 12px; flex: none; }
+.sheet { background: var(--surface); border-radius: 28px 28px 0 0; padding: 14px 18px 22px; margin-top: 70px; }
+.grab { width: 36px; height: 4px; border-radius: 2px; background: var(--line); margin: 0 auto 14px; }
+.reason { display: flex; gap: 12px; align-items: flex-start; padding: 10px 2px; font-size: 14.5px; }
+.mixcard { display: flex; gap: 12px; align-items: center; background: var(--surface); border-radius: 24px; padding: 12px; }
+.mixart { width: 76px; height: 76px; border-radius: 20px; background: var(--leaf-a); flex: none; }
+.note { color: var(--muted); font-size: 13.5px; max-width: 70ch; margin-top: 34px; }
+</style>
+
+<div class="wrap">
+  <h1>Sound analysis, as people will meet it</h1>
+  <p class="lede">New places in Encore, drawn with demo songs and numbers. Nothing here is built yet: this page is for deciding what each screen says and does before any code is written.</p>
+  <p class="lede"><b>Proposed order (23 November 2026, features first):</b> build 2, 6 and 4 now: the Settings page and its stop messages are what turn analysis on and show it working, and "Sounds like" uses data the core already sends. Build 1, 3 and 5 after the mood engine exists in the core, since mood tiles and mood mixes need it.</p>
+  <div class="legend"><span>Dark first, as the app is</span><span>Round, soft shapes; leaf-shaped mood tiles alternate corners</span><span>Every state has words, never colour alone</span></div>
+
+  <div class="grid">
+
+    <figure>
+      <span class="tag">1 · Home, once</span>
+      <div class="phone"><div class="status"><span>9:41</span><span>●●●</span></div>
+        <div class="pad">
+          <div class="title">Good evening</div>
+          <div class="card">
+            <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">
+              <div class="disc" style="width:48px;height:48px;border-radius:16px"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 10h2v4H3zM7 6h2v12H7zM11 3h2v18h-2zM15 8h2v8h-2zM19 11h2v2h-2z"/></svg></div>
+              <div style="font-weight:700;font-size:17px;line-height:1.2">Let Encore learn what your songs sound like</div>
+            </div>
+            <div class="sub" style="margin-bottom:12px">Suggestions get better when Encore knows a song is slow and warm, or fast and bright, whatever its tags say. It listens to about 30 seconds of each song, once.</div>
+            <div class="state" style="margin:0 0 14px;background:var(--surface2)"><div><b>What it costs</b>8,106 songs: about 9 GB over Wi-Fi and 5 hours of work, while charging. It stops when you unplug, when Wi-Fi drops or when your server is busy.</div></div>
+            <div class="sub" style="margin-bottom:14px">Only about 1,600 small numbers per song are kept, never the audio. No audio leaves your devices or your server.</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="btn fill">Turn on</span><span class="btn text">Not now</span></div>
+          </div>
+          <div class="group-label">Jump back in</div>
+          <div class="mixcard"><div class="mixart"></div><div><div style="font-weight:700">Studio Album Collection</div><div class="sub">Imagine Dragons</div></div></div>
+        </div>
+      </div>
+      <div class="cap"><b>A card on Home, shown once</b><span>Says what it does, what it costs and what stays private, before anything runs. Not now hides it for good; it never comes back. Turn on and Settings > Sound analysis remain the only places to change it.</span></div>
+    </figure>
+
+    <figure>
+      <span class="tag">2 · Settings > Suggestions</span>
+      <div class="phone"><div class="status"><span>9:41</span><span>●●●</span></div>
+        <div class="pad">
+          <div class="sub" style="margin:4px 0 0">Suggestions</div>
+          <div class="title" style="margin-top:2px">Sound analysis</div>
+          <div class="card">
+            <div class="big">3,420 <span style="font-size:17px;font-weight:600;color:var(--on-muted)">of 8,106 songs</span></div>
+            <div class="bar"><svg viewBox="0 0 300 14" preserveAspectRatio="none"><path d="M2 7 q6 -6 12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0" fill="none" stroke="var(--primary)" stroke-width="3" stroke-linecap="round" clip-path="inset(0 58% 0 0)"/><path d="M130 7 H298" stroke="var(--surface2)" stroke-width="4" stroke-linecap="round"/></svg></div>
+            <div class="sub">42% done · about 3 hours left, while charging on Wi-Fi</div>
+            <div class="state"><div><b>Analysing now</b>Liked and most played songs first, then the rest.</div></div>
+            <div style="display:flex;gap:8px;margin-top:14px"><span class="btn tonal">Pause</span></div>
+          </div>
+          <div class="group-label">When it runs</div>
+          <div class="row"><div class="t">Analyse my library<small>Off until you turn it on</small></div><div class="sw on"></div></div>
+          <div class="row"><div class="t">Only on Wi-Fi<small>About 1 MB per song</small></div><div class="sw on"></div></div>
+          <div class="row"><div class="t">Only while charging<small>It also waits for battery saver and heat</small></div><div class="sw on"></div></div>
+          <div class="group-label">Songs</div>
+          <div class="row"><div class="disc"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 1 21h22zM13 18h-2v-2h2zm0-4h-2V9h2z"/></svg></div><div class="t">12 songs couldn't be read<small>Opus files and damaged files. Never guessed at.</small></div><span class="btn text" style="min-height:40px;padding:0 10px">Try again</span></div>
+          <div class="row"><div class="disc" style="background:transparent;color:var(--bad)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6zM19 4h-3.5l-1-1h-5l-1 1H5v2h14z"/></svg></div><div class="t" style="color:var(--bad)">Delete sound analysis<small>Suggestions fall back to tags and your listening</small></div></div>
+        </div>
+      </div>
+      <div class="cap"><b>One page for everything</b><span>A live count, an honest estimate from this phone's own speed, and the three rules for when it runs. Pause stops after the current song and keeps everything done.</span></div>
+    </figure>
+
+    <figure>
+      <span class="tag">3 · Search</span>
+      <div class="phone"><div class="status"><span>9:41</span><span>●●●</span></div>
+        <div class="pad">
+          <div style="background:var(--surface);border-radius:28px;padding:14px 18px;color:var(--on-muted);margin:6px 0 10px">Search your library</div>
+          <div class="chips"><span class="chip on">All</span><span class="chip">Songs</span><span class="chip">Albums</span><span class="chip">Artists</span></div>
+          <div class="group-label" style="margin-top:6px">Browse by mood</div>
+          <div class="sub" style="margin:0 4px 10px">Made from how your songs sound, not from their tags.</div>
+          <div class="moods">
+            <div class="mood" style="background:var(--leaf-a)">Warm and Mellow<small>412 songs</small></div>
+            <div class="mood" style="background:var(--leaf-b)">Upbeat Commute<small>268 songs</small></div>
+            <div class="mood" style="background:var(--leaf-c)">Late Night Focus<small>351 songs</small></div>
+            <div class="mood" style="background:var(--leaf-d)">Quiet Evenings<small>190 songs</small></div>
+            <div class="mood" style="background:var(--leaf-e)">Driving<small>143 songs</small></div>
+            <div class="mood" style="background:var(--leaf-f)">Bright and Easy<small>227 songs</small></div>
+          </div>
+          <div class="state"><div><b>Still learning your library</b>42% analysed. More moods appear as it goes. A mood needs at least 25 songs.</div></div>
+        </div>
+      </div>
+      <div class="cap"><b>Moods that are yours</b><span>Plain colour tiles, no artwork, corners alternating as on board 07. A tap opens a mix for that mood. Words come from what can be measured (energy, tempo, warmth), never from guessing happy or sad.</span></div>
+    </figure>
+
+    <figure>
+      <span class="tag">4 · Now Playing > More > Why this song</span>
+      <div class="phone"><div class="status"><span>9:41</span><span>●●●</span></div>
+        <div class="pad" style="padding-bottom:0">
+          <div class="row" style="border:0"><div class="cover" style="background:var(--leaf-c)"></div><div class="t"><b>Shots</b><small>Imagine Dragons</small></div></div>
+          <div class="sheet">
+            <div class="grab"></div>
+            <div style="font-size:20px;font-weight:700;margin-bottom:6px">Why this song</div>
+            <div class="reason"><span class="pill">1</span><div>You finished Night Visions 9 of the last 10 times, and this sounds like it.</div></div>
+            <div class="reason"><span class="pill">2</span><div>You play songs like this in the evening.</div></div>
+            <div class="group-label" style="margin-top:12px">Sounds like</div>
+            <div class="row"><div class="cover" style="background:var(--leaf-a)"></div><div class="t">Radioactive<small>Imagine Dragons · Night Visions</small></div></div>
+            <div class="row"><div class="cover" style="background:var(--leaf-d)"></div><div class="t">Believer<small>Imagine Dragons · Evolve</small></div></div>
+            <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><span class="btn tonal">More like this</span><span class="btn tonal">Fewer like this</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="cap"><b>Two songs you can tap</b><span>"Sounds like" shows up to two songs you already know, with their covers. When a song hasn't been analysed yet, that block is simply left out; it never shows a guess.</span></div>
+    </figure>
+
+    <figure>
+      <span class="tag">5 · Mixes tab</span>
+      <div class="phone"><div class="status"><span>9:41</span><span>●●●</span></div>
+        <div class="pad">
+          <div class="title">Mixes</div>
+          <div class="mixcard" style="margin-bottom:10px"><div class="mixart" style="background:var(--leaf-b)"></div><div style="min-width:0"><div style="font-weight:700">Warm and Mellow</div><div class="sub">Mostly Bon Iver, Iron &amp; Wine and 12 more</div></div></div>
+          <div class="mixcard"><div class="mixart" style="background:var(--leaf-c)"></div><div style="min-width:0"><div style="font-weight:700">Late Night Focus</div><div class="sub">Mostly Tycho, Bonobo and 9 more</div></div></div>
+          <div class="state" style="margin-top:14px"><div><b>Getting better as your library is analysed · 42%</b>These mixes use what songs sound like where they know it, and tags and your listening for the rest.</div></div>
+          <div class="state" style="margin-top:10px"><div><b>Only downloaded songs</b>Offline: mixes pick from what is saved on this phone.</div></div>
+        </div>
+      </div>
+      <div class="cap"><b>One honest line</b><span>While analysis runs, mixes say how far along it is. It disappears at 100%. The existing mix states (building, out of date, offline) are unchanged.</span></div>
+    </figure>
+
+    <figure>
+      <span class="tag">6 · The other states of page 2</span>
+      <div class="phone"><div class="status"><span>9:41</span><span>●●●</span></div>
+        <div class="pad">
+          <div class="title" style="font-size:20px">Every stop has words</div>
+          <div class="state" style="margin-top:0"><div><b>Waiting for Wi-Fi</b>Analysis only runs on Wi-Fi. It carries on when you're back on it.</div></div>
+          <div class="state"><div><b>Waiting for the charger</b>It runs while charging. 3,420 of 8,106 songs are done.</div></div>
+          <div class="state"><div><b>Paused: battery saver is on</b>Turn it off, or charge the phone, and it carries on.</div></div>
+          <div class="state"><div><b>Paused: the phone is warm</b>It waits until the phone cools down.</div></div>
+          <div class="state"><div><b>Your server is busy</b>It stopped for now, so it doesn't slow your server. It tries again tonight.</div></div>
+          <div class="state"><div><b>Sign in to your server again</b>Analysis needs to read your songs.</div></div>
+          <div class="state"><div><b>All 8,106 songs analysed</b>12 couldn't be read. New songs are added as they arrive.</div></div>
+          <div class="state"><div><b>Off</b>Suggestions use tags and your listening. Turn it on to hear the difference.</div></div>
+        </div>
+      </div>
+      <div class="cap"><b>No silent failures</b><span>Each reason the job stops is one sentence that says what to do, or that nothing needs doing.</span></div>
+    </figure>
+
+  </div>
+  <p class="note">Settled underneath, so you don't have to choose: it is opt-in, runs on Wi-Fi while charging by default, reads about a megabyte per song without making your server transcode, and keeps about 1,600 small numbers per song. The numbers on these screens (8,106 songs, 9 GB, 5 hours) are examples; the real ones come from your library and your phone's own measured speed.</p>
+</div>

@@ -9,6 +9,32 @@ The plan's thirteen phases and their "done when" lines are unchanged. What chang
 - **Android and Windows and Linux do not wait for Apple.** The master plan built Apple first and then brought the other platforms in at Phase 6. With separate tracks, Android and Windows and Linux follow Phases 2 to 5 in the same order as Apple, building the same things for their platform, as soon as the core part exists. Phase 6's list (Media3 on Android, the Rust audio engine, SMTC and MPRIS on desktop, cut-outs and fold postures, swipes, drag and drop) is added to those phases in the table below. Phase 6's "done when" is the joint gate, and the owner checks it.
 - **A phase is finished for the whole project** when every track's part has passed and the owner has checked its "done when" line on real devices.
 
+## Build order change (owner, 23 November 2026)
+
+Phase 12 (more sources) is built before Phase 11 (year-end recap). The owner's words: "functionality before looks". The numbers keep their meaning everywhere; only the order changes: 10, then 12, then 11, then 13. Widget and other visual polish waits until then.
+
+## Phase 10 as built (24 November 2026)
+
+Phase 10's line in the master roadmap below says "audio analysis on the server" and "on-device Core ML and ONNX models". As built (ADRs core-0019 and core-0020): the devices analyse the audio and the companion stores and shares the results, because the owner's media server is a weak PC; the learned ranker is small trees run by the Rust core on every platform, so no Core ML or ONNX export. The master roadmap's words stay as they were.
+
+## Play on a TV (owner, 24 November 2026)
+
+The owner asked to send music from the phone to a TV the way Spotify Connect or Chromecast does: the TV opens its own Encore screen made for a big screen (what's playing, big synced lyrics, the queue, Sleep mode) instead of mirroring the phone, the TV plays the music, and the phone stays the remote. It lives in the output picker ("Play on", Phase 7), with TVs listed beside the other devices. The owner's order: finish the app and the server first, so it comes after Phases 10, 12 and 11 and before Release (13).
+
+- **Which TVs, most common first:** Google Cast (Chromecast, Google TV and Android TV sets and projectors, many smart TVs), then Roku (an Encore channel installed through Roku's developer mode, started over the local network), then plain DLNA as a fallback that plays the music without Encore's screen.
+- **Privacy:** the TV gets a short-lived pass that can only play, never the sign-in, so a TV elsewhere can't keep access to the library.
+- **One TV look (owner, 24 November 2026):** Android TV, Roku and LG webOS share one design, the Encore TV look of mock-up 45, from the same design tokens; only Apple TV differs, in Apple's own style with Liquid Glass, built with the Apple track (it needs a Mac). The owner has a Roku TV and may use a Roku stick. Android TV runs the real Encore TV app (Google's Cast Connect can start it as the cast target); Roku can't run the Rust core, so it shows what the phone and the companion send it; webOS may run the core as WebAssembly.
+- **Open before building:** Google's Cast library is an outside, closed library (the owner's OK is needed, and F-Droid builds must leave it out); a Cast receiver app needs registering with Google (a one-time US$5 fee, per Google's Cast help pages in November 2026) and an https home for its page, likely the companion server. Mock-ups first, as always.
+
+## Smartwatches (owner, 24 November 2026)
+
+The owner wants Encore on smartwatches: Google's, Samsung's, Android-based watches in general, Fitbits that can take it, and the Pebble ("because that matters to me"). Same order as Play on a TV: after the app and the server are finished, before Release (13).
+
+- **Wear OS** covers Samsung Galaxy Watch (4 and later), Google Pixel Watch (Fitbit's own Wear OS watches) and other Wear OS watches with one app: Now Playing and its controls, volume, the sung lyric line, Like, Up Next, mixes, a tile and a complication, in Material 3 Expressive for Wear like the phone. Later, songs downloaded to the watch for runs without the phone. Its link to the phone needs Google Play services, so it is in the Play build only, as with Waypoint's watch app. The owner has a Galaxy Watch 5.
+- **Fitbit OS watches (Versa, Sense):** not possible. Google stops third-party apps on them on 28 November 2026 (no new apps, no updates).
+- **Pebble** (Core Devices' new Pebbles and older ones): the Pebble app's own music controls already drive any player that shows a media notification, Encore included (to be checked on a real Pebble). A dedicated Encore watchapp (the lyric line, Like, mixes) is the goal, once Core Devices' current SDK and phone-link library are checked.
+- Mock-ups first, as always.
+
 ## The master roadmap (word for word from the plan)
 
 The plan's first sentence below, "Build one great experience on Apple devices first", described one builder working alone. With separate tracks, the rules in "How the tracks fit together" above decide the order; everything else below is unchanged.

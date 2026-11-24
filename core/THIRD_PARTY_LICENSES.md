@@ -10,6 +10,7 @@ Rule: nothing linked into the apps may be copyleft stronger than MPL-2.0. The se
   - Phase 1: UniFFI (MPL-2.0), flutter_rust_bridge (MIT), allo-isolate (Apache-2.0, from its LICENSE file, because its Cargo.toml declares none), axum (MIT), tokio (MIT) and serde (MIT or Apache-2.0).
   - Phase 2, the libraries the owner approved: reqwest (MIT or Apache-2.0), rustls (Apache-2.0, ISC or MIT), ring (ISC for its own code, Apache-2.0 for the parts from BoringSSL), rustls-platform-verifier (MIT or Apache-2.0), rusqlite and libsqlite3-sys (MIT), SQLite itself (public domain, bundled through libsqlite3-sys), ulid (MIT), thiserror, url and sha2 (MIT or Apache-2.0), unicode-normalization (MIT or Apache-2.0, plus the Unicode V3 licence for its data) and webpki-root-certs (CDLA-Permissive-2.0, a list of root certificates).
   - Phase 3, the libraries the owner approved: quick-xml 0.42.0 (MIT, its LICENSE-MIT.md) for TTML lyrics; png 0.18.1 (MIT or Apache-2.0, both files present) for album covers, with what it brings: fdeflate, flate2 and crc32fast (MIT or Apache-2.0) and miniz_oxide (MIT, Zlib or Apache-2.0).
+  - Phase 10, the libraries the owner approved with the plan on 13 November 2026: symphonia 0.6.1 (MPL-2.0, the title and grant of its LICENSE file checked), realfft 3.5.1 and ebur128 0.1.11 (MIT, their LICENSE files checked), and what they bring, all listed under "Added in Phase 10". YAMNet (Apache-2.0) is named in its NOTICE file only; the licence text is not in this repository.
 - **Everything else:** the licence each crate declares in its Cargo.toml, as listed by `cargo tree`. Not yet checked against each licence text.
 - **The scan in CI (section 24):** `tools/ci/check_licences.py` reads `cargo metadata --locked` for core, server and tools. That covers every package for every target, build and dev dependencies included. It fails when a crate's licence can't be met from the reviewed identifiers in `tools/ci/licences.json`, or when a crate declares no licence and isn't listed there. To add a licence, read its text, then add it to that file and to this one.
 - **Licences that are not MIT or Apache:** Unicode-3.0 (the ICU data crates and unicode-ident, permissive), CDLA-Permissive-2.0 (webpki-root-certs, permissive, data) and MPL-2.0 (the UniFFI runtime crates, file-level copyleft and the ceiling the plan allows). Nothing is GPL, LGPL or AGPL.
@@ -414,6 +415,54 @@ Rule: nothing linked into the apps may be copyleft stronger than MPL-2.0. The se
 | zerovec-derive | 0.11.7 | Unicode-3.0 |
 | zmij | 1.0.23 | MIT |
 
+## Added in Phase 10 (sound analysis)
+
+Phase 10 (13 to 24 November 2026) added the new crate `encore-analysis` and the crates below to `core/Cargo.lock`, and the same crates to `server/Cargo.lock`, because the server links encore-core. The two tables above were last regenerated before this phase, so these are listed apart until the next regeneration (the commands are at the end of this file). The licences are the ones each crate declares in its Cargo.toml. The CI scan (`tools/ci/check_licences.py`) passes on all three workspaces.
+
+Compiled into the apps and into the companion server:
+
+| Crate | Version | Licence (as declared by the crate) |
+| --- | --- | --- |
+| bitflags | 1.3.2 | MIT/Apache-2.0 |
+| dasp_frame | 0.11.0 | MIT OR Apache-2.0 |
+| dasp_sample | 0.11.0 | MIT OR Apache-2.0 |
+| ebur128 | 0.1.11 | MIT |
+| extended | 0.1.0 | MIT |
+| num-complex | 0.4.6 | MIT OR Apache-2.0 |
+| num-integer | 0.1.47 | MIT OR Apache-2.0 |
+| num-traits | 0.2.19 | MIT OR Apache-2.0 |
+| primal-check | 0.3.4 | MIT OR Apache-2.0 |
+| realfft | 3.5.1 | MIT |
+| regex-lite | 0.1.9 | MIT OR Apache-2.0 |
+| rustfft | 6.4.1 | MIT OR Apache-2.0 |
+| strength_reduce | 0.2.4 | MIT OR Apache-2.0 |
+| symphonia | 0.6.1 | MPL-2.0 |
+| symphonia-bundle-flac | 0.6.1 | MPL-2.0 |
+| symphonia-bundle-mp3 | 0.6.1 | MPL-2.0 |
+| symphonia-codec-aac | 0.6.1 | MPL-2.0 |
+| symphonia-codec-alac | 0.6.1 | MPL-2.0 |
+| symphonia-codec-pcm | 0.6.1 | MPL-2.0 |
+| symphonia-codec-vorbis | 0.6.1 | MPL-2.0 |
+| symphonia-common | 0.6.1 | MPL-2.0 |
+| symphonia-core | 0.6.1 | MPL-2.0 |
+| symphonia-format-isomp4 | 0.6.1 | MPL-2.0 |
+| symphonia-format-ogg | 0.6.1 | MPL-2.0 |
+| symphonia-format-riff | 0.6.1 | MPL-2.0 |
+| symphonia-metadata | 0.6.1 | MPL-2.0 |
+| transpose | 0.2.3 | MIT OR Apache-2.0 |
+
+`symphonia` and its codec and format crates (the decoder; MP3, FLAC, AAC, ALAC, Vorbis, PCM, MP4, Ogg and WAV are enabled, and it has no Opus decoder) are MPL-2.0: file-level copyleft and the ceiling the plan allows, the same as the UniFFI runtime crates. `realfft` and `ebur128` (the loudness standard EBU R128) are MIT. `rustfft`, with `transpose`, `primal-check` and `strength_reduce`, is MIT or Apache-2.0; `num-complex`, `num-integer` and `num-traits` are MIT or Apache-2.0. Where a crate offers MIT or Apache-2.0, MIT or Apache-2.0 is used. `encore-analysis` itself is this project's code.
+
+The server's lock also gained three crates that the apps' lock already had:
+
+| Crate | Version | Licence (as declared by the crate) |
+| --- | --- | --- |
+| autocfg | 1.5.1 | Apache-2.0 OR MIT |
+| bytemuck | 1.25.2 | Zlib OR Apache-2.0 OR MIT |
+| lazy_static | 1.5.1 | MIT OR Apache-2.0 |
+
+**The sound model.** `core/encore-analysis/model/yamnet-v1.bin` (3.9 MB) is Google's YAMNet, licensed Apache-2.0, converted from the file MediaPipe publishes (int8 weights, a scale per channel; the format changed, not the weights). It is data, not code. It ships inside the Android app (`android/THIRD_PARTY_LICENSES.md`); the Apple and Windows and Linux apps have not built the analysis yet, and the server does not use the file. Its NOTICE (`core/encore-analysis/model/NOTICE`) travels with it and names the source, the conversion script and the licence. The NOTICE gives the licence's address; the Apache-2.0 text itself is not in this repository. `core/encore-analysis/model/yamnet-reference.json` holds outputs of the original network on a generated waveform, for a test.
+
 ## Build and test tools (not shipped in any app or server image)
 
 | Tool | Version | Licence | Where it runs |
@@ -431,6 +480,7 @@ Rule: nothing linked into the apps may be copyleft stronger than MPL-2.0. The se
 | kotlinx-coroutines-core-jvm | 1.11.0 | Apache-2.0 (its Maven POM) | CI Kotlin smoke test only (the bindings' suspend functions). The Android app's own version is the Android track's choice |
 | Dart SDK, Swift and Kotlin compilers | runner's stable | BSD-3-Clause, Apache-2.0, Apache-2.0 | CI smoke tests only |
 | GNU make (ezwinports build, owner's PC) | 4.4.1 | GPL-3.0-or-later | Runs the Makefiles; never linked or shipped |
+| tools/sound-spike (this repository) | | this project's licence for the scripts. The Python packages it uses (numpy, pandas, requests, tensorflow-cpu 2.15.1, tflite) and ffmpeg were not reviewed; OpenL3, which an earlier run compared, has CC BY 4.0 weights (ADR core-0019); the Creative Commons clips it fetches are never stored | The manual `sound-spike` workflow and `export_yamnet.py`; nothing from it is shipped except the converted model above |
 
 Regenerate the two crate tables after a dependency change with
 `cargo tree --locked -e normal --target all --prefix none -f "{p}|{l}"` in `core/` (for `-p encore-core -p encore-dart`) and in `server/`.

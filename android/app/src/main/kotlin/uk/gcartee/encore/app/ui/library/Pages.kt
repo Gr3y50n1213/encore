@@ -242,7 +242,7 @@ private fun DownloadLine(item: uk.gcartee.encore.core.DownloadedItem?, tint: Pag
 
 /** The head of an album's or mix's action sheet: its cover, title and one line. */
 @Composable
-private fun SheetHeader(title: String, line: String?, cover: @Composable () -> Unit) {
+internal fun SheetHeader(title: String, line: String?, cover: @Composable () -> Unit) {
     val type = LocalEncoreType.current
     Row(verticalAlignment = Alignment.CenterVertically) {
         cover()
@@ -281,11 +281,20 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
     val ids = remember(detail) { detail.songs.map { it.id } }
     val multiDisc = remember(detail) { detail.songs.mapNotNull { it.discNumber }.distinct().size > 1 }
     SystemBarIconsFor(tint.top)
+    // Mock-up 46: the whole album to a playlist in one go, or pick songs from it.
+    uk.gcartee.encore.app.ui.components.SelectableSongs(detail.songs, label = album.title)
+    val selection = uk.gcartee.encore.app.ui.components.LocalSongSelection.current
+    var addAll by remember { mutableStateOf(false) }
+    if (addAll) uk.gcartee.encore.app.ui.components.AddToPlaylistSheet(detail.songs) { addAll = false }
     val download = uk.gcartee.encore.app.ui.components.LocalDownloads.current.album(album.id)
     val target = uk.gcartee.encore.app.core.albumTarget(album.id)
     var confirmRemove by remember { mutableStateOf(false) }
-    val more = remember(album.id) {
-        runCatching { host.core.search(album.artist).albums.filter { it.artist == album.artist && it.id != album.id }.take(12) }.getOrDefault(emptyList())
+    // A search of the whole library: off the main thread, so the page opens at once and the
+    // row fills in when it is ready (owner, 23 November 2026: pages felt laggy).
+    val more by androidx.compose.runtime.produceState(emptyList<uk.gcartee.encore.core.AlbumSummary>(), album.id) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching { host.core.search(album.artist).albums.filter { it.artist == album.artist && it.id != album.id }.take(12) }.getOrDefault(emptyList())
+        }
     }
     val type = LocalEncoreType.current
     Box(Modifier.fillMaxSize().background(tint.brush)) {
@@ -311,6 +320,8 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
                                 val queue = Icons.queue()
                                 val downloadIcon = if (download == null) Icons.download() else Icons.delete()
                                 val artistIcon = Icons.artist()
+                                val addIcon = Icons.playlistAdd()
+                                val selectIcon = Icons.check()
                                 uk.gcartee.encore.app.ui.components.ActionSheet(
                                     onDismiss = { open = false },
                                     header = { SheetHeader(album.title, album.artist) { Artwork(ArtworkOf.ALBUM, album.id, 56.dp, Modifier.size(56.dp), cornerRadius = 14.dp) } },
@@ -322,7 +333,13 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
                                             if (download == null) actions.download(target, album.title) else confirmRemove = true
                                         },
                                     ),
-                                    groups = listOf(listOf(uk.gcartee.encore.app.ui.components.SheetAction("Go to artist", artistIcon) { detail.songs.firstOrNull()?.let(actions::goToArtist) })),
+                                    groups = listOf(
+                                        listOfNotNull(
+                                            uk.gcartee.encore.app.ui.components.SheetAction("Add all to a playlist", addIcon) { addAll = true },
+                                            selection?.let { sel -> uk.gcartee.encore.app.ui.components.SheetAction("Select songs", selectIcon) { sel.start() } },
+                                            uk.gcartee.encore.app.ui.components.SheetAction("Go to artist", artistIcon) { detail.songs.firstOrNull()?.let(actions::goToArtist) },
+                                        ),
+                                    ),
                                 )
                             }
                         }
@@ -398,10 +415,36 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
     val playable = remember(detail) { detail.entries.mapNotNull { it.song } }
     val ids = remember(playable) { playable.map { it.id } }
     val name = detail.playlist.name
+    // Mock-up 46: picked songs can leave this playlist together, with one Undo.
+    val removePicked: (List<uk.gcartee.encore.core.Song>) -> Unit = remember(detail) {
+        { picked ->
+            val wanted = picked.mapTo(HashSet()) { it.id }
+            val positions = detail.entries.filter { e -> e.song?.id?.let { it in wanted } == true }.map { it.position }
+            if (positions.isNotEmpty()) {
+                runCatching { host.core.removeFromPlaylist(playlistId, positions) }
+                    .onSuccess { r ->
+                        version++
+                        val n = positions.size
+                        actions.toaster.show(if (n == 1) "Removed 1 song from $name" else "Removed $n songs from $name") { r.editId?.let { runCatching { host.core.undo(it) } }; version++ }
+                    }
+                    .onFailure { actions.toaster.show(it.userMessage()) }
+            }
+        }
+    }
+    uk.gcartee.encore.app.ui.components.SelectableSongs(playable, removePicked, label = name)
+    val selection = uk.gcartee.encore.app.ui.components.LocalSongSelection.current
+    var addAll by remember { mutableStateOf(false) }
+    if (addAll) uk.gcartee.encore.app.ui.components.AddToPlaylistSheet(playable) { addAll = false }
     val removeIcon = Icons.remove()
     val download = uk.gcartee.encore.app.ui.components.LocalDownloads.current.playlist(playlistId)
     val target = uk.gcartee.encore.app.core.playlistTarget(playlistId)
     var confirmRemove by remember { mutableStateOf(false) }
+    var renaming by remember { mutableStateOf(false) }
+    // Owner, 24 November 2026: "we need to be able to delete playlists". The same dialogs as
+    // the playlist's press-and-hold menu (PlaylistTools.kt).
+    var deleting by remember { mutableStateOf(false) }
+    if (deleting) DeletePlaylistDialog(host, playlistId, name, onDismiss = { deleting = false }, onDeleted = onBack)
+    if (renaming) RenamePlaylistDialog(host, playlistId, name) { renamed -> renaming = false; if (renamed) version++ }
     Box(Modifier.fillMaxSize().background(tint.brush)) {
         LazyColumn(contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding() + (Grid.base * 2).dp)) {
             item {
@@ -414,11 +457,45 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
                     onPlay = if (ids.isEmpty()) null else ({ actions.play(ids, 0, StartedFrom.PLAYLIST, playlistId.toString(), name) }),
                     onShuffle = if (ids.isEmpty()) null else ({ actions.play(ids, ids.indices.random(), StartedFrom.PLAYLIST, playlistId.toString(), name, shuffle = true) }),
                     third = downloadButton(tint, download) { actions.tapDownload(target, name, download) { confirmRemove = true } },
+                    trailing = {
+                        // More: Play next, Add to queue and Rename (owner, 24 November 2026:
+                        // there was no way to rename a playlist). The new name goes to the
+                        // server like every playlist edit, so every device gets it.
+                        var open by remember { mutableStateOf(false) }
+                        Box {
+                            PageButton(tint, { open = true }) { Icon(Icons.more(), contentDescription = "More") }
+                            if (open) {
+                                val next = Icons.playNext()
+                                val queue = Icons.queue()
+                                val editIcon = Icons.edit()
+                                val addIcon = Icons.playlistAdd()
+                                val selectIcon = Icons.check()
+                                val deleteIcon = Icons.delete()
+                                uk.gcartee.encore.app.ui.components.ActionSheet(
+                                    onDismiss = { open = false },
+                                    header = { SheetHeader(name, songs(detail.playlist.songCount.toInt())) { Box(Modifier.size(56.dp).clip(RoundedCornerShape(14.dp))) { MosaicFill(coverSongs(playable), Modifier.fillMaxSize()) } } },
+                                    quick = listOf(
+                                        uk.gcartee.encore.app.ui.components.SheetAction("Play next", next) { actions.playNext(playable) },
+                                        uk.gcartee.encore.app.ui.components.SheetAction("Add to queue", queue) { actions.addToQueue(playable) },
+                                    ),
+                                    groups = listOf(
+                                        listOfNotNull(
+                                            if (playable.isEmpty()) null else uk.gcartee.encore.app.ui.components.SheetAction("Add all to a playlist", addIcon) { addAll = true },
+                                            if (playable.isEmpty()) null else selection?.let { sel -> uk.gcartee.encore.app.ui.components.SheetAction("Select songs", selectIcon) { sel.start() } },
+                                            uk.gcartee.encore.app.ui.components.SheetAction("Rename", editIcon) { renaming = true },
+                                        ),
+                                        listOf(uk.gcartee.encore.app.ui.components.SheetAction("Delete playlist", deleteIcon, destructive = true) { deleting = true }),
+                                    ),
+                                )
+                            }
+                        }
+                    },
                 ) {
                     // The server's playlist image, over a mosaic of its first songs for playlists without one.
                     Box {
-                        Mosaic(playable.take(4).map { it.id })
-                        Artwork(ArtworkOf.PLAYLIST, playlistId, COVER_DP.dp, Modifier.fillMaxWidth(), cornerRadius = COVER_RADIUS_DP.dp, placeholder = false)
+                        // Owner, 24 November 2026: the server's own picture is its first four
+                        // songs, often one album four times; ours takes four different albums.
+                        Mosaic(coverSongs(playable))
                     }
                 }
                 DownloadLine(download, tint)
@@ -473,6 +550,7 @@ fun ArtistScreen(host: CoreHost, artistId: Long, playingSongId: Long?, onBack: (
     }
     val name = detail.artist.name
     val ids = remember(songs) { songs.map { it.id } }
+    uk.gcartee.encore.app.ui.components.SelectableSongs(songs, label = name)
     val tint = PageTint(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.onSurface, MaterialTheme.colorScheme.onSurfaceVariant, themed = true)
     LazyColumn(Modifier.fillMaxSize().background(tint.field), contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding() + (Grid.base * 2).dp)) {
         item {
@@ -522,7 +600,18 @@ fun ArtistScreen(host: CoreHost, artistId: Long, playingSongId: Long?, onBack: (
 fun MixScreen(host: CoreHost, mixId: String, playingSongId: Long?, onBack: () -> Unit, contentPadding: PaddingValues) {
     val actions = LocalAppActions.current
     var version by remember { mutableIntStateOf(0) }
-    val page: MixPage? = remember(mixId, version) { runCatching { host.core.mix(mixId) }.getOrNull() }
+    // A mix can be made as it opens (a mood's): off the main thread. Until the first answer the
+    // page is blank, then it keeps the last one while a change reloads it.
+    var loaded by remember(mixId) { mutableStateOf(false) }
+    val latest: MixPage? by androidx.compose.runtime.produceState<MixPage?>(null, mixId, version) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { runCatching { host.core.mix(mixId) }.getOrNull() }
+        loaded = true
+    }
+    if (!loaded) {
+        Box(Modifier.fillMaxSize())
+        return
+    }
+    val page = latest
     if (page == null) {
         EmptyState("This mix has been replaced", "Today's mixes are on the Mixes tab.")
         return
@@ -535,6 +624,8 @@ fun MixScreen(host: CoreHost, mixId: String, playingSongId: Long?, onBack: () ->
     val field = uk.gcartee.encore.app.ui.player.rememberFieldColours(host, firstSong?.albumId)
     SystemBarIconsFor(field.base)
     val ids = remember(page) { page.songs.map { it.song.id } }
+    val mixSongs = remember(page) { page.songs.map { it.song } }
+    uk.gcartee.encore.app.ui.components.SelectableSongs(mixSongs, label = summary.title)
     var pinned by remember(summary.pinned) { mutableStateOf(summary.pinned) }
     val notIcon = Icons.block()
     val download = uk.gcartee.encore.app.ui.components.LocalDownloads.current.mix(mixId)
@@ -642,6 +733,10 @@ fun MixScreen(host: CoreHost, mixId: String, playingSongId: Long?, onBack: () ->
 @Composable
 fun Mosaic(songIds: List<Long>, modifier: Modifier = Modifier, size: Int = COVER_DP) {
     val ids = songIds.take(4)
+    if (ids.size == 1) {
+        Artwork(ArtworkOf.SONG, ids[0], size.dp, modifier.fillMaxWidth(), cornerRadius = COVER_RADIUS_DP.dp)
+        return
+    }
     Column(modifier.fillMaxWidth().clip(RoundedCornerShape(COVER_RADIUS_DP.dp))) {
         ids.chunked(2).forEach { row ->
             Row(Modifier.fillMaxWidth()) {
@@ -656,6 +751,10 @@ fun Mosaic(songIds: List<Long>, modifier: Modifier = Modifier, size: Int = COVER
 @Composable
 fun MosaicFill(songIds: List<Long>, modifier: Modifier = Modifier) {
     val ids = songIds.take(4)
+    if (ids.size == 1) {
+        Artwork(ArtworkOf.SONG, ids[0], 160.dp, modifier, cornerRadius = 0.dp, fill = true)
+        return
+    }
     Column(modifier) {
         ids.chunked(2).forEach { row ->
             Row(Modifier.weight(1f).fillMaxWidth()) {

@@ -28,6 +28,7 @@ pub(crate) fn library() -> Catalog {
                     server_last_played_utc_ms: None,
                     server_favorite: false,
                     explicit: a == 39,
+                    sound: None,
                 });
             }
         }

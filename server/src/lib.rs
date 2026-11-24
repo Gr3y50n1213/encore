@@ -10,6 +10,7 @@ mod error;
 mod limit;
 mod live;
 mod recs;
+mod sound;
 mod sync;
 #[cfg(test)]
 mod tests;
@@ -143,6 +144,10 @@ pub fn app(state: Arc<AppState>) -> Router {
         .route("/sync/pull", get(sync::pull))
         .route("/admin/status", get(admin_status))
         .route("/recs/home", post(recs::home))
+        .route("/recs/model", post(recs::model))
+        .route("/sound/lookup", post(sound::lookup))
+        .route("/sound/claim", post(sound::claim))
+        .route("/sound", axum::routing::put(sound::put))
         .route("/catalog/hash", get(recs::catalog_hash))
         .layer(DefaultBodyLimit::max(4 * 1024 * 1024))
         // A big library's song list is larger than any other request.

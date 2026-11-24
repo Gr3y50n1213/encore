@@ -163,6 +163,8 @@ class CoreHost private constructor(val context: Context) {
         }
         runCatching { core.removeUnplayedDownloads() }
         uk.gcartee.encore.app.downloads.DownloadScheduler.resume(context)
+        // Phase 10: sound analysis when it is on, and the daily suggestion training.
+        uk.gcartee.encore.app.sound.SoundScheduler.resume(context)
     }
 
     /** Board 14: after a switch, the other profile's queue and settings load. */

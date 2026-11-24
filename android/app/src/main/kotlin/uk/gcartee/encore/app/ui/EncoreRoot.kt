@@ -20,6 +20,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.ui.platform.testTag
 import uk.gcartee.encore.app.ui.components.topBarsPadding
@@ -163,7 +166,12 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     val type = LocalEncoreType.current
     val haptics = rememberHaptics()
     val nav = rememberNavigator()
-    val player by PlaybackHub.state.collectAsState(PlayerState())
+    val playerHere by PlaybackHub.state.collectAsState(PlayerState())
+    // Board 12: while another device is controlled from here, the mini player and Now
+    // Playing show that device's song and state (RemoteControl), Spotify-style.
+    androidx.compose.runtime.LaunchedEffect(host) { uk.gcartee.encore.app.playback.RemoteControl.bind(host) }
+    val playerThere by uk.gcartee.encore.app.playback.RemoteControl.state.collectAsState(null)
+    val player = playerThere ?: playerHere
     var nowPlaying by rememberSaveable { mutableStateOf(false) }
     // Where the mini player is and how big the screen is, for the morph between them.
     var miniBar by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
@@ -190,6 +198,10 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     // tint is the album's colours when More opened it, none otherwise.
     var sleepSheet by remember { mutableStateOf(false) }
     var sleepTint by remember { mutableStateOf<uk.gcartee.encore.app.ui.player.FieldColours?>(null) }
+    // Sleep mode (mock-up 45): over everything, until Back, its own button or a swipe down.
+    var sleepMode by rememberSaveable { mutableStateOf(false) }
+    // Encore TV: a projector's picture can be cut at its edges, so pages keep clear of them.
+    val tv = uk.gcartee.encore.app.ui.tv.LocalTv.current
     var addingAccount by rememberSaveable { mutableStateOf(false) }
     var continueFrom by remember { mutableStateOf<OutputDevice?>(null) }
     var switches by remember { mutableIntStateOf(0) }
@@ -292,7 +304,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
         host.events.collect { e ->
             when (e.kind) {
                 // Board 12: Continue only while this device isn't playing; the core decides when.
-                EventKind.CONTINUE_AVAILABLE -> if (!player.isPlaying) continueFrom = e.device
+                EventKind.CONTINUE_AVAILABLE -> if (!playerHere.isPlaying && !uk.gcartee.encore.app.playback.RemoteControl.active) continueFrom = e.device
                 EventKind.HANDOFF_FAILED -> {
                     haptics.perform(Haptic.Reject)
                     toaster.show(e.handoff?.reason ?: "Couldn't move the music")
@@ -304,12 +316,21 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     }
     BackHandler(enabled = nowPlaying) { nowPlaying = false }
     BackHandler(enabled = !nowPlaying && nav.canGoBack) { nav.back() }
+    // Mock-up 46: picking songs ends when the page changes, Now Playing opens, or on Back.
+    val selection = remember { uk.gcartee.encore.app.ui.components.SongSelection() }
+    LaunchedEffect(nav.tab, nav.top, nowPlaying, switches) { selection.clear() }
+    // Mock-up 47: the last playlist added to, for the swipe that can add to it.
+    LaunchedEffect(actions.playlistMemory, switches) {
+        actions.lastPlaylistNow = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { actions.lastPlaylist() }
+    }
+    BackHandler(enabled = selection.active) { selection.clear() }
 
     CompositionLocalProvider(
         LocalAppActions provides actions,
         uk.gcartee.encore.app.ui.components.LocalDownloads provides downloadView,
         uk.gcartee.encore.app.ui.components.LocalDownloadProgress provides downloadProgress,
         uk.gcartee.encore.app.ui.components.LocalTopBanner provides bannerTop,
+        uk.gcartee.encore.app.ui.components.LocalSongSelection provides selection,
     ) {
         if (addingAccount) {
             // Board 14, item 4: the onboarding flow; the new profile opens when sign-in succeeds.
@@ -325,7 +346,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
             return@CompositionLocalProvider
         }
         Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-            Row(Modifier.fillMaxSize()) {
+            Row(Modifier.fillMaxSize().let { if (tv) it.padding(horizontal = TV_OVERSCAN_X_DP.dp, vertical = TV_OVERSCAN_Y_DP.dp) else it }) {
                 if (railLabelled) {
                     // Board 29, item 1: the expanded rail, 240 dp, labels beside the icons, on Large windows.
                     ExpandedRail(host, nav.tab, onTab = { nav.select(it) }, onOpen = actions.open, onProfile = { profiles = true })
@@ -356,6 +377,10 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                                 else fadeIn(tween(220)) togetherWith fadeOut(tween(160))
                             },
                             label = "page",
+                            // Owner, 24 November 2026: a field near the bottom (the companion
+                            // server's address) was typed into behind the keyboard. Pages end
+                            // above the keyboard, so the focused field scrolls into view.
+                            modifier = Modifier.imePadding(),
                         ) { (tab, route) ->
                             // Board 29, item 2: on expanded windows Library is a 340 dp list with the
                             // chosen album, artist or playlist open beside it, two panes 12 dp apart.
@@ -432,6 +457,17 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                         // behind it (an album's colour, the status bar's icons) and moves its
                         // content down by the pill's height (LocalTopBanner), so it covers nothing.
                         OfflineBanner(offline, Modifier.align(Alignment.TopCenter), onHeight = { bannerPx = it })
+                        uk.gcartee.encore.app.ui.components.SelectionTopBar(selection, Modifier.align(Alignment.TopCenter))
+                        uk.gcartee.encore.app.ui.components.SelectionBar(
+                            selection,
+                            // Above the mini player, or above the system's gesture bar when nothing plays.
+                            Modifier.align(Alignment.BottomCenter).padding(
+                                bottom = maxOf(
+                                    with(LocalDensity.current) { miniHeight.toDp() },
+                                    androidx.compose.foundation.layout.WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
+                                ),
+                            ),
+                        )
                     }
                 }
             }
@@ -573,6 +609,8 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                         }
                     },
             ) {
+                // The queue's rows don't pick songs.
+                CompositionLocalProvider(uk.gcartee.encore.app.ui.components.LocalSongSelection provides null) {
                 NowPlayingScreen(
                     host,
                     player,
@@ -583,6 +621,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                     },
                     onOutput = { output = it },
                     onSleepTimer = { sleepTint = it; sleepSheet = true },
+                    onSleepMode = { sleepMode = true },
                     onArtBounds = { rect, shrinks ->
                         if (expand.value >= 0.999f && rect.usable()) {
                             val spot = ArtSpot(rect, shrinks)
@@ -592,7 +631,9 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                     },
                     onScrubHeld = { scrubHeld = it },
                 )
+                }
             }
+            if (sleepMode) uk.gcartee.encore.app.ui.player.SleepModeScreen(host, onExit = { sleepMode = false }, onSleepTimer = { sleepTint = null; sleepSheet = true })
             // Toasts above everything, so one from Now Playing is seen there too: over the
             // page they sit above the mini player; over Now Playing, under its top bar. They
             // never cover controls (board 20) and take the app's own colours.
@@ -625,7 +666,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
         }
         if (primer) NotificationPrimer(forSleepTimer = primerForSleep, onDone = { host.notificationPrimer.value = false })
         output?.let { tint ->
-            uk.gcartee.encore.app.ui.player.FieldSheetTheme(tint) { OutputSheet(host, playingHere = player.isPlaying, onDismiss = { output = null }) }
+            uk.gcartee.encore.app.ui.player.FieldSheetTheme(tint) { OutputSheet(host, playingHere = playerHere.isPlaying, onDismiss = { output = null }) }
         }
     }
 }
@@ -833,3 +874,7 @@ private class ArtSpot(val rect: androidx.compose.ui.geometry.Rect, val shrinks: 
 /** A rect worth morphing to: finite, and not empty. */
 private fun androidx.compose.ui.geometry.Rect.usable(): Boolean =
     left.isFinite() && top.isFinite() && right.isFinite() && bottom.isFinite() && width > 1f && height > 1f
+
+/** Encore TV: the margins Android TV keeps clear of a picture's edges (overscan), in dp. */
+private const val TV_OVERSCAN_X_DP = 40
+private const val TV_OVERSCAN_Y_DP = 20

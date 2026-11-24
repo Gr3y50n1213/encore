@@ -64,4 +64,4 @@ Still open:
 
 ## 6. Later, in roadmap order
 
-Phase 10 recommendations v2, Phase 11 recap, Phase 12 more servers (Plex and others), Phase 13 release.
+Phase 10 recommendations v2, then Phase 12 more servers (Plex and others) before Phase 11 recap (owner, 23 November 2026: "functionality before looks"), Phase 13 release. Merged to main on 23 November 2026 with this list still open; the owner called the widgets "all right" and parked their polish.

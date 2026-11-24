@@ -166,6 +166,8 @@ fun HomeScreen(host: CoreHost, data: HomeData, onProfile: () -> Unit, reselect: 
                 // The last album played, big, with Play; then more of what was played
                 // lately as quick tiles, two to a row.
                 val recent = (home.recentlyPlayed + home.recentlyAdded + home.mostPlayed).filter { it.albumId != null }.distinctBy { it.albumId }
+                // Phase 10 (mock-up 44, board 1): the sound analysis card, once.
+                item { uk.gcartee.encore.app.ui.sound.SoundHomeCard(host, Modifier.padding(top = Grid.base.dp, bottom = Grid.base.dp)) }
                 recent.firstOrNull()?.let { s -> item { JumpBackIn(s) } }
                 val picks = recent.drop(1).take(QUICK_PICKS)
                 if (picks.size >= 2) item { QuickPicks(picks) }
@@ -280,7 +282,7 @@ private fun MadeForYou(home: Home, data: HomeData, onOpenMix: (String) -> Unit, 
                             scaleX = scale
                             scaleY = scale
                         }
-                        .clickable(interactionSource = press, indication = null) { onOpenMix(m.mixId) },
+                        .clickable(interactionSource = press, indication = uk.gcartee.encore.app.ui.components.tvIndication()) { onOpenMix(m.mixId) },
                 ) {
                     MosaicFill(m.coverSongIds, Modifier.size(tile).clip(MaterialTheme.shapes.extraLarge))
                     Spacer(Modifier.height(6.dp))
@@ -561,6 +563,8 @@ fun MixesScreen(host: CoreHost, data: HomeData, onProfile: () -> Unit, contentPa
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = (Grid.base * 2).dp, end = (Grid.base * 2).dp, top = Grid.base.dp),
                     )
+                    // Phase 10 (mock-up 44, board 5): how far sound analysis is, until it's done.
+                    uk.gcartee.encore.app.ui.sound.SoundMixesLine(host, Modifier.padding(start = (Grid.base * 2).dp, end = (Grid.base * 2).dp, top = (Grid.base * 1.5f).dp))
                 }
             }
             items(shelf.mixes.sortedByDescending { it.pinned }, key = { it.mixId }) { m ->

@@ -1,5 +1,10 @@
 package uk.gcartee.encore.app.ui.components
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.IconButton
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.selection.toggleable
 import android.content.Context
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,8 +24,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
@@ -89,6 +92,11 @@ import uk.gcartee.encore.app.playback.PlaybackHub
 import uk.gcartee.encore.app.ui.nav.Route
 import uk.gcartee.encore.app.ui.theme.LocalEncoreType
 import uk.gcartee.encore.core.ChosenBy
+import uk.gcartee.encore.core.PlaylistSummary
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import uk.gcartee.encore.core.DropTarget
 import uk.gcartee.encore.core.DropTargetKind
 import uk.gcartee.encore.core.NotInterestedReason
@@ -145,17 +153,113 @@ class AppActions(
         }.onFailure { refuse(it); return }
         host.playingFrom.value = label
         PlaybackHub.playCurrent(context)
-        if (hadQueue) toaster.show("Replaced queue") { runCatching { core.undoQueue() }; PlaybackHub.playCurrent(context) }
+        val there = uk.gcartee.encore.app.playback.RemoteControl.device.value
+        if (there != null) toaster.show("Playing on ${there.name}")
+        else if (hadQueue) toaster.show("Replaced queue") { runCatching { core.undoQueue() }; PlaybackHub.playCurrent(context) }
     }
 
-    fun playNext(songs: List<Song>) = queueEdit("Playing next") { core.playNext(songs.map { it.id }) }
+    fun playNext(songs: List<Song>) {
+        // Board 12: while another device is controlled, its queue changes instead.
+        val there = uk.gcartee.encore.app.playback.RemoteControl.device.value
+        if (there != null) {
+            uk.gcartee.encore.app.playback.RemoteControl.send(uk.gcartee.encore.core.RemoteCommandKind.PLAY_NEXT, songIds = songs.map { it.id })
+            toaster.show("Playing next on ${there.name}")
+            return
+        }
+        queueEdit("Playing next") { core.playNext(songs.map { it.id }) }
+    }
 
-    fun addToQueue(songs: List<Song>) = queueEdit("Added to Up Next") { core.addToUpNext(songs.map { it.id }) }
+    fun addToQueue(songs: List<Song>) {
+        val there = uk.gcartee.encore.app.playback.RemoteControl.device.value
+        if (there != null) {
+            uk.gcartee.encore.app.playback.RemoteControl.send(uk.gcartee.encore.core.RemoteCommandKind.ADD_TO_UP_NEXT, songIds = songs.map { it.id })
+            toaster.show("Added to Up Next on ${there.name}")
+            return
+        }
+        queueEdit("Added to Up Next") { core.addToUpNext(songs.map { it.id }) }
+    }
 
     private fun queueEdit(message: String, edit: () -> Unit) {
         runCatching(edit)
             .onSuccess { toaster.show(message) { runCatching { core.undoQueue() } } }
             .onFailure(::refuse)
+    }
+
+    // --- Playlists you add to (mock-up 47). ---
+
+    private val playlistPrefs = context.getSharedPreferences("playlist-memory", Context.MODE_PRIVATE)
+    private fun recentKey() = "recent-" + (runCatching { core.currentProfile() }.getOrNull() ?: "none")
+
+    /** Bumped when the remembered playlists change, so menus and sheets read them again. */
+    var playlistMemory by androidx.compose.runtime.mutableIntStateOf(0)
+        private set
+
+    /** Mock-up 47: a swipe right adds to the last playlist instead of Play next (Settings, Playback). */
+    var swipeRightAdds by androidx.compose.runtime.mutableStateOf(playlistPrefs.getBoolean("swipe-right-adds", false))
+        private set
+
+    fun chooseSwipeRightAdds(on: Boolean) {
+        playlistPrefs.edit().putBoolean("swipe-right-adds", on).apply()
+        swipeRightAdds = on
+    }
+
+    /** The last playlist, kept fresh by the app root (read off the main thread), for row swipes. */
+    var lastPlaylistNow by androidx.compose.runtime.mutableStateOf<PlaylistSummary?>(null)
+
+    /** The playlists this profile added to most recently, newest first. */
+    fun recentPlaylistIds(): List<Long> =
+        playlistPrefs.getString(recentKey(), "").orEmpty().split(',').mapNotNull { it.toLongOrNull() }
+
+    fun usedPlaylist(id: Long) {
+        val list = (listOf(id) + recentPlaylistIds().filter { it != id }).take(RECENT_PLAYLISTS)
+        playlistPrefs.edit().putString(recentKey(), list.joinToString(",")).apply()
+        playlistMemory++
+    }
+
+    fun forgetPlaylist(id: Long) {
+        playlistPrefs.edit().putString(recentKey(), recentPlaylistIds().filter { it != id }.joinToString(",")).apply()
+        playlistMemory++
+    }
+
+    /** The last playlist added to, if it is still there. A library read: call it off the main thread. */
+    fun lastPlaylist(): PlaylistSummary? {
+        val recent = recentPlaylistIds()
+        if (recent.isEmpty()) return null
+        val all = runCatching { core.playlists(0u, 500u) }.getOrDefault(emptyList()).associateBy { it.id }
+        return recent.firstNotNullOfOrNull { all[it] }
+    }
+
+    /** One tap: these songs to [playlist], saying what happened, with Undo. Never adds a song twice. */
+    fun quickAdd(songs: List<Song>, playlist: PlaylistSummary) {
+        if (songs.isEmpty()) return
+        runCatching { core.addTo(DropTarget(DropTargetKind.PLAYLIST, playlist.id), songs.map { it.id }, null, false) }
+            .onSuccess { r ->
+                usedPlaylist(playlist.id)
+                val added = r.added.toInt()
+                val msg = when {
+                    added == 0 && songs.size == 1 -> "Already in ${playlist.name}"
+                    added == 0 -> "All already in ${playlist.name}"
+                    added == 1 -> "Added 1 song to ${playlist.name}"
+                    else -> "Added $added songs to ${playlist.name}"
+                }
+                if (added == 0) toaster.show(msg) else toaster.show(msg) { r.editId?.let { runCatching { core.undo(it) } } }
+            }
+            .onFailure(::refuse)
+    }
+
+    /** Several songs kept on the device at once, with one message. */
+    fun downloadSongs(songs: List<Song>) {
+        if (songs.isEmpty()) return
+        var ok = 0
+        songs.forEach { s -> if (runCatching { core.download(uk.gcartee.encore.app.core.songTarget(s.id)) }.isSuccess) ok++ }
+        if (ok == 0) {
+            toaster.show("Couldn't download those songs")
+            return
+        }
+        uk.gcartee.encore.app.downloads.DownloadScheduler.start(context, byUser = true)
+        host.downloads.refreshNow()
+        toaster.show(if (!host.downloads.view.value.online) "They download when you're back online" else if (ok == 1) "Downloading 1 song" else "Downloading $ok songs")
+        askForNotificationsOnce()
     }
 
     // --- Downloads (Phase 8). ---
@@ -331,6 +435,13 @@ fun SongMenu(song: Song, expanded: Boolean, onDismiss: () -> Unit, place: MenuPl
         val saved = song.id in downloads.saved || song.id in downloads.pending
         val downloadIcon = if (saved) Icons.delete() else Icons.download()
         val target = uk.gcartee.encore.app.core.songTarget(song.id)
+        // Mock-up 46: Select starts picking songs with this one picked.
+        val selection = LocalSongSelection.current
+        // Mock-up 47: the playlist added to last is one tap away; any other is a row below.
+        val last by androidx.compose.runtime.produceState<PlaylistSummary?>(null, actions.playlistMemory) {
+            value = withContext(Dispatchers.IO) { actions.lastPlaylist() }
+        }
+        val selectIcon = Icons.check()
         ActionSheet(
             onDismiss = onDismiss,
             header = {
@@ -345,10 +456,13 @@ fun SongMenu(song: Song, expanded: Boolean, onDismiss: () -> Unit, place: MenuPl
             quick = listOf(
                 SheetAction("Play next", next) { actions.playNext(listOf(song)) },
                 SheetAction("Add to queue", queue) { actions.addToQueue(listOf(song)) },
-                SheetAction("Add to playlist", add) { playlistSheet = true },
+                last?.let { p -> SheetAction("Add to ${p.name}", add) { actions.quickAdd(listOf(song), p) } }
+                    ?: SheetAction("Add to playlist", add) { playlistSheet = true },
             ),
             groups = listOf(
                 listOfNotNull(
+                    if (last != null) SheetAction("Add to another playlist…", add) { playlistSheet = true } else null,
+                    selection?.let { sel -> SheetAction("Select", selectIcon) { sel.start(song) } },
                     if (saved) {
                         SheetAction("Remove download", downloadIcon) { actions.removeDownload(target, song.title) }
                     } else {
@@ -405,109 +519,363 @@ private fun SongSheetHeader(song: Song, liked: Boolean, onLike: () -> Unit) {
 
 private const val HEADER_ART_DP = 56
 private const val HEADER_ART_RADIUS_DP = 14
-/** Board 13, item 2: several playlists can be ticked at once, plus a New Playlist row. */
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Board 13, item 2, the way Apple Music and Spotify do it (owner, 23 November 2026): the
+ * playlists that already hold the song open ticked, a tap adds or removes it there and then,
+ * and nothing waits for a Save. New playlist takes a name and makes it with the song in it.
+ * Closing the sheet says what changed, with Undo. Everything that reads or writes the library
+ * runs off the main thread, so the sheet opens at once however often it is used.
+ */
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AddToPlaylistSheet(songs: List<Song>, onDone: () -> Unit) {
     val actions = LocalAppActions.current
     val core = actions.host.core
     val type = LocalEncoreType.current
-    val playlists = remember { runCatching { core.playlists(0u, 500u) }.getOrDefault(emptyList()) }
-    val ticked = remember { mutableStateListOf<Long>() }
+    val haptics = rememberHaptics()
+    val scope = rememberCoroutineScope()
+    val ids = remember(songs) { songs.map { it.id } }
+    var playlists by remember { mutableStateOf<List<PlaylistSummary>?>(null) }
+    // How many of these songs each playlist holds, now and when the sheet opened. All of
+    // them is a tick, some a dash (mock-up 46), none an empty box.
+    val held = remember { androidx.compose.runtime.mutableStateMapOf<Long, Int>() }
+    val before = remember { HashMap<Long, Int>() }
+    val n = ids.size
+    val busy = remember { mutableStateListOf<Long>() }
+    val edits = remember { mutableListOf<String>() }
     var newName by remember { mutableStateOf("") }
     var creating by remember { mutableStateOf(false) }
     val scheme = MaterialTheme.colorScheme
     val rowTitle = type.listRowTitle.copy(fontSize = 16.sp)
     val nameField = remember { FocusRequester() }
-    // The app's sheet look (ActionSheet): one rounded tonal group, New playlist first, a
-    // ticked playlist lit. Over Now Playing it comes in the album's colours.
+
+    suspend fun load(): List<PlaylistSummary> = withContext(Dispatchers.IO) {
+        runCatching { core.playlists(0u, 500u) }.getOrDefault(emptyList())
+    }
+    LaunchedEffect(Unit) {
+        val list = load()
+        val counts = withContext(Dispatchers.IO) {
+            list.associate { p ->
+                p.id to runCatching {
+                    val inside = core.playlist(p.id).entries.mapNotNull { it.song?.id }.toHashSet()
+                    ids.count { it in inside }
+                }.getOrDefault(0)
+            }
+        }
+        held.putAll(counts)
+        before.putAll(counts)
+        playlists = list
+    }
+
+    fun toggle(p: PlaylistSummary) {
+        if (p.id in busy) return
+        // A tick takes them all out; a dash or an empty box adds the ones missing (the core
+        // never adds a song twice).
+        val was = held[p.id] ?: 0
+        val on = was == n
+        busy.add(p.id)
+        // The mark changes at once; it goes back if the change is refused.
+        held[p.id] = if (on) 0 else n
+        haptics.perform(if (on) Haptic.ToggleOff else Haptic.ToggleOn)
+        scope.launch {
+            val r = withContext(Dispatchers.IO) {
+                runCatching {
+                    if (on) {
+                        val positions = core.playlist(p.id).entries.filter { e -> e.song?.id?.let { it in ids } == true }.map { it.position }
+                        if (positions.isEmpty()) null else core.removeFromPlaylist(p.id, positions)
+                    } else {
+                        core.addTo(DropTarget(DropTargetKind.PLAYLIST, p.id), ids, null, false)
+                    }
+                }
+            }
+            busy.remove(p.id)
+            r.onSuccess { e ->
+                e?.editId?.let(edits::add)
+                if (!on) actions.usedPlaylist(p.id)
+            }
+                .onFailure {
+                    held[p.id] = was
+                    actions.toaster.show(it.userMessage())
+                }
+        }
+    }
+
+    fun create() {
+        val name = newName.trim()
+        if (name.isEmpty()) return
+        creating = false
+        newName = ""
+        scope.launch {
+            val r = withContext(Dispatchers.IO) {
+                runCatching {
+                    val e = core.addTo(DropTarget(DropTargetKind.NEW_PLAYLIST, null), ids, null, false)
+                    e.editId?.let(edits::add)
+                    e.playlistId?.also { pid -> core.renamePlaylist(pid, name).editId?.let(edits::add) }
+                }
+            }
+            r.onSuccess { pid ->
+                haptics.perform(Haptic.Confirm)
+                val list = load()
+                // The new playlist first, ticked.
+                playlists = list.sortedByDescending { it.id == pid }
+                pid?.let {
+                    held[it] = n
+                    actions.usedPlaylist(it)
+                }
+            }.onFailure { actions.toaster.show(it.userMessage()) }
+        }
+    }
+
+    // What changed, once, as the sheet closes: "Added to Road trip", "Removed from Chill".
+    fun finish() {
+        val names = playlists.orEmpty().associate { it.id to it.name }
+        val added = held.filter { (id, k) -> k > (before[id] ?: 0) }.keys.mapNotNull { names[it] }
+        val removed = held.filter { (id, k) -> k < (before[id] ?: 0) }.keys.mapNotNull { names[it] }
+        onDone()
+        if (added.isEmpty() && removed.isEmpty()) return
+        fun words(verb: String, list: List<String>) = if (list.size == 1) "$verb ${list[0]}" else "$verb ${list.size} playlists"
+        val msg = listOfNotNull(
+            words("Added to", added).takeIf { added.isNotEmpty() },
+            words("Removed from", removed).takeIf { removed.isNotEmpty() },
+        ).joinToString(" · ")
+        val undo = edits.toList().reversed()
+        // Undo comes after the sheet has gone, so it runs here, not in the sheet's scope.
+        actions.toaster.show(msg) { undo.forEach { runCatching { core.undo(it) } } }
+    }
+
+    // Mock-up 47, board 2: the songs' covers on top, a search, the playlists added to lately
+    // as big cover tiles (New first), then every playlist with its cover. Saves on tap.
+    var find by remember { mutableStateOf("") }
+    val recentIds = remember(actions.playlistMemory) { actions.recentPlaylistIds() }
     ModalBottomSheet(
-        onDismissRequest = onDone,
+        onDismissRequest = { finish() },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = scheme.surfaceContainerLow,
     ) {
         Column(Modifier.navigationBarsPadding().padding(horizontal = (Grid.base * 2).dp)) {
-            Text(if (songs.size == 1) "Add “${songs[0].title}” to" else "Add ${songs.size} songs to", style = type.sheetTitle, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = Grid.base.dp))
-            Spacer(Modifier.height((Grid.base * 2).dp))
-            LazyColumn(
-                Modifier.heightIn(max = 420.dp).clip(RoundedCornerShape(SHEET_LIST_RADIUS_DP.dp)),
-                verticalArrangement = Arrangement.spacedBy(SHEET_ROW_GAP_DP.dp),
-            ) {
-                item {
-                    // Tapped, the row becomes the name's field, with the keyboard up.
-                    GroupRow(first = true, last = playlists.isEmpty(), onClick = if (creating) null else ({ creating = true })) {
-                        IconDisc(Icons.add())
-                        Spacer(Modifier.width((Grid.base * 2).dp))
-                        if (creating) {
-                            OutlinedTextField(
-                                newName,
-                                { newName = it },
-                                placeholder = { Text("Playlist name") },
-                                singleLine = true,
-                                modifier = Modifier.weight(1f).focusRequester(nameField),
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(SHEET_MOSAIC_DP.dp).clip(RoundedCornerShape(14.dp))) {
+                    uk.gcartee.encore.app.ui.library.MosaicFill(ids.take(4), Modifier.fillMaxSize())
+                }
+                Spacer(Modifier.width((Grid.base * 1.5f).dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        if (songs.size == 1) "Add “${songs[0].title}”" else "Add ${songs.size} songs",
+                        style = type.sheetTitle,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text("Tap a playlist. Tap again to take them out.", style = type.caption, color = scheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                // Nothing to save: Done only closes.
+                TextButton(onClick = { finish() }) { Text("Done") }
+            }
+            Spacer(Modifier.height((Grid.base * 1.5f).dp))
+            val list = playlists
+            if (list != null && list.size > FIND_FROM) {
+                androidx.compose.material3.TextField(
+                    find,
+                    { find = it },
+                    placeholder = { Text("Find a playlist") },
+                    leadingIcon = { Icon(Icons.search(), contentDescription = null) },
+                    trailingIcon = if (find.isEmpty()) null else ({ IconButton(onClick = { find = "" }) { Icon(Icons.close(), contentDescription = "Clear") } }),
+                    singleLine = true,
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    colors = androidx.compose.material3.TextFieldDefaults.colors(
+                        focusedContainerColor = scheme.surfaceContainerHigh,
+                        unfocusedContainerColor = scheme.surfaceContainerHigh,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height((Grid.base * 1.5f).dp))
+            }
+            if (list == null) {
+                Box(Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) { androidx.compose.material3.LoadingIndicator() }
+            } else {
+                val wanted = find.trim()
+                val shown = if (wanted.isEmpty()) list else list.filter { it.name.contains(wanted, ignoreCase = true) }
+                val recent = if (wanted.isEmpty()) recentIds.mapNotNull { id -> list.firstOrNull { it.id == id } }.take(RECENT_TILES) else emptyList()
+                LazyColumn(Modifier.heightIn(max = SHEET_LIST_MAX_DP.dp), verticalArrangement = Arrangement.spacedBy(SHEET_ROW_GAP_DP.dp)) {
+                    if (wanted.isEmpty() && recent.isNotEmpty()) {
+                        item(key = "recent-label") { SheetLabel("Recent") }
+                        // New first, then the recent playlists, three to a row.
+                        val tiles: List<PlaylistSummary?> = listOf(null) + recent
+                        tiles.chunked(TILE_COLUMNS).forEachIndexed { r, row ->
+                            item(key = "tiles-$r") {
+                                Row(horizontalArrangement = Arrangement.spacedBy(Grid.base.dp)) {
+                                    row.forEach { p ->
+                                        if (p == null) {
+                                            NewPlaylistTile(Modifier.weight(1f)) { creating = true }
+                                        } else {
+                                            PlaylistTile(p, held[p.id] ?: 0, n, Modifier.weight(1f)) { toggle(p) }
+                                        }
+                                    }
+                                    repeat(TILE_COLUMNS - row.size) { Spacer(Modifier.weight(1f)) }
+                                }
+                            }
+                        }
+                    } else if (wanted.isEmpty()) {
+                        item(key = "new") {
+                            GroupRow(first = true, last = true, onClick = if (creating) null else ({ creating = true })) {
+                                IconDisc(Icons.add())
+                                Spacer(Modifier.width((Grid.base * 2).dp))
+                                Text("New playlist", style = rowTitle)
+                            }
+                        }
+                    }
+                    if (creating) {
+                        item(key = "name") {
+                            // The name's field, with the keyboard up; the check (or Done) makes it.
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                OutlinedTextField(
+                                    newName,
+                                    { newName = it },
+                                    placeholder = { Text("Playlist name") },
+                                    singleLine = true,
+                                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Done),
+                                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { create() }),
+                                    modifier = Modifier.weight(1f).focusRequester(nameField),
+                                )
+                                Spacer(Modifier.width(Grid.base.dp))
+                                androidx.compose.material3.FilledIconButton(
+                                    onClick = { create() },
+                                    enabled = newName.isNotBlank(),
+                                    modifier = Modifier.size(48.dp),
+                                ) { Icon(Icons.check(), contentDescription = "Create playlist") }
+                                LaunchedEffect(Unit) { runCatching { nameField.requestFocus() } }
+                            }
+                        }
+                    }
+                    if (shown.isNotEmpty()) item(key = "all-label") { SheetLabel(if (wanted.isEmpty()) "All playlists" else "Playlists") }
+                    if (wanted.isNotEmpty() && shown.isEmpty()) {
+                        item(key = "none") { Text("No playlist called “$wanted”", style = type.body, color = scheme.onSurfaceVariant, modifier = Modifier.padding(Grid.base.dp)) }
+                    }
+                    itemsIndexed(shown, key = { _, p -> p.id }) { _, p ->
+                        val k = held[p.id] ?: 0
+                        val on = k == n
+                        val some = k in 1 until n
+                        val bg by androidx.compose.animation.animateColorAsState(if (on) scheme.secondaryContainer else Color.Transparent, label = "row")
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(SHEET_ROW_RADIUS_DP.dp))
+                                .background(bg)
+                                .toggleable(value = on, role = Role.Checkbox, onValueChange = { toggle(p) })
+                                .padding(horizontal = Grid.base.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            uk.gcartee.encore.app.ui.library.PlaylistCover(p.id, Modifier.size(SHEET_ROW_ART_DP.dp).clip(RoundedCornerShape(12.dp)))
+                            Spacer(Modifier.width((Grid.base * 1.5f).dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(p.name, style = rowTitle, maxLines = 1, overflow = TextOverflow.Ellipsis, color = if (on) scheme.onSecondaryContainer else scheme.onSurface)
+                                Text(holdingLine(k, n, p.songCount.toInt()), style = type.caption, color = if (on) scheme.onSecondaryContainer else scheme.onSurfaceVariant)
+                            }
+                            Spacer(Modifier.width(Grid.base.dp))
+                            androidx.compose.material3.TriStateCheckbox(
+                                state = when {
+                                    on -> androidx.compose.ui.state.ToggleableState.On
+                                    some -> androidx.compose.ui.state.ToggleableState.Indeterminate
+                                    else -> androidx.compose.ui.state.ToggleableState.Off
+                                },
+                                onClick = null,
                             )
-                            LaunchedEffect(Unit) { runCatching { nameField.requestFocus() } }
-                        } else {
-                            Text("New playlist", style = rowTitle)
                         }
                     }
                 }
-                itemsIndexed(playlists, key = { _, p -> p.id }) { i, p ->
-                    val on = p.id in ticked
-                    GroupRow(
-                        first = false,
-                        last = i == playlists.lastIndex,
-                        color = if (on) scheme.secondaryContainer else scheme.surfaceContainerHigh,
-                        contentColor = if (on) scheme.onSecondaryContainer else scheme.onSurface,
-                        role = Role.Checkbox,
-                        onClick = { if (on) ticked.remove(p.id) else ticked.add(p.id) },
-                    ) {
-                        IconDisc(Icons.queue())
-                        Spacer(Modifier.width((Grid.base * 2).dp))
-                        Text(p.name, style = rowTitle, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                        Spacer(Modifier.width(Grid.base.dp))
-                        Checkbox(checked = on, onCheckedChange = null)
-                    }
-                }
             }
-            Row(Modifier.fillMaxWidth().padding(vertical = (Grid.base * 2).dp)) {
-                TextButton(onClick = onDone) { Text("Cancel") }
-                Spacer(Modifier.weight(1f))
-                Button(
-                    enabled = ticked.isNotEmpty() || (creating && newName.isNotBlank()),
-                    onClick = {
-                        val ids = songs.map { it.id }
-                        val edits = mutableListOf<String>()
-                        var added = 0u
-                        var already = 0u
-                        val failure = runCatching {
-                            ticked.forEach { pid ->
-                                val r = core.addTo(DropTarget(DropTargetKind.PLAYLIST, pid), ids, null, false)
-                                r.editId?.let(edits::add)
-                                added += r.added
-                                already += r.alreadyThere
-                            }
-                            if (creating && newName.isNotBlank()) {
-                                val r = core.addTo(DropTarget(DropTargetKind.NEW_PLAYLIST, null), ids, null, false)
-                                r.editId?.let(edits::add)
-                                added += r.added
-                                r.playlistId?.let { core.renamePlaylist(it, newName.trim()) }
-                            }
-                        }.exceptionOrNull()
-                        onDone()
-                        if (failure != null) {
-                            actions.toaster.show(failure.userMessage())
-                        } else {
-                            // The toast of section 26: "Added {added} · {already_there} already there".
-                            val msg = if (already > 0u) "Added $added · $already already there" else "Added $added"
-                            actions.toaster.show(msg) { edits.reversed().forEach { runCatching { core.undo(it) } } }
-                        }
-                    },
-                ) { Text("Done") }
-            }
+            Spacer(Modifier.height((Grid.base * 2).dp))
         }
     }
 }
+
+/** "All 4 already here", "1 of 4 already here", or the playlist's size. */
+private fun holdingLine(k: Int, n: Int, size: Int): String = when {
+    k == n && n > 1 -> "All $n already here"
+    k == n -> "Added"
+    k > 0 -> "$k of $n already here"
+    size == 1 -> "1 song"
+    else -> "$size songs"
+}
+
+@Composable
+private fun SheetLabel(text: String) {
+    Text(
+        text,
+        style = LocalEncoreType.current.groupLabel,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = 4.dp, top = Grid.base.dp, bottom = 2.dp),
+    )
+}
+
+/** A recent playlist as a cover tile; a tick badge when every song is in it, a dash when some are. */
+@Composable
+private fun PlaylistTile(p: PlaylistSummary, k: Int, n: Int, modifier: Modifier, onClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val type = LocalEncoreType.current
+    val on = k == n
+    val some = k in 1 until n
+    val pop by androidx.compose.animation.core.animateFloatAsState(
+        if (on || some) 1f else 0f,
+        androidx.compose.animation.core.spring(dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy, stiffness = androidx.compose.animation.core.Spring.StiffnessMedium),
+        label = "badge",
+    )
+    Column(
+        modifier
+            .clip(RoundedCornerShape(TILE_RADIUS_DP.dp))
+            .toggleable(value = on, role = Role.Checkbox, onValueChange = { onClick() })
+            .padding(4.dp),
+    ) {
+        Box(Modifier.fillMaxWidth().aspectRatio(1f)) {
+            uk.gcartee.encore.app.ui.library.PlaylistCover(p.id, Modifier.fillMaxSize().clip(RoundedCornerShape(TILE_RADIUS_DP.dp)))
+            if (pop > 0.01f) {
+                Box(
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(6.dp)
+                        .size(SHEET_BADGE_DP.dp)
+                        .graphicsLayer { scaleX = pop; scaleY = pop }
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (on) scheme.primary else scheme.primaryContainer),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (on) {
+                        Icon(Icons.check(), contentDescription = null, tint = scheme.onPrimary, modifier = Modifier.size(18.dp))
+                    } else {
+                        Box(Modifier.size(width = 12.dp, height = 3.dp).clip(RoundedCornerShape(2.dp)).background(scheme.onPrimaryContainer))
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(p.name, style = type.listRowTitle.copy(fontSize = 14.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(holdingLine(k, n, p.songCount.toInt()), style = type.caption, color = scheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** The New tile: the theme's soft colour with a plus, first among the recent playlists. */
+@Composable
+private fun NewPlaylistTile(modifier: Modifier, onClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Column(modifier.clip(RoundedCornerShape(TILE_RADIUS_DP.dp)).clickable(onClick = onClick).padding(4.dp)) {
+        Box(
+            Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(TILE_RADIUS_DP.dp)).background(scheme.primaryContainer),
+            contentAlignment = Alignment.Center,
+        ) { Icon(Icons.add(), contentDescription = null, tint = scheme.onPrimaryContainer, modifier = Modifier.size(32.dp)) }
+        Spacer(Modifier.height(6.dp))
+        Text("New playlist", style = LocalEncoreType.current.listRowTitle.copy(fontSize = 14.sp), maxLines = 1)
+    }
+}
+
+private const val SHEET_MOSAIC_DP = 52
+private const val FIND_FROM = 4
+private const val RECENT_TILES = 5
+private const val TILE_COLUMNS = 3
+private const val SHEET_BADGE_DP = 28
+private const val SHEET_LIST_MAX_DP = 520
+private const val SHEET_ROW_ART_DP = 44
+private const val SHEET_ROW_RADIUS_DP = 16
 
 /** Board 38: one or two reasons in plain words, and the songs it sounds like. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -565,7 +933,8 @@ fun WhyThisSongSheet(song: Song, onDone: () -> Unit) {
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(SHEET_ROW_GAP_DP.dp)) {
                     like.forEachIndexed { i, s ->
-                        GroupRow(first = i == 0, last = i == like.lastIndex) {
+                        // Mock-up 44, board 4: a tap opens the song's album.
+                        GroupRow(first = i == 0, last = i == like.lastIndex, onClick = s.albumId?.let { { onDone(); actions.goToAlbum(s) } }) {
                             Artwork(uk.gcartee.encore.core.ArtworkOf.SONG, s.id, LIKE_ART_DP.dp, Modifier.size(LIKE_ART_DP.dp), cornerRadius = LIKE_ART_RADIUS_DP.dp)
                             Spacer(Modifier.width((Grid.base * 2).dp))
                             Column(Modifier.weight(1f)) {
@@ -612,3 +981,5 @@ fun describe(r: PickReason): String = when (r.kind) {
         else -> "It fits what you've been playing"
     }
 }
+
+private const val RECENT_PLAYLISTS = 6

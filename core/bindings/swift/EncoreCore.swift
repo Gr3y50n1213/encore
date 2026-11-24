@@ -943,6 +943,12 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     func currentProfile()  -> String?
     
     /**
+     * Delete a playlist, here at once and on the media server as soon as it can be
+     * reached. No Undo: ask first.
+     */
+    func deletePlaylist(playlistId: Int64) throws  -> EditResult
+    
+    /**
      * Board 19's "Delete profile and its data", for the open profile: its
      * history, likes, playlists made here, settings and tokens, on the companion
      * server (every device signed in to it stops syncing) and on this device. The
@@ -1300,6 +1306,47 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     func unlike(songIds: [Int64]) throws  -> EditResult
     
     /**
+     * Forget every analysis (Settings > Sound analysis > Delete). Returns how many songs.
+     */
+    func deleteSoundAnalysis() throws  -> UInt32
+    
+    /**
+     * Try the songs that could not be read again. Returns how many are waiting again.
+     */
+    func retryUnreadableSounds() throws  -> UInt32
+    
+    /**
+     * Analyse what waits, one song at a time, until done or blocked (off, no model, Wi-Fi only,
+     * charging only, battery saver, heat, offline, a failing server, sign-in). `network` and
+     * `power` are what the device is like now. Call it from the platform's background job;
+     * `stop_sound_analysis` ends it, keeping what was made. Async.
+     */
+    func runSoundAnalysis(network: Network, power: PowerState) async throws  -> SoundRun
+    
+    /**
+     * Give the core the sound model (`yamnet-v1.bin`, shipped with the app) by path. Call it once
+     * at start; analysis does nothing without it.
+     */
+    func setSoundModel(path: String) throws 
+    
+    func setSoundSettings(settings: SoundSettings) throws 
+    
+    /**
+     * Settings > Sound analysis (off until the person turns it on).
+     */
+    func soundSettings() throws  -> SoundSettings
+    
+    /**
+     * How far the library is analysed, with an estimate of the rest.
+     */
+    func soundStatus() throws  -> SoundStatus
+    
+    /**
+     * End the run in progress after the song it is on.
+     */
+    func stopSoundAnalysis() 
+    
+    /**
      * Keep a song, album, playlist or mix on this device (board 13, item 3;
      * board 08). Its songs wait for `run_downloads`. Liked songs and Smart
      * downloads are turned on in `set_download_settings`.
@@ -1576,6 +1623,13 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     func mix(mixId: String) throws  -> MixPage
     
     /**
+     * Browse by mood (board 07; Phase 10): the moods this library has, from what its songs sound
+     * like, each with at least 25 songs, in a fixed order. Empty until enough songs are analysed
+     * (sound analysis is off until the person turns it on). Open one with `mix(mix_id)`.
+     */
+    func moods() throws  -> [MoodTile]
+    
+    /**
      * More like this (+1.5 for the song and its neighbours here; not a like) or
      * Fewer like this (-1). Show a one-line confirmation.
      */
@@ -1661,6 +1715,15 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
      * How suggestions are doing (board 38, note 7): local, the last 4 weeks.
      */
     func suggestionStats() throws  -> SuggestionStats
+    
+    /**
+     * Train this profile's learned ranker if it is due (docs/adr/core-0020): with a companion
+     * server, the server trains it from every device's plays and this device keeps a copy;
+     * without one, it trains here. Call it from the platform's background job (while charging).
+     * Nothing happens for Guest or with learning off, or below a few hundred plays. Returns
+     * whether a new one was saved. Async.
+     */
+    func trainRankerIfDue() async throws  -> Bool
     
     /**
      * Why this song (board 38): one or two reasons and up to two "sounds like".
@@ -2098,6 +2161,20 @@ open func currentProfile() -> String?  {
         uniffiCallStatus in
     uniffi_encore_core_fn_method_encorecore_current_profile(
             self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Delete a playlist, here at once and on the media server as soon as it can be
+     * reached. No Undo: ask first.
+     */
+open func deletePlaylist(playlistId: Int64)throws  -> EditResult  {
+    return try  FfiConverterTypeEditResult_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_delete_playlist(
+            self.uniffiCloneHandle(),
+        FfiConverterInt64.lower(playlistId),uniffiCallStatus
     )
 })
 }
@@ -3105,6 +3182,109 @@ open func unlike(songIds: [Int64])throws  -> EditResult  {
 }
     
     /**
+     * Forget every analysis (Settings > Sound analysis > Delete). Returns how many songs.
+     */
+open func deleteSoundAnalysis()throws  -> UInt32  {
+    return try  FfiConverterUInt32.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_delete_sound_analysis(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Try the songs that could not be read again. Returns how many are waiting again.
+     */
+open func retryUnreadableSounds()throws  -> UInt32  {
+    return try  FfiConverterUInt32.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_retry_unreadable_sounds(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Analyse what waits, one song at a time, until done or blocked (off, no model, Wi-Fi only,
+     * charging only, battery saver, heat, offline, a failing server, sign-in). `network` and
+     * `power` are what the device is like now. Call it from the platform's background job;
+     * `stop_sound_analysis` ends it, keeping what was made. Async.
+     */
+open func runSoundAnalysis(network: Network, power: PowerState)async throws  -> SoundRun  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_run_sound_analysis(
+                        self.uniffiCloneHandle(),FfiConverterTypeNetwork_lower(network),FfiConverterTypePowerState_lower(power)
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_rust_buffer,
+            completeFunc: ffi_encore_core_rust_future_complete_rust_buffer,
+            freeFunc: ffi_encore_core_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterTypeSoundRun_lift,
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
+}
+    
+    /**
+     * Give the core the sound model (`yamnet-v1.bin`, shipped with the app) by path. Call it once
+     * at start; analysis does nothing without it.
+     */
+open func setSoundModel(path: String)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_set_sound_model(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(path),uniffiCallStatus
+    )
+}
+}
+    
+open func setSoundSettings(settings: SoundSettings)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_set_sound_settings(
+            self.uniffiCloneHandle(),
+        FfiConverterTypeSoundSettings_lower(settings),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * Settings > Sound analysis (off until the person turns it on).
+     */
+open func soundSettings()throws  -> SoundSettings  {
+    return try  FfiConverterTypeSoundSettings_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_sound_settings(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * How far the library is analysed, with an estimate of the rest.
+     */
+open func soundStatus()throws  -> SoundStatus  {
+    return try  FfiConverterTypeSoundStatus_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_sound_status(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * End the run in progress after the song it is on.
+     */
+open func stopSoundAnalysis()  {try! rustCall() {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_stop_sound_analysis(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+}
+}
+    
+    /**
      * Keep a song, album, playlist or mix on this device (board 13, item 3;
      * board 08). Its songs wait for `run_downloads`. Liked songs and Smart
      * downloads are turned on in `set_download_settings`.
@@ -3781,6 +3961,20 @@ open func mix(mixId: String)throws  -> MixPage  {
 }
     
     /**
+     * Browse by mood (board 07; Phase 10): the moods this library has, from what its songs sound
+     * like, each with at least 25 songs, in a fixed order. Empty until enough songs are analysed
+     * (sound analysis is off until the person turns it on). Open one with `mix(mix_id)`.
+     */
+open func moods()throws  -> [MoodTile]  {
+    return try  FfiConverterSequenceTypeMoodTile.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_moods(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
      * More like this (+1.5 for the song and its neighbours here; not a like) or
      * Fewer like this (-1). Show a one-line confirmation.
      */
@@ -3988,6 +4182,29 @@ open func suggestionStats()throws  -> SuggestionStats  {
             self.uniffiCloneHandle(),uniffiCallStatus
     )
 })
+}
+    
+    /**
+     * Train this profile's learned ranker if it is due (docs/adr/core-0020): with a companion
+     * server, the server trains it from every device's plays and this device keeps a copy;
+     * without one, it trains here. Call it from the platform's background job (while charging).
+     * Nothing happens for Guest or with learning off, or below a few hundred plays. Returns
+     * whether a new one was saved. Async.
+     */
+open func trainRankerIfDue()async throws  -> Bool  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_train_ranker_if_due(
+                        self.uniffiCloneHandle()
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_i8,
+            completeFunc: ffi_encore_core_rust_future_complete_i8,
+            freeFunc: ffi_encore_core_rust_future_free_i8,
+            liftFunc: FfiConverterBool.lift,
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
 }
     
     /**
@@ -4812,6 +5029,10 @@ public struct CoreEvent: Equatable, Hashable {
      * Phase 9, WP1: `SleepTimerChanged`'s timer (None: no timer now).
      */
     public var sleepTimer: SleepTimer?
+    /**
+     * Phase 10: `SoundAnalysisChanged`'s status.
+     */
+    public var sound: SoundStatus?
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
@@ -4821,7 +5042,10 @@ public struct CoreEvent: Equatable, Hashable {
          */widgetProfileId: String?, 
         /**
          * Phase 9, WP1: `SleepTimerChanged`'s timer (None: no timer now).
-         */sleepTimer: SleepTimer?) {
+         */sleepTimer: SleepTimer?, 
+        /**
+         * Phase 10: `SoundAnalysisChanged`'s status.
+         */sound: SoundStatus?) {
         self.kind = kind
         self.queue = queue
         self.nowPlaying = nowPlaying
@@ -4839,6 +5063,7 @@ public struct CoreEvent: Equatable, Hashable {
         self.download = download
         self.widgetProfileId = widgetProfileId
         self.sleepTimer = sleepTimer
+        self.sound = sound
     }
 
     
@@ -4873,7 +5098,8 @@ public struct FfiConverterTypeCoreEvent: FfiConverterRustBuffer {
                 remoteCommand: FfiConverterOptionTypeRemoteCommand.read(from: &buf), 
                 download: FfiConverterOptionTypeDownloadProgress.read(from: &buf), 
                 widgetProfileId: FfiConverterOptionString.read(from: &buf), 
-                sleepTimer: FfiConverterOptionTypeSleepTimer.read(from: &buf)
+                sleepTimer: FfiConverterOptionTypeSleepTimer.read(from: &buf), 
+                sound: FfiConverterOptionTypeSoundStatus.read(from: &buf)
         )
     }
 
@@ -4895,6 +5121,7 @@ public struct FfiConverterTypeCoreEvent: FfiConverterRustBuffer {
         FfiConverterOptionTypeDownloadProgress.write(value.download, into: &buf)
         FfiConverterOptionString.write(value.widgetProfileId, into: &buf)
         FfiConverterOptionTypeSleepTimer.write(value.sleepTimer, into: &buf)
+        FfiConverterOptionTypeSoundStatus.write(value.sound, into: &buf)
     }
 }
 
@@ -7064,6 +7291,86 @@ public func FfiConverterTypeMixSummary_lower(_ value: MixSummary) -> RustBuffer 
 
 
 /**
+ * A tile of Browse by mood (board 07; Phase 10): a mood this library has, from what its songs
+ * sound like. Open it with `mix(mix_id)`.
+ */
+public struct MoodTile: Equatable, Hashable {
+    /**
+     * `mood-<id>`, the same every day.
+     */
+    public var mixId: String
+    /**
+     * 2 to 4 plain words tied to what is measured ("Calm and Warm").
+     */
+    public var title: String
+    /**
+     * The library's songs in this mood (at least 25).
+     */
+    public var songCount: UInt32
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * `mood-<id>`, the same every day.
+         */mixId: String, 
+        /**
+         * 2 to 4 plain words tied to what is measured ("Calm and Warm").
+         */title: String, 
+        /**
+         * The library's songs in this mood (at least 25).
+         */songCount: UInt32) {
+        self.mixId = mixId
+        self.title = title
+        self.songCount = songCount
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension MoodTile: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeMoodTile: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> MoodTile {
+        return
+            try MoodTile(
+                mixId: FfiConverterString.read(from: &buf), 
+                title: FfiConverterString.read(from: &buf), 
+                songCount: FfiConverterUInt32.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: MoodTile, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.mixId, into: &buf)
+        FfiConverterString.write(value.title, into: &buf)
+        FfiConverterUInt32.write(value.songCount, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMoodTile_lift(_ buf: RustBuffer) throws -> MoodTile {
+    return try FfiConverterTypeMoodTile.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMoodTile_lower(_ value: MoodTile) -> RustBuffer {
+    return FfiConverterTypeMoodTile.lower(value)
+}
+
+
+/**
  * One entry of Settings, Not interested.
  */
 public struct NotInterestedItem: Equatable, Hashable {
@@ -7645,6 +7952,79 @@ public func FfiConverterTypePlaylistSummary_lift(_ buf: RustBuffer) throws -> Pl
 #endif
 public func FfiConverterTypePlaylistSummary_lower(_ value: PlaylistSummary) -> RustBuffer {
     return FfiConverterTypePlaylistSummary.lower(value)
+}
+
+
+/**
+ * What the platform knows about power, handed to `run_sound_analysis` each time it starts the job.
+ */
+public struct PowerState: Equatable, Hashable {
+    public var charging: Bool
+    /**
+     * Battery saver (or the OS's equivalent) is on.
+     */
+    public var batterySaver: Bool
+    /**
+     * The device reports a high temperature.
+     */
+    public var hot: Bool
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(charging: Bool, 
+        /**
+         * Battery saver (or the OS's equivalent) is on.
+         */batterySaver: Bool, 
+        /**
+         * The device reports a high temperature.
+         */hot: Bool) {
+        self.charging = charging
+        self.batterySaver = batterySaver
+        self.hot = hot
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension PowerState: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypePowerState: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> PowerState {
+        return
+            try PowerState(
+                charging: FfiConverterBool.read(from: &buf), 
+                batterySaver: FfiConverterBool.read(from: &buf), 
+                hot: FfiConverterBool.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: PowerState, into buf: inout [UInt8]) {
+        FfiConverterBool.write(value.charging, into: &buf)
+        FfiConverterBool.write(value.batterySaver, into: &buf)
+        FfiConverterBool.write(value.hot, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypePowerState_lift(_ buf: RustBuffer) throws -> PowerState {
+    return try FfiConverterTypePowerState.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypePowerState_lower(_ value: PowerState) -> RustBuffer {
+    return FfiConverterTypePowerState.lower(value)
 }
 
 
@@ -9408,6 +9788,279 @@ public func FfiConverterTypeSongLyrics_lift(_ buf: RustBuffer) throws -> SongLyr
 #endif
 public func FfiConverterTypeSongLyrics_lower(_ value: SongLyrics) -> RustBuffer {
     return FfiConverterTypeSongLyrics.lower(value)
+}
+
+
+/**
+ * What one `run_sound_analysis` did.
+ */
+public struct SoundRun: Equatable, Hashable {
+    public var analysed: UInt32
+    /**
+     * Songs whose audio could not be read (an unsupported format, a damaged file).
+     */
+    public var unreadable: UInt32
+    /**
+     * Still to analyse.
+     */
+    public var remaining: UInt32
+    public var stop: SoundStop
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(analysed: UInt32, 
+        /**
+         * Songs whose audio could not be read (an unsupported format, a damaged file).
+         */unreadable: UInt32, 
+        /**
+         * Still to analyse.
+         */remaining: UInt32, stop: SoundStop) {
+        self.analysed = analysed
+        self.unreadable = unreadable
+        self.remaining = remaining
+        self.stop = stop
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension SoundRun: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSoundRun: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SoundRun {
+        return
+            try SoundRun(
+                analysed: FfiConverterUInt32.read(from: &buf), 
+                unreadable: FfiConverterUInt32.read(from: &buf), 
+                remaining: FfiConverterUInt32.read(from: &buf), 
+                stop: FfiConverterTypeSoundStop.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: SoundRun, into buf: inout [UInt8]) {
+        FfiConverterUInt32.write(value.analysed, into: &buf)
+        FfiConverterUInt32.write(value.unreadable, into: &buf)
+        FfiConverterUInt32.write(value.remaining, into: &buf)
+        FfiConverterTypeSoundStop.write(value.stop, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSoundRun_lift(_ buf: RustBuffer) throws -> SoundRun {
+    return try FfiConverterTypeSoundRun.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSoundRun_lower(_ value: SoundRun) -> RustBuffer {
+    return FfiConverterTypeSoundRun.lower(value)
+}
+
+
+/**
+ * Settings > Sound analysis (docs/adr/core-0019). Off until the person turns it on.
+ */
+public struct SoundSettings: Equatable, Hashable {
+    /**
+     * Whether songs are analysed at all.
+     */
+    public var enabled: Bool
+    /**
+     * Only on an unmetered network (Wi-Fi). On by default.
+     */
+    public var wifiOnly: Bool
+    /**
+     * Only while the device is charging. On by default.
+     */
+    public var chargingOnly: Bool
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * Whether songs are analysed at all.
+         */enabled: Bool, 
+        /**
+         * Only on an unmetered network (Wi-Fi). On by default.
+         */wifiOnly: Bool, 
+        /**
+         * Only while the device is charging. On by default.
+         */chargingOnly: Bool) {
+        self.enabled = enabled
+        self.wifiOnly = wifiOnly
+        self.chargingOnly = chargingOnly
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension SoundSettings: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSoundSettings: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SoundSettings {
+        return
+            try SoundSettings(
+                enabled: FfiConverterBool.read(from: &buf), 
+                wifiOnly: FfiConverterBool.read(from: &buf), 
+                chargingOnly: FfiConverterBool.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: SoundSettings, into buf: inout [UInt8]) {
+        FfiConverterBool.write(value.enabled, into: &buf)
+        FfiConverterBool.write(value.wifiOnly, into: &buf)
+        FfiConverterBool.write(value.chargingOnly, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSoundSettings_lift(_ buf: RustBuffer) throws -> SoundSettings {
+    return try FfiConverterTypeSoundSettings.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSoundSettings_lower(_ value: SoundSettings) -> RustBuffer {
+    return FfiConverterTypeSoundSettings.lower(value)
+}
+
+
+/**
+ * How far the library is analysed, for Settings > Sound analysis and Home's card.
+ */
+public struct SoundStatus: Equatable, Hashable {
+    public var settings: SoundSettings
+    /**
+     * Songs in the library, analysed, and unreadable.
+     */
+    public var songs: UInt32
+    public var analysed: UInt32
+    public var unavailable: UInt32
+    /**
+     * A run is going now.
+     */
+    public var running: Bool
+    /**
+     * The platform has given the core the sound model.
+     */
+    public var modelLoaded: Bool
+    /**
+     * About how much data the rest will fetch and how long it will take, from what this device
+     * has measured so far (or a starting value before that).
+     */
+    public var bytesEstimate: UInt64
+    public var minutesEstimate: UInt32
+    /**
+     * Why the last run stopped, while songs still wait.
+     */
+    public var lastStop: SoundStop?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(settings: SoundSettings, 
+        /**
+         * Songs in the library, analysed, and unreadable.
+         */songs: UInt32, analysed: UInt32, unavailable: UInt32, 
+        /**
+         * A run is going now.
+         */running: Bool, 
+        /**
+         * The platform has given the core the sound model.
+         */modelLoaded: Bool, 
+        /**
+         * About how much data the rest will fetch and how long it will take, from what this device
+         * has measured so far (or a starting value before that).
+         */bytesEstimate: UInt64, minutesEstimate: UInt32, 
+        /**
+         * Why the last run stopped, while songs still wait.
+         */lastStop: SoundStop?) {
+        self.settings = settings
+        self.songs = songs
+        self.analysed = analysed
+        self.unavailable = unavailable
+        self.running = running
+        self.modelLoaded = modelLoaded
+        self.bytesEstimate = bytesEstimate
+        self.minutesEstimate = minutesEstimate
+        self.lastStop = lastStop
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension SoundStatus: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSoundStatus: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SoundStatus {
+        return
+            try SoundStatus(
+                settings: FfiConverterTypeSoundSettings.read(from: &buf), 
+                songs: FfiConverterUInt32.read(from: &buf), 
+                analysed: FfiConverterUInt32.read(from: &buf), 
+                unavailable: FfiConverterUInt32.read(from: &buf), 
+                running: FfiConverterBool.read(from: &buf), 
+                modelLoaded: FfiConverterBool.read(from: &buf), 
+                bytesEstimate: FfiConverterUInt64.read(from: &buf), 
+                minutesEstimate: FfiConverterUInt32.read(from: &buf), 
+                lastStop: FfiConverterOptionTypeSoundStop.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: SoundStatus, into buf: inout [UInt8]) {
+        FfiConverterTypeSoundSettings.write(value.settings, into: &buf)
+        FfiConverterUInt32.write(value.songs, into: &buf)
+        FfiConverterUInt32.write(value.analysed, into: &buf)
+        FfiConverterUInt32.write(value.unavailable, into: &buf)
+        FfiConverterBool.write(value.running, into: &buf)
+        FfiConverterBool.write(value.modelLoaded, into: &buf)
+        FfiConverterUInt64.write(value.bytesEstimate, into: &buf)
+        FfiConverterUInt32.write(value.minutesEstimate, into: &buf)
+        FfiConverterOptionTypeSoundStop.write(value.lastStop, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSoundStatus_lift(_ buf: RustBuffer) throws -> SoundStatus {
+    return try FfiConverterTypeSoundStatus.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSoundStatus_lower(_ value: SoundStatus) -> RustBuffer {
+    return FfiConverterTypeSoundStatus.lower(value)
 }
 
 
@@ -11971,6 +12624,10 @@ public enum EventKind: Equatable, Hashable {
      * device), or a song or album timer's stop point moved with the queue.
      */
     case sleepTimerChanged
+    /**
+     * `sound` is set: sound analysis made progress, started, stopped, or its settings changed.
+     */
+    case soundAnalysisChanged
 
 
 
@@ -12027,6 +12684,8 @@ public struct FfiConverterTypeEventKind: FfiConverterRustBuffer {
         case 17: return .widgetSnapshotChanged
         
         case 18: return .sleepTimerChanged
+        
+        case 19: return .soundAnalysisChanged
         
         default: throw UniffiInternalError.unexpectedEnumCase
         }
@@ -12106,6 +12765,10 @@ public struct FfiConverterTypeEventKind: FfiConverterRustBuffer {
         
         case .sleepTimerChanged:
             writeInt(&buf, Int32(18))
+        
+        
+        case .soundAnalysisChanged:
+            writeInt(&buf, Int32(19))
         
         }
     }
@@ -12651,6 +13314,10 @@ public enum MixKind: Equatable, Hashable {
      * No plays yet: from the media server's favourites and most played.
      */
     case starter
+    /**
+     * Browse by mood: a mood from what songs sound like (Phase 10).
+     */
+    case mood
 
 
 
@@ -12686,6 +13353,8 @@ public struct FfiConverterTypeMixKind: FfiConverterRustBuffer {
         
         case 7: return .starter
         
+        case 8: return .mood
+        
         default: throw UniffiInternalError.unexpectedEnumCase
         }
     }
@@ -12720,6 +13389,10 @@ public struct FfiConverterTypeMixKind: FfiConverterRustBuffer {
         
         case .starter:
             writeInt(&buf, Int32(7))
+        
+        
+        case .mood:
+            writeInt(&buf, Int32(8))
         
         }
     }
@@ -14272,6 +14945,181 @@ public func FfiConverterTypeSongSort_lower(_ value: SongSort) -> RustBuffer {
 
 
 
+/**
+ * Why a `run_sound_analysis` ended.
+ */
+
+public enum SoundStop: Equatable, Hashable {
+    
+    /**
+     * Every song is analysed (or unreadable).
+     */
+    case done
+    /**
+     * `stop_sound_analysis` was called; it carries on next time where it was.
+     */
+    case stopped
+    /**
+     * Another run is going; this one did nothing.
+     */
+    case alreadyRunning
+    /**
+     * Sound analysis is switched off in the settings.
+     */
+    case notEnabled
+    /**
+     * The platform has not given the core the sound model (`set_sound_model`).
+     */
+    case noModel
+    /**
+     * "Only on Wi-Fi" is on and the network is cellular.
+     */
+    case waitingForWifi
+    /**
+     * "Only while charging" is on and the device is not charging.
+     */
+    case waitingForPower
+    /**
+     * Battery saver is on or the device is hot: it waits.
+     */
+    case paused
+    /**
+     * The device has no connection.
+     */
+    case offline
+    /**
+     * The media server failed too often in a row (it may be busy): try later.
+     */
+    case serverBusy
+    /**
+     * The media server's sign-in ended; sign in again.
+     */
+    case signInNeeded
+    /**
+     * No profile is open (or it is a Guest).
+     */
+    case noProfile
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension SoundStop: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSoundStop: FfiConverterRustBuffer {
+    typealias SwiftType = SoundStop
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SoundStop {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .done
+        
+        case 2: return .stopped
+        
+        case 3: return .alreadyRunning
+        
+        case 4: return .notEnabled
+        
+        case 5: return .noModel
+        
+        case 6: return .waitingForWifi
+        
+        case 7: return .waitingForPower
+        
+        case 8: return .paused
+        
+        case 9: return .offline
+        
+        case 10: return .serverBusy
+        
+        case 11: return .signInNeeded
+        
+        case 12: return .noProfile
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: SoundStop, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .done:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .stopped:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .alreadyRunning:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .notEnabled:
+            writeInt(&buf, Int32(4))
+        
+        
+        case .noModel:
+            writeInt(&buf, Int32(5))
+        
+        
+        case .waitingForWifi:
+            writeInt(&buf, Int32(6))
+        
+        
+        case .waitingForPower:
+            writeInt(&buf, Int32(7))
+        
+        
+        case .paused:
+            writeInt(&buf, Int32(8))
+        
+        
+        case .offline:
+            writeInt(&buf, Int32(9))
+        
+        
+        case .serverBusy:
+            writeInt(&buf, Int32(10))
+        
+        
+        case .signInNeeded:
+            writeInt(&buf, Int32(11))
+        
+        
+        case .noProfile:
+            writeInt(&buf, Int32(12))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSoundStop_lift(_ buf: RustBuffer) throws -> SoundStop {
+    return try FfiConverterTypeSoundStop.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSoundStop_lower(_ value: SoundStop) -> RustBuffer {
+    return FfiConverterTypeSoundStop.lower(value)
+}
+
+
+
 
 public enum StartedFrom: Equatable, Hashable {
     
@@ -15427,6 +16275,30 @@ fileprivate struct FfiConverterOptionTypeSongLyrics: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterOptionTypeSoundStatus: FfiConverterRustBuffer {
+    typealias SwiftType = SoundStatus?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeSoundStatus.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeSoundStatus.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterOptionTypeSourceToken: FfiConverterRustBuffer {
     typealias SwiftType = SourceToken?
 
@@ -15611,6 +16483,30 @@ fileprivate struct FfiConverterOptionTypeDropRefusal: FfiConverterRustBuffer {
         switch try readInt(&buf) as Int8 {
         case 0: return nil
         case 1: return try FfiConverterTypeDropRefusal.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeSoundStop: FfiConverterRustBuffer {
+    typealias SwiftType = SoundStop?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeSoundStop.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeSoundStop.read(from: &buf)
         default: throw UniffiInternalError.unexpectedOptionalTag
         }
     }
@@ -16085,6 +16981,31 @@ fileprivate struct FfiConverterSequenceTypeMixSummary: FfiConverterRustBuffer {
         seq.reserveCapacity(Int(len))
         for _ in 0 ..< len {
             seq.append(try FfiConverterTypeMixSummary.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeMoodTile: FfiConverterRustBuffer {
+    typealias SwiftType = [MoodTile]
+
+    public static func write(_ value: [MoodTile], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeMoodTile.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [MoodTile] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [MoodTile]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeMoodTile.read(from: &buf))
         }
         return seq
     }
@@ -16682,6 +17603,9 @@ private let initializationResult: InitializationResult = {
     if (uniffi_encore_core_checksum_method_encorecore_current_profile() != 14260) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_encore_core_checksum_method_encorecore_delete_playlist() != 33900) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_encore_core_checksum_method_encorecore_delete_profile_everywhere() != 47212) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -16892,6 +17816,30 @@ private let initializationResult: InitializationResult = {
     if (uniffi_encore_core_checksum_method_encorecore_unlike() != 42881) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_encore_core_checksum_method_encorecore_delete_sound_analysis() != 32312) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_retry_unreadable_sounds() != 45111) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_run_sound_analysis() != 50394) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_set_sound_model() != 15935) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_set_sound_settings() != 30144) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_sound_settings() != 5764) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_sound_status() != 57063) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_stop_sound_analysis() != 32107) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_encore_core_checksum_method_encorecore_download() != 30141) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -17036,6 +17984,9 @@ private let initializationResult: InitializationResult = {
     if (uniffi_encore_core_checksum_method_encorecore_mix() != 9008) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_encore_core_checksum_method_encorecore_moods() != 6881) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_encore_core_checksum_method_encorecore_more_like_this() != 23956) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -17079,6 +18030,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_suggestion_stats() != 33503) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_train_ranker_if_due() != 30378) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_why_this_song() != 5198) {

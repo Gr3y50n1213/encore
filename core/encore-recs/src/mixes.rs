@@ -37,6 +37,8 @@ pub enum MixSlot {
     Family,
     /// 0 plays: from the media server's favourites and most played.
     Starter,
+    /// A mood from what songs sound like (Browse by mood; Phase 10).
+    Mood,
 }
 
 impl MixSlot {
@@ -49,6 +51,7 @@ impl MixSlot {
             MixSlot::Stretch => "stretch",
             MixSlot::Family => "family",
             MixSlot::Starter => "starter",
+            MixSlot::Mood => "mood",
         }
     }
 }
@@ -360,6 +363,94 @@ fn picks(model: &Model, cat: &Catalog, songs: &[usize], new_to_you: &HashSet<usi
         .collect()
 }
 
+/// A mix for one mood of Browse by mood (Phase 10; `moods.rs`): the mood's songs this person is
+/// likely to enjoy, best first, with the same caps as the daily mixes (per artist and album, the
+/// most-played share, Not interested, songs they keep skipping), in flow order. Its id is
+/// `mood-<mood id>`, the same every day, so a pin or a download keeps finding it. None when the
+/// library doesn't have the mood (yet) or too few of its songs pass the caps.
+pub fn build_mood_mix(model: &Model, cat: &Catalog, p: &Params, mood_id: &str) -> Option<Mix> {
+    let mood = crate::moods::mood(cat, mood_id)?;
+    let mut ranked = mood.songs.clone();
+    let liking: Vec<f64> = ranked.iter().map(|&i| model.liking(cat, i)).collect();
+    let mut order: Vec<usize> = (0..ranked.len()).collect();
+    // Best liked first; ties in catalog order, so every device makes the same mix.
+    order.sort_by(|&a, &b| liking[b].total_cmp(&liking[a]).then(a.cmp(&b)));
+    ranked = order.into_iter().map(|k| mood.songs[k]).collect();
+    // The most played tenth of the mood's songs counts toward the most-played share.
+    let mut by_plays: Vec<(u32, usize)> =
+        ranked.iter().map(|&i| (model.facts[i].plays, i)).collect();
+    by_plays.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
+    let most_played: HashSet<usize> = by_plays
+        .iter()
+        .take(ranked.len() / 10 + 1)
+        .map(|x| x.1)
+        .collect();
+    let songs = fill(
+        model,
+        cat,
+        p,
+        &ranked,
+        &[],
+        &[],
+        &most_played,
+        p.mix_max_songs,
+    );
+    // A small library can't reach 25 songs under the artist cap: the daily mixes' rule, at
+    // least what the caps allow and never under 10.
+    let mut per_artist: std::collections::HashMap<&str, usize> = std::collections::HashMap::new();
+    for &i in &mood.songs {
+        if let Some(a) = cat.get(i).artists.first() {
+            *per_artist.entry(a.as_str()).or_default() += 1;
+        }
+    }
+    let reachable: usize = per_artist
+        .values()
+        .map(|c| (*c).min(p.per_artist_in_mix))
+        .sum();
+    if songs.len() < p.mix_min_songs.min(reachable).max(10) {
+        return None;
+    }
+    let artists: Vec<&str> = songs
+        .iter()
+        .filter_map(|&i| cat.get(i).artists.first().map(String::as_str))
+        .collect();
+    Some(Mix {
+        id: format!("mood-{}", mood.id),
+        slot: MixSlot::Mood,
+        title: mood.title.to_owned(),
+        subtitle: titles::subtitle(&artists),
+        moment: None,
+        songs: picks(model, cat, &songs, &HashSet::new()),
+    })
+}
+
+/// While Encore is still learning (under `full_from_plays`), what songs sound like already says
+/// something listening history can't yet (PLAN-PRODUCT 7.1, cold start): up to two mood mixes, a
+/// calm one and a lively one, added to the set once the library has those moods. Their ids are
+/// the moods' own (`mood-<id>`), so opening one from Browse by mood is the same mix.
+fn with_sound_mixes(
+    mut set: MixSet,
+    model: &Model,
+    cat: &Catalog,
+    p: &Params,
+    prev: &Previous<'_>,
+) -> MixSet {
+    const CALM: [&str; 3] = ["calm-warm", "quiet-bright", "slow-easy"];
+    const LIVELY: [&str; 3] = ["upbeat-fast", "bright-lively", "heavy-dark"];
+    for group in [CALM, LIVELY] {
+        let made = group.iter().find_map(|id| {
+            let mix = build_mood_mix(model, cat, p, id)?;
+            let fresh =
+                !prev.hidden.contains(&mix.id) && !set.mixes.iter().any(|m| m.title == mix.title);
+            fresh.then_some(mix)
+        });
+        if let Some(mix) = made {
+            set.mixes.push(mix);
+        }
+    }
+    set
+}
+
 /// The daily mixes (Home's Made for you and the Mixes tab).
 pub fn build_mixes(model: &Model, cat: &Catalog, p: &Params, prev: &Previous<'_>) -> MixSet {
     let day = local_day(model.now_utc_ms, model.utc_offset_minutes);
@@ -482,7 +573,7 @@ pub fn build_mixes(model: &Model, cat: &Catalog, p: &Params, prev: &Previous<'_>
             &mut row,
             &mut used,
         );
-        return set;
+        return with_sound_mixes(set, model, cat, p, prev);
     }
 
     if set.learning {
@@ -534,7 +625,7 @@ pub fn build_mixes(model: &Model, cat: &Catalog, p: &Params, prev: &Previous<'_>
                 set.mixes.push(m);
             }
         }
-        return set;
+        return with_sound_mixes(set, model, cat, p, prev);
     }
 
     // The full set: cluster the songs the user enjoys.

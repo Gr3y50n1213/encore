@@ -8,6 +8,8 @@ use encore_sources::{FixtureTransport, Transport};
 
 use super::*;
 
+// Phase 10.
+mod analysis;
 mod downloads;
 // Phase 9, WP1.
 mod sleep;
@@ -1468,6 +1470,116 @@ fn reset_and_clear_behave_differently() {
     assert_eq!(core.clear_listening_history().unwrap(), 55);
     assert_eq!(plays(&core), 0, "Clear deletes it");
     assert!(block(core.home()).unwrap().recently_played.is_empty());
+}
+
+/// Phase 10 (docs/adr/core-0020): the learned ranker trains only when due, keeps a note of it,
+/// and Reset suggestions and Clear listening history start it over; Guest trains nothing.
+#[test]
+fn the_learned_ranker_trains_when_due_and_resets_with_the_history() {
+    let dir = temp_dir("ranker");
+    let (core, _) = core_on_recording(&dir);
+    signed_in(&core);
+    block(core.sync_library()).unwrap();
+    let ids: Vec<i64> = core
+        .songs(SongSort::Title, 0, 1000)
+        .unwrap()
+        .iter()
+        .map(|s| s.id)
+        .collect();
+    // Two thirds of the library, so autoplay has songs not heard today (the 24-hour rule).
+    let heard = &ids[..ids.len() * 2 / 3];
+    listen(&core, heard, 120);
+    assert!(!block(core.train_ranker_if_due()).unwrap(), "too few plays");
+    listen(&core, heard, 200);
+    assert!(
+        block(core.train_ranker_if_due()).unwrap(),
+        "320 plays: trained"
+    );
+    assert!(!block(core.train_ranker_if_due()).unwrap(), "not due again");
+    // Picks still work with whatever it learned (or the hand-tuned score if it didn't pass).
+    let state = core
+        .play(vec![ids[0]], 0, StartedFrom::Songs, None)
+        .unwrap();
+    core.playback_started(state.current.unwrap().uid, 60)
+        .unwrap();
+    assert_eq!(core.refresh_autoplay().unwrap().autoplay.len(), 10);
+
+    core.reset_suggestions().unwrap();
+    assert!(
+        !block(core.train_ranker_if_due()).unwrap(),
+        "a new epoch with no plays"
+    );
+    core.set_listening_mode(ListeningMode::Guest).unwrap();
+    assert!(
+        !block(core.train_ranker_if_due()).unwrap(),
+        "Guest trains nothing"
+    );
+}
+
+/// Phase 10, Browse by mood (board 07): nothing until enough songs are analysed; then the moods
+/// the library has, each opening as a mix that can be pinned and is found again.
+#[test]
+fn browse_by_mood_follows_the_analysed_songs() {
+    let dir = temp_dir("moods");
+    let (core, _) = core_on_recording(&dir);
+    signed_in(&core);
+    block(core.sync_library()).unwrap();
+    assert!(core.moods().unwrap().is_empty(), "nothing analysed yet");
+
+    // Analyse every song by hand: energy, brightness and dynamics spread over the library.
+    {
+        let p = core.inner.profile().unwrap();
+        let store = p.store.lock().unwrap();
+        let keys: Vec<String> = store
+            .pending_sounds(
+                u32::from(encore_analysis::VERSION),
+                encore_analysis::MODEL_NAME,
+                1000,
+            )
+            .unwrap()
+            .into_iter()
+            .map(|s| s.song_key)
+            .collect();
+        for (n, key) in keys.iter().enumerate() {
+            let spread = |k: usize| ((n * k) % 101) as f32 / 100.0;
+            let profile = encore_analysis::SoundProfile {
+                bpm: 60.0 + (n % 13) as f32 * 10.0,
+                beat_strength: 0.5,
+                key: None,
+                lufs: -12.0,
+                energy: spread(37),
+                brightness: spread(53),
+                dynamics: spread(71),
+                texture: [0; encore_analysis::TEXTURE_LEN],
+            };
+            store
+                .put_sound(&encore_store::SoundRow {
+                    song_key: key.clone(),
+                    version: u32::from(encore_analysis::VERSION),
+                    state: "ok".into(),
+                    reason: None,
+                    profile: Some(profile.encode()),
+                    model: None,
+                    embedding: None,
+                    analysed_utc_ms: 1,
+                })
+                .unwrap();
+        }
+    }
+    *core.inner.profile().unwrap().recs.lock().unwrap() = None;
+    let moods = core.moods().unwrap();
+    assert!(!moods.is_empty());
+    assert!(
+        moods
+            .iter()
+            .all(|m| m.song_count >= 25 && m.mix_id.starts_with("mood-"))
+    );
+    let page = core.mix(moods[0].mix_id.clone()).unwrap();
+    assert_eq!(page.summary.kind, MixKind::Mood);
+    assert_eq!(page.summary.title, moods[0].title);
+    assert!(page.songs.len() >= 10, "{}", page.songs.len());
+    core.pin_mix(moods[0].mix_id.clone(), true).unwrap();
+    assert!(core.mix(moods[0].mix_id.clone()).unwrap().summary.pinned);
 }
 
 /// Board 38: Private listening ends after 2 hours of silence.

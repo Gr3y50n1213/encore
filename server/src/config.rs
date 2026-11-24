@@ -41,7 +41,7 @@ impl Config {
         let data_dir = get(DATA_DIR_ENV)
             .map(|d| d.trim().to_owned())
             .filter(|d| !d.is_empty())
-            .unwrap_or_else(|| "/data".to_owned());
+            .unwrap_or_else(|| default_data_dir(&get));
         let urls = get(JELLYFIN_URLS_ENV).unwrap_or_default();
         let jellyfin_urls = jellyfin_urls(&urls)?;
         Ok(Config {
@@ -52,6 +52,23 @@ impl Config {
             refresh_ttl: Duration::from_secs(180 * 24 * 60 * 60),
             max_wait: Duration::from_secs(25),
         })
+    }
+}
+
+/// Where the database lives when `ENCORE_DATA_DIR` isn't set: the usual place for a
+/// service's data on each system (the owner, 24 November 2026: the server must run on any
+/// system Jellyfin runs on). The container image sets `/data` itself.
+pub(crate) fn default_data_dir(get: &impl Fn(&str) -> Option<String>) -> String {
+    if cfg!(windows) {
+        let base = get("ProgramData").unwrap_or_else(|| r"C:\ProgramData".to_owned());
+        format!(r"{base}\Encore Server")
+    } else if cfg!(target_os = "macos") {
+        match get("HOME") {
+            Some(home) => format!("{home}/Library/Application Support/Encore Server"),
+            None => "/usr/local/var/encore-server".to_owned(),
+        }
+    } else {
+        "/var/lib/encore-server".to_owned()
     }
 }
 
@@ -118,7 +135,10 @@ mod tests {
             _ => None,
         };
         let c = Config::from_env(env).unwrap();
-        assert_eq!(c.data_dir, PathBuf::from("/data"));
+        assert_eq!(c.data_dir, PathBuf::from(default_data_dir(&env)));
+        if cfg!(target_os = "linux") {
+            assert_eq!(c.data_dir, PathBuf::from("/var/lib/encore-server"));
+        }
         assert!(c.bind.ip().is_loopback());
     }
 }

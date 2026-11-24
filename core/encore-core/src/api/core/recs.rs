@@ -26,6 +26,10 @@ const PINNED_KEY: &str = "pinnedMixes";
 const HIDDEN_KEY: &str = "hiddenMixes";
 const TITLES_KEY: &str = "recentTitles";
 const ADVENTURE_KEY: &str = "recs.adventurousness";
+/// The mood mixes opened (Browse by mood), kept so pins, downloads and widgets find them.
+const MOOD_MIXES_KEY: &str = "moodMixes";
+/// The learned ranker and what it was trained from (`recs::learn::Trained`; docs/adr/core-0020).
+const RANKER_KEY: &str = "trainedRanker";
 
 /// The model, the catalog it was built on, and song key to track ID.
 pub(crate) type Built = (
@@ -99,7 +103,44 @@ fn mix_kind(s: recs::MixSlot) -> MixKind {
         recs::MixSlot::Stretch => MixKind::Stretch,
         recs::MixSlot::Family => MixKind::Family,
         recs::MixSlot::Starter => MixKind::Starter,
+        recs::MixSlot::Mood => MixKind::Mood,
     }
+}
+
+/// The analysed songs as the engine wants them, by song key: the projection of the embedding
+/// (empty when only the basic profile exists) and the plain measures.
+fn sounds_of(store: &Store) -> Result<HashMap<String, recs::Sound>, EncoreError> {
+    let mut out = HashMap::new();
+    for row in store.sounds_ok()? {
+        let Some(profile) = row
+            .profile
+            .as_deref()
+            .and_then(encore_analysis::SoundProfile::decode)
+        else {
+            continue;
+        };
+        let projection = match (row.model.as_deref(), row.embedding.as_deref()) {
+            (Some(m), Some(e)) if m == encore_analysis::MODEL_NAME => {
+                encore_analysis::project_encoded(e).unwrap_or_default()
+            }
+            _ => Vec::new(),
+        };
+        let byte = |v: f32| (v.clamp(0.0, 1.0) * 255.0).round() as u8;
+        out.insert(
+            row.song_key,
+            recs::Sound {
+                projection,
+                bpm_tenths: (profile.bpm * 10.0).round().clamp(0.0, 65_535.0) as u16,
+                energy: byte(profile.energy),
+                brightness: byte(profile.brightness),
+                dynamics: byte(profile.dynamics),
+                key: profile
+                    .key
+                    .map_or(255, |k| k.pitch_class % 12 + if k.major { 0 } else { 12 }),
+            },
+        );
+    }
+    Ok(out)
 }
 
 /// The engine's inputs from the store. `learn`: false gives the model only the
@@ -110,11 +151,15 @@ fn inputs(
 ) -> Result<(recs::Catalog, recs::History, HashMap<String, i64>), EncoreError> {
     let rows = store.recs_songs()?;
     let mut ids = HashMap::new();
+    // What the analysed songs sound like (Phase 10). Without Learn from my listening the engine
+    // still gets it: it is about the songs, not the person.
+    let mut sounds = sounds_of(store)?;
     let songs: Vec<recs::Song> = rows
         .into_iter()
         .map(|r| {
             ids.insert(r.song_key.clone(), r.track_id);
             recs::Song {
+                sound: sounds.remove(&r.song_key),
                 key: r.song_key,
                 title: r.title,
                 artists: r.artists,
@@ -221,7 +266,19 @@ impl Inner {
             return Ok((c.model.clone(), c.catalog.clone(), c.ids.clone()));
         }
         let (catalog, history, ids) = inputs(&*lock(&p.store)?, learn)?;
-        let model = recs::Model::build(&history, &catalog, &params(), now, self.utc_offset(p));
+        // The learned ranker, when this profile has one from this learning epoch (Phase 10).
+        let trained: Option<recs::learn::Trained> = if learn {
+            Self::stored(&*lock(&p.store)?, RANKER_KEY)
+        } else {
+            None
+        };
+        let ranker = trained
+            .as_ref()
+            .and_then(|t| t.ranker_for(&history))
+            .cloned()
+            .map(Arc::new);
+        let model = recs::Model::build(&history, &catalog, &params(), now, self.utc_offset(p))
+            .with_ranker(ranker);
         let cache = RecsCache {
             fingerprint,
             built_utc_ms: now,
@@ -445,7 +502,7 @@ impl Inner {
         out
     }
 
-    fn record_event(
+    pub(super) fn record_event(
         &self,
         p: &Profile,
         kind: &str,
@@ -599,6 +656,14 @@ impl Inner {
     pub(super) fn find_mix(&self, store: &Store, mix_id: &str) -> Option<(recs::Mix, bool, i64)> {
         if let Some(m) = self.pinned(store).into_iter().find(|m| m.id == mix_id) {
             return Some((m, true, 0));
+        }
+        // A mood's mix as last opened; else today's set, where a new listener's calm and lively
+        // mixes are mood mixes too.
+        if mix_id.starts_with("mood-") {
+            let kept: Vec<recs::Mix> = Self::stored(store, MOOD_MIXES_KEY).unwrap_or_default();
+            if let Some(m) = kept.into_iter().find(|m| m.id == mix_id) {
+                return Some((m, false, 0));
+            }
         }
         let set: recs::MixSet = Self::stored(store, MIX_SET_KEY)?;
         let made = set.made_utc_ms;
@@ -865,6 +930,8 @@ impl EncoreCore {
         let now = now_ms();
         lock(&p.store)?.raise_state(encore_store::EPOCH_KEY, now)?;
         lock(&p.store)?.set_recs_state(MIX_SET_KEY, None)?;
+        lock(&p.store)?.set_recs_state(RANKER_KEY, None)?;
+        lock(&p.store)?.set_recs_state(MOOD_MIXES_KEY, None)?;
         self.inner.record_event(
             &p,
             "resetSuggestions",
@@ -888,6 +955,9 @@ impl EncoreCore {
             store.raise_state(encore_store::CLEARED_KEY, now)?;
             let n = store.clear_history_before(now)?;
             store.set_recs_state(MIX_SET_KEY, None)?;
+            // A ranker learned from those plays goes with them, and the mood mixes it ordered.
+            store.set_recs_state(RANKER_KEY, None)?;
+            store.set_recs_state(MOOD_MIXES_KEY, None)?;
             n
         };
         self.inner.record_event(
@@ -930,10 +1000,52 @@ impl EncoreCore {
         .await
     }
 
+    /// Browse by mood (board 07; Phase 10): the moods this library has, from what its songs sound
+    /// like, each with at least 25 songs, in a fixed order. Empty until enough songs are analysed
+    /// (sound analysis is off until the person turns it on). Open one with `mix(mix_id)`.
+    pub fn moods(&self) -> Result<Vec<MoodTile>, EncoreError> {
+        let p = self.inner.profile()?;
+        let (_, catalog, _) = self.inner.recs_model(&p)?;
+        Ok(recs::moods::moods(&catalog)
+            .into_iter()
+            .map(|m| MoodTile {
+                mix_id: format!("mood-{}", m.id),
+                title: m.title.to_owned(),
+                song_count: u32::try_from(m.songs.len()).unwrap_or(u32::MAX),
+            })
+            .collect())
+    }
+
+    /// Train this profile's learned ranker if it is due (docs/adr/core-0020): with a companion
+    /// server, the server trains it from every device's plays and this device keeps a copy;
+    /// without one, it trains here. Call it from the platform's background job (while charging).
+    /// Nothing happens for Guest or with learning off, or below a few hundred plays. Returns
+    /// whether a new one was saved. Async.
+    pub async fn train_ranker_if_due(&self) -> Result<bool, EncoreError> {
+        let inner = self.inner.clone();
+        self.spawn(async move { train_ranker(&inner).await }).await
+    }
+
     /// A mix's page (board 15), each song with one reason.
     pub fn mix(&self, mix_id: String) -> Result<MixPage, EncoreError> {
         let p = self.inner.profile()?;
-        let (_, _, ids) = self.inner.recs_model(&p)?;
+        let (model, catalog, ids) = self.inner.recs_model(&p)?;
+        if let Some(mood) = mix_id.strip_prefix("mood-") {
+            // A mood's mix is made fresh each time it opens (Phase 10), then kept so a pin, a
+            // download or a widget finds it.
+            let made =
+                recs::build_mood_mix(&model, &catalog, &params(), mood).ok_or_else(|| {
+                    EncoreError::NotFound {
+                        reason: "This mood has too few songs for now".into(),
+                    }
+                })?;
+            let store = lock(&p.store)?;
+            let mut kept: Vec<recs::Mix> =
+                Inner::stored(&store, MOOD_MIXES_KEY).unwrap_or_default();
+            kept.retain(|m| m.id != made.id);
+            kept.push(made);
+            Inner::store_json(&store, MOOD_MIXES_KEY, &kept)?;
+        }
         let store = lock(&p.store)?;
         let (m, pinned, made) =
             self.inner
@@ -1346,4 +1458,56 @@ async fn server_set(inner: &Arc<Inner>, regenerate: bool) -> Option<recs::MixSet
         let _ = Inner::store_json(&store, MIX_SET_KEY, &set);
     }
     Some(set)
+}
+
+/// [`EncoreCore::train_ranker_if_due`].
+async fn train_ranker(inner: &Arc<Inner>) -> Result<bool, EncoreError> {
+    let p = inner.profile()?;
+    if !inner.learns(&p)? {
+        return Ok(false);
+    }
+    let last: Option<recs::learn::Trained> = Inner::stored(&*lock(&p.store)?, RANKER_KEY);
+    let fresh = match server_ranker(inner, &p).await {
+        // The server answered: its copy is the one (it saw every device's plays).
+        Some(from_server) => from_server.filter(|t| last.as_ref() != Some(t)),
+        None => {
+            let offset = inner.utc_offset(&p);
+            tokio::task::block_in_place(|| -> Result<_, EncoreError> {
+                // The lock is let go before training: it can take a while on a phone.
+                let (catalog, history, _) = inputs(&*lock(&p.store)?, true)?;
+                let now = now_ms();
+                Ok(recs::learn::due(last.as_ref(), &history, now)
+                    .then(|| recs::learn::retrain(&history, &catalog, &params(), now, offset)))
+            })?
+        }
+    };
+    let Some(t) = fresh else {
+        return Ok(false);
+    };
+    Inner::store_json(&*lock(&p.store)?, RANKER_KEY, &t)?;
+    // The next pick is scored by it.
+    *lock(&p.recs)? = None;
+    Ok(true)
+}
+
+/// The learned ranker from the companion server: Some(None) when it has none yet, None when the
+/// profile has no server or it did not answer (the device trains itself).
+async fn server_ranker(inner: &Arc<Inner>, p: &Profile) -> Option<Option<recs::learn::Trained>> {
+    let s = lock(&p.companion).ok()?.clone()?;
+    let offset = inner.utc_offset(p);
+    let ask = || {
+        let s = &s;
+        super::sync_loop::signed(inner, s, move |a| async move {
+            s.client.recs_model(&a, offset).await
+        })
+    };
+    let reply = match ask().await {
+        // No song list there yet: send it, then ask again.
+        Err(crate::companion::CompanionError::Refused(_)) => {
+            upload_catalog(inner, p, &s).await.ok()?;
+            ask().await.ok()?
+        }
+        other => other.ok()?,
+    };
+    Some(serde_json::from_value(reply).ok().flatten())
 }

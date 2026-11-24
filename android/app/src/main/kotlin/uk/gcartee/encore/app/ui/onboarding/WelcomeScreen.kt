@@ -68,6 +68,8 @@ import uk.gcartee.encore.tokens.EncoreTokens.Motion.Timing
 /** Whether the person turned animations off (Settings, Remove animations). */
 @Composable
 fun reduceMotion(): Boolean {
+    // Encore TV (1 GB projectors): the calm path everywhere, a still field and cross-fades.
+    if (uk.gcartee.encore.app.ui.tv.LocalTv.current) return true
     val resolver = LocalContext.current.contentResolver
     return remember(resolver) {
         Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f

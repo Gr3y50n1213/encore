@@ -6,7 +6,12 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -70,9 +75,32 @@ fun SongRow(
     subtitle: String? = song.artist,
     contentColor: Color = MaterialTheme.colorScheme.onSurface,
     secondaryColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    selection: SongSelection? = null,
 ) {
     val type = LocalEncoreType.current
     val haptics = rememberHaptics()
+    // Mock-up 46: while picking, a tap or a long press picks the song instead.
+    val picking = selection?.active == true
+    val picked = picking && selection?.isPicked(song.id) == true
+    // Mock-up 47: picked songs next to each other join into one rounded group (round outer
+    // corners, tight inner ones), tinted from the page's own text colour so it suits an
+    // album's colours too.
+    val pickedTint by androidx.compose.animation.animateColorAsState(
+        if (picked) contentColor.copy(alpha = PICKED_TINT) else Color.Transparent,
+        tween(PICK_TINT_MS),
+        label = "picked",
+    )
+    val joined = if (picked && selection != null) selection.neighbours(song.id) else (false to false)
+    val rowShape = androidx.compose.foundation.shape.RoundedCornerShape(
+        topStart = if (joined.first) JOIN_RADIUS_DP.dp else PICKED_RADIUS_DP.dp,
+        topEnd = if (joined.first) JOIN_RADIUS_DP.dp else PICKED_RADIUS_DP.dp,
+        bottomStart = if (joined.second) JOIN_RADIUS_DP.dp else PICKED_RADIUS_DP.dp,
+        bottomEnd = if (joined.second) JOIN_RADIUS_DP.dp else PICKED_RADIUS_DP.dp,
+    )
+    if (selection != null) {
+        androidx.compose.runtime.DisposableEffect(selection, song.id) { onDispose { selection.rows.remove(song.id) } }
+    }
+    val tv = uk.gcartee.encore.app.ui.tv.LocalTv.current
     // Phase 8 (boards 08, 11, 20): a downloaded song carries a quiet mark; offline, a
     // song that can't play dims and a tap shakes with the reason instead of playing.
     val downloads = LocalDownloads.current
@@ -84,9 +112,25 @@ fun SongRow(
         Modifier
             .fillMaxWidth()
             .heightIn(min = (TouchTarget.android + Grid.base).dp)
+            // Encore TV: a remote's Menu key opens the song's menu, as holding OK does.
+            .onKeyEvent { e ->
+                if (onLongClick != null && e.key == androidx.compose.ui.input.key.Key.Menu && e.type == androidx.compose.ui.input.key.KeyEventType.KeyUp) {
+                    onLongClick()
+                    true
+                } else {
+                    false
+                }
+            }
+            .padding(horizontal = Grid.base.dp)
+            .selectableRow(selection, song)
+            .clip(rowShape)
+            .background(pickedTint)
             .combinedClickable(
                 onClick = {
-                    if (playable) {
+                    if (picking) {
+                        selection?.toggle(song)
+                        haptics.perform(Haptic.ToggleOn)
+                    } else if (playable) {
                         onClick()
                     } else {
                         haptics.perform(Haptic.Reject)
@@ -94,21 +138,43 @@ fun SongRow(
                         actions.toaster.show(NOT_DOWNLOADED)
                     }
                 },
-                onLongClick = onLongClick?.let { { haptics.perform(Haptic.LongPress); it() } },
-                onLongClickLabel = onLongClick?.let { "More options" },
+                onLongClick = if (picking) ({ selection?.toggle(song); haptics.perform(Haptic.ToggleOn) }) else onLongClick?.let { { haptics.perform(Haptic.LongPress); it() } },
+                onLongClickLabel = if (picking) "Select" else onLongClick?.let { "More options" },
             )
             .semantics {
-                if (playing) stateDescription = "Playing"
+                if (picking) stateDescription = if (picked) "Selected" else "Not selected"
+                else if (playing) stateDescription = "Playing"
                 else if (!playable) stateDescription = "Not downloaded"
             }
-            .graphicsLayer { alpha = if (playable) 1f else OFFLINE_DIM }
+            .graphicsLayer { alpha = if (playable || picking) 1f else OFFLINE_DIM }
             .shaking(shake)
-            .padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp),
+            .padding(horizontal = Grid.base.dp, vertical = Grid.base.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         when {
-            // The cover is held to its row size; without it, it fills the row width.
-            showArtwork -> Artwork(ArtworkOf.SONG, song.id, ROW_ART_DP.dp, Modifier.size(ROW_ART_DP.dp))
+            picking && selection != null -> SelectMark(
+                selection,
+                song,
+                if (showArtwork) ROW_ART_DP.dp else NUMBER_DP.dp,
+                cover = if (showArtwork) ({ Artwork(ArtworkOf.SONG, song.id, ROW_ART_DP.dp, Modifier.size(ROW_ART_DP.dp)) }) else null,
+            )
+            // The cover is held to its row size; without it, it fills the row width. A tap on
+            // it starts picking songs, as in Gmail (not on a TV, where it would be one more stop).
+            showArtwork -> Artwork(
+                ArtworkOf.SONG,
+                song.id,
+                ROW_ART_DP.dp,
+                Modifier.size(ROW_ART_DP.dp).let { m ->
+                    if (selection != null && !tv) {
+                        m.clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)).clickable(onClickLabel = "Select") {
+                            haptics.perform(Haptic.LongPress)
+                            selection.start(song)
+                        }
+                    } else {
+                        m
+                    }
+                },
+            )
             else -> Column(Modifier.width(NUMBER_DP.dp), horizontalAlignment = Alignment.Start) {
                 if (playing) LevelBars(contentColor) else Text(
                     trackNumber?.toString().orEmpty(),
@@ -186,7 +252,8 @@ fun AlbumTile(album: AlbumSummary, onClick: () -> Unit, onLongClick: (() -> Unit
             }
             .combinedClickable(
                 interactionSource = press,
-                indication = null,
+                // A press scales the tile; on a TV the remote's focus ring shows too.
+                indication = tvIndication(),
                 onClick = onClick,
                 onLongClick = onLongClick?.let { { haptics.perform(Haptic.LongPress); it() } },
             ),
@@ -249,6 +316,10 @@ fun ListRow(title: String, subtitle: String?, onClick: () -> Unit, onLongClick: 
 
 // Sizes measured from boards 06 and 08 (Android phone).
 const val ROW_ART_DP = 48
+private const val PICKED_TINT = 0.12f
+private const val PICKED_RADIUS_DP = 22
+private const val JOIN_RADIUS_DP = 6
+private const val PICK_TINT_MS = 180
 const val NUMBER_DP = 28
 const val TILE_ART_DP = 172
 const val TILE_RADIUS_DP = 20
@@ -262,3 +333,8 @@ private const val LIST_ROW_RADIUS_DP = 16
 /** List rows' art: 56 dp, 12 dp corners (a circle for artists). */
 const val LIST_ART_DP = 56
 const val LIST_ART_RADIUS_DP = 12
+
+/** Encore TV: the theme's ripple, which draws the remote's focus ring; none on a phone. */
+@Composable
+fun tvIndication(): androidx.compose.foundation.Indication? =
+    if (uk.gcartee.encore.app.ui.tv.LocalTv.current) androidx.compose.foundation.LocalIndication.current else null

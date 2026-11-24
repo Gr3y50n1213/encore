@@ -12,11 +12,13 @@ GRADLE ?= ./gradlew
 ABIS ?=
 GRADLE_ARGS = --stacktrace $(if $(ABIS),-Pencore.abis=$(ABIS),)
 BUILD_TOOLS ?= $(ANDROID_HOME)/build-tools/36.0.0
-APKS = app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/release/app-release.apk
+# The phone app (debug and release) and Encore TV (release, for the projector).
+APKS = app/build/outputs/apk/phone/debug/app-phone-debug.apk app/build/outputs/apk/phone/release/app-phone-release.apk app/build/outputs/apk/tv/release/app-tv-release.apk
 
 check:
 	$(GRADLE) $(GRADLE_ARGS) -Pencore.signReleaseWithDebugKey=true \
-	  lintDebug testDebugUnitTest assembleDebug assembleRelease assembleDebugAndroidTest
+	  lintPhoneDebug testPhoneDebugUnitTest assemblePhoneDebug assemblePhoneRelease assemblePhoneDebugAndroidTest \
+	  assembleTvRelease
 	@# zipalign -P 16: every uncompressed .so in the APK starts on a 16 KB page
 	@# (developer.android.com/guide/practices/page-sizes, "Check alignment").
 	@for apk in $(APKS); do \
@@ -26,4 +28,4 @@ check:
 	@echo "check-android: passed"
 
 device-test:
-	$(GRADLE) $(GRADLE_ARGS) connectedDebugAndroidTest
+	$(GRADLE) $(GRADLE_ARGS) connectedPhoneDebugAndroidTest

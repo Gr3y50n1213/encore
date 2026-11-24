@@ -750,6 +750,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_current_profile(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_delete_playlist(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_delete_profile_everywhere(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_disconnect_companion(
@@ -890,6 +892,22 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_unlike(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_delete_sound_analysis(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_retry_unreadable_sounds(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_run_sound_analysis(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_set_sound_model(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_set_sound_settings(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_sound_settings(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_sound_status(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_stop_sound_analysis(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_download(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_download_marks(
@@ -986,6 +1004,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_mix(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_moods(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_more_like_this(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_not_in_this_mix(
@@ -1015,6 +1035,8 @@ internal object IntegrityCheckingUniffiLib {
     external fun uniffi_encore_core_checksum_method_encorecore_start_radio(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_suggestion_stats(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_train_ranker_if_due(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_why_this_song(
     ): Int
@@ -1108,6 +1130,8 @@ internal object UniffiLib {
     external fun uniffi_encore_core_fn_method_encorecore_connect_companion(`ptr`: Long,`url`: RustBuffer.ByValue,
     ): Long
     external fun uniffi_encore_core_fn_method_encorecore_current_profile(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_delete_playlist(`ptr`: Long,`playlistId`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_delete_profile_everywhere(`ptr`: Long,`profileId`: RustBuffer.ByValue,`typedName`: RustBuffer.ByValue,
     ): Long
@@ -1249,6 +1273,22 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_unlike(`ptr`: Long,`songIds`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_delete_sound_analysis(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Int
+    external fun uniffi_encore_core_fn_method_encorecore_retry_unreadable_sounds(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Int
+    external fun uniffi_encore_core_fn_method_encorecore_run_sound_analysis(`ptr`: Long,`network`: RustBuffer.ByValue,`power`: RustBuffer.ByValue,
+    ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_set_sound_model(`ptr`: Long,`path`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_set_sound_settings(`ptr`: Long,`settings`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_sound_settings(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_sound_status(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_stop_sound_analysis(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     external fun uniffi_encore_core_fn_method_encorecore_download(`ptr`: Long,`target`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_download_marks(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -1345,6 +1385,8 @@ internal object UniffiLib {
     ): Long
     external fun uniffi_encore_core_fn_method_encorecore_mix(`ptr`: Long,`mixId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_moods(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_more_like_this(`ptr`: Long,`songId`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_encore_core_fn_method_encorecore_not_in_this_mix(`ptr`: Long,`mixId`: RustBuffer.ByValue,`songId`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -1375,6 +1417,8 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_suggestion_stats(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_train_ranker_if_due(`ptr`: Long,
+    ): Long
     external fun uniffi_encore_core_fn_method_encorecore_why_this_song(`ptr`: Long,`songId`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_cancel_sleep_timer(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -1599,6 +1643,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_encore_core_checksum_method_encorecore_current_profile() and 0xFFFF) != 14260) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_delete_playlist() and 0xFFFF) != 33900) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_delete_profile_everywhere() and 0xFFFF) != 47212) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1809,6 +1856,30 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_encore_core_checksum_method_encorecore_unlike() and 0xFFFF) != 42881) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_delete_sound_analysis() and 0xFFFF) != 32312) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_retry_unreadable_sounds() and 0xFFFF) != 45111) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_run_sound_analysis() and 0xFFFF) != 50394) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_set_sound_model() and 0xFFFF) != 15935) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_set_sound_settings() and 0xFFFF) != 30144) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_sound_settings() and 0xFFFF) != 5764) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_sound_status() and 0xFFFF) != 57063) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_stop_sound_analysis() and 0xFFFF) != 32107) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_download() and 0xFFFF) != 30141) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1953,6 +2024,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_encore_core_checksum_method_encorecore_mix() and 0xFFFF) != 9008) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_moods() and 0xFFFF) != 6881) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_more_like_this() and 0xFFFF) != 23956) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1996,6 +2070,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_suggestion_stats() and 0xFFFF) != 33503) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_train_ranker_if_due() and 0xFFFF) != 30378) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_why_this_song() and 0xFFFF) != 5198) {
@@ -3002,6 +3079,12 @@ public interface EncoreCoreInterface {
     fun `currentProfile`(): kotlin.String?
     
     /**
+     * Delete a playlist, here at once and on the media server as soon as it can be
+     * reached. No Undo: ask first.
+     */
+    fun `deletePlaylist`(`playlistId`: kotlin.Long): EditResult
+    
+    /**
      * Board 19's "Delete profile and its data", for the open profile: its
      * history, likes, playlists made here, settings and tokens, on the companion
      * server (every device signed in to it stops syncing) and on this device. The
@@ -3359,6 +3442,47 @@ public interface EncoreCoreInterface {
     fun `unlike`(`songIds`: List<kotlin.Long>): EditResult
     
     /**
+     * Forget every analysis (Settings > Sound analysis > Delete). Returns how many songs.
+     */
+    fun `deleteSoundAnalysis`(): kotlin.UInt
+    
+    /**
+     * Try the songs that could not be read again. Returns how many are waiting again.
+     */
+    fun `retryUnreadableSounds`(): kotlin.UInt
+    
+    /**
+     * Analyse what waits, one song at a time, until done or blocked (off, no model, Wi-Fi only,
+     * charging only, battery saver, heat, offline, a failing server, sign-in). `network` and
+     * `power` are what the device is like now. Call it from the platform's background job;
+     * `stop_sound_analysis` ends it, keeping what was made. Async.
+     */
+    suspend fun `runSoundAnalysis`(`network`: Network, `power`: PowerState): SoundRun
+    
+    /**
+     * Give the core the sound model (`yamnet-v1.bin`, shipped with the app) by path. Call it once
+     * at start; analysis does nothing without it.
+     */
+    fun `setSoundModel`(`path`: kotlin.String)
+    
+    fun `setSoundSettings`(`settings`: SoundSettings)
+    
+    /**
+     * Settings > Sound analysis (off until the person turns it on).
+     */
+    fun `soundSettings`(): SoundSettings
+    
+    /**
+     * How far the library is analysed, with an estimate of the rest.
+     */
+    fun `soundStatus`(): SoundStatus
+    
+    /**
+     * End the run in progress after the song it is on.
+     */
+    fun `stopSoundAnalysis`()
+    
+    /**
      * Keep a song, album, playlist or mix on this device (board 13, item 3;
      * board 08). Its songs wait for `run_downloads`. Liked songs and Smart
      * downloads are turned on in `set_download_settings`.
@@ -3635,6 +3759,13 @@ public interface EncoreCoreInterface {
     fun `mix`(`mixId`: kotlin.String): MixPage
     
     /**
+     * Browse by mood (board 07; Phase 10): the moods this library has, from what its songs sound
+     * like, each with at least 25 songs, in a fixed order. Empty until enough songs are analysed
+     * (sound analysis is off until the person turns it on). Open one with `mix(mix_id)`.
+     */
+    fun `moods`(): List<MoodTile>
+    
+    /**
      * More like this (+1.5 for the song and its neighbours here; not a like) or
      * Fewer like this (-1). Show a one-line confirmation.
      */
@@ -3720,6 +3851,15 @@ public interface EncoreCoreInterface {
      * How suggestions are doing (board 38, note 7): local, the last 4 weeks.
      */
     fun `suggestionStats`(): SuggestionStats
+    
+    /**
+     * Train this profile's learned ranker if it is due (docs/adr/core-0020): with a companion
+     * server, the server trains it from every device's plays and this device keeps a copy;
+     * without one, it trains here. Call it from the platform's background job (while charging).
+     * Nothing happens for Guest or with learning off, or below a few hundred plays. Returns
+     * whether a new one was saved. Async.
+     */
+    suspend fun `trainRankerIfDue`(): kotlin.Boolean
     
     /**
      * Why this song (board 38): one or two reasons and up to two "sounds like".
@@ -4306,6 +4446,25 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
     UniffiLib.uniffi_encore_core_fn_method_encorecore_current_profile(
         it,
         _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Delete a playlist, here at once and on the media server as soon as it can be
+     * reached. No Undo: ask first.
+     */
+    @Throws(EncoreException::class)override fun `deletePlaylist`(`playlistId`: kotlin.Long): EditResult {
+            return FfiConverterTypeEditResult.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_delete_playlist(
+        it,
+        
+        FfiConverterLong.lower(`playlistId`),_status)
 }
     }
     )
@@ -5679,6 +5838,150 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
 
     
     /**
+     * Forget every analysis (Settings > Sound analysis > Delete). Returns how many songs.
+     */
+    @Throws(EncoreException::class)override fun `deleteSoundAnalysis`(): kotlin.UInt {
+            return FfiConverterUInt.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_delete_sound_analysis(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Try the songs that could not be read again. Returns how many are waiting again.
+     */
+    @Throws(EncoreException::class)override fun `retryUnreadableSounds`(): kotlin.UInt {
+            return FfiConverterUInt.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_retry_unreadable_sounds(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Analyse what waits, one song at a time, until done or blocked (off, no model, Wi-Fi only,
+     * charging only, battery saver, heat, offline, a failing server, sign-in). `network` and
+     * `power` are what the device is like now. Call it from the platform's background job;
+     * `stop_sound_analysis` ends it, keeping what was made. Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `runSoundAnalysis`(`network`: Network, `power`: PowerState) : SoundRun {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_run_sound_analysis(
+                uniffiHandle,
+                
+        FfiConverterTypeNetwork.lower(`network`),
+        FfiConverterTypePowerState.lower(`power`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeSoundRun.lift(it) },
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * Give the core the sound model (`yamnet-v1.bin`, shipped with the app) by path. Call it once
+     * at start; analysis does nothing without it.
+     */
+    @Throws(EncoreException::class)override fun `setSoundModel`(`path`: kotlin.String)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_set_sound_model(
+        it,
+        
+        FfiConverterString.lower(`path`),_status)
+}
+    }
+    
+    
+
+    
+    @Throws(EncoreException::class)override fun `setSoundSettings`(`settings`: SoundSettings)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_set_sound_settings(
+        it,
+        
+        FfiConverterTypeSoundSettings.lower(`settings`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Settings > Sound analysis (off until the person turns it on).
+     */
+    @Throws(EncoreException::class)override fun `soundSettings`(): SoundSettings {
+            return FfiConverterTypeSoundSettings.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_sound_settings(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * How far the library is analysed, with an estimate of the rest.
+     */
+    @Throws(EncoreException::class)override fun `soundStatus`(): SoundStatus {
+            return FfiConverterTypeSoundStatus.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_sound_status(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * End the run in progress after the song it is on.
+     */override fun `stopSoundAnalysis`()
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_stop_sound_analysis(
+        it,
+        _status)
+}
+    }
+    
+    
+
+    
+    /**
      * Keep a song, album, playlist or mix on this device (board 13, item 3;
      * board 08). Its songs wait for `run_downloads`. Liked songs and Smart
      * downloads are turned on in `set_download_settings`.
@@ -6610,6 +6913,25 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
 
     
     /**
+     * Browse by mood (board 07; Phase 10): the moods this library has, from what its songs sound
+     * like, each with at least 25 songs, in a fixed order. Empty until enough songs are analysed
+     * (sound analysis is off until the person turns it on). Open one with `mix(mix_id)`.
+     */
+    @Throws(EncoreException::class)override fun `moods`(): List<MoodTile> {
+            return FfiConverterSequenceTypeMoodTile.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_moods(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
      * More like this (+1.5 for the song and its neighbours here; not a like) or
      * Fewer like this (-1). Show a one-line confirmation.
      */
@@ -6892,6 +7214,34 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
     )
     }
     
+
+    
+    /**
+     * Train this profile's learned ranker if it is due (docs/adr/core-0020): with a companion
+     * server, the server trains it from every device's plays and this device keeps a copy;
+     * without one, it trains here. Call it from the platform's background job (while charging).
+     * Nothing happens for Guest or with learning off, or below a few hundred plays. Returns
+     * whether a new one was saved. Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `trainRankerIfDue`() : kotlin.Boolean {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_train_ranker_if_due(
+                uniffiHandle,
+                
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_i8(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_i8(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_i8(future) },
+        // lift function
+        { FfiConverterBoolean.lift(it) },
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
 
     
     /**
@@ -7640,6 +7990,11 @@ data class CoreEvent (
      * Phase 9, WP1: `SleepTimerChanged`'s timer (None: no timer now).
      */
     var `sleepTimer`: SleepTimer?
+    , 
+    /**
+     * Phase 10: `SoundAnalysisChanged`'s status.
+     */
+    var `sound`: SoundStatus?
     
 ){
     
@@ -7673,6 +8028,7 @@ public object FfiConverterTypeCoreEvent: FfiConverterRustBuffer<CoreEvent> {
             FfiConverterOptionalTypeDownloadProgress.read(buf),
             FfiConverterOptionalString.read(buf),
             FfiConverterOptionalTypeSleepTimer.read(buf),
+            FfiConverterOptionalTypeSoundStatus.read(buf),
         )
     }
 
@@ -7693,7 +8049,8 @@ public object FfiConverterTypeCoreEvent: FfiConverterRustBuffer<CoreEvent> {
             FfiConverterOptionalTypeRemoteCommand.allocationSize(value.`remoteCommand`) +
             FfiConverterOptionalTypeDownloadProgress.allocationSize(value.`download`) +
             FfiConverterOptionalString.allocationSize(value.`widgetProfileId`) +
-            FfiConverterOptionalTypeSleepTimer.allocationSize(value.`sleepTimer`)
+            FfiConverterOptionalTypeSleepTimer.allocationSize(value.`sleepTimer`) +
+            FfiConverterOptionalTypeSoundStatus.allocationSize(value.`sound`)
     )
 
     override fun write(value: CoreEvent, buf: ByteBuffer) {
@@ -7714,6 +8071,7 @@ public object FfiConverterTypeCoreEvent: FfiConverterRustBuffer<CoreEvent> {
             FfiConverterOptionalTypeDownloadProgress.write(value.`download`, buf)
             FfiConverterOptionalString.write(value.`widgetProfileId`, buf)
             FfiConverterOptionalTypeSleepTimer.write(value.`sleepTimer`, buf)
+            FfiConverterOptionalTypeSoundStatus.write(value.`sound`, buf)
     }
 }
 
@@ -9373,6 +9731,62 @@ public object FfiConverterTypeMixSummary: FfiConverterRustBuffer<MixSummary> {
 
 
 /**
+ * A tile of Browse by mood (board 07; Phase 10): a mood this library has, from what its songs
+ * sound like. Open it with `mix(mix_id)`.
+ */
+data class MoodTile (
+    /**
+     * `mood-<id>`, the same every day.
+     */
+    var `mixId`: kotlin.String
+    , 
+    /**
+     * 2 to 4 plain words tied to what is measured ("Calm and Warm").
+     */
+    var `title`: kotlin.String
+    , 
+    /**
+     * The library's songs in this mood (at least 25).
+     */
+    var `songCount`: kotlin.UInt
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeMoodTile: FfiConverterRustBuffer<MoodTile> {
+    override fun read(buf: ByteBuffer): MoodTile {
+        return MoodTile(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterUInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: MoodTile) = (
+            FfiConverterString.allocationSize(value.`mixId`) +
+            FfiConverterString.allocationSize(value.`title`) +
+            FfiConverterUInt.allocationSize(value.`songCount`)
+    )
+
+    override fun write(value: MoodTile, buf: ByteBuffer) {
+            FfiConverterString.write(value.`mixId`, buf)
+            FfiConverterString.write(value.`title`, buf)
+            FfiConverterUInt.write(value.`songCount`, buf)
+    }
+}
+
+
+
+/**
  * One entry of Settings, Not interested.
  */
 data class NotInterestedItem (
@@ -9814,6 +10228,58 @@ public object FfiConverterTypePlaylistSummary: FfiConverterRustBuffer<PlaylistSu
             FfiConverterString.write(value.`name`, buf)
             FfiConverterUInt.write(value.`songCount`, buf)
             FfiConverterLong.write(value.`durationMs`, buf)
+    }
+}
+
+
+
+/**
+ * What the platform knows about power, handed to `run_sound_analysis` each time it starts the job.
+ */
+data class PowerState (
+    var `charging`: kotlin.Boolean
+    , 
+    /**
+     * Battery saver (or the OS's equivalent) is on.
+     */
+    var `batterySaver`: kotlin.Boolean
+    , 
+    /**
+     * The device reports a high temperature.
+     */
+    var `hot`: kotlin.Boolean
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypePowerState: FfiConverterRustBuffer<PowerState> {
+    override fun read(buf: ByteBuffer): PowerState {
+        return PowerState(
+            FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: PowerState) = (
+            FfiConverterBoolean.allocationSize(value.`charging`) +
+            FfiConverterBoolean.allocationSize(value.`batterySaver`) +
+            FfiConverterBoolean.allocationSize(value.`hot`)
+    )
+
+    override fun write(value: PowerState, buf: ByteBuffer) {
+            FfiConverterBoolean.write(value.`charging`, buf)
+            FfiConverterBoolean.write(value.`batterySaver`, buf)
+            FfiConverterBoolean.write(value.`hot`, buf)
     }
 }
 
@@ -11184,6 +11650,210 @@ public object FfiConverterTypeSongLyrics: FfiConverterRustBuffer<SongLyrics> {
             FfiConverterBoolean.write(value.`instrumental`, buf)
             FfiConverterOptionalString.write(value.`language`, buf)
             FfiConverterLong.write(value.`fetchedUtcMs`, buf)
+    }
+}
+
+
+
+/**
+ * What one `run_sound_analysis` did.
+ */
+data class SoundRun (
+    var `analysed`: kotlin.UInt
+    , 
+    /**
+     * Songs whose audio could not be read (an unsupported format, a damaged file).
+     */
+    var `unreadable`: kotlin.UInt
+    , 
+    /**
+     * Still to analyse.
+     */
+    var `remaining`: kotlin.UInt
+    , 
+    var `stop`: SoundStop
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSoundRun: FfiConverterRustBuffer<SoundRun> {
+    override fun read(buf: ByteBuffer): SoundRun {
+        return SoundRun(
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterTypeSoundStop.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: SoundRun) = (
+            FfiConverterUInt.allocationSize(value.`analysed`) +
+            FfiConverterUInt.allocationSize(value.`unreadable`) +
+            FfiConverterUInt.allocationSize(value.`remaining`) +
+            FfiConverterTypeSoundStop.allocationSize(value.`stop`)
+    )
+
+    override fun write(value: SoundRun, buf: ByteBuffer) {
+            FfiConverterUInt.write(value.`analysed`, buf)
+            FfiConverterUInt.write(value.`unreadable`, buf)
+            FfiConverterUInt.write(value.`remaining`, buf)
+            FfiConverterTypeSoundStop.write(value.`stop`, buf)
+    }
+}
+
+
+
+/**
+ * Settings > Sound analysis (docs/adr/core-0019). Off until the person turns it on.
+ */
+data class SoundSettings (
+    /**
+     * Whether songs are analysed at all.
+     */
+    var `enabled`: kotlin.Boolean
+    , 
+    /**
+     * Only on an unmetered network (Wi-Fi). On by default.
+     */
+    var `wifiOnly`: kotlin.Boolean
+    , 
+    /**
+     * Only while the device is charging. On by default.
+     */
+    var `chargingOnly`: kotlin.Boolean
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSoundSettings: FfiConverterRustBuffer<SoundSettings> {
+    override fun read(buf: ByteBuffer): SoundSettings {
+        return SoundSettings(
+            FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: SoundSettings) = (
+            FfiConverterBoolean.allocationSize(value.`enabled`) +
+            FfiConverterBoolean.allocationSize(value.`wifiOnly`) +
+            FfiConverterBoolean.allocationSize(value.`chargingOnly`)
+    )
+
+    override fun write(value: SoundSettings, buf: ByteBuffer) {
+            FfiConverterBoolean.write(value.`enabled`, buf)
+            FfiConverterBoolean.write(value.`wifiOnly`, buf)
+            FfiConverterBoolean.write(value.`chargingOnly`, buf)
+    }
+}
+
+
+
+/**
+ * How far the library is analysed, for Settings > Sound analysis and Home's card.
+ */
+data class SoundStatus (
+    var `settings`: SoundSettings
+    , 
+    /**
+     * Songs in the library, analysed, and unreadable.
+     */
+    var `songs`: kotlin.UInt
+    , 
+    var `analysed`: kotlin.UInt
+    , 
+    var `unavailable`: kotlin.UInt
+    , 
+    /**
+     * A run is going now.
+     */
+    var `running`: kotlin.Boolean
+    , 
+    /**
+     * The platform has given the core the sound model.
+     */
+    var `modelLoaded`: kotlin.Boolean
+    , 
+    /**
+     * About how much data the rest will fetch and how long it will take, from what this device
+     * has measured so far (or a starting value before that).
+     */
+    var `bytesEstimate`: kotlin.ULong
+    , 
+    var `minutesEstimate`: kotlin.UInt
+    , 
+    /**
+     * Why the last run stopped, while songs still wait.
+     */
+    var `lastStop`: SoundStop?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSoundStatus: FfiConverterRustBuffer<SoundStatus> {
+    override fun read(buf: ByteBuffer): SoundStatus {
+        return SoundStatus(
+            FfiConverterTypeSoundSettings.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterOptionalTypeSoundStop.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: SoundStatus) = (
+            FfiConverterTypeSoundSettings.allocationSize(value.`settings`) +
+            FfiConverterUInt.allocationSize(value.`songs`) +
+            FfiConverterUInt.allocationSize(value.`analysed`) +
+            FfiConverterUInt.allocationSize(value.`unavailable`) +
+            FfiConverterBoolean.allocationSize(value.`running`) +
+            FfiConverterBoolean.allocationSize(value.`modelLoaded`) +
+            FfiConverterULong.allocationSize(value.`bytesEstimate`) +
+            FfiConverterUInt.allocationSize(value.`minutesEstimate`) +
+            FfiConverterOptionalTypeSoundStop.allocationSize(value.`lastStop`)
+    )
+
+    override fun write(value: SoundStatus, buf: ByteBuffer) {
+            FfiConverterTypeSoundSettings.write(value.`settings`, buf)
+            FfiConverterUInt.write(value.`songs`, buf)
+            FfiConverterUInt.write(value.`analysed`, buf)
+            FfiConverterUInt.write(value.`unavailable`, buf)
+            FfiConverterBoolean.write(value.`running`, buf)
+            FfiConverterBoolean.write(value.`modelLoaded`, buf)
+            FfiConverterULong.write(value.`bytesEstimate`, buf)
+            FfiConverterUInt.write(value.`minutesEstimate`, buf)
+            FfiConverterOptionalTypeSoundStop.write(value.`lastStop`, buf)
     }
 }
 
@@ -13037,7 +13707,11 @@ enum class EventKind {
      * extended, cancelled, put back, ended (or went with the music to another
      * device), or a song or album timer's stop point moved with the queue.
      */
-    SLEEP_TIMER_CHANGED;
+    SLEEP_TIMER_CHANGED,
+    /**
+     * `sound` is set: sound analysis made progress, started, stopped, or its settings changed.
+     */
+    SOUND_ANALYSIS_CHANGED;
 
     
 
@@ -13331,7 +14005,11 @@ enum class MixKind {
     /**
      * No plays yet: from the media server's favourites and most played.
      */
-    STARTER;
+    STARTER,
+    /**
+     * Browse by mood: a mood from what songs sound like (Phase 10).
+     */
+    MOOD;
 
     
 
@@ -14111,6 +14789,89 @@ public object FfiConverterTypeSongSort: FfiConverterRustBuffer<SongSort> {
     override fun allocationSize(value: SongSort) = 4UL
 
     override fun write(value: SongSort, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+/**
+ * Why a `run_sound_analysis` ended.
+ */
+
+enum class SoundStop {
+    
+    /**
+     * Every song is analysed (or unreadable).
+     */
+    DONE,
+    /**
+     * `stop_sound_analysis` was called; it carries on next time where it was.
+     */
+    STOPPED,
+    /**
+     * Another run is going; this one did nothing.
+     */
+    ALREADY_RUNNING,
+    /**
+     * Sound analysis is switched off in the settings.
+     */
+    NOT_ENABLED,
+    /**
+     * The platform has not given the core the sound model (`set_sound_model`).
+     */
+    NO_MODEL,
+    /**
+     * "Only on Wi-Fi" is on and the network is cellular.
+     */
+    WAITING_FOR_WIFI,
+    /**
+     * "Only while charging" is on and the device is not charging.
+     */
+    WAITING_FOR_POWER,
+    /**
+     * Battery saver is on or the device is hot: it waits.
+     */
+    PAUSED,
+    /**
+     * The device has no connection.
+     */
+    OFFLINE,
+    /**
+     * The media server failed too often in a row (it may be busy): try later.
+     */
+    SERVER_BUSY,
+    /**
+     * The media server's sign-in ended; sign in again.
+     */
+    SIGN_IN_NEEDED,
+    /**
+     * No profile is open (or it is a Guest).
+     */
+    NO_PROFILE;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSoundStop: FfiConverterRustBuffer<SoundStop> {
+    override fun read(buf: ByteBuffer) = try {
+        SoundStop.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: SoundStop) = 4UL
+
+    override fun write(value: SoundStop, buf: ByteBuffer) {
         buf.putInt(value.ordinal + 1)
     }
 }
@@ -15182,6 +15943,38 @@ public object FfiConverterOptionalTypeSongLyrics: FfiConverterRustBuffer<SongLyr
 /**
  * @suppress
  */
+public object FfiConverterOptionalTypeSoundStatus: FfiConverterRustBuffer<SoundStatus?> {
+    override fun read(buf: ByteBuffer): SoundStatus? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeSoundStatus.read(buf)
+    }
+
+    override fun allocationSize(value: SoundStatus?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeSoundStatus.allocationSize(value)
+        }
+    }
+
+    override fun write(value: SoundStatus?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeSoundStatus.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalTypeSourceToken: FfiConverterRustBuffer<SourceToken?> {
     override fun read(buf: ByteBuffer): SourceToken? {
         if (buf.get().toInt() == 0) {
@@ -15428,6 +16221,38 @@ public object FfiConverterOptionalTypeDropRefusal: FfiConverterRustBuffer<DropRe
         } else {
             buf.put(1)
             FfiConverterTypeDropRefusal.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeSoundStop: FfiConverterRustBuffer<SoundStop?> {
+    override fun read(buf: ByteBuffer): SoundStop? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeSoundStop.read(buf)
+    }
+
+    override fun allocationSize(value: SoundStop?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeSoundStop.allocationSize(value)
+        }
+    }
+
+    override fun write(value: SoundStop?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeSoundStop.write(value, buf)
         }
     }
 }
@@ -15964,6 +16789,34 @@ public object FfiConverterSequenceTypeMixSummary: FfiConverterRustBuffer<List<Mi
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeMixSummary.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeMoodTile: FfiConverterRustBuffer<List<MoodTile>> {
+    override fun read(buf: ByteBuffer): List<MoodTile> {
+        val len = buf.getInt()
+        return List<MoodTile>(len) {
+            FfiConverterTypeMoodTile.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<MoodTile>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeMoodTile.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<MoodTile>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeMoodTile.write(it, buf)
         }
     }
 }

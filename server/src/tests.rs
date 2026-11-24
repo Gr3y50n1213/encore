@@ -735,6 +735,281 @@ async fn the_server_builds_mixes_from_the_log_and_the_catalog() {
     assert_eq!(r["set"]["playsCounted"], 0);
 }
 
+/// Phase 10 (docs/adr/core-0020): the server trains the learned ranker from the synced plays
+/// only when it is due, sends the same one until then, and drops it with Clear history.
+#[tokio::test]
+async fn the_server_trains_the_ranker_when_due_and_clears_it_with_the_history() {
+    let (app, state) = server();
+    let t = sign_in(&app, "good-sam", "phone").await["access_token"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let body = Some(json!({ "utcOffsetMinutes": 0 }));
+    let (s, _) = call(&app, "POST", "/recs/model", Some(&t), body.clone()).await;
+    assert_eq!(s, StatusCode::NOT_FOUND, "no song list yet");
+    call(&app, "PUT", "/catalog", Some(&t), Some(catalog_json(20))).await;
+
+    // App-chosen plays over the last 60 days, a third skipped early.
+    let now = now_ms();
+    let push = |from: usize, to: usize| {
+        let events: Vec<Value> = (from..to)
+            .map(|i| {
+                let mut e = play_event(
+                    i,
+                    &format!("k{:02}-{}", i % 20, i % 6),
+                    now - 60 * 86_400_000 + i as i64 * 3_600_000,
+                );
+                e["payload"]["chosenBy"] = json!("app");
+                if i % 3 == 0 {
+                    e["payload"]["signal"] = json!("skippedEarly");
+                }
+                e
+            })
+            .collect();
+        json!({ "events": events })
+    };
+    call(&app, "POST", "/sync/push", Some(&t), Some(push(0, 100))).await;
+    let (s, r) = call(&app, "POST", "/recs/model", Some(&t), body.clone()).await;
+    assert_eq!(s, StatusCode::OK, "{r}");
+    assert_eq!(r["trained"], Value::Null, "too few plays");
+    assert_eq!(r["trainedNow"], false);
+
+    call(&app, "POST", "/sync/push", Some(&t), Some(push(100, 400))).await;
+    let (_, r) = call(&app, "POST", "/recs/model", Some(&t), body.clone()).await;
+    assert_eq!(r["trainedNow"], true, "{r}");
+    assert_eq!(r["trained"]["plays"], 400);
+    let (_, again) = call(&app, "POST", "/recs/model", Some(&t), body.clone()).await;
+    assert_eq!(again["trainedNow"], false, "not due again");
+    assert_eq!(again["trained"], r["trained"]);
+    // Home still builds with it in place.
+    let (s, _) = call(&app, "POST", "/recs/home", Some(&t), body.clone()).await;
+    assert_eq!(s, StatusCode::OK);
+
+    let clear = json!({ "id": "c1", "kind": "clearHistory", "hlc": format!("{:013}-0000", now), "version": 0,
+                        "created_utc_ms": now, "payload": { "beforeUtcMs": now } });
+    call(
+        &app,
+        "POST",
+        "/sync/push",
+        Some(&t),
+        Some(json!({ "events": [clear] })),
+    )
+    .await;
+    assert_eq!(
+        state.db.profile_value(1, crate::db::RANKER_KEY).unwrap(),
+        None
+    );
+    let (_, r) = call(&app, "POST", "/recs/model", Some(&t), body).await;
+    assert_eq!(r["trained"], Value::Null, "gone with the history");
+}
+
+/// Phase 10 (docs/adr/core-0019): a song is analysed once per media server. A device claims
+/// it, the others are kept off it for an hour, the row it sends is what they look up, and only
+/// keys a device asks about come back.
+#[tokio::test]
+async fn devices_share_sound_analysis_and_never_work_on_the_same_song() {
+    let (app, _) = server();
+    let token = |v: Value| v["access_token"].as_str().unwrap().to_owned();
+    let phone = token(sign_in(&app, "good-sam", "phone").await);
+    let tablet = token(sign_in(&app, "good-sam", "tablet").await);
+    let keys = json!({ "keys": ["a", "b", "c"] });
+
+    let (s, r) = call(
+        &app,
+        "POST",
+        "/sound/claim",
+        Some(&phone),
+        Some(keys.clone()),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{r}");
+    assert_eq!(r["granted"], json!(["a", "b", "c"]));
+    let (_, r) = call(
+        &app,
+        "POST",
+        "/sound/claim",
+        Some(&tablet),
+        Some(keys.clone()),
+    )
+    .await;
+    assert_eq!(r["granted"], json!([]), "the phone is on them");
+    let (_, r) = call(
+        &app,
+        "POST",
+        "/sound/claim",
+        Some(&phone),
+        Some(keys.clone()),
+    )
+    .await;
+    assert_eq!(
+        r["granted"],
+        json!(["a", "b", "c"]),
+        "a device may claim again"
+    );
+
+    let row = |k: &str, version: u32| {
+        json!({ "songKey": k, "version": version, "state": "ok", "reason": null, "profile": "0a0b",
+                "model": "yamnet-v1", "embedding": "ff00", "analysedUtcMs": 5 })
+    };
+    let (s, r) = call(
+        &app,
+        "PUT",
+        "/sound",
+        Some(&phone),
+        Some(
+            json!({ "sounds": [row("a", 1), { "songKey": "b", "version": 1, "state": "unavailable",
+            "reason": "no decoder for Opus", "profile": null, "model": null, "embedding": null,
+            "analysedUtcMs": 6 }] }),
+        ),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{r}");
+    assert_eq!(r["stored"], 2);
+    // An older version never replaces a newer one.
+    call(
+        &app,
+        "PUT",
+        "/sound",
+        Some(&phone),
+        Some(json!({ "sounds": [row("a", 2)] })),
+    )
+    .await;
+    let (_, r) = call(
+        &app,
+        "PUT",
+        "/sound",
+        Some(&tablet),
+        Some(json!({ "sounds": [row("a", 1)] })),
+    )
+    .await;
+    assert_eq!(r["stored"], 0);
+
+    let (_, r) = call(
+        &app,
+        "POST",
+        "/sound/lookup",
+        Some(&tablet),
+        Some(keys.clone()),
+    )
+    .await;
+    let sounds = r["sounds"].as_array().unwrap();
+    assert_eq!(sounds.len(), 2, "{r}");
+    assert_eq!(sounds[0]["version"], 2);
+    assert_eq!(sounds[1]["reason"], "no decoder for Opus");
+    // Analysed songs can't be claimed; c is still the phone's.
+    let (_, r) = call(&app, "POST", "/sound/claim", Some(&tablet), Some(keys)).await;
+    assert_eq!(r["granted"], json!([]));
+
+    // Shapes a real row never has are refused whole.
+    let mut bad = row("d", 1);
+    bad["profile"] = json!("not hex");
+    let (s, _) = call(
+        &app,
+        "PUT",
+        "/sound",
+        Some(&phone),
+        Some(json!({ "sounds": [bad] })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+    let many: Vec<String> = (0..201).map(|i| format!("k{i}")).collect();
+    let (s, _) = call(
+        &app,
+        "POST",
+        "/sound/lookup",
+        Some(&phone),
+        Some(json!({ "keys": many })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+    let (s, _) = call(
+        &app,
+        "POST",
+        "/sound/lookup",
+        None,
+        Some(json!({ "keys": [] })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::UNAUTHORIZED);
+}
+
+/// Owner, 24 November 2026: Delete sound analysis starts over everywhere, the companion's
+/// shared copy included; the same delete pushed again later leaves newer analysis alone.
+#[tokio::test]
+async fn deleting_sound_analysis_clears_the_shared_copy_once() {
+    let (app, _) = server();
+    let phone = sign_in(&app, "good-sam", "phone").await["access_token"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let row = |k: &str| {
+        json!({ "songKey": k, "version": 1, "state": "ok", "reason": null, "profile": "0a0b",
+                "model": "yamnet-v1", "embedding": "ff00", "analysedUtcMs": 5 })
+    };
+    let lookup = |keys: Value| call(&app, "POST", "/sound/lookup", Some(&phone), Some(keys));
+    call(
+        &app,
+        "PUT",
+        "/sound",
+        Some(&phone),
+        Some(json!({ "sounds": [row("a"), row("b")] })),
+    )
+    .await;
+    assert_eq!(
+        lookup(json!({ "keys": ["a", "b"] })).await.1["sounds"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
+
+    let now = now_ms() + 1;
+    let delete = json!({ "id": "sd1", "kind": "soundDelete", "hlc": format!("{:013}-0000", now), "version": 0,
+                         "created_utc_ms": now, "payload": { "beforeUtcMs": now } });
+    let (s, r) = call(
+        &app,
+        "POST",
+        "/sync/push",
+        Some(&phone),
+        Some(json!({ "events": [delete.clone()] })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{r}");
+    assert_eq!(
+        lookup(json!({ "keys": ["a", "b"] })).await.1["sounds"]
+            .as_array()
+            .unwrap()
+            .len(),
+        0
+    );
+
+    // Analysed again after the delete, then the old delete arrives again: the new row stays.
+    std::thread::sleep(std::time::Duration::from_millis(5));
+    call(
+        &app,
+        "PUT",
+        "/sound",
+        Some(&phone),
+        Some(json!({ "sounds": [row("a")] })),
+    )
+    .await;
+    call(
+        &app,
+        "POST",
+        "/sync/push",
+        Some(&phone),
+        Some(json!({ "events": [delete] })),
+    )
+    .await;
+    assert_eq!(
+        lookup(json!({ "keys": ["a"] })).await.1["sounds"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+}
+
 #[test]
 fn the_servers_history_merges_likes_and_not_interested_by_the_latest_change() {
     let ev = |id: &str, kind: &str, hlc: &str, device: &str, payload: Value| Event {

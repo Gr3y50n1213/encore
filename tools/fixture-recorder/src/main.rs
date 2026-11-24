@@ -94,6 +94,7 @@ impl Recorder {
             status: resp.status,
             body: serde_json::to_vec(&v).unwrap_or_default(),
             server_date_utc_ms: resp.server_date_utc_ms,
+            content_range_total: None,
         }
     }
 
@@ -115,6 +116,7 @@ impl Recorder {
             status: 200,
             body: serde_json::to_vec(&body).unwrap_or_default(),
             server_date_utc_ms: None,
+            content_range_total: None,
         }
     }
 }

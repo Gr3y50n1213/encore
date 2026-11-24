@@ -75,7 +75,7 @@ class PlaybackService : MediaLibraryService() {
         if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) {
             exo.addAnalyticsListener(EventLogger("EncorePlayer"))
         }
-        val core = CorePlayback(host, exo, headers, scope) { key -> RollingCache.isWhole(this, key) }.also { it.start() }
+        val core = CorePlayback(host, exo, headers, scope, { key -> RollingCache.isWhole(this, key) }, AudioManagerVolume(this)).also { it.start() }
         playback = core
         PlaybackHub.attach(core)
 

@@ -301,6 +301,7 @@ fun SettingsScreen(host: CoreHost, page: String, onBack: () -> Unit, onProfiles:
     when (page) {
         "playback" -> PlaybackPage(host, onBack, contentPadding)
         "suggestions" -> SuggestionsPage(host, onBack, contentPadding)
+        "sound" -> uk.gcartee.encore.app.ui.sound.SoundAnalysisPage(host, onBack, contentPadding) // Phase 10
         "appearance" -> AppearancePage(host, onBack, contentPadding)
         "servers" -> ServersPage(host, onBack, onAddServer, contentPadding)
         "privacy" -> PrivacyPage(host, onBack, contentPadding)
@@ -462,6 +463,19 @@ private fun PlaybackPage(host: CoreHost, onBack: () -> Unit, contentPadding: Pad
         item { Label("Streaming on cellular") }
         item { RadioRows(qualities, cell, { q -> runCatching { host.core.setStreamQuality(Network.CELLULAR, q) }.onSuccess { cell = q } }) }
         item { Body("A change applies from the next song.") }
+        // Mock-up 47: what a swipe right on a song does.
+        item { Label("Swipe a song to the right") }
+        item {
+            val actions = LocalAppActions.current
+            RadioRows(
+                listOf(
+                    Triple(false, "Play next", "It plays after the song that's on"),
+                    Triple(true, "Add to your last playlist", actions.lastPlaylistNow?.let { "Now: ${it.name}" } ?: "The playlist you added to last"),
+                ),
+                actions.swipeRightAdds,
+                { actions.chooseSwipeRightAdds(it) },
+            )
+        }
     }
 }
 
@@ -473,11 +487,18 @@ private fun SuggestionsPage(host: CoreHost, onBack: () -> Unit, contentPadding: 
     var version by remember { mutableIntStateOf(0) }
     val notInterested = remember(version) { runCatching { host.core.notInterestedList() }.getOrDefault(emptyList()) }
     var confirmReset by remember { mutableStateOf(false) }
+    val sound by uk.gcartee.encore.app.ui.sound.rememberSoundStatus(host)
+    val context = LocalContext.current
     Page("Mixes and suggestions", onBack, contentPadding) {
         item { Label("How adventurous") }
         // The rows bring their own margins, so they line up with the groups below.
         item { AdventurousChoice(level) { l -> runCatching { host.core.setAdventurousness(l) }.onSuccess { level = l } } }
         item { Spacer(Modifier.height(Grid.base.dp)) }
+        // Phase 10: what songs sound like (mock-up 44, board 2).
+        // Encore TV: sound analysis runs on phones only.
+        if (!uk.gcartee.encore.app.ui.tv.isTv(context)) group(null, listOf(Row0("Sound analysis", "What your songs sound like, for better suggestions", { Icons.spark() }, right = uk.gcartee.encore.app.ui.sound.soundSummary(sound)) {
+            actions.open(Route.Settings("sound"))
+        }))
         group("Not interested", notInterested.map { item ->
             Row0(item.label, null, { Icons.block() }, trailing = {
                 TextButton(onClick = { runCatching { host.core.removeNotInterested(item) }.onSuccess { version++ } }) { Text("Remove") }

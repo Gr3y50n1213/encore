@@ -34,6 +34,8 @@ NAMES = {
     "tablet_android": False,
     # Phase 9: the sleep timer.
     "bedtime": False,
+    # Renaming a playlist (owner, 24 November 2026).
+    "edit": False,
 }
 BASE = "https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/{n}/materialsymbolsrounded/{n}{f}_24px.svg"
 TEMPLATE = """<?xml version="1.0" encoding="utf-8"?>

@@ -111,6 +111,8 @@ fun NowPlayingScreen(
     onOutput: (FieldColours) -> Unit,
     // More > Sleep timer was tapped; the sheet is EncoreRoot's and is drawn in these colours.
     onSleepTimer: (FieldColours) -> Unit = {},
+    // Sleep mode (mock-up 45): full screen, big dim lyrics; drawn by EncoreRoot over everything.
+    onSleepMode: () -> Unit = {},
     // Where the artwork is on screen, for the morph into the mini player (EncoreRoot), and
     // whether it is the big cover (which shrinks while paused) or the small one over a panel.
     onArtBounds: (androidx.compose.ui.geometry.Rect, Boolean) -> Unit = { _, _ -> },
@@ -128,7 +130,9 @@ fun NowPlayingScreen(
     val colours = rememberFieldColours(host, song.albumId)
     uk.gcartee.encore.app.ui.components.SystemBarIconsFor(colours.base)
     val content = colours.text
-    var panel by rememberSaveable { mutableStateOf(PlayerPanel.Artwork) }
+    // Encore TV: the lyrics are always beside the cover, so they are the panel it opens on.
+    val tv = uk.gcartee.encore.app.ui.tv.LocalTv.current
+    var panel by rememberSaveable { mutableStateOf(if (tv) PlayerPanel.Lyrics else PlayerPanel.Artwork) }
     var liked by remember(song.id) { mutableStateOf(actions.isLiked(song)) }
     var scrubbing by remember { mutableStateOf<Long?>(null) }
     // The position on frame time, read where it is drawn (the bar, the lyrics).
@@ -140,6 +144,7 @@ fun NowPlayingScreen(
     var heart by remember { mutableStateOf(false) }
     var endOfQueue by remember { mutableStateOf(false) }
     val playingFrom by host.playingFrom.collectAsState()
+    val remoteDevice by uk.gcartee.encore.app.playback.RemoteControl.device.collectAsState()
     val privateOn by host.privateListening.collectAsState()
     val remoteChanges by host.remoteChanges.collectAsState()
     LaunchedEffect(remoteChanges, song.id) { liked = actions.isLiked(song) }
@@ -171,6 +176,11 @@ fun NowPlayingScreen(
                 place = MenuPlace(
                     chosenBy = entry.chosenBy,
                     extra = listOf(
+                        uk.gcartee.encore.app.ui.components.MenuExtra(
+                            "Sleep mode",
+                            destructive = false,
+                            icon = { Icons.lyrics() },
+                        ) { onSleepMode() },
                         uk.gcartee.encore.app.ui.components.MenuExtra(
                             "Sleep timer",
                             destructive = false,
@@ -208,7 +218,8 @@ fun NowPlayingScreen(
         // buttons move into that column and the spacing tightens.
         val dense = landscape && shortWindow
         AlbumField(colours, Modifier.fillMaxSize())
-        Column(Modifier.fillMaxSize().safeDrawingPadding().padding(horizontal = (Grid.base * 3).dp)) {
+        // A projector's picture can be cut at its edges: TV keeps a wider margin (overscan).
+        Column(Modifier.fillMaxSize().safeDrawingPadding().padding(horizontal = if (tv) TV_SIDE_DP.dp else (Grid.base * 3).dp, vertical = if (tv) TV_TOP_DP.dp else 0.dp)) {
             // Item 1: collapse, "Playing from", More.
             // Board 10: with Lyrics or the Queue open the header is the compact song row below.
             if ((panel == PlayerPanel.Artwork || landscape) && !dense) Row(Modifier.fillMaxWidth().padding(vertical = Grid.base.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -248,7 +259,8 @@ fun NowPlayingScreen(
                             heart = true
                         }, onMenu = { menu = true }, onEnd = { endOfQueue = it })
                         PlayerPanel.Lyrics -> LyricsPanel(host, song, position, content, onSeek = { PlaybackHub.seekAndPlay(context, it) }, modifier = Modifier.fillMaxSize().fadingEdges())
-                        PlayerPanel.Queue -> QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize().fadingEdges(), onColour = colours.base)
+                        PlayerPanel.Queue -> remoteDevice?.let { d -> RemoteQueuePanel(host, d, content, Modifier.fillMaxSize().fadingEdges()) }
+                            ?: QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize().fadingEdges(), onColour = colours.base)
                     }
                 }
                 Box { FieldSheetTheme(colours) { SongMenu(song, expanded = menu, onDismiss = { menu = false }, place = MenuPlace(chosenBy = entry.chosenBy)) } }
@@ -359,6 +371,11 @@ fun NowPlayingScreen(
                             size = transport,
                         )
                     }
+                    // Board 12: while another device plays, its capsule and volume.
+                    remoteDevice?.let { d ->
+                        Spacer(Modifier.height(if (dense) Grid.base.dp else (Grid.base * 1.5f).dp))
+                        RemoteCapsule(d, content)
+                    }
                     Spacer(Modifier.height(if (dense) (Grid.base * 1.5f).dp else (Grid.base * 3).dp))
                     // Item 8: Lyrics, Output and Queue, one connected group.
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)) {
@@ -400,7 +417,34 @@ fun NowPlayingScreen(
                     Spacer(Modifier.height(if (dense) 0.dp else (Grid.base * 2).dp))
                 }
             }
-            if (landscape) {
+            if (tv) {
+                // Mock-up 45, board 2: cover and controls on the left, the lyrics (or the
+                // queue) on the right. The cover takes the height the controls leave.
+                Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(TV_GAP_DP.dp)) {
+                    Column(Modifier.weight(TV_LEFT).fillMaxSize()) {
+                        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            Artwork(ArtworkOf.SONG, song.id, TV_ART_DP.dp, Modifier.aspectRatio(1f, matchHeightConstraintsFirst = true), cornerRadius = 20.dp)
+                        }
+                        Spacer(Modifier.height(Grid.base.dp))
+                        controls(false, TransportSize.Medium)
+                        androidx.compose.material3.FilledTonalButton(
+                            onClick = onSleepMode,
+                            colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(containerColor = content.copy(alpha = 0.16f), contentColor = content),
+                            modifier = Modifier.align(Alignment.CenterHorizontally),
+                        ) {
+                            Icon(Icons.sleepTimer(), contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.size(8.dp))
+                            Text("Sleep mode", style = type.buttonLabel)
+                        }
+                    }
+                    Box(Modifier.weight(1f - TV_LEFT).fillMaxSize().fadingEdges()) {
+                        when (panel) {
+                            PlayerPanel.Queue -> remoteDevice?.let { d -> RemoteQueuePanel(host, d, content, Modifier.fillMaxSize()) } ?: QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Lyrics }, modifier = Modifier.fillMaxSize(), onColour = colours.base)
+                            else -> LyricsPanel(host, song, position, content, onSeek = { PlaybackHub.seekAndPlay(context, it) }, modifier = Modifier.fillMaxSize())
+                        }
+                    }
+                }
+            } else if (landscape) {
                 // The controls side is fixed: it fits (the medium transport on a short window),
                 // so only the artwork's swipe, the lyrics and the queue move.
                 Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy((Grid.base * 3).dp)) {
@@ -433,7 +477,7 @@ fun NowPlayingScreen(
                 Box(Modifier.weight(1f).fillMaxWidth().fadingEdges()) {
                     when (panel) {
                         PlayerPanel.Lyrics -> LyricsPanel(host, song, position, content, onSeek = { PlaybackHub.seekAndPlay(context, it) }, modifier = Modifier.fillMaxSize())
-                        else -> QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize(), onColour = colours.base)
+                        else -> remoteDevice?.let { d -> RemoteQueuePanel(host, d, content, Modifier.fillMaxSize()) } ?: QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize(), onColour = colours.base)
                     }
                 }
                 controls(true, TransportSize.Medium)
@@ -545,6 +589,14 @@ private fun MoreButton(open: Boolean, content: Color, onOpen: () -> Unit) {
 }
 private const val ART_MAX_DP = 420
 private const val LANDSCAPE_TALL_DP = 520
+
+// Encore TV's Now Playing (mock-up 45): the margins Android TV keeps clear of the picture's
+// edges, and the split between the cover's side and the lyrics.
+private const val TV_SIDE_DP = 48
+private const val TV_TOP_DP = 12
+private const val TV_GAP_DP = 40
+private const val TV_LEFT = 0.4f
+private const val TV_ART_DP = 320
 private const val DENSE_TITLE_SP = 22
 private const val ART_RADIUS_DP = 28
 private const val COLLAPSE_PRESSED_DP = 12

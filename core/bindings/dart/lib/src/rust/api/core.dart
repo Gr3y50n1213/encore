@@ -98,6 +98,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  Future<void>  deleteProfileEverywhere({required String profileId , required String typedName });
 
 
+ int  deleteSoundAnalysis();
+
+
  Future<void>  disconnectCompanion();
 
 
@@ -185,6 +188,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
 
 
  MixPage  mix({required String mixId });
+
+
+ List<MoodTile>  moods();
 
 
  void  moreLikeThis({required PlatformInt64 songId });
@@ -367,10 +373,16 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  int  retryFailedDownloads();
 
 
+ int  retryUnreadableSounds();
+
+
  Future<void>  revokeDevice({required String deviceId });
 
 
  Future<DownloadRun>  runDownloads({required Network network , required BigInt freeBytes });
+
+
+ Future<SoundRun>  runSoundAnalysis({required Network network , required PowerState power });
 
 
  EditResult  saveMixAsPlaylist({required String mixId });
@@ -422,6 +434,12 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  SleepTimer  setSleepTimerSeconds({required int seconds });
 
 
+ void  setSoundModel({required String path });
+
+
+ void  setSoundSettings({required SoundSettings settings });
+
+
  void  setStreamQuality({required Network network , required StreamQuality quality });
 
 
@@ -458,6 +476,12 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
  List<Song>  songs({required SongSort sort , required int offset , required int limit });
 
 
+ SoundSettings  soundSettings();
+
+
+ SoundStatus  soundStatus();
+
+
  QueueState  startGuest();
 
 
@@ -473,6 +497,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
 
 
  void  stopRemoteControl();
+
+
+ void  stopSoundAnalysis();
 
 
  StreamInfo  streamFor({required PlatformInt64 songId , required Network network });
@@ -494,6 +521,9 @@ static Encore  create({required CoreConfig config })=>RustLib.instance.api.crate
 
 
  SyncStatus  syncStatus();
+
+
+ Future<bool>  trainRankerIfDue();
 
 
  void  trustCertificate({required String address , required String sha256 });
@@ -812,15 +842,16 @@ final RemoteCommand? remoteCommand;
 final DownloadProgress? download;
 final String? widgetProfileId;
 final SleepTimer? sleepTimer;
+final SoundStatus? sound;
 
-                const CoreEvent({required this.kind ,this.queue ,this.nowPlaying ,this.preload ,this.syncSourceId ,required this.syncDone ,required this.syncTotal ,this.syncStatus ,this.remoteChange ,this.credential ,this.outputDevices ,this.device ,this.handoff ,this.remoteCommand ,this.download ,this.widgetProfileId ,this.sleepTimer ,});
+                const CoreEvent({required this.kind ,this.queue ,this.nowPlaying ,this.preload ,this.syncSourceId ,required this.syncDone ,required this.syncTotal ,this.syncStatus ,this.remoteChange ,this.credential ,this.outputDevices ,this.device ,this.handoff ,this.remoteCommand ,this.download ,this.widgetProfileId ,this.sleepTimer ,this.sound ,});
 
 
 
 
 
         @override
-        int get hashCode => kind.hashCode^queue.hashCode^nowPlaying.hashCode^preload.hashCode^syncSourceId.hashCode^syncDone.hashCode^syncTotal.hashCode^syncStatus.hashCode^remoteChange.hashCode^credential.hashCode^outputDevices.hashCode^device.hashCode^handoff.hashCode^remoteCommand.hashCode^download.hashCode^widgetProfileId.hashCode^sleepTimer.hashCode;
+        int get hashCode => kind.hashCode^queue.hashCode^nowPlaying.hashCode^preload.hashCode^syncSourceId.hashCode^syncDone.hashCode^syncTotal.hashCode^syncStatus.hashCode^remoteChange.hashCode^credential.hashCode^outputDevices.hashCode^device.hashCode^handoff.hashCode^remoteCommand.hashCode^download.hashCode^widgetProfileId.hashCode^sleepTimer.hashCode^sound.hashCode;
 
 
 
@@ -829,7 +860,7 @@ final SleepTimer? sleepTimer;
             identical(this, other) ||
             other is CoreEvent &&
                 runtimeType == other.runtimeType
-                && kind == other.kind&& queue == other.queue&& nowPlaying == other.nowPlaying&& preload == other.preload&& syncSourceId == other.syncSourceId&& syncDone == other.syncDone&& syncTotal == other.syncTotal&& syncStatus == other.syncStatus&& remoteChange == other.remoteChange&& credential == other.credential&& outputDevices == other.outputDevices&& device == other.device&& handoff == other.handoff&& remoteCommand == other.remoteCommand&& download == other.download&& widgetProfileId == other.widgetProfileId&& sleepTimer == other.sleepTimer;
+                && kind == other.kind&& queue == other.queue&& nowPlaying == other.nowPlaying&& preload == other.preload&& syncSourceId == other.syncSourceId&& syncDone == other.syncDone&& syncTotal == other.syncTotal&& syncStatus == other.syncStatus&& remoteChange == other.remoteChange&& credential == other.credential&& outputDevices == other.outputDevices&& device == other.device&& handoff == other.handoff&& remoteCommand == other.remoteCommand&& download == other.download&& widgetProfileId == other.widgetProfileId&& sleepTimer == other.sleepTimer&& sound == other.sound;
 
             }
 
@@ -1255,6 +1286,7 @@ downloadsChanged,
 downloadProgress,
 widgetSnapshotChanged,
 sleepTimerChanged,
+soundAnalysisChanged,
                     ;
                     
                 }
@@ -1613,6 +1645,7 @@ drift,
 stretch,
 family,
 starter,
+mood,
                     ;
                     
                 }
@@ -1762,6 +1795,31 @@ final PlatformInt64 madeUtcMs;
             other is MixSummary &&
                 runtimeType == other.runtimeType
                 && mixId == other.mixId&& kind == other.kind&& title == other.title&& subtitle == other.subtitle&& coverSongIds == other.coverSongIds&& songCount == other.songCount&& pinned == other.pinned&& madeUtcMs == other.madeUtcMs;
+
+            }
+
+class MoodTile  {
+                final String mixId;
+final String title;
+final int songCount;
+
+                const MoodTile({required this.mixId ,required this.title ,required this.songCount ,});
+
+
+
+
+
+        @override
+        int get hashCode => mixId.hashCode^title.hashCode^songCount.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is MoodTile &&
+                runtimeType == other.runtimeType
+                && mixId == other.mixId&& title == other.title&& songCount == other.songCount;
 
             }
 
@@ -2006,6 +2064,31 @@ final PlatformInt64 durationMs;
             other is PlaylistSummary &&
                 runtimeType == other.runtimeType
                 && id == other.id&& name == other.name&& songCount == other.songCount&& durationMs == other.durationMs;
+
+            }
+
+class PowerState  {
+                final bool charging;
+final bool batterySaver;
+final bool hot;
+
+                const PowerState({required this.charging ,required this.batterySaver ,required this.hot ,});
+
+
+
+
+
+        @override
+        int get hashCode => charging.hashCode^batterySaver.hashCode^hot.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is PowerState &&
+                runtimeType == other.runtimeType
+                && charging == other.charging&& batterySaver == other.batterySaver&& hot == other.hot;
 
             }
 
@@ -2714,6 +2797,105 @@ enum SongSort {
 artist,
 album,
 recentlyAdded,
+                    ;
+                    
+                }
+
+class SoundRun  {
+                final int analysed;
+final int unreadable;
+final int remaining;
+final SoundStop stop;
+
+                const SoundRun({required this.analysed ,required this.unreadable ,required this.remaining ,required this.stop ,});
+
+
+
+
+
+        @override
+        int get hashCode => analysed.hashCode^unreadable.hashCode^remaining.hashCode^stop.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is SoundRun &&
+                runtimeType == other.runtimeType
+                && analysed == other.analysed&& unreadable == other.unreadable&& remaining == other.remaining&& stop == other.stop;
+
+            }
+
+class SoundSettings  {
+                final bool enabled;
+final bool wifiOnly;
+final bool chargingOnly;
+
+                const SoundSettings({required this.enabled ,required this.wifiOnly ,required this.chargingOnly ,});
+
+
+
+
+
+        @override
+        int get hashCode => enabled.hashCode^wifiOnly.hashCode^chargingOnly.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is SoundSettings &&
+                runtimeType == other.runtimeType
+                && enabled == other.enabled&& wifiOnly == other.wifiOnly&& chargingOnly == other.chargingOnly;
+
+            }
+
+class SoundStatus  {
+                final SoundSettings settings;
+final int songs;
+final int analysed;
+final int unavailable;
+final bool running;
+final bool modelLoaded;
+final BigInt bytesEstimate;
+final int minutesEstimate;
+final SoundStop? lastStop;
+
+                const SoundStatus({required this.settings ,required this.songs ,required this.analysed ,required this.unavailable ,required this.running ,required this.modelLoaded ,required this.bytesEstimate ,required this.minutesEstimate ,this.lastStop ,});
+
+
+
+
+
+        @override
+        int get hashCode => settings.hashCode^songs.hashCode^analysed.hashCode^unavailable.hashCode^running.hashCode^modelLoaded.hashCode^bytesEstimate.hashCode^minutesEstimate.hashCode^lastStop.hashCode;
+
+
+
+        @override
+        bool operator ==(Object other) =>
+            identical(this, other) ||
+            other is SoundStatus &&
+                runtimeType == other.runtimeType
+                && settings == other.settings&& songs == other.songs&& analysed == other.analysed&& unavailable == other.unavailable&& running == other.running&& modelLoaded == other.modelLoaded&& bytesEstimate == other.bytesEstimate&& minutesEstimate == other.minutesEstimate&& lastStop == other.lastStop;
+
+            }
+
+enum SoundStop {
+                    done,
+stopped,
+alreadyRunning,
+notEnabled,
+noModel,
+waitingForWifi,
+waitingForPower,
+paused,
+offline,
+serverBusy,
+signInNeeded,
+noProfile,
                     ;
                     
                 }

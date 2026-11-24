@@ -124,10 +124,9 @@ private fun Lines(host: CoreHost, lyrics: SongLyrics, position: () -> Long, colo
             pending = null
         }
     }
-    // A line lights a moment early, so the change has finished as the singing starts.
-    val at: () -> Long = { (pending ?: position()) + LEAD_MS }
+    // A line lights a moment early, so the change has finished as the singing starts (lyricIndex).
     val current by remember(lyrics) {
-        derivedStateOf { if (synced) lyrics.lines.indexOfLast { (it.startMs ?: Long.MAX_VALUE) <= at() } else -1 }
+        derivedStateOf { if (synced) lyricIndex(lyrics, pending ?: position()) else -1 }
     }
     val list = rememberLazyListState()
     var lastTouchEnd by remember { mutableLongStateOf(0L) }
@@ -310,6 +309,13 @@ private const val PAST_ALPHA = 0.4f
 private const val UPCOMING_ALPHA = 0.55f
 private const val PAST_BLUR_DP = 1.2f
 private const val LEAD_MS = 150L
+
+/**
+ * The line being sung at [positionMs]: lit a moment early, so the change has finished as the
+ * singing starts. -1 before the first line. Sleep mode uses the same timing.
+ */
+internal fun lyricIndex(lyrics: SongLyrics, positionMs: Long): Int =
+    lyrics.lines.indexOfLast { (it.startMs ?: Long.MAX_VALUE) <= positionMs + LEAD_MS }
 private const val LINE_SCROLL_MS = 650
 private const val LINE_FADE_MS = 450
 private const val IDLE_SCALE = 0.96f

@@ -71,6 +71,12 @@
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
+        <!-- Phase 10: sound analysis and suggestion training run as jobs (sound/SoundScheduler.kt). -->
+        <service
+            android:name=".sound.SoundJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
         <receiver
             android:name=".downloads.DownloadActionReceiver"
             android:exported="false" />

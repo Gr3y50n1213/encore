@@ -69,6 +69,8 @@ pub struct Response {
     /// The server's clock from the HTTP `Date` header, UTC milliseconds. The sync
     /// cursor uses it, so a wrong clock on the phone cannot skip changes.
     pub server_date_utc_ms: Option<i64>,
+    /// The whole file's size from a partial reply's Content-Range (ytes 0-99/12345), when the server sent one.
+    pub content_range_total: Option<u64>,
 }
 
 impl Response {
@@ -276,6 +278,7 @@ impl Transport for FixtureTransport {
                     crate::jellyfin::time::parse_http_date(d)
                         .or_else(|| crate::jellyfin::time::parse_utc_ms(d))
                 }),
+                content_range_total: None,
             })
         })
     }

@@ -109,9 +109,10 @@ jobs:
           # The release APK is signed with the debug key (encore.signReleaseWithDebugKey):
           # for trying on a phone only, never for a store.
           path: |
-            android/app/build/outputs/apk/debug/app-debug.apk
-            android/app/build/outputs/apk/release/app-release.apk
-            android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            android/app/build/outputs/apk/phone/debug/app-phone-debug.apk
+            android/app/build/outputs/apk/phone/release/app-phone-release.apk
+            android/app/build/outputs/apk/androidTest/phone/debug/app-phone-debug-androidTest.apk
+            android/app/build/outputs/apk/tv/release/app-tv-release.apk
           retention-days: 14
           if-no-files-found: warn
 

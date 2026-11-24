@@ -24,6 +24,8 @@ const CURSOR_KEY: &str = "companion.cursor";
 pub const EPOCH_KEY: &str = "epochUtcMs";
 /// Plays before this were cleared (Clear listening history), in `recs_state`.
 pub const CLEARED_KEY: &str = "clearedBeforeUtcMs";
+/// Delete sound analysis: what was analysed before it is gone on every device.
+pub const SOUNDS_CLEARED_KEY: &str = "soundsClearedBeforeUtcMs";
 
 /// An event on its way to the server.
 #[derive(Debug, Clone, PartialEq)]
@@ -69,6 +71,8 @@ pub struct Applied {
     pub recs: bool,
     /// Another device cleared the listening history.
     pub history_cleared: bool,
+    /// Another device deleted the sound analysis: it is gone here too.
+    pub sounds_cleared: bool,
 }
 
 /// The songs an edit event likes or unlikes, if it is one.
@@ -333,6 +337,18 @@ impl Store {
                         {
                             s.clear_history_before(t)?;
                             a.history_cleared = true;
+                            a.recs = true;
+                        }
+                    }
+                    // Delete sound analysis (owner, 24 November 2026: "figure out what's
+                    // best"): a tombstone like Clear listening history, so every device of
+                    // the profile starts over and none brings the old analysis back.
+                    "soundDelete" => {
+                        if let Some(t) = e.payload["beforeUtcMs"].as_i64()
+                            && s.raise_state(SOUNDS_CLEARED_KEY, t)?
+                        {
+                            s.delete_sounds()?;
+                            a.sounds_cleared = true;
                             a.recs = true;
                         }
                     }
@@ -885,6 +901,30 @@ mod recs_sync_tests {
             "an older play stays cleared"
         );
         assert_eq!(store.recs_plays().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn deleting_sound_analysis_on_one_device_deletes_it_on_the_others() {
+        let (store, _) = store_with_source();
+        store
+            .conn
+            .execute_batch(
+                "INSERT INTO sound_profiles (song_key, version, state, analysed_utc_ms)
+                 VALUES ('k1', 1, 'ok', 10), ('k2', 1, 'unavailable', 20)",
+            )
+            .unwrap();
+        let delete =
+            |hlc: &str, at: i64| ev(hlc, "soundDelete", hlc, "mac", json!({ "beforeUtcMs": at }));
+        let a = store.apply_remote(&[delete("s1", 1000)]).unwrap();
+        assert!(a.sounds_cleared);
+        assert_eq!(store.delete_sounds().unwrap(), 0, "nothing was left");
+        // The same delete pulled again, or an older one, does nothing more.
+        assert!(
+            !store
+                .apply_remote(&[delete("s2", 900)])
+                .unwrap()
+                .sounds_cleared
+        );
     }
 
     #[test]

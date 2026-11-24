@@ -14,5 +14,7 @@ class EncoreApp : Application() {
         // for the core (board 21, item 3).
         TrustedCertificates.get(this)
         uk.gcartee.encore.app.ui.components.HapticSetting.load(this)
+        // Encore TV: a projector can't be reached for its logs; keep the last crash to show.
+        if (uk.gcartee.encore.app.ui.tv.isTv(this)) uk.gcartee.encore.app.ui.tv.recordCrashes(this)
     }
 }

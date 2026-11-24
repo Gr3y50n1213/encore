@@ -366,6 +366,9 @@ pub(super) async fn pull_once(
     let mut e = CoreEvent::of(EventKind::RemoteChange);
     e.remote_change = Some(change);
     inner.emit(e);
+    if applied.sounds_cleared {
+        inner.emit_sound(p);
+    }
     Ok(pulled.more)
 }
 

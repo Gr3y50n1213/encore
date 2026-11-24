@@ -38,7 +38,8 @@ object RollingCache {
 
     /** The size the person chose; 0 empties the cache and keeps nothing more. */
     fun setLimit(context: Context, bytes: Long) {
-        evictor.maxBytes = bytes
+        // Encore TV: a projector has 8 GB in all, shared with its system.
+        evictor.maxBytes = if (uk.gcartee.encore.app.ui.tv.isTv(context)) bytes.coerceAtMost(uk.gcartee.encore.app.ui.tv.TV_CACHE_LIMIT_BYTES) else bytes
         runCatching { evictor.trim(get(context)) }
     }
 

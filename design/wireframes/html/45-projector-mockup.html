@@ -1,0 +1,261 @@
+<title>Encore on the Projector</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout concept: Encore's dark Material 3 Expressive look on a 16:9 projector screen, drawn at
+   any width with container units so the screens scale like the real thing. Each frame has a
+   note on what it does and how the remote drives it. */
+:root {
+  --bg: #f3f1f7; --panel: #ffffff; --ink: #1b1a22; --muted: #5d5b6b; --line: #dcd8e6;
+  --tv: #121118; --surface: #1c1a24; --surface2: #262331; --on-surface: #ece9f5; --on-muted: #a9a5bd;
+  --primary: #b9a7ff; --on-primary: #2a1a73; --tonal: #3a3262; --on-tonal: #e6deff;
+  --focus: #f4f0ff;
+  --leaf-a: #3b3363; --leaf-b: #244237; --leaf-c: #4a3326; --leaf-d: #25364f;
+  --sleep-bg: #000000; --sleep-now: #8f8a80; --sleep-near: #3f3c37; --sleep-far: #24221f; --sleep-ui: #5c5850;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f0e14; --panel: #17161d; --ink: #ece9f5; --muted: #a29fb4; --line: #2b2938; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #0f0e14; --panel: #17161d; --ink: #ece9f5; --muted: #a29fb4; --line: #2b2938; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding-block: 28px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); line-height: 1.45; }
+.wrap { max-width: 1180px; margin: 0 auto; }
+h1 { font-size: clamp(26px, 4vw, 36px); margin: 0 0 6px; letter-spacing: -0.02em; text-wrap: balance; }
+h2 { font-size: 19px; margin: 40px 0 12px; text-wrap: balance; }
+.lede { color: var(--muted); max-width: 68ch; margin: 0 0 14px; }
+.tag { display: inline-block; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 2px 9px; margin-bottom: 8px; }
+figure { margin: 0 0 34px; min-width: 0; }
+.cap { margin-top: 12px; max-width: 78ch; }
+.cap b { display: block; font-size: 15px; margin-bottom: 3px; }
+.cap span { color: var(--muted); font-size: 14px; }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 28px; align-items: start; }
+
+/* A projector screen: 16:9, everything sized in container units. */
+.tv { container-type: inline-size; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: var(--tv); color: var(--on-surface); position: relative; }
+.safe { position: absolute; inset: 5cqw 5cqw 4cqw; display: flex; gap: 2.4cqw; }
+.rail { width: 12cqw; display: flex; flex-direction: column; gap: 1cqw; padding-top: .5cqw; flex: none; }
+.ri { display: flex; flex-direction: column; align-items: center; gap: .4cqw; font-size: 1.25cqw; color: var(--on-muted); padding: .9cqw 0; border-radius: 1.6cqw; }
+.ri svg { width: 2.4cqw; height: 2.4cqw; }
+.ri.on { color: var(--on-tonal); background: var(--tonal); }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1.6cqw; }
+.h { font-size: 3.4cqw; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+.lbl { font-size: 1.6cqw; font-weight: 600; color: var(--on-surface); }
+.jump { display: flex; gap: 2cqw; align-items: center; background: linear-gradient(100deg, #1f3a63, #15233d); border-radius: 2.4cqw; padding: 1.6cqw; width: 64%; }
+.art { border-radius: 1.4cqw; flex: none; }
+.jump .art { width: 11cqw; height: 11cqw; background: var(--leaf-c); }
+.jump .k { font-size: 1.3cqw; color: #c9d6f2; }
+.jump .t { font-size: 2.6cqw; font-weight: 700; line-height: 1.1; }
+.jump .a { font-size: 1.6cqw; color: #c9d6f2; }
+.row { display: flex; gap: 1.4cqw; }
+.tile { width: 11.5cqw; flex: none; }
+.tile .art { width: 11.5cqw; height: 11.5cqw; }
+.tile .tt { font-size: 1.35cqw; font-weight: 600; margin-top: .6cqw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .ts { font-size: 1.15cqw; color: var(--on-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The remote's focus: a light ring with a gap, and the item a little larger. */
+.focus { outline: .35cqw solid var(--focus); outline-offset: .35cqw; transform: scale(1.04); transform-origin: center; }
+.hint { position: absolute; right: 5cqw; bottom: 1.4cqw; font-size: 1.1cqw; color: var(--on-muted); }
+
+/* Now Playing */
+.np { position: absolute; inset: 5cqw 5cqw 4cqw; display: grid; grid-template-columns: 38% 1fr; gap: 4cqw; }
+.np .big { width: 100%; aspect-ratio: 1; border-radius: 2.4cqw; background: var(--leaf-a); }
+.np .tt { font-size: 2.4cqw; font-weight: 700; margin-top: 1.4cqw; line-height: 1.15; }
+.np .ar { font-size: 1.6cqw; color: var(--on-muted); }
+.scrub { height: .5cqw; border-radius: 1cqw; background: var(--surface2); margin: 1.4cqw 0 .5cqw; position: relative; }
+.scrub i { position: absolute; inset: 0 62% 0 0; background: var(--primary); border-radius: 1cqw; }
+.times { display: flex; justify-content: space-between; font-size: 1.1cqw; color: var(--on-muted); font-variant-numeric: tabular-nums; }
+.ctl { display: flex; gap: 1.4cqw; align-items: center; margin-top: 1.2cqw; }
+.b { width: 5cqw; height: 5cqw; border-radius: 50%; background: var(--surface2); display: grid; place-items: center; color: var(--on-surface); flex: none; }
+.b svg { width: 2.4cqw; height: 2.4cqw; }
+.b.play { width: 6.4cqw; height: 6.4cqw; background: var(--primary); color: var(--on-primary); border-radius: 2cqw; }
+.pill { display: inline-flex; align-items: center; gap: .6cqw; font-size: 1.3cqw; padding: .8cqw 1.6cqw; border-radius: 3cqw; background: var(--tonal); color: var(--on-tonal); font-weight: 600; }
+.pill svg { width: 1.8cqw; height: 1.8cqw; }
+.lyr { display: flex; flex-direction: column; justify-content: center; gap: 1.6cqw; font-size: 2.3cqw; font-weight: 700; line-height: 1.25; }
+.lyr .past { color: #57536a; }
+.lyr .now { color: var(--on-surface); }
+.lyr .next { color: #77738a; }
+
+/* Sleep mode */
+.sleep { background: var(--sleep-bg); }
+.sl { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2.4cqw; text-align: center; padding: 0 10cqw; }
+.sl .far { font-size: 2.4cqw; color: var(--sleep-far); font-weight: 600; }
+.sl .near { font-size: 2.8cqw; color: var(--sleep-near); font-weight: 600; }
+.sl .now { font-size: 5cqw; color: var(--sleep-now); font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; text-wrap: balance; }
+.sl .song { position: absolute; bottom: 3.4cqw; left: 0; right: 0; font-size: 1.3cqw; color: var(--sleep-far); }
+.sbar { position: absolute; left: 50%; bottom: 4cqw; transform: translateX(-50%); display: flex; gap: 1.6cqw; align-items: center; }
+.sbar .b { background: #1a1916; color: var(--sleep-ui); width: 4.6cqw; height: 4.6cqw; }
+.sbar .b.play { background: #2a2824; color: #a39d92; width: 5.6cqw; height: 5.6cqw; border-radius: 1.8cqw; }
+.sbar .focus { outline-color: #8f8a80; }
+.sbar .pill { background: #1a1916; color: var(--sleep-ui); }
+.sl.nolyr .t1 { font-size: 4.4cqw; color: var(--sleep-now); font-weight: 700; }
+.sl.nolyr .t2 { font-size: 2.2cqw; color: var(--sleep-near); }
+
+/* Phone frame for Sleep mode on phones */
+.phone { container-type: inline-size; width: 100%; max-width: 300px; aspect-ratio: 9 / 19.5; border-radius: 30px; overflow: hidden; border: 1px solid var(--line); background: #000; position: relative; }
+.phone .sl { padding: 0 9cqw; gap: 5cqw; }
+.phone .sl .far { font-size: 5cqw; } .phone .sl .near { font-size: 5.6cqw; } .phone .sl .now { font-size: 9.5cqw; }
+.phone .sl .song { font-size: 3.6cqw; bottom: 8cqw; }
+.phone .sbar { bottom: 14cqw; gap: 4cqw; }
+.phone .sbar .b { width: 13cqw; height: 13cqw; } .phone .sbar .b.play { width: 16cqw; height: 16cqw; border-radius: 5cqw; }
+.phone .sbar .b svg { width: 6cqw; height: 6cqw; }
+
+.keys { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px 28px; margin: 0; padding: 0; list-style: none; }
+.keys li { padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14.5px; }
+.keys b { display: inline-block; min-width: 6.5em; }
+.note { color: var(--muted); font-size: 14px; max-width: 72ch; }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path fill="currentColor" d="M4 21V9l8-6 8 6v12h-6v-7h-4v7z"/></symbol>
+  <symbol id="i-mix" viewBox="0 0 24 24"><path fill="currentColor" d="M7 18V6h2v12zm4 3V3h2v18zm-8-6V9h2v6zm12 3V6h2v12zm4-3V9h2v6z"/></symbol>
+  <symbol id="i-lib" viewBox="0 0 24 24"><path fill="currentColor" d="M8 16h11V4H8zm-4 4V7h2v11h11v2zm8.5-6.5a2 2 0 0 0 2-2V8h2V6h-3v3.5a2 2 0 1 0-1 4z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><path fill="currentColor" d="m19.6 21-6.3-6.3A6.5 6.5 0 1 1 15 13.3l6.3 6.3zM9.5 14a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9"/></symbol>
+  <symbol id="i-set" viewBox="0 0 24 24"><path fill="currentColor" d="m9.3 22-.4-3.2a7 7 0 0 1-1.6-.9l-3 1.3-2.7-4.7 2.6-2a6 6 0 0 1 0-1.8l-2.6-2 2.7-4.7 3 1.3a7 7 0 0 1 1.6-.9L9.3 2h5.4l.4 3.2c.6.2 1.1.5 1.6.9l3-1.3 2.7 4.7-2.6 2a6 6 0 0 1 0 1.8l2.6 2-2.7 4.7-3-1.3a7 7 0 0 1-1.6.9l-.4 3.2zM12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5v14l11-7z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path fill="currentColor" d="M6 19h4V5H6zm8-14v14h4V5z"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><path fill="currentColor" d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path fill="currentColor" d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 21a9 9 0 0 1-1.7-17.8 7 7 0 0 0 9.5 9.5A9 9 0 0 1 12 21"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path fill="currentColor" d="M6.4 19 5 17.6 10.6 12 5 6.4 6.4 5l5.6 5.6L17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6z"/></symbol>
+</svg>
+
+<div class="wrap">
+  <h1>Encore on the projector</h1>
+  <p class="lede">A separate app, "Encore TV", built from the same code as the phone app: playback, queue, lyrics timing and your server are all shared. These frames show how it looks on a 16:9 projector and how the remote drives it. Songs, artists and lyrics are made up for the drawing.</p>
+  <p class="lede">The light ring is where the remote is. The projector has 1 GB of memory, so the TV app leaves out the moving colour background and keeps fewer pictures in memory. Sound analysis runs on your phone, not here.</p>
+
+  <h2>The app</h2>
+
+  <figure>
+    <span class="tag">1 · Home</span>
+    <div class="tv">
+      <div class="safe">
+        <div class="rail">
+          <div class="ri on"><svg><use href="#i-home"/></svg>Home</div>
+          <div class="ri"><svg><use href="#i-mix"/></svg>Mixes</div>
+          <div class="ri"><svg><use href="#i-lib"/></svg>Library</div>
+          <div class="ri"><svg><use href="#i-search"/></svg>Search</div>
+          <div class="ri"><svg><use href="#i-set"/></svg>Settings</div>
+        </div>
+        <div class="main">
+          <div class="h">Good evening</div>
+          <div class="jump focus"><div class="art"></div><div><div class="k">Jump back in</div><div class="t">Paper Lanterns</div><div class="a">June Avenue</div></div></div>
+          <div class="lbl">Made for you</div>
+          <div class="row">
+            <div class="tile"><div class="art" style="background:var(--leaf-a)"></div><div class="tt">Calm and Warm</div><div class="ts">June Avenue and 9 more</div></div>
+            <div class="tile"><div class="art" style="background:var(--leaf-b)"></div><div class="tt">Evening mix</div><div class="ts">Harbor Lights and 7 more</div></div>
+            <div class="tile"><div class="art" style="background:var(--leaf-d)"></div><div class="tt">Upbeat and Fast</div><div class="ts">The Quiet Fields and 5 more</div></div>
+            <div class="tile"><div class="art" style="background:var(--leaf-c)"></div><div class="tt">Rediscover</div><div class="ts">Songs from last spring</div></div>
+            <div class="tile"><div class="art" style="background:var(--surface2)"></div><div class="tt">Deep cuts</div><div class="ts">Harbor Lights</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="hint">Hold OK on a song for its menu</div>
+    </div>
+    <div class="cap"><b>The phone's Home, laid out wide</b><span>The menu sits on the left, as on a tablet; the rows scroll sideways with the arrows. Everything is larger for reading across a room and stays inside a safe margin, so nothing falls off the edge of the projected picture. The first item has focus when the app opens.</span></div>
+  </figure>
+
+  <figure>
+    <span class="tag">2 · Now Playing</span>
+    <div class="tv">
+      <div class="np">
+        <div>
+          <div class="big"></div>
+          <div class="tt">Paper Lanterns</div>
+          <div class="ar">June Avenue · Low Tide</div>
+          <div class="scrub"><i></i></div>
+          <div class="times"><span>1:24</span><span>3:41</span></div>
+          <div class="ctl">
+            <div class="b"><svg><use href="#i-prev"/></svg></div>
+            <div class="b play focus"><svg><use href="#i-pause"/></svg></div>
+            <div class="b"><svg><use href="#i-next"/></svg></div>
+            <span class="pill" style="margin-left:auto"><svg><use href="#i-moon"/></svg>Sleep mode</span>
+          </div>
+        </div>
+        <div class="lyr">
+          <div class="past">We left the porch light burning</div>
+          <div class="past">for anyone still out</div>
+          <div class="now">paper lanterns on the water</div>
+          <div class="next">carry every word we doubt</div>
+          <div class="next" style="color:#57536a">and the river doesn't answer</div>
+        </div>
+      </div>
+    </div>
+    <div class="cap"><b>Cover and controls on the left, the lyrics on the right</b><span>Synced lyrics follow the song exactly as on the phone (same timing code). Focus starts on Play; left and right move between the buttons, down reaches Sleep mode. The remote's own play, pause and skip keys work from anywhere in the app. The background is the album's colour, held still.</span></div>
+  </figure>
+
+  <h2>Sleep mode</h2>
+  <p class="lede">Full screen and nearly black: the words are a dim warm grey, never white, so the room stays dark. Encore also asks the screen to turn its brightness down; some projectors ignore that, which is why the picture itself is kept dark. The screen stays awake while music plays and is free to sleep once it stops.</p>
+
+  <div class="pair">
+    <figure>
+      <span class="tag">3 · Sleep mode</span>
+      <div class="tv sleep">
+        <div class="sl">
+          <div class="far">for anyone still out</div>
+          <div class="now">paper lanterns on the water</div>
+          <div class="near">carry every word we doubt</div>
+          <div class="song">Paper Lanterns · June Avenue</div>
+        </div>
+      </div>
+      <div class="cap"><b>Just the words</b><span>The line being sung is large and centred; the one before and the one after are faint. No buttons until you press a key. The song's name sits low and faint.</span></div>
+    </figure>
+
+    <figure>
+      <span class="tag">4 · After a key press</span>
+      <div class="tv sleep">
+        <div class="sl" style="justify-content:center;padding-bottom:8cqw">
+          <div class="far">for anyone still out</div>
+          <div class="now">paper lanterns on the water</div>
+          <div class="near">carry every word we doubt</div>
+        </div>
+        <div class="sbar">
+          <div class="b"><svg><use href="#i-prev"/></svg></div>
+          <div class="b play focus"><svg><use href="#i-pause"/></svg></div>
+          <div class="b"><svg><use href="#i-next"/></svg></div>
+          <span class="pill"><svg><use href="#i-moon"/></svg>Timer 30 min</span>
+          <div class="b"><svg><use href="#i-close"/></svg></div>
+        </div>
+      </div>
+      <div class="cap"><b>Minimal controls for five seconds</b><span>Any key shows them, still dim: previous, play or pause, next, the sleep timer and exit. They hide again after five seconds. Back also leaves Sleep mode.</span></div>
+    </figure>
+
+    <figure>
+      <span class="tag">5 · A song without synced lyrics</span>
+      <div class="tv sleep">
+        <div class="sl nolyr">
+          <div class="t1">Slow Harbor</div>
+          <div class="t2">Harbor Lights</div>
+        </div>
+      </div>
+      <div class="cap"><b>Title and artist, big and quiet</b><span>When a song has only plain lyrics, or none, Sleep mode shows its title and artist instead. It never scrolls plain text by guesswork.</span></div>
+    </figure>
+
+    <figure>
+      <span class="tag">6 · Sleep mode on a phone</span>
+      <div class="phone">
+        <div class="sl" style="padding-bottom:20cqw">
+          <div class="far">for anyone still out</div>
+          <div class="now">paper lanterns on the water</div>
+          <div class="near">carry every word we doubt</div>
+        </div>
+        <div class="sbar">
+          <div class="b"><svg><use href="#i-prev"/></svg></div>
+          <div class="b play"><svg><use href="#i-pause"/></svg></div>
+          <div class="b"><svg><use href="#i-next"/></svg></div>
+        </div>
+        <div class="song" style="position:absolute;left:0;right:0;bottom:6cqw;text-align:center;font-size:3.6cqw;color:var(--sleep-far)">Paper Lanterns · June Avenue</div>
+      </div>
+      <div class="cap"><b>The same mode on phones</b><span>Opened from Now Playing's More menu. A tap shows the three buttons for five seconds; a swipe down leaves. The phone's screen stays on only while music plays.</span></div>
+    </figure>
+  </div>
+
+  <h2>The remote</h2>
+  <ul class="keys">
+    <li><b>Arrows</b>Move the light ring between things</li>
+    <li><b>OK</b>Open or play what has the ring</li>
+    <li><b>Hold OK</b>A song's menu: Play next, Add to playlist and the rest</li>
+    <li><b>Back</b>Up one level; leaves Sleep mode</li>
+    <li><b>Play/Pause, skip</b>Work from anywhere in the app</li>
+    <li><b>Menu key</b>Also opens a song's menu, on remotes that have it</li>
+  </ul>
+  <p class="note" style="margin-top:22px">Signing in on the projector uses Jellyfin's Quick Connect: the projector shows a short code, and you approve it on your phone, so nothing is typed with the remote. If the app ever crashes, the next launch shows a few lines about what went wrong, to read out or photograph, since the projector can't be reached for logs.</p>
+</div>

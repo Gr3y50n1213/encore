@@ -253,11 +253,18 @@ impl Transport for HttpTransport {
                 .get("date")
                 .and_then(|v| v.to_str().ok())
                 .and_then(crate::jellyfin::time::parse_http_date);
+            let content_range_total = resp
+                .headers()
+                .get("content-range")
+                .and_then(|v| v.to_str().ok())
+                .and_then(|v| v.rsplit('/').next())
+                .and_then(|total| total.trim().parse::<u64>().ok());
             let body = resp.bytes().await.map_err(|e| self.map_error(e))?.to_vec();
             Ok(Response {
                 status,
                 body,
                 server_date_utc_ms,
+                content_range_total,
             })
         })
     }

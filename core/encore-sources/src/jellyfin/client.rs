@@ -436,6 +436,24 @@ impl JellyfinClient {
         }
     }
 
+    /// A seekable reader over the song's original file, for sound analysis (Phase 10): each read is
+    /// one small `Range` request, so the server only sends the bytes asked for and never transcodes.
+    /// Use it from a blocking thread (`spawn_blocking`), not from the runtime's own.
+    pub fn range_reader(
+        &self,
+        item_id: &str,
+        runtime: tokio::runtime::Handle,
+    ) -> Result<crate::ranged::RangeReader> {
+        self.token().ok_or(SourceError::SessionExpired)?;
+        let url = self.url(&format!("/Audio/{item_id}/stream"), &[("static", "true")])?;
+        Ok(crate::ranged::RangeReader::new(
+            self.transport.clone(),
+            url,
+            vec![self.auth_header()],
+            runtime,
+        ))
+    }
+
     /// Where to stream a song from (plan section 8: original on fast networks, a
     /// transcode under a cap otherwise).
     pub fn stream(&self, item_id: &str, req: &StreamRequest) -> Result<StreamInfo> {
@@ -618,6 +636,26 @@ impl JellyfinClient {
             ),
         };
         let resp = self.send(method, url, body).await?;
+        // 403 on a write is "not yours to change" (a playlist owned by someone else, or one
+        // the server lost the owner of), not an ended sign-in: that is 401.
+        if resp.status == 403 {
+            return Err(SourceError::Server {
+                status: 403,
+                message: resp.text().chars().take(500).collect(),
+            });
+        }
+        // Jellyfin answers a delete the user may not make with 401, the same as an ended
+        // sign-in. If the sign-in still works, it was "not allowed", so the write is dropped
+        // rather than retried for ever.
+        if resp.status == 401
+            && matches!(edit, ServerEdit::DeletePlaylist { .. })
+            && self.me().await.is_ok()
+        {
+            return Err(SourceError::Server {
+                status: 403,
+                message: "this server doesn't allow deleting it".into(),
+            });
+        }
         let resp = Self::check(resp, SourceError::SessionExpired)?;
         Ok(match edit {
             ServerEdit::CreatePlaylist { .. } => {

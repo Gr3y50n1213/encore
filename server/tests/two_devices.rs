@@ -39,20 +39,35 @@ impl MediaCheck for AnyToken {
     }
 }
 
-/// The companion over real HTTP on loopback; everything else from the recording.
+/// The companion over real HTTP on loopback; everything else from the recording, except a
+/// song's audio (the recording has none): bytes that are not audio, so an analysis ends at once
+/// with the song marked unreadable. Audio requests are counted.
 #[derive(Debug)]
 struct Split {
     companion: SocketAddr,
     http: encore_sources::http::HttpTransport,
     recording: FixtureTransport,
+    audio_requests: Arc<std::sync::atomic::AtomicUsize>,
 }
 
 impl Transport for Split {
     fn send(&self, req: Request) -> BoxFuture<'_, encore_sources::Result<Response>> {
         let to_companion = req.url.port() == Some(self.companion.port())
             && req.url.host_str() == Some("127.0.0.1");
+        let audio = req.url.path().starts_with("/Audio/") && req.url.path().ends_with("/stream");
         if to_companion {
             self.http.send(req)
+        } else if audio {
+            self.audio_requests
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            Box::pin(async move {
+                Ok(Response {
+                    status: 200,
+                    body: vec![0x42; 3_000],
+                    server_date_utc_ms: None,
+                    content_range_total: None,
+                })
+            })
         } else {
             self.recording.send(req)
         }
@@ -178,11 +193,27 @@ fn start_server(data: &TempDir) -> (SocketAddr, tokio::runtime::Runtime) {
 }
 
 fn device(name: &str, companion: SocketAddr) -> (TempDir, Arc<EncoreCore>, Arc<Events>, String) {
+    let (dir, core, events, profile, _) = device_counting_audio(name, companion);
+    (dir, core, events, profile)
+}
+
+type CountedDevice = (
+    TempDir,
+    Arc<EncoreCore>,
+    Arc<Events>,
+    String,
+    Arc<std::sync::atomic::AtomicUsize>,
+);
+
+/// A device, and how many audio requests it made.
+fn device_counting_audio(name: &str, companion: SocketAddr) -> CountedDevice {
     let dir = temp_dir(name);
+    let audio_requests = Arc::new(std::sync::atomic::AtomicUsize::new(0));
     let transport = Arc::new(Split {
         companion,
         http: encore_sources::http::HttpTransport::new(None, Duration::from_secs(5)).unwrap(),
         recording: FixtureTransport::from_json(RECORDED).unwrap(),
+        audio_requests: audio_requests.clone(),
     });
     let core = EncoreCore::with_transport_for_tests(
         CoreConfig {
@@ -200,7 +231,7 @@ fn device(name: &str, companion: SocketAddr) -> (TempDir, Arc<EncoreCore>, Arc<E
     block(core.quick_connect_start(check.base_url)).unwrap();
     let signed = block(core.quick_connect_wait()).unwrap();
     block(core.sync_library()).unwrap();
-    (dir, core, events, signed.profile_id)
+    (dir, core, events, signed.profile_id, audio_requests)
 }
 
 #[test]
@@ -522,6 +553,56 @@ fn the_mixes_come_from_the_companion_server_and_the_device_builds_them_without_i
     let alone = block(phone.regenerate_mixes()).unwrap().made_for_you;
     assert!(!alone.from_companion);
     assert!(!alone.mixes.is_empty());
+}
+
+/// Phase 10 (docs/adr/core-0019): a song is analysed once per media server. The phone works
+/// through the library and sends what it found; the Mac then takes all of it from the server
+/// without asking the media server for one song's audio.
+#[test]
+fn sound_analysis_is_done_once_and_shared_through_the_server() {
+    use encore_core::api::{Network, PowerState, SoundSettings, SoundStop};
+    const MODEL: &str = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../core/encore-analysis/model/yamnet-v1.bin"
+    );
+    let server_dir = temp_dir("server-sound");
+    let (addr, _server) = start_server(&server_dir);
+    let url = format!("http://127.0.0.1:{}", addr.port());
+    let (_pd, phone, _pe, _, phone_audio) = device_counting_audio("phone", addr);
+    let (_md, mac, _me, _, mac_audio) = device_counting_audio("mac", addr);
+    let on = SoundSettings {
+        enabled: true,
+        wifi_only: true,
+        charging_only: true,
+    };
+    let power = PowerState {
+        charging: true,
+        battery_saver: false,
+        hot: false,
+    };
+    for core in [&phone, &mac] {
+        block(core.connect_companion(url.clone())).unwrap();
+        core.set_sound_model(MODEL.into()).unwrap();
+        core.set_sound_settings(on).unwrap();
+    }
+
+    let run = block(phone.run_sound_analysis(Network::Wifi, power)).unwrap();
+    assert_eq!(run.stop, SoundStop::Done, "{run:?}");
+    let songs = phone.sound_status().unwrap().songs;
+    assert!(songs > 0);
+    assert_eq!(run.unreadable, songs, "every song read (and none is audio)");
+    assert!(phone_audio.load(std::sync::atomic::Ordering::SeqCst) >= songs as usize);
+
+    let run = block(mac.run_sound_analysis(Network::Wifi, power)).unwrap();
+    assert_eq!(run.stop, SoundStop::Done, "{run:?}");
+    assert_eq!((run.analysed, run.unreadable), (0, 0), "nothing done twice");
+    assert_eq!(
+        mac_audio.load(std::sync::atomic::Ordering::SeqCst),
+        0,
+        "the media server was not asked again"
+    );
+    let status = mac.sound_status().unwrap();
+    assert_eq!(status.unavailable, songs, "{status:?}");
 }
 
 /// Phase 7's "done when", core part: phone-to-desktop transfer starts in under 1

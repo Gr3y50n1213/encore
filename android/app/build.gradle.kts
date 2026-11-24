@@ -68,6 +68,21 @@ android {
         }
     }
 
+    // Two apps from one code base: the phone and tablet app, and Encore TV for a projector or
+    // an Android TV (mock-up 45, owner, 23 November 2026). The TV one is its own app beside the
+    // phone one, with a TV launcher entry; the code is shared and asks ui/tv/Tv.kt's isTv().
+    flavorDimensions += "device"
+    productFlavors {
+        create("phone") {
+            dimension = "device"
+            isDefault = true
+        }
+        create("tv") {
+            dimension = "device"
+            applicationIdSuffix = ".tv"
+        }
+    }
+
     buildFeatures {
         compose = true
         resValues = true
@@ -287,6 +302,33 @@ val licenceAssets = tasks.register<LicenceAssets>("licenceAssets") {
     outputDir.set(layout.buildDirectory.dir("generated/licenceAssets"))
 }
 
+/**
+ * Phase 10 (docs/adr/core-0019): the sound model and its NOTICE, shipped as assets under sound/;
+ * the app copies the model out and gives the core its path (sound/SoundModel.kt).
+ */
+abstract class SoundModelAssets : DefaultTask() {
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val sources: ConfigurableFileCollection
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun copy() {
+        val out = File(outputDir.get().asFile, "sound").apply {
+            deleteRecursively()
+            mkdirs()
+        }
+        sources.files.forEach { it.copyTo(File(out, it.name), overwrite = true) }
+    }
+}
+
+val soundModelAssets = tasks.register<SoundModelAssets>("soundModelAssets") {
+    sources.from(coreRoot.file("encore-analysis/model/yamnet-v1.bin"), coreRoot.file("encore-analysis/model/NOTICE"))
+    outputDir.set(layout.buildDirectory.dir("generated/soundModelAssets"))
+}
+
 // The name people see comes from the core's one brand constant (core/encore-core/src/brand.rs).
 val appName: Provider<String> = providers.fileContents(coreRoot.file("encore-core/src/brand.rs")).asText.map { text ->
     Regex("""pub const APP_NAME: &str = "([^"]+)";""").find(text)?.groupValues?.get(1)
@@ -309,10 +351,14 @@ androidComponents {
             addStaticSourceDirectory(coreRoot.dir("bindings/tokens").asFile.absolutePath)
         }
         variant.sources.assets?.addGeneratedSourceDirectory(licenceAssets, LicenceAssets::outputDir)
+        variant.sources.assets?.addGeneratedSourceDirectory(soundModelAssets, SoundModelAssets::outputDir)
+        val tv = variant.flavorName == "tv"
         variant.resValues.put(
             variant.makeResValueKey("string", "app_name"),
-            appName.map { ResValue(it, "From core/encore-core/src/brand.rs") },
+            appName.map { ResValue(if (tv) "$it TV" else it, "From core/encore-core/src/brand.rs") },
         )
+        // Encore TV: read by ui/tv/Tv.kt's isTv().
+        variant.resValues.put(variant.makeResValueKey("bool", "tv_build"), ResValue(tv.toString(), "The TV flavor"))
     }
 }
 
