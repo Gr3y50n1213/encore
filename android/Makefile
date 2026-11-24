@@ -17,7 +17,8 @@ APKS = app/build/outputs/apk/phone/debug/app-phone-debug.apk app/build/outputs/a
 
 check:
 	$(GRADLE) $(GRADLE_ARGS) -Pencore.signReleaseWithDebugKey=true \
-	  lintPhoneDebug testPhoneDebugUnitTest assemblePhoneDebug assemblePhoneRelease assemblePhoneDebugAndroidTest \n	  assembleTvRelease
+	  lintPhoneDebug testPhoneDebugUnitTest assemblePhoneDebug assemblePhoneRelease assemblePhoneDebugAndroidTest \
+	  assembleTvRelease
 	@# zipalign -P 16: every uncompressed .so in the APK starts on a 16 KB page
 	@# (developer.android.com/guide/practices/page-sizes, "Check alignment").
 	@for apk in $(APKS); do \
