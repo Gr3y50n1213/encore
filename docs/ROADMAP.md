@@ -22,6 +22,15 @@ The owner asked to send music from the phone to a TV the way Spotify Connect or 
 - **One TV look (owner, 24 November 2026):** Android TV, Roku and LG webOS share one design, the Encore TV look of mock-up 45, from the same design tokens; only Apple TV differs, in Apple's own style with Liquid Glass, built with the Apple track (it needs a Mac). The owner has a Roku TV and may use a Roku stick. Android TV runs the real Encore TV app (Google's Cast Connect can start it as the cast target); Roku can't run the Rust core, so it shows what the phone and the companion send it; webOS may run the core as WebAssembly.
 - **Open before building:** Google's Cast library is an outside, closed library (the owner's OK is needed, and F-Droid builds must leave it out); a Cast receiver app needs registering with Google (a one-time US$5 fee, per Google's Cast help pages in November 2026) and an https home for its page, likely the companion server. Mock-ups first, as always.
 
+## Smartwatches (owner, 24 November 2026)
+
+The owner wants Encore on smartwatches: Google's, Samsung's, Android-based watches in general, Fitbits that can take it, and the Pebble ("because that matters to me"). Same order as Play on a TV: after the app and the server are finished, before Release (13).
+
+- **Wear OS** covers Samsung Galaxy Watch (4 and later), Google Pixel Watch (Fitbit's own Wear OS watches) and other Wear OS watches with one app: Now Playing and its controls, volume, the sung lyric line, Like, Up Next, mixes, a tile and a complication, in Material 3 Expressive for Wear like the phone. Later, songs downloaded to the watch for runs without the phone. Its link to the phone needs Google Play services, so it is in the Play build only, as with Waypoint's watch app. The owner has a Galaxy Watch 5.
+- **Fitbit OS watches (Versa, Sense):** not possible. Google stops third-party apps on them on 28 November 2026 (no new apps, no updates).
+- **Pebble** (Core Devices' new Pebbles and older ones): the Pebble app's own music controls already drive any player that shows a media notification, Encore included (to be checked on a real Pebble). A dedicated Encore watchapp (the lyric line, Like, mixes) is the goal, once Core Devices' current SDK and phone-link library are checked.
+- Mock-ups first, as always.
+
 ## The master roadmap (word for word from the plan)
 
 The plan's first sentence below, "Build one great experience on Apple devices first", described one builder working alone. With separate tracks, the rules in "How the tracks fit together" above decide the order; everything else below is unchanged.
