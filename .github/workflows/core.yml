@@ -754,3 +754,67 @@ jobs:
             port=$((port + 1))
             echo "::endgroup::"
           done
+
+  server-binaries:
+    # The owner (24 November 2026): the companion server must run on any system Jellyfin
+    # runs on. The image above covers Docker; these are the plain programs for Windows,
+    # macOS and Linux (docs/server/INSTALL.md), each started once and asked /health.
+    name: "Server files: ${{ matrix.name }}"
+    needs: linux
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, name: windows-x64, exe: encore-server.exe }
+          - { os: ubuntu-24.04, name: linux-x64, exe: encore-server }
+          - { os: ubuntu-24.04-arm, name: linux-arm64, exe: encore-server }
+          - { os: macos-latest, name: macos-arm64, exe: encore-server }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Rust (stable)
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustc --version
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            server/target
+          key: server-bin-${{ matrix.name }}-${{ hashFiles('server/Cargo.lock', 'core/Cargo.lock') }}
+          restore-keys: server-bin-${{ matrix.name }}-
+
+      - name: Build
+        working-directory: server
+        run: cargo build --release --locked -p encore-server
+
+      - name: It starts and answers /health
+        working-directory: server
+        run: |
+          data="$RUNNER_TEMP/encore-data"
+          mkdir -p "$data"
+          ENCORE_DATA_DIR="$data" ENCORE_JELLYFIN_URLS=http://127.0.0.1:9 ./target/release/${{ matrix.exe }} &
+          pid=$!
+          ok=
+          for _ in $(seq 1 30); do
+            if ./target/release/${{ matrix.exe }} health; then ok=1; break; fi
+            sleep 1
+          done
+          kill "$pid" 2>/dev/null || true
+          test -n "$ok"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: encore-server-${{ matrix.name }}
+          path: |
+            server/target/release/${{ matrix.exe }}
+            server/LICENSE
+          if-no-files-found: error
