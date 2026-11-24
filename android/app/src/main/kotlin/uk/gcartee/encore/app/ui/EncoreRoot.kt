@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.ui.platform.testTag
 import uk.gcartee.encore.app.ui.components.topBarsPadding
@@ -448,7 +450,13 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                         uk.gcartee.encore.app.ui.components.SelectionTopBar(selection, Modifier.align(Alignment.TopCenter))
                         uk.gcartee.encore.app.ui.components.SelectionBar(
                             selection,
-                            Modifier.align(Alignment.BottomCenter).padding(bottom = with(LocalDensity.current) { miniHeight.toDp() }),
+                            // Above the mini player, or above the system's gesture bar when nothing plays.
+                            Modifier.align(Alignment.BottomCenter).padding(
+                                bottom = maxOf(
+                                    with(LocalDensity.current) { miniHeight.toDp() },
+                                    androidx.compose.foundation.layout.WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
+                                ),
+                            ),
                         )
                     }
                 }
