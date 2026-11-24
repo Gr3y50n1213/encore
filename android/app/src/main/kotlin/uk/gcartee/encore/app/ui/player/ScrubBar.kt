@@ -33,6 +33,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -72,6 +73,51 @@ import uk.gcartee.encore.tokens.EncoreTokens.Motion
  * It runs as an infinite animation, so Compose's InfiniteAnimationPolicy can pause it
  * (UI tests do: a loop on plain frames never lets the screen go idle while playing).
  */
+/**
+ * The lyrics' clock (owner, 24 November 2026: timed lyrics "can get a little choppy"): it
+ * moves every frame, so a word's fill never steps, and the player's once-a-second reports
+ * pull it gently toward them instead of making it jump; only a real seek (more than half a
+ * second away) moves it at once. A correction never runs it backwards. Only composed while
+ * lyrics are on screen.
+ */
+@Composable
+fun rememberFramePosition(positionMs: Long, playing: Boolean, durationMs: Long): State<Long> {
+    val out = remember { mutableLongStateOf(positionMs) }
+    val latest = androidx.compose.runtime.rememberUpdatedState(positionMs)
+    LaunchedEffect(playing, durationMs) {
+        if (!playing) {
+            snapshotFlow { latest.value }.collect { out.longValue = it }
+            return@LaunchedEffect
+        }
+        val end = if (durationMs > 0) durationMs else Long.MAX_VALUE
+        var reportPos = latest.value
+        var reportAt = withFrameMillis { it }
+        var last = reportAt
+        var shown = out.longValue.toDouble()
+        if (kotlin.math.abs(shown - reportPos) > SNAP_MS) shown = reportPos.toDouble()
+        while (true) {
+            withInfiniteAnimationFrameMillis { now ->
+                val p = latest.value
+                if (p != reportPos) {
+                    reportPos = p
+                    reportAt = now
+                }
+                val dt = (now - last).coerceAtLeast(0)
+                last = now
+                val target = (reportPos + (now - reportAt)).toDouble()
+                val before = shown
+                shown += dt
+                val diff = target - shown
+                shown = if (kotlin.math.abs(diff) > SNAP_MS) target else shown + diff * CATCH_UP
+                // Running slow for a moment is invisible; running backwards is not.
+                if (kotlin.math.abs(diff) <= SNAP_MS && shown < before) shown = before
+                out.longValue = shown.toLong().coerceAtMost(end)
+            }
+        }
+    }
+    return out
+}
+
 @Composable
 fun rememberSmoothPosition(positionMs: Long, playing: Boolean, durationMs: Long): State<Long> {
     val out = remember { mutableLongStateOf(positionMs) }
@@ -250,3 +296,7 @@ private const val WAVE_SPEED = 0.75f
 private const val STALL_MS = 500L
 private const val JITTER_MS = 400L
 private const val SMOOTH_FRAME_MS = 33L
+/** Further than this from the player's position is a seek: go there at once. */
+private const val SNAP_MS = 500.0
+/** How much of the drift each frame takes back: about a third of a second to settle. */
+private const val CATCH_UP = 0.08

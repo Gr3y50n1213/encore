@@ -83,8 +83,21 @@ private sealed interface LyricsLoad {
  * so lines change on time and words fill smoothly without recomposing the list each frame.
  */
 @Composable
-fun LyricsPanel(host: CoreHost, song: Song, position: () -> Long, colour: Color, onSeek: (Long) -> Unit, modifier: Modifier = Modifier) {
+fun LyricsPanel(
+    host: CoreHost,
+    song: Song,
+    positionMs: Long,
+    playing: Boolean,
+    durationMs: Long,
+    scrubbing: () -> Long?,
+    colour: Color,
+    onSeek: (Long) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val type = LocalEncoreType.current
+    // Every frame while the lyrics show (rememberFramePosition); a held scrubber leads.
+    val clock = rememberFramePosition(positionMs, playing, durationMs)
+    val position: () -> Long = { scrubbing() ?: clock.value }
     var load by remember(song.id) { mutableStateOf<LyricsLoad>(LyricsLoad.Loading) }
     LaunchedEffect(song.id) {
         load = runCatching { host.core.lyrics(song.id) }.getOrNull()?.let { LyricsLoad.Ready(it) } ?: LyricsLoad.None
@@ -232,9 +245,11 @@ private fun Lines(host: CoreHost, lyrics: SongLyrics, position: () -> Long, colo
                             transformOrigin = TransformOrigin(if (opposite) 1f else 0f, 0.5f)
                         }
                         .let { if (blurDp > 0.05f && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) it.blur(blurDp.dp) else it }
-                    if (active && line.words.isNotEmpty()) {
+                    if (synced && line.words.isNotEmpty()) {
+                        // Word-timed lines are laid out as words whether sung or not, so a
+                        // line becoming the sung one never reflows (it did: a small jump).
                         FlowRow(lineModifier, horizontalArrangement = if (opposite) Arrangement.End else Arrangement.Start) {
-                            line.words.forEach { w -> SungWord(w, position, colour) }
+                            line.words.forEach { w -> SungWord(w, position, colour, sung = { active }) }
                         }
                     } else {
                         Text(
@@ -268,26 +283,56 @@ private fun Lines(host: CoreHost, lyrics: SongLyrics, position: () -> Long, colo
     }
 }
 
-/** Each word fills left to right across its own sung time, with a soft edge. */
+/**
+ * Each word fills left to right across its own sung time, with a soft edge that leads the
+ * fill. Off the sung line a word is drawn whole, in the line's own colour and fade.
+ */
 @Composable
-private fun SungWord(w: LyricWord, position: () -> Long, colour: Color) {
+private fun SungWord(w: LyricWord, position: () -> Long, colour: Color, sung: () -> Boolean) {
     val type = LocalEncoreType.current
     val span = (w.endMs - w.startMs).coerceAtLeast(1)
+    val text = w.text + if (w.spaceAfter) " " else ""
     Box {
-        Text(w.text + if (w.spaceAfter) " " else "", style = type.lyricLine, color = colour.copy(alpha = UPCOMING_ALPHA))
         Text(
-            w.text + if (w.spaceAfter) " " else "",
+            text,
+            style = type.lyricLine,
+            color = colour.copy(alpha = UPCOMING_ALPHA),
+            modifier = Modifier.drawWithContent { if (sung()) drawContent() },
+        )
+        Text(
+            text,
             style = type.lyricLine,
             color = colour,
-            modifier = Modifier.drawWithContent {
-                val word = this
-                // Read while drawing: the fill moves every frame without recomposing.
-                val fill = ((position() + LEAD_MS - w.startMs).toFloat() / span).coerceIn(0f, 1f)
-                clipRect(right = size.width * fill) { word.drawContent() }
-            },
+            modifier = Modifier
+                .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
+                .drawWithContent {
+                    // Read while drawing: the fill moves every frame without recomposing.
+                    if (!sung()) {
+                        drawContent()
+                        return@drawWithContent
+                    }
+                    val fill = ((position() + LEAD_MS - w.startMs).toFloat() / span).coerceIn(0f, 1f)
+                    if (fill <= 0f) return@drawWithContent
+                    drawContent()
+                    if (fill >= 1f) return@drawWithContent
+                    val edge = FILL_EDGE_DP.dp.toPx()
+                    val x = (size.width + edge) * fill
+                    drawRect(
+                        androidx.compose.ui.graphics.Brush.horizontalGradient(
+                            0f to Color.Black,
+                            1f to Color.Transparent,
+                            startX = x - edge,
+                            endX = x,
+                        ),
+                        blendMode = androidx.compose.ui.graphics.BlendMode.DstIn,
+                    )
+                },
         )
     }
 }
+
+/** The soft edge at the front of a word's fill. */
+private const val FILL_EDGE_DP = 14
 
 /** Item 6: three dots breathe in time and fill one by one before the next line. */
 @Composable

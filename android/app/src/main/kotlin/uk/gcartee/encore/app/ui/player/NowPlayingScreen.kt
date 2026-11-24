@@ -258,7 +258,7 @@ fun NowPlayingScreen(
                             if (!liked) toggleLike(true) else haptics.perform(Haptic.Confirm)
                             heart = true
                         }, onMenu = { menu = true }, onEnd = { endOfQueue = it })
-                        PlayerPanel.Lyrics -> LyricsPanel(host, song, position, content, onSeek = { PlaybackHub.seekAndPlay(context, it) }, modifier = Modifier.fillMaxSize().fadingEdges())
+                        PlayerPanel.Lyrics -> LyricsPanel(host, song, state.positionMs, state.isPlaying, state.durationMs, { scrubbing }, content, onSeek = { PlaybackHub.seekAndPlay(context, it) }, modifier = Modifier.fillMaxSize().fadingEdges())
                         PlayerPanel.Queue -> remoteDevice?.let { d -> RemoteQueuePanel(host, d, content, Modifier.fillMaxSize().fadingEdges()) }
                             ?: QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize().fadingEdges(), onColour = colours.base)
                     }
@@ -440,7 +440,7 @@ fun NowPlayingScreen(
                     Box(Modifier.weight(1f - TV_LEFT).fillMaxSize().fadingEdges()) {
                         when (panel) {
                             PlayerPanel.Queue -> remoteDevice?.let { d -> RemoteQueuePanel(host, d, content, Modifier.fillMaxSize()) } ?: QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Lyrics }, modifier = Modifier.fillMaxSize(), onColour = colours.base)
-                            else -> LyricsPanel(host, song, position, content, onSeek = { PlaybackHub.seekAndPlay(context, it) }, modifier = Modifier.fillMaxSize())
+                            else -> LyricsPanel(host, song, state.positionMs, state.isPlaying, state.durationMs, { scrubbing }, content, onSeek = { PlaybackHub.seekAndPlay(context, it) }, modifier = Modifier.fillMaxSize())
                         }
                     }
                 }
@@ -476,7 +476,7 @@ fun NowPlayingScreen(
                 // Lyrics and the Queue sit straight on the field, fading at their edges.
                 Box(Modifier.weight(1f).fillMaxWidth().fadingEdges()) {
                     when (panel) {
-                        PlayerPanel.Lyrics -> LyricsPanel(host, song, position, content, onSeek = { PlaybackHub.seekAndPlay(context, it) }, modifier = Modifier.fillMaxSize())
+                        PlayerPanel.Lyrics -> LyricsPanel(host, song, state.positionMs, state.isPlaying, state.durationMs, { scrubbing }, content, onSeek = { PlaybackHub.seekAndPlay(context, it) }, modifier = Modifier.fillMaxSize())
                         else -> remoteDevice?.let { d -> RemoteQueuePanel(host, d, content, Modifier.fillMaxSize()) } ?: QueuePanel(host, content, onPlayer = { panel = PlayerPanel.Artwork }, modifier = Modifier.fillMaxSize(), onColour = colours.base)
                     }
                 }
