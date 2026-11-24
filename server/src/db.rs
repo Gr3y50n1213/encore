@@ -575,6 +575,24 @@ impl Db {
                     params![authed.profile_id, RANKER_KEY],
                 )?;
             }
+            // Delete sound analysis: the shared copy for this profile's media server goes as
+            // well, so every device starts over. Only rows stored before the delete, so the
+            // same event pushed again later never takes newer analysis with it. The rows
+            // describe songs, not people, and are made again by analysing.
+            if e.kind == "soundDelete"
+                && let Some(t) = e.payload["beforeUtcMs"].as_i64()
+            {
+                tx.execute(
+                    "DELETE FROM sounds WHERE updated_utc_ms < ?2 AND media_server_id =
+                         (SELECT media_server_id FROM profiles WHERE id = ?1)",
+                    params![authed.profile_id, t],
+                )?;
+                tx.execute(
+                    "DELETE FROM sound_claims WHERE media_server_id =
+                         (SELECT media_server_id FROM profiles WHERE id = ?1)",
+                    [authed.profile_id],
+                )?;
+            }
             if matches!(e.kind.as_str(), "play" | "lyricJump") && e.created_utc_ms < cleared_before
             {
                 accepted.push(e.id.clone());

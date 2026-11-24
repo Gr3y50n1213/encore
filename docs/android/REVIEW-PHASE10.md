@@ -94,7 +94,7 @@ Phase 10's "done when" line is *v2 beats v1's early-skip rate in an offline repl
 ## Follow-ups
 
 - **Fixed after this review (24 November 2026):** the screens and mock-up 44 said "about 130 numbers per song are kept"; the database keeps about 1,600 (the 1,024-number embedding and 521 class scores, one byte each, and a small profile). They now say "about 1,600 small numbers per song are kept, never the audio".
-- **Delete sound analysis does not delete the shared rows on the companion server,** and the dialog says "Turning it on again starts over". With a companion server it doesn't: the next run takes the rows back. The owner decides whether Delete should also delete from the server, or the dialog should say so (see the core review).
+- **Decided and built (24 November 2026; the owner left the logic to the session):** Delete sound analysis starts over everywhere. The analysis describes songs, not people, so Turn off only stops new work and keeps what was learned; Delete is a `soundDelete` event (a tombstone like Clear listening history): every device of the profile deletes its copy when it pulls it, and the companion deletes its shared rows for that media server stored before the delete, so pushing the same event again never takes newer analysis. The dialog says so.
 - **Find out why the Mixes tile test fails on API 28.** Five of the last eight branch runs, and `main` before Phase 10.
 - **Pin Glance's 10-child limit with a test,** for example a scan of every `Row` and `Column` in `widgets/` or a gallery case with the widest size.
 - **Add instrumented or snapshot tests for the sound screens, Sleep mode, Select mode and the TV build.**

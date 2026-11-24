@@ -37,7 +37,9 @@ pub use recs::{FeedbackRow, NotInterestedRow, RecsPlayRow, RecsSongRow};
 pub use registry::{DownloadFileRecord, PinRecord, Registry, RegistryProfile, SleepTimerRecord};
 pub use search::{LyricHit, SearchLimits, SearchResults, TopResult, fold_for_search};
 pub use sound::{PendingSound, SoundCounts, SoundRow};
-pub use sync::{Applied, CLEARED_KEY, EPOCH_KEY, InEvent, OutEvent, like_effect};
+pub use sync::{
+    Applied, CLEARED_KEY, EPOCH_KEY, InEvent, OutEvent, SOUNDS_CLEARED_KEY, like_effect,
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {

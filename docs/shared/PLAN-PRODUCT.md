@@ -79,7 +79,7 @@ Devices stream audio straight from the media server for the lowest latency, and 
   - Android: Media3 ExoPlayer with a `MediaSessionService`, called straight from the Kotlin Compose app.
   - Windows and Linux: a Rust audio engine (Symphonia to decode, cpal to output) with System Media Transport Controls on Windows and MPRIS on Linux.
   - In every case the core owns the queue and tells the native player what to load next.
-- **Companion server** (`encore-server`): Rust + Axum, SQLite by default. Holds profiles, synced history and likes, handoff presence, and the heavy jobs (audio analysis, model training, the yearly recap).
+- **Companion server** (`encore-server`): Rust + Axum, SQLite by default. Holds profiles, synced history and likes, handoff presence, and the heavy jobs (audio analysis, model training, the yearly recap). *Changed in Phase 10 (ADR core-0019): the devices analyse the audio, on Wi-Fi while charging, and the companion only stores and shares the results, because a home media server is often a weak machine.*
 - **Graceful degradation**: with no companion server, the app still plays, shows lyrics and recommends from on-device history. It just cannot sync or hand off.
 
 ## 3. Repository layout and tech stack
@@ -211,7 +211,7 @@ The companion server is one small Docker container that sits next to Jellyfin an
 
 **Background jobs**
 
-- Audio analysis: read each new track once (streamed through the Jellyfin API, or from a read-only mount of the music folder if the user provides one) and compute an audio embedding, tempo, key, loudness and energy.
+- Audio analysis: read each new track once (streamed through the Jellyfin API, or from a read-only mount of the music folder if the user provides one) and compute an audio embedding, tempo, key, loudness and energy. *Phase 10: done on the devices (YAMNet in Rust), shared through the companion so each song is analysed once (ADR core-0019).*
 - Nightly: retrain each profile's ranking model, refresh the co-listen graph, precompute home-screen mixes.
 - Recap: build the "so far" recap on December 1, run the final build on January 1, rebuild quietly when late plays arrive until January 8, then lock it (section 25). Devices run the same engine when the server is off.
 - Jobs are throttled and can be limited to night hours, so they never compete with Jellyfin transcoding.
@@ -275,7 +275,7 @@ Every event also carries context: time of day, day of week, device type, and wha
 
 1. **Candidates (about 500 tracks)** from several pools: tracks you played in the same sessions (co-listen graph); tracks that sound similar to the current session (audio embedding neighbors); same and related artists, genres and eras (metadata, MusicBrainz relations); a rediscovery pool of loved tracks unplayed for 60+ days; and new additions to the library.
 2. **Features per candidate**: your affinity for the track, artist and genre; similarity to the current session; days since last played; your skip rate for similar tracks in this context; time-of-day fit; tempo, key and energy fit with the previous track; novelty.
-3. **Ranking**: a small per-profile model predicts "will be played past 30 seconds and finished". Start with hand-tuned scoring for new users, then switch to a gradient-boosted tree model trained nightly on the server and exported to ONNX or Core ML.
+3. **Ranking**: a small per-profile model predicts "will be played past 30 seconds and finished". Start with hand-tuned scoring for new users, then switch to a gradient-boosted tree model trained nightly on the server and exported to ONNX or Core ML. *Phase 10: the trees are trained when due, on a device or the companion, and run in the Rust core on every platform, so no ONNX or Core ML export is needed (ADR core-0020).*
 4. **Exploration**: about 10% of slots go to promising but uncertain tracks (Thompson sampling), so the app keeps learning instead of looping favorites. A "Familiar to Adventurous" control lets the user change that share.
 5. **Sequencing for flow**: no artist twice within 3 tracks, smooth tempo and energy changes, no repeat within 24 hours unless the track is loved.
 6. **Live adaptation**: an early skip immediately pushes the rest of the session away from that sound; a like or replay pulls toward it. This happens on the device, before the next track starts.
@@ -294,7 +294,7 @@ Every event also carries context: time of day, day of week, device type, and wha
 
 | Task | Runs on | Hardware |
 | --- | --- | --- |
-| Audio analysis of the library (embeddings, tempo, key, energy) | Companion server | CPU, or GPU if present |
+| Audio analysis of the library (embeddings, tempo, key, energy) | The devices (Phase 10, ADR core-0019); the companion stores and shares the results | CPU, on Wi-Fi while charging |
 | Nightly model training, co-listen graph, precomputed mixes | Companion server | CPU |
 | Live ranking and in-session adaptation | Each device | CPU is enough; the model is tiny |
 | Analysis of local files and offline-only tracks | Each device | Apple Neural Engine via Core ML; NPU via ONNX Runtime (NNAPI or QNN on Android, DirectML on Windows) |
@@ -302,7 +302,7 @@ Every event also carries context: time of day, day of week, device type, and wha
 
 The NPU matters most for audio analysis, not ranking. Ranking a few hundred candidates with a small tree model takes milliseconds on any phone.
 
-**Audio model choice**: use an open audio embedding model (for example LAION-CLAP, or an Essentia-TensorFlow model) and check its license before shipping, since some are non-commercial only. Store embeddings per track so analysis runs once.
+**Audio model choice**: use an open audio embedding model (for example LAION-CLAP, or an Essentia-TensorFlow model) and check its license before shipping, since some are non-commercial only. Store embeddings per track so analysis runs once. *Phase 10 chose YAMNet (Apache-2.0); CLAP and Essentia were not shipped (licences, size; ADR core-0019).*
 
 **Optional, opt-in extras**
 

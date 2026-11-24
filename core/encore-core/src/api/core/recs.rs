@@ -502,7 +502,7 @@ impl Inner {
         out
     }
 
-    fn record_event(
+    pub(super) fn record_event(
         &self,
         p: &Profile,
         kind: &str,

@@ -13,6 +13,10 @@ The plan's thirteen phases and their "done when" lines are unchanged. What chang
 
 Phase 12 (more sources) is built before Phase 11 (year-end recap). The owner's words: "functionality before looks". The numbers keep their meaning everywhere; only the order changes: 10, then 12, then 11, then 13. Widget and other visual polish waits until then.
 
+## Phase 10 as built (24 November 2026)
+
+Phase 10's line in the master roadmap below says "audio analysis on the server" and "on-device Core ML and ONNX models". As built (ADRs core-0019 and core-0020): the devices analyse the audio and the companion stores and shares the results, because the owner's media server is a weak PC; the learned ranker is small trees run by the Rust core on every platform, so no Core ML or ONNX export. The master roadmap's words stay as they were.
+
 ## Play on a TV (owner, 24 November 2026)
 
 The owner asked to send music from the phone to a TV the way Spotify Connect or Chromecast does: the TV opens its own Encore screen made for a big screen (what's playing, big synced lyrics, the queue, Sleep mode) instead of mirroring the phone, the TV plays the music, and the phone stays the remote. It lives in the output picker ("Play on", Phase 7), with TVs listed beside the other devices. The owner's order: finish the app and the server first, so it comes after Phases 10, 12 and 11 and before Release (13).

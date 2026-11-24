@@ -303,8 +303,17 @@ impl EncoreCore {
     /// Forget every analysis (Settings > Sound analysis > Delete). Returns how many songs.
     pub fn delete_sound_analysis(&self) -> Result<u32, EncoreError> {
         let p = self.inner.profile()?;
-        let n = lock(&p.store)?.delete_sounds()?;
+        let now = now_ms();
+        let n = {
+            let store = lock(&p.store)?;
+            store.raise_state(encore_store::SOUNDS_CLEARED_KEY, now)?;
+            store.delete_sounds()?
+        };
+        // Every device of the profile, and the companion's shared copy, start over too.
+        self.inner
+            .record_event(&p, "soundDelete", serde_json::json!({ "beforeUtcMs": now }))?;
         self.inner.emit_sound(&p);
+        self.send_soon();
         Ok(n)
     }
 

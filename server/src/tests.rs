@@ -933,6 +933,83 @@ async fn devices_share_sound_analysis_and_never_work_on_the_same_song() {
     assert_eq!(s, StatusCode::UNAUTHORIZED);
 }
 
+/// Owner, 24 November 2026: Delete sound analysis starts over everywhere, the companion's
+/// shared copy included; the same delete pushed again later leaves newer analysis alone.
+#[tokio::test]
+async fn deleting_sound_analysis_clears_the_shared_copy_once() {
+    let (app, _) = server();
+    let phone = sign_in(&app, "good-sam", "phone").await["access_token"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let row = |k: &str| {
+        json!({ "songKey": k, "version": 1, "state": "ok", "reason": null, "profile": "0a0b",
+                "model": "yamnet-v1", "embedding": "ff00", "analysedUtcMs": 5 })
+    };
+    let lookup = |keys: Value| call(&app, "POST", "/sound/lookup", Some(&phone), Some(keys));
+    call(
+        &app,
+        "PUT",
+        "/sound",
+        Some(&phone),
+        Some(json!({ "sounds": [row("a"), row("b")] })),
+    )
+    .await;
+    assert_eq!(
+        lookup(json!({ "keys": ["a", "b"] })).await.1["sounds"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
+
+    let now = now_ms() + 1;
+    let delete = json!({ "id": "sd1", "kind": "soundDelete", "hlc": format!("{:013}-0000", now), "version": 0,
+                         "created_utc_ms": now, "payload": { "beforeUtcMs": now } });
+    let (s, r) = call(
+        &app,
+        "POST",
+        "/sync/push",
+        Some(&phone),
+        Some(json!({ "events": [delete.clone()] })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{r}");
+    assert_eq!(
+        lookup(json!({ "keys": ["a", "b"] })).await.1["sounds"]
+            .as_array()
+            .unwrap()
+            .len(),
+        0
+    );
+
+    // Analysed again after the delete, then the old delete arrives again: the new row stays.
+    std::thread::sleep(std::time::Duration::from_millis(5));
+    call(
+        &app,
+        "PUT",
+        "/sound",
+        Some(&phone),
+        Some(json!({ "sounds": [row("a")] })),
+    )
+    .await;
+    call(
+        &app,
+        "POST",
+        "/sync/push",
+        Some(&phone),
+        Some(json!({ "events": [delete] })),
+    )
+    .await;
+    assert_eq!(
+        lookup(json!({ "keys": ["a"] })).await.1["sounds"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+}
+
 #[test]
 fn the_servers_history_merges_likes_and_not_interested_by_the_latest_change() {
     let ev = |id: &str, kind: &str, hlc: &str, device: &str, payload: Value| Event {
