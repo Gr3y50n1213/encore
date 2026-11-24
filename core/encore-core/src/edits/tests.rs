@@ -29,6 +29,8 @@ struct FakeServer {
     playlists: Mutex<HashMap<String, Vec<PlaylistEntry>>>,
     favorites: Mutex<HashSet<String>>,
     next: Mutex<u32>,
+    /// Playlists this user may not change (403), like one whose owner the server lost.
+    forbidden: Mutex<HashSet<String>>,
 }
 
 impl FakeServer {
@@ -39,6 +41,7 @@ impl FakeServer {
             playlists: Mutex::new(HashMap::new()),
             favorites: Mutex::new(HashSet::new()),
             next: Mutex::new(0),
+            forbidden: Mutex::new(HashSet::new()),
         }
     }
     fn set(&self, m: Mode) {
@@ -131,6 +134,20 @@ impl MediaSource for FakeServer {
                 Mode::Down => return Err(SourceError::Unreachable(Unreachable::Refused)),
                 Mode::Refuses => return Err(SourceError::NotFound),
                 Mode::Up => {}
+            }
+            let target = match edit {
+                ServerEdit::AddToPlaylist { playlist_id, .. }
+                | ServerEdit::RemoveFromPlaylist { playlist_id, .. }
+                | ServerEdit::MoveInPlaylist { playlist_id, .. }
+                | ServerEdit::RenamePlaylist { playlist_id, .. }
+                | ServerEdit::DeletePlaylist { playlist_id } => Some(playlist_id),
+                _ => None,
+            };
+            if target.is_some_and(|t| self.forbidden.lock().unwrap().contains(t)) {
+                return Err(SourceError::Server {
+                    status: 403,
+                    message: String::new(),
+                });
             }
             self.sent.lock().unwrap().push(edit.clone());
             let mut lists = self.playlists.lock().unwrap();
@@ -630,6 +647,54 @@ fn a_playlist_made_offline_gets_its_server_id_before_later_writes() {
     );
     assert!(matches!(&sent[2], ServerEdit::RenamePlaylist { name, .. } if name == "Night drive"));
     assert_eq!(f.server.items(&server_id), ["s30", "s31", "s32", "s40"]);
+}
+
+/// The owner's server, 24 November 2026: the server lost the owner of a playlist made on
+/// the phone, refused every later change to it (403), and the refused write held up the
+/// whole queue. The user's version becomes a playlist of their own, and later writes go.
+#[test]
+fn a_playlist_the_server_wont_let_us_change_becomes_our_own() {
+    let mut f = fixture();
+    let road = f.road;
+    f.server.forbidden.lock().unwrap().insert("srv-road".into());
+    let songs = f.songs(&["s50", "s51"]);
+    f.edit(T0, |ed| ed.add(Target::Playlist(road), &songs, None, false))
+        .unwrap();
+    f.edit(T0, |ed| ed.rename(road, "My Favorites")).unwrap();
+    // A write to another playlist, queued behind the refused ones.
+    let more = f.songs(&["s60"]);
+    let made = f
+        .edit(T0, |ed| ed.add(Target::NewPlaylist, &more, None, false))
+        .unwrap();
+    let r = f.flush();
+    assert_eq!(r.waiting, 0, "nothing is left stuck");
+    assert_eq!(f.counts().2, 0);
+    // Road was made again as the user's own, with its name and every song it had here.
+    let rec = f
+        .store
+        .lock()
+        .unwrap()
+        .playlist_record(road)
+        .unwrap()
+        .unwrap();
+    assert_ne!(rec.source_item_id, "srv-road");
+    assert!(!rec.source_item_id.starts_with(LOCAL_ITEM_PREFIX));
+    assert_eq!(rec.name, "My Favorites");
+    assert_eq!(
+        f.server.items(&rec.source_item_id),
+        ["s0", "s1", "s50", "s51"]
+    );
+    assert_eq!(f.rows(road), ["s0", "s1", "s50", "s51"]);
+    // And the playlist queued after it reached the server too.
+    let other = f
+        .store
+        .lock()
+        .unwrap()
+        .playlist_record(made.playlist_id.unwrap())
+        .unwrap()
+        .unwrap()
+        .source_item_id;
+    assert_eq!(f.server.items(&other), ["s60"]);
 }
 
 /// The owner's server, 23 November 2026: a new playlist named with a trailing space was

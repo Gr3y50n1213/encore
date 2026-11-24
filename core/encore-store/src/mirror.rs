@@ -264,16 +264,22 @@ fn upsert_track(tx: &Transaction<'_>, source_id: i64, t: &Track) -> Result<()> {
 }
 
 fn upsert_playlist(tx: &Transaction<'_>, source_id: i64, p: &Playlist) -> Result<()> {
-    let id: i64 = tx
+    let (id, name): (i64, String) = tx
         .prepare_cached(
             "INSERT INTO playlists (source_id, source_item_id, name, search_name, date_added_utc_ms,
                                     artwork_tag, can_edit)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
              ON CONFLICT (source_id, source_item_id) DO UPDATE SET
-                 name = excluded.name, search_name = excluded.search_name,
+                 -- A rename made here and not yet sent keeps its name through a pull.
+                 name = CASE WHEN EXISTS (SELECT 1 FROM outbox o WHERE o.playlist_id = playlists.id
+                                          AND o.state = 'pending')
+                        THEN playlists.name ELSE excluded.name END,
+                 search_name = CASE WHEN EXISTS (SELECT 1 FROM outbox o
+                                          WHERE o.playlist_id = playlists.id AND o.state = 'pending')
+                        THEN playlists.search_name ELSE excluded.search_name END,
                  date_added_utc_ms = excluded.date_added_utc_ms,
                  artwork_tag = excluded.artwork_tag, can_edit = excluded.can_edit
-             RETURNING id",
+             RETURNING id, name",
         )?
         .query_row(
             params![
@@ -285,9 +291,9 @@ fn upsert_playlist(tx: &Transaction<'_>, source_id: i64, p: &Playlist) -> Result
                 p.artwork_tag,
                 p.can_edit
             ],
-            |r| r.get(0),
+            |r| Ok((r.get(0)?, r.get(1)?)),
         )?;
-    reindex(tx, id, KIND_PLAYLIST, &p.name)?;
+    reindex(tx, id, KIND_PLAYLIST, &name)?;
     // Edits made on this device and not yet accepted by the server win: the pull
     // must not put back the songs as they were before them.
     let unsent: bool = tx

@@ -1074,10 +1074,54 @@ fn refused(e: &SourceError) -> bool {
     match e {
         SourceError::NotFound | SourceError::Protocol(_) => true,
         SourceError::Server { status, .. } => {
-            (400..500).contains(status) && !matches!(status, 401 | 403 | 408 | 429)
+            (400..500).contains(status) && !matches!(status, 401 | 408 | 429)
         }
         _ => false,
     }
+}
+
+/// The server won't let this user change it (403): retrying can never work.
+fn forbidden(e: &SourceError) -> bool {
+    matches!(e, SourceError::Server { status: 403, .. })
+}
+
+/// A playlist the server refuses changes to becomes a new playlist of the user's own,
+/// made from the name and songs it has here, so nothing they did is lost. The owner's
+/// server lost the owner of a playlist whose folder Windows couldn't save (23 November
+/// 2026); every later edit to it was refused, and the refusal held up the whole queue.
+/// The old server playlist comes back as its own row at the next sync. Returns whether
+/// it was forked (a playlist the server never saw has nothing to fork from).
+fn fork_playlist(store: &Store, source_id: i64, playlist: i64) -> Result<bool, EditError> {
+    let Some(rec) = store.playlist_record(playlist)? else {
+        return Ok(false);
+    };
+    if rec.source_item_id.starts_with(LOCAL_ITEM_PREFIX) {
+        return Ok(false);
+    }
+    let edit_id = new_id();
+    store.in_transaction(|s| {
+        s.cancel_pending_for_playlist(playlist)?;
+        s.set_playlist_item_id(playlist, &format!("{LOCAL_ITEM_PREFIX}{edit_id}"))?;
+        let rows: Vec<PlaylistItemRow> = s
+            .playlist_items(playlist)?
+            .into_iter()
+            .map(|r| PlaylistItemRow {
+                track_item_id: r.track_item_id,
+                entry_id: None,
+                edit_id: Some(edit_id.clone()),
+            })
+            .collect();
+        s.set_playlist_items(playlist, &rows)?;
+        let op = vec![QueuedOp::Create {
+            playlist,
+            name: rec.name.clone(),
+            item_ids: rows.iter().map(|r| r.track_item_id.clone()).collect(),
+        }];
+        let json = serde_json::to_string(&op).unwrap_or_else(|_| "[]".into());
+        s.enqueue(source_id, &edit_id, Some(playlist), &json)?;
+        Ok(())
+    })?;
+    Ok(true)
 }
 
 /// The server's entry ID for each row: the one recorded, else the entry at the
@@ -1154,17 +1198,39 @@ pub(crate) async fn refresh_playlist(
 }
 
 /// Send the waiting writes for one server, in order. Stops at the first write the
-/// server can't take now (so order is kept); drops writes it refuses.
+/// server can't take now (so order is kept); drops writes it refuses. A playlist the
+/// server won't let this user change is forked (`fork_playlist`) and made at once.
 pub async fn flush(
     store: &Mutex<Store>,
     source_id: i64,
     source: &dyn MediaSource,
     now_utc_ms: i64,
 ) -> Result<Flushed, EditError> {
+    let (mut report, forked) = flush_pass(store, source_id, source, now_utc_ms).await?;
+    if forked {
+        let (more, _) = flush_pass(store, source_id, source, now_utc_ms).await?;
+        report.sent += more.sent;
+        report.refused += more.refused;
+        report.waiting = more.waiting;
+    }
+    Ok(report)
+}
+
+async fn flush_pass(
+    store: &Mutex<Store>,
+    source_id: i64,
+    source: &dyn MediaSource,
+    now_utc_ms: i64,
+) -> Result<(Flushed, bool), EditError> {
     let mut report = Flushed::default();
     let pending = lock(store)?.pending_outbox(source_id)?;
     let mut touched: Vec<i64> = Vec::new();
+    // Playlists forked in this flush: their other waiting writes were cancelled.
+    let mut forked: Vec<i64> = Vec::new();
     for (index, row) in pending.iter().enumerate() {
+        if row.playlist_id.is_some_and(|p| forked.contains(&p)) {
+            continue;
+        }
         let mut ops: Vec<QueuedOp> = match serde_json::from_str(&row.op) {
             Ok(ops) => ops,
             Err(e) => {
@@ -1200,6 +1266,17 @@ pub async fn flush(
                 lock(store)?.outbox_done(row.seq)?;
                 report.sent += 1;
             }
+            Err(e) if forbidden(&e) => {
+                let playlist = ops.first().and_then(QueuedOp::playlist).or(row.playlist_id);
+                let s = lock(store)?;
+                s.outbox_refused(row.seq, &e.to_string())?;
+                report.refused += 1;
+                if let Some(p) = playlist
+                    && fork_playlist(&s, source_id, p)?
+                {
+                    forked.push(p);
+                }
+            }
             Err(e) if refused(&e) => {
                 lock(store)?.outbox_refused(row.seq, &e.to_string())?;
                 report.refused += 1;
@@ -1217,7 +1294,7 @@ pub async fn flush(
     for p in touched {
         refresh_playlist(store, source, p).await?;
     }
-    Ok(report)
+    Ok((report, !forked.is_empty()))
 }
 
 /// A playlist name a media server can keep. Jellyfin makes a folder named after a new

@@ -636,6 +636,14 @@ impl JellyfinClient {
             ),
         };
         let resp = self.send(method, url, body).await?;
+        // 403 on a write is "not yours to change" (a playlist owned by someone else, or one
+        // the server lost the owner of), not an ended sign-in: that is 401.
+        if resp.status == 403 {
+            return Err(SourceError::Server {
+                status: 403,
+                message: resp.text().chars().take(500).collect(),
+            });
+        }
         let resp = Self::check(resp, SourceError::SessionExpired)?;
         Ok(match edit {
             ServerEdit::CreatePlaylist { .. } => {
