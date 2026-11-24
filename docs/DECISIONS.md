@@ -84,7 +84,7 @@ The owner has not answered these. They are the plan's defaults (plan section 15)
 | People and kids | 2 to 5 profiles; kid profiles with an explicit-content filter | |
 | Publish where | All stores after phase 11 | |
 | Extra devices (Watch, TV, Wear OS, web) | Not in the first 12 phases | |
-| Casting | AirPlay and Bluetooth only at first | |
+| Casting | AirPlay and Bluetooth only at first. **Superseded 24 November 2026:** the owner wants Play on a TV in the output picker (Google Cast, then Roku, then DLNA), after the app and server are finished; `docs/ROADMAP.md`, "Play on a TV" | |
 | Lossless and hi-res | Play as-is; no Atmos | |
 | Equalizer | 10-band, phase 8 | |
 | Scrobbling | Optional, off by default | |

@@ -13,6 +13,14 @@ The plan's thirteen phases and their "done when" lines are unchanged. What chang
 
 Phase 12 (more sources) is built before Phase 11 (year-end recap). The owner's words: "functionality before looks". The numbers keep their meaning everywhere; only the order changes: 10, then 12, then 11, then 13. Widget and other visual polish waits until then.
 
+## Play on a TV (owner, 24 November 2026)
+
+The owner asked to send music from the phone to a TV the way Spotify Connect or Chromecast does: the TV opens its own Encore screen made for a big screen (what's playing, big synced lyrics, the queue, Sleep mode) instead of mirroring the phone, the TV plays the music, and the phone stays the remote. It lives in the output picker ("Play on", Phase 7), with TVs listed beside the other devices. The owner's order: finish the app and the server first, so it comes after Phases 10, 12 and 11 and before Release (13).
+
+- **Which TVs, most common first:** Google Cast (Chromecast, Google TV and Android TV sets and projectors, many smart TVs), then Roku (an Encore channel installed through Roku's developer mode, started over the local network), then plain DLNA as a fallback that plays the music without Encore's screen.
+- **Privacy:** the TV gets a short-lived pass that can only play, never the sign-in, so a TV elsewhere can't keep access to the library.
+- **Open before building:** Google's Cast library is an outside, closed library (the owner's OK is needed, and F-Droid builds must leave it out); a Cast receiver app needs registering with Google (a one-time fee) and an https home for its page, likely the companion server. Mock-ups first, as always.
+
 ## The master roadmap (word for word from the plan)
 
 The plan's first sentence below, "Build one great experience on Apple devices first", described one builder working alone. With separate tracks, the rules in "How the tracks fit together" above decide the order; everything else below is unchanged.
