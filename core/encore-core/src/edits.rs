@@ -1220,6 +1220,20 @@ pub async fn flush(
     Ok(report)
 }
 
+/// A playlist name a media server can keep. Jellyfin makes a folder named after a new
+/// playlist, and Windows drops a trailing space or dot from a folder's name, so a playlist
+/// named "Favorites " was saved where Jellyfin couldn't find it and its next library scan
+/// removed it (the owner's server, 23 November 2026). Spaces and dots go from both ends;
+/// a name with nothing left is "New Playlist".
+pub(crate) fn server_playlist_name(name: &str) -> String {
+    let kept = name.trim_matches(|c: char| c.is_whitespace() || c == '.');
+    if kept.is_empty() {
+        "New Playlist".to_owned()
+    } else {
+        kept.to_owned()
+    }
+}
+
 enum SendStep {
     /// The op is fully done.
     Done,
@@ -1255,9 +1269,18 @@ async fn send_one(
             if !current.starts_with(LOCAL_ITEM_PREFIX) {
                 return Ok(SendStep::Done); // already made
             }
+            // Made with the name it has now (a rename that came before the send would
+            // otherwise leave the server folder under the first name), as one the server
+            // can keep.
+            let now_named = lock(store)
+                .map_err(store_err)?
+                .playlist_record(*playlist)
+                .map_err(|e| SourceError::Protocol(e.to_string()))?
+                .map(|r| r.name)
+                .unwrap_or_else(|| name.clone());
             let outcome = source
                 .edit(&ServerEdit::CreatePlaylist {
-                    name: name.clone(),
+                    name: server_playlist_name(&now_named),
                     item_ids: item_ids.clone(),
                 })
                 .await?;

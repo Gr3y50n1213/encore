@@ -614,7 +614,8 @@ fn a_playlist_made_offline_gets_its_server_id_before_later_writes() {
     f.server.set(Mode::Up);
     f.flush();
     let sent = f.server.sent();
-    assert!(matches!(&sent[0], ServerEdit::CreatePlaylist { name, .. } if name == "Album 3"));
+    // Made with the name it has by the time it is sent, so its folder on the server matches.
+    assert!(matches!(&sent[0], ServerEdit::CreatePlaylist { name, .. } if name == "Night drive"));
     let server_id = f
         .store
         .lock()
@@ -629,6 +630,36 @@ fn a_playlist_made_offline_gets_its_server_id_before_later_writes() {
     );
     assert!(matches!(&sent[2], ServerEdit::RenamePlaylist { name, .. } if name == "Night drive"));
     assert_eq!(f.server.items(&server_id), ["s30", "s31", "s32", "s40"]);
+}
+
+/// The owner's server, 23 November 2026: a new playlist named with a trailing space was
+/// saved in a folder Windows renamed, and Jellyfin's next scan removed it. Names go to the
+/// server without spaces or dots at their ends.
+#[test]
+fn a_new_playlist_reaches_the_server_with_a_name_it_can_keep() {
+    assert_eq!(super::server_playlist_name("Favorites "), "Favorites");
+    assert_eq!(super::server_playlist_name(" Late night... "), "Late night");
+    assert_eq!(super::server_playlist_name(" . "), "New Playlist");
+    assert_eq!(super::server_playlist_name("Road trip"), "Road trip");
+    let mut f = fixture();
+    f.server.set(Mode::Down);
+    let songs = f.songs(&["s30"]);
+    let made = f
+        .edit(T0, |ed| ed.add(Target::NewPlaylist, &songs, None, false))
+        .unwrap();
+    // Renamed locally keeping the trailing space (the platform may not trim it).
+    {
+        let s = f.store.lock().unwrap();
+        s.rename_playlist_row(made.playlist_id.unwrap(), "Favorites ")
+            .unwrap();
+    }
+    f.server.set(Mode::Up);
+    f.flush();
+    let sent = f.server.sent();
+    assert!(
+        matches!(&sent[0], ServerEdit::CreatePlaylist { name, .. } if name == "Favorites"),
+        "{sent:?}"
+    );
 }
 
 #[test]
