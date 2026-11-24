@@ -315,7 +315,7 @@ private fun SongsList(host: CoreHost, sort: SongSort, generation: Int, playingSo
     val state = rememberLazyListState()
     LoadMore(state, pager)
     // Mock-up 46: Select all picks the songs loaded so far.
-    uk.gcartee.encore.app.ui.components.SelectableSongs(pager.items)
+    uk.gcartee.encore.app.ui.components.SelectableSongs(pager.items, label = "Songs")
     LazyColumn(state = state, contentPadding = PaddingValues(bottom = padding.calculateBottomPadding())) {
         itemsIndexed(pager.items, key = { _, s -> s.id }) { i, song ->
             uk.gcartee.encore.app.ui.components.SongItem(song, playing = song.id == playingSongId, onClick = {
@@ -374,7 +374,10 @@ private fun PlaylistsList(host: CoreHost, generation: Int, onOpen: (Route) -> Un
     LazyColumn(state = state, contentPadding = PaddingValues(bottom = padding.calculateBottomPadding())) {
         items(pager.items, key = { it.id }) { p ->
             val n = p.songCount.toInt()
-            ListRow(p.name, if (n == 1) "1 song" else "$n songs", onClick = { onOpen(Route.Playlist(p.id)) }) {
+            // Mock-up 47, board 3: press and hold for the playlist's menu.
+            var menu by remember { mutableStateOf(false) }
+            if (menu) PlaylistMenu(host, p) { menu = false }
+            ListRow(p.name, if (n == 1) "1 song" else "$n songs", onClick = { onOpen(Route.Playlist(p.id)) }, onLongClick = { menu = true }) {
                 uk.gcartee.encore.app.ui.components.Artwork(uk.gcartee.encore.core.ArtworkOf.PLAYLIST, p.id, LIST_ART_DP.dp, Modifier.size(LIST_ART_DP.dp), cornerRadius = LIST_ART_RADIUS_DP.dp)
             }
         }

@@ -463,6 +463,19 @@ private fun PlaybackPage(host: CoreHost, onBack: () -> Unit, contentPadding: Pad
         item { Label("Streaming on cellular") }
         item { RadioRows(qualities, cell, { q -> runCatching { host.core.setStreamQuality(Network.CELLULAR, q) }.onSuccess { cell = q } }) }
         item { Body("A change applies from the next song.") }
+        // Mock-up 47: what a swipe right on a song does.
+        item { Label("Swipe a song to the right") }
+        item {
+            val actions = LocalAppActions.current
+            RadioRows(
+                listOf(
+                    Triple(false, "Play next", "It plays after the song that's on"),
+                    Triple(true, "Add to your last playlist", actions.lastPlaylistNow?.let { "Now: ${it.name}" } ?: "The playlist you added to last"),
+                ),
+                actions.swipeRightAdds,
+                { actions.chooseSwipeRightAdds(it) },
+            )
+        }
     }
 }
 

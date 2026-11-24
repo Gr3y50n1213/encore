@@ -10,15 +10,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import uk.gcartee.encore.core.Song
 
-/** The default row swipes (board 42): right is Play Next, left is Add to Queue. */
+/**
+ * The default row swipes (board 42): right is Play Next, left is Add to Queue. Mock-up 47: a
+ * setting makes the swipe right add to the last playlist instead.
+ */
 @Composable
 fun defaultSwipes(song: Song): Pair<SwipeAction, SwipeAction> {
     val actions = LocalAppActions.current
     val next = Icons.playNext()
     val queue = Icons.queue()
-    return remember(song.id) {
-        SwipeAction("Play Next", destructive = false, icon = { next }) { actions.playNext(listOf(song)) } to
-            SwipeAction("Add to Queue", destructive = false, icon = { queue }) { actions.addToQueue(listOf(song)) }
+    val add = Icons.playlistAdd()
+    val target = if (actions.swipeRightAdds) actions.lastPlaylistNow else null
+    return remember(song.id, target) {
+        val right = target?.let { p -> SwipeAction("Add to ${p.name}", destructive = false, icon = { add }) { actions.quickAdd(listOf(song), p) } }
+            ?: SwipeAction("Play Next", destructive = false, icon = { next }) { actions.playNext(listOf(song)) }
+        right to SwipeAction("Add to Queue", destructive = false, icon = { queue }) { actions.addToQueue(listOf(song)) }
     }
 }
 

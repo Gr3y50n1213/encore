@@ -32,6 +32,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -99,6 +100,10 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
         onOpen(route)
     }
 
+    // Owner, 24 November 2026: recent searches show only while you're typing in the bar,
+    // not sitting under it the rest of the time.
+    var fieldFocused by remember { mutableStateOf(false) }
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
     Column(Modifier.fillMaxSize().topBarsPadding()) {
         // Item 1: Android docks a filled search bar at the top, the avatar inside it.
         androidx.compose.material3.TextField(
@@ -128,7 +133,10 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
                 recents = runCatching { host.core.recentSearches() }.getOrDefault(recents)
                 keyboard?.hide()
             }),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp)
+                .onFocusChanged { fieldFocused = it.isFocused },
         )
         // Item 1: Android's scopes, as the same connected group as Library's shelves.
         uk.gcartee.encore.app.ui.library.ChoiceGroup(
@@ -141,11 +149,16 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
         val results = shown
         // Mock-up 46: Select all picks every song found, title matches then lyric matches.
         val found = remember(results) { results?.let { r -> r.songs + r.lyrics.map { it.song }.filter { s -> r.songs.none { it.id == s.id } } }.orEmpty() }
-        uk.gcartee.encore.app.ui.components.SelectableSongs(found)
+        uk.gcartee.encore.app.ui.components.SelectableSongs(found, label = "Search")
         val listState = rememberLazyListState()
         LaunchedEffect(listState) {
             // SWIPE down on results dismisses the keyboard.
-            snapshotFlow { listState.isScrollInProgress }.collect { if (it) keyboard?.hide() }
+            snapshotFlow { listState.isScrollInProgress }.collect {
+                if (it) {
+                    keyboard?.hide()
+                    focusManager.clearFocus()
+                }
+            }
         }
         val freeze = Modifier.pointerInput(Unit) {
             awaitEachGesture {
@@ -157,7 +170,7 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
         }
         when {
             query.isBlank() -> LazyColumn(freeze, state = listState, contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding())) {
-                if (recents.isNotEmpty()) {
+                if (fieldFocused && recents.isNotEmpty()) {
                     item {
                         androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                             androidx.compose.foundation.layout.Box(Modifier.weight(1f)) { SectionTitle("Recent searches") }
@@ -171,7 +184,11 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
                     items(recents, key = { it }) { r ->
                         androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                             androidx.compose.foundation.layout.Box(Modifier.weight(1f)) {
-                                ListRow(r, null, onClick = { query = r })
+                                ListRow(r, null, onClick = {
+                                    query = r
+                                    keyboard?.hide()
+                                    focusManager.clearFocus()
+                                })
                             }
                             TextButton(onClick = {
                                 host.core.removeRecentSearch(r)
@@ -213,7 +230,11 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
                             ResultKind.SONG -> top.song?.let { s -> uk.gcartee.encore.app.ui.components.SongItem(s, s.id == playingSongId, onClick = { playSong(s, results.songs.ifEmpty { listOf(s) }) }) }
                             ResultKind.ALBUM -> top.album?.let { a -> ListRow(a.title, "Album · ${a.artist}", onClick = { open(Route.Album(a.id)) }) { Artwork(ArtworkOf.ALBUM, a.id, 48.dp, Modifier.size(48.dp)) } }
                             ResultKind.ARTIST -> top.artist?.let { a -> ListRow(a.name, "Artist", onClick = { open(Route.Artist(a.id)) }) { Artwork(ArtworkOf.ARTIST, a.id, 48.dp, Modifier.size(48.dp), cornerRadius = 24.dp) } }
-                            ResultKind.PLAYLIST -> top.playlist?.let { p -> ListRow(p.name, "Playlist", onClick = { open(Route.Playlist(p.id)) }) }
+                            ResultKind.PLAYLIST -> top.playlist?.let { p ->
+                                var menu by remember { mutableStateOf(false) }
+                                if (menu) uk.gcartee.encore.app.ui.library.PlaylistMenu(host, p) { menu = false }
+                                ListRow(p.name, "Playlist", onClick = { open(Route.Playlist(p.id)) }, onLongClick = { menu = true })
+                            }
                         }
                     }
                 }
@@ -239,7 +260,11 @@ fun SearchScreen(host: CoreHost, playingSongId: Long?, onOpen: (Route) -> Unit, 
                 }
                 if (results.playlists.isNotEmpty()) {
                     item { SectionTitle("Playlists") }
-                    items(results.playlists, key = { "p${it.id}" }) { p -> ListRow(p.name, null, onClick = { open(Route.Playlist(p.id)) }) }
+                    items(results.playlists, key = { "p${it.id}" }) { p ->
+                        var menu by remember { mutableStateOf(false) }
+                        if (menu) uk.gcartee.encore.app.ui.library.PlaylistMenu(host, p) { menu = false }
+                        ListRow(p.name, null, onClick = { open(Route.Playlist(p.id)) }, onLongClick = { menu = true })
+                    }
                 }
             }
         }

@@ -82,10 +82,20 @@ fun SongRow(
     // Mock-up 46: while picking, a tap or a long press picks the song instead.
     val picking = selection?.active == true
     val picked = picking && selection?.isPicked(song.id) == true
+    // Mock-up 47: picked songs next to each other join into one rounded group (round outer
+    // corners, tight inner ones), tinted from the page's own text colour so it suits an
+    // album's colours too.
     val pickedTint by androidx.compose.animation.animateColorAsState(
-        if (picked) MaterialTheme.colorScheme.primary.copy(alpha = PICKED_TINT) else Color.Transparent,
+        if (picked) contentColor.copy(alpha = PICKED_TINT) else Color.Transparent,
         tween(PICK_TINT_MS),
         label = "picked",
+    )
+    val joined = if (picked && selection != null) selection.neighbours(song.id) else (false to false)
+    val rowShape = androidx.compose.foundation.shape.RoundedCornerShape(
+        topStart = if (joined.first) JOIN_RADIUS_DP.dp else PICKED_RADIUS_DP.dp,
+        topEnd = if (joined.first) JOIN_RADIUS_DP.dp else PICKED_RADIUS_DP.dp,
+        bottomStart = if (joined.second) JOIN_RADIUS_DP.dp else PICKED_RADIUS_DP.dp,
+        bottomEnd = if (joined.second) JOIN_RADIUS_DP.dp else PICKED_RADIUS_DP.dp,
     )
     if (selection != null) {
         androidx.compose.runtime.DisposableEffect(selection, song.id) { onDispose { selection.rows.remove(song.id) } }
@@ -111,8 +121,10 @@ fun SongRow(
                     false
                 }
             }
+            .padding(horizontal = Grid.base.dp)
             .selectableRow(selection, song)
-            .background(pickedTint, androidx.compose.foundation.shape.RoundedCornerShape(PICKED_RADIUS_DP.dp))
+            .clip(rowShape)
+            .background(pickedTint)
             .combinedClickable(
                 onClick = {
                     if (picking) {
@@ -136,11 +148,16 @@ fun SongRow(
             }
             .graphicsLayer { alpha = if (playable || picking) 1f else OFFLINE_DIM }
             .shaking(shake)
-            .padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp),
+            .padding(horizontal = Grid.base.dp, vertical = Grid.base.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         when {
-            picking && selection != null -> SelectMark(selection, song, if (showArtwork) ROW_ART_DP.dp else NUMBER_DP.dp)
+            picking && selection != null -> SelectMark(
+                selection,
+                song,
+                if (showArtwork) ROW_ART_DP.dp else NUMBER_DP.dp,
+                cover = if (showArtwork) ({ Artwork(ArtworkOf.SONG, song.id, ROW_ART_DP.dp, Modifier.size(ROW_ART_DP.dp)) }) else null,
+            )
             // The cover is held to its row size; without it, it fills the row width. A tap on
             // it starts picking songs, as in Gmail (not on a TV, where it would be one more stop).
             showArtwork -> Artwork(
@@ -299,8 +316,9 @@ fun ListRow(title: String, subtitle: String?, onClick: () -> Unit, onLongClick: 
 
 // Sizes measured from boards 06 and 08 (Android phone).
 const val ROW_ART_DP = 48
-private const val PICKED_TINT = 0.14f
-private const val PICKED_RADIUS_DP = 16
+private const val PICKED_TINT = 0.12f
+private const val PICKED_RADIUS_DP = 22
+private const val JOIN_RADIUS_DP = 6
 private const val PICK_TINT_MS = 180
 const val NUMBER_DP = 28
 const val TILE_ART_DP = 172

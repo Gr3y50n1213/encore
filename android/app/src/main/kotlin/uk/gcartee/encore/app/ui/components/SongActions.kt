@@ -1,5 +1,10 @@
 package uk.gcartee.encore.app.ui.components
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.IconButton
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.selection.toggleable
 import android.content.Context
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -159,6 +164,83 @@ class AppActions(
         runCatching(edit)
             .onSuccess { toaster.show(message) { runCatching { core.undoQueue() } } }
             .onFailure(::refuse)
+    }
+
+    // --- Playlists you add to (mock-up 47). ---
+
+    private val playlistPrefs = context.getSharedPreferences("playlist-memory", Context.MODE_PRIVATE)
+    private fun recentKey() = "recent-" + (runCatching { core.currentProfile() }.getOrNull() ?: "none")
+
+    /** Bumped when the remembered playlists change, so menus and sheets read them again. */
+    var playlistMemory by androidx.compose.runtime.mutableIntStateOf(0)
+        private set
+
+    /** Mock-up 47: a swipe right adds to the last playlist instead of Play next (Settings, Playback). */
+    var swipeRightAdds by androidx.compose.runtime.mutableStateOf(playlistPrefs.getBoolean("swipe-right-adds", false))
+        private set
+
+    fun chooseSwipeRightAdds(on: Boolean) {
+        playlistPrefs.edit().putBoolean("swipe-right-adds", on).apply()
+        swipeRightAdds = on
+    }
+
+    /** The last playlist, kept fresh by the app root (read off the main thread), for row swipes. */
+    var lastPlaylistNow by androidx.compose.runtime.mutableStateOf<PlaylistSummary?>(null)
+
+    /** The playlists this profile added to most recently, newest first. */
+    fun recentPlaylistIds(): List<Long> =
+        playlistPrefs.getString(recentKey(), "").orEmpty().split(',').mapNotNull { it.toLongOrNull() }
+
+    fun usedPlaylist(id: Long) {
+        val list = (listOf(id) + recentPlaylistIds().filter { it != id }).take(RECENT_PLAYLISTS)
+        playlistPrefs.edit().putString(recentKey(), list.joinToString(",")).apply()
+        playlistMemory++
+    }
+
+    fun forgetPlaylist(id: Long) {
+        playlistPrefs.edit().putString(recentKey(), recentPlaylistIds().filter { it != id }.joinToString(",")).apply()
+        playlistMemory++
+    }
+
+    /** The last playlist added to, if it is still there. A library read: call it off the main thread. */
+    fun lastPlaylist(): PlaylistSummary? {
+        val recent = recentPlaylistIds()
+        if (recent.isEmpty()) return null
+        val all = runCatching { core.playlists(0u, 500u) }.getOrDefault(emptyList()).associateBy { it.id }
+        return recent.firstNotNullOfOrNull { all[it] }
+    }
+
+    /** One tap: these songs to [playlist], saying what happened, with Undo. Never adds a song twice. */
+    fun quickAdd(songs: List<Song>, playlist: PlaylistSummary) {
+        if (songs.isEmpty()) return
+        runCatching { core.addTo(DropTarget(DropTargetKind.PLAYLIST, playlist.id), songs.map { it.id }, null, false) }
+            .onSuccess { r ->
+                usedPlaylist(playlist.id)
+                val added = r.added.toInt()
+                val msg = when {
+                    added == 0 && songs.size == 1 -> "Already in ${playlist.name}"
+                    added == 0 -> "All already in ${playlist.name}"
+                    added == 1 -> "Added 1 song to ${playlist.name}"
+                    else -> "Added $added songs to ${playlist.name}"
+                }
+                if (added == 0) toaster.show(msg) else toaster.show(msg) { r.editId?.let { runCatching { core.undo(it) } } }
+            }
+            .onFailure(::refuse)
+    }
+
+    /** Several songs kept on the device at once, with one message. */
+    fun downloadSongs(songs: List<Song>) {
+        if (songs.isEmpty()) return
+        var ok = 0
+        songs.forEach { s -> if (runCatching { core.download(uk.gcartee.encore.app.core.songTarget(s.id)) }.isSuccess) ok++ }
+        if (ok == 0) {
+            toaster.show("Couldn't download those songs")
+            return
+        }
+        uk.gcartee.encore.app.downloads.DownloadScheduler.start(context, byUser = true)
+        host.downloads.refreshNow()
+        toaster.show(if (!host.downloads.view.value.online) "They download when you're back online" else if (ok == 1) "Downloading 1 song" else "Downloading $ok songs")
+        askForNotificationsOnce()
     }
 
     // --- Downloads (Phase 8). ---
@@ -336,6 +418,10 @@ fun SongMenu(song: Song, expanded: Boolean, onDismiss: () -> Unit, place: MenuPl
         val target = uk.gcartee.encore.app.core.songTarget(song.id)
         // Mock-up 46: Select starts picking songs with this one picked.
         val selection = LocalSongSelection.current
+        // Mock-up 47: the playlist added to last is one tap away; any other is a row below.
+        val last by androidx.compose.runtime.produceState<PlaylistSummary?>(null, actions.playlistMemory) {
+            value = withContext(Dispatchers.IO) { actions.lastPlaylist() }
+        }
         val selectIcon = Icons.check()
         ActionSheet(
             onDismiss = onDismiss,
@@ -351,10 +437,12 @@ fun SongMenu(song: Song, expanded: Boolean, onDismiss: () -> Unit, place: MenuPl
             quick = listOf(
                 SheetAction("Play next", next) { actions.playNext(listOf(song)) },
                 SheetAction("Add to queue", queue) { actions.addToQueue(listOf(song)) },
-                SheetAction("Add to playlist", add) { playlistSheet = true },
+                last?.let { p -> SheetAction("Add to ${p.name}", add) { actions.quickAdd(listOf(song), p) } }
+                    ?: SheetAction("Add to playlist", add) { playlistSheet = true },
             ),
             groups = listOf(
                 listOfNotNull(
+                    if (last != null) SheetAction("Add to another playlist…", add) { playlistSheet = true } else null,
                     selection?.let { sel -> SheetAction("Select", selectIcon) { sel.start(song) } },
                     if (saved) {
                         SheetAction("Remove download", downloadIcon) { actions.removeDownload(target, song.title) }
@@ -482,7 +570,10 @@ fun AddToPlaylistSheet(songs: List<Song>, onDone: () -> Unit) {
                 }
             }
             busy.remove(p.id)
-            r.onSuccess { e -> e?.editId?.let(edits::add) }
+            r.onSuccess { e ->
+                e?.editId?.let(edits::add)
+                if (!on) actions.usedPlaylist(p.id)
+            }
                 .onFailure {
                     held[p.id] = was
                     actions.toaster.show(it.userMessage())
@@ -508,7 +599,10 @@ fun AddToPlaylistSheet(songs: List<Song>, onDone: () -> Unit) {
                 val list = load()
                 // The new playlist first, ticked.
                 playlists = list.sortedByDescending { it.id == pid }
-                pid?.let { held[it] = n }
+                pid?.let {
+                    held[it] = n
+                    actions.usedPlaylist(it)
+                }
             }.onFailure { actions.toaster.show(it.userMessage()) }
         }
     }
@@ -530,8 +624,10 @@ fun AddToPlaylistSheet(songs: List<Song>, onDone: () -> Unit) {
         actions.toaster.show(msg) { undo.forEach { runCatching { core.undo(it) } } }
     }
 
-    // The app's sheet look (ActionSheet): one rounded tonal group, New playlist first, a
-    // ticked playlist lit. Over Now Playing it comes in the album's colours.
+    // Mock-up 47, board 2: the songs' covers on top, a search, the playlists added to lately
+    // as big cover tiles (New first), then every playlist with its cover. Saves on tap.
+    var find by remember { mutableStateOf("") }
+    val recentIds = remember(actions.playlistMemory) { actions.recentPlaylistIds() }
     ModalBottomSheet(
         onDismissRequest = { finish() },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -539,32 +635,81 @@ fun AddToPlaylistSheet(songs: List<Song>, onDone: () -> Unit) {
     ) {
         Column(Modifier.navigationBarsPadding().padding(horizontal = (Grid.base * 2).dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    if (songs.size == 1) "Add “${songs[0].title}” to" else "Add ${songs.size} songs to",
-                    style = type.sheetTitle,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f).padding(horizontal = Grid.base.dp),
-                )
+                Box(Modifier.size(SHEET_MOSAIC_DP.dp).clip(RoundedCornerShape(14.dp))) {
+                    uk.gcartee.encore.app.ui.library.MosaicFill(ids.take(4), Modifier.fillMaxSize())
+                }
+                Spacer(Modifier.width((Grid.base * 1.5f).dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        if (songs.size == 1) "Add “${songs[0].title}”" else "Add ${songs.size} songs",
+                        style = type.sheetTitle,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text("Tap a playlist. Tap again to take them out.", style = type.caption, color = scheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
                 // Nothing to save: Done only closes.
                 TextButton(onClick = { finish() }) { Text("Done") }
             }
-            Spacer(Modifier.height((Grid.base * 2).dp))
+            Spacer(Modifier.height((Grid.base * 1.5f).dp))
             val list = playlists
+            if (list != null && list.size > FIND_FROM) {
+                androidx.compose.material3.TextField(
+                    find,
+                    { find = it },
+                    placeholder = { Text("Find a playlist") },
+                    leadingIcon = { Icon(Icons.search(), contentDescription = null) },
+                    trailingIcon = if (find.isEmpty()) null else ({ IconButton(onClick = { find = "" }) { Icon(Icons.close(), contentDescription = "Clear") } }),
+                    singleLine = true,
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    colors = androidx.compose.material3.TextFieldDefaults.colors(
+                        focusedContainerColor = scheme.surfaceContainerHigh,
+                        unfocusedContainerColor = scheme.surfaceContainerHigh,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height((Grid.base * 1.5f).dp))
+            }
             if (list == null) {
                 Box(Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) { androidx.compose.material3.LoadingIndicator() }
             } else {
-                LazyColumn(
-                    Modifier.heightIn(max = 460.dp).clip(RoundedCornerShape(SHEET_LIST_RADIUS_DP.dp)),
-                    verticalArrangement = Arrangement.spacedBy(SHEET_ROW_GAP_DP.dp),
-                ) {
-                    item(key = "new") {
-                        // Tapped, the row becomes the name's field, with the keyboard up;
-                        // the check (or the keyboard's Done) makes the playlist.
-                        GroupRow(first = true, last = list.isEmpty(), onClick = if (creating) null else ({ creating = true })) {
-                            IconDisc(Icons.add())
-                            Spacer(Modifier.width((Grid.base * 2).dp))
-                            if (creating) {
+                val wanted = find.trim()
+                val shown = if (wanted.isEmpty()) list else list.filter { it.name.contains(wanted, ignoreCase = true) }
+                val recent = if (wanted.isEmpty()) recentIds.mapNotNull { id -> list.firstOrNull { it.id == id } }.take(RECENT_TILES) else emptyList()
+                LazyColumn(Modifier.heightIn(max = SHEET_LIST_MAX_DP.dp), verticalArrangement = Arrangement.spacedBy(SHEET_ROW_GAP_DP.dp)) {
+                    if (wanted.isEmpty() && recent.isNotEmpty()) {
+                        item(key = "recent-label") { SheetLabel("Recent") }
+                        // New first, then the recent playlists, three to a row.
+                        val tiles: List<PlaylistSummary?> = listOf(null) + recent
+                        tiles.chunked(TILE_COLUMNS).forEachIndexed { r, row ->
+                            item(key = "tiles-$r") {
+                                Row(horizontalArrangement = Arrangement.spacedBy(Grid.base.dp)) {
+                                    row.forEach { p ->
+                                        if (p == null) {
+                                            NewPlaylistTile(Modifier.weight(1f)) { creating = true }
+                                        } else {
+                                            PlaylistTile(p, held[p.id] ?: 0, n, Modifier.weight(1f)) { toggle(p) }
+                                        }
+                                    }
+                                    repeat(TILE_COLUMNS - row.size) { Spacer(Modifier.weight(1f)) }
+                                }
+                            }
+                        }
+                    } else if (wanted.isEmpty()) {
+                        item(key = "new") {
+                            GroupRow(first = true, last = true, onClick = if (creating) null else ({ creating = true })) {
+                                IconDisc(Icons.add())
+                                Spacer(Modifier.width((Grid.base * 2).dp))
+                                Text("New playlist", style = rowTitle)
+                            }
+                        }
+                    }
+                    if (creating) {
+                        item(key = "name") {
+                            // The name's field, with the keyboard up; the check (or Done) makes it.
+                            Row(verticalAlignment = Alignment.CenterVertically) {
                                 OutlinedTextField(
                                     newName,
                                     { newName = it },
@@ -581,38 +726,32 @@ fun AddToPlaylistSheet(songs: List<Song>, onDone: () -> Unit) {
                                     modifier = Modifier.size(48.dp),
                                 ) { Icon(Icons.check(), contentDescription = "Create playlist") }
                                 LaunchedEffect(Unit) { runCatching { nameField.requestFocus() } }
-                            } else {
-                                Text("New playlist", style = rowTitle)
                             }
                         }
                     }
-                    itemsIndexed(list, key = { _, p -> p.id }) { i, p ->
+                    if (shown.isNotEmpty()) item(key = "all-label") { SheetLabel(if (wanted.isEmpty()) "All playlists" else "Playlists") }
+                    if (wanted.isNotEmpty() && shown.isEmpty()) {
+                        item(key = "none") { Text("No playlist called “$wanted”", style = type.body, color = scheme.onSurfaceVariant, modifier = Modifier.padding(Grid.base.dp)) }
+                    }
+                    itemsIndexed(shown, key = { _, p -> p.id }) { _, p ->
                         val k = held[p.id] ?: 0
                         val on = k == n
                         val some = k in 1 until n
-                        GroupRow(
-                            first = false,
-                            last = i == list.lastIndex,
-                            color = if (on) scheme.secondaryContainer else scheme.surfaceContainerHigh,
-                            contentColor = if (on) scheme.onSecondaryContainer else scheme.onSurface,
-                            role = Role.Checkbox,
-                            onClick = { toggle(p) },
+                        val bg by androidx.compose.animation.animateColorAsState(if (on) scheme.secondaryContainer else Color.Transparent, label = "row")
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(SHEET_ROW_RADIUS_DP.dp))
+                                .background(bg)
+                                .toggleable(value = on, role = Role.Checkbox, onValueChange = { toggle(p) })
+                                .padding(horizontal = Grid.base.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            IconDisc(Icons.queue())
-                            Spacer(Modifier.width((Grid.base * 2).dp))
+                            Artwork(uk.gcartee.encore.core.ArtworkOf.PLAYLIST, p.id, SHEET_ROW_ART_DP.dp, Modifier.size(SHEET_ROW_ART_DP.dp), cornerRadius = 12.dp)
+                            Spacer(Modifier.width((Grid.base * 1.5f).dp))
                             Column(Modifier.weight(1f)) {
-                                Text(p.name, style = rowTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text(
-                                    when {
-                                        on && n > 1 -> "All $n already here"
-                                        on -> "Added"
-                                        some -> "$k of $n already here"
-                                        p.songCount == 1u -> "1 song"
-                                        else -> "${p.songCount} songs"
-                                    },
-                                    style = type.caption,
-                                    color = if (on) scheme.onSecondaryContainer else scheme.onSurfaceVariant,
-                                )
+                                Text(p.name, style = rowTitle, maxLines = 1, overflow = TextOverflow.Ellipsis, color = if (on) scheme.onSecondaryContainer else scheme.onSurface)
+                                Text(holdingLine(k, n, p.songCount.toInt()), style = type.caption, color = if (on) scheme.onSecondaryContainer else scheme.onSurfaceVariant)
                             }
                             Spacer(Modifier.width(Grid.base.dp))
                             androidx.compose.material3.TriStateCheckbox(
@@ -631,6 +770,93 @@ fun AddToPlaylistSheet(songs: List<Song>, onDone: () -> Unit) {
         }
     }
 }
+
+/** "All 4 already here", "1 of 4 already here", or the playlist's size. */
+private fun holdingLine(k: Int, n: Int, size: Int): String = when {
+    k == n && n > 1 -> "All $n already here"
+    k == n -> "Added"
+    k > 0 -> "$k of $n already here"
+    size == 1 -> "1 song"
+    else -> "$size songs"
+}
+
+@Composable
+private fun SheetLabel(text: String) {
+    Text(
+        text,
+        style = LocalEncoreType.current.groupLabel,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = 4.dp, top = Grid.base.dp, bottom = 2.dp),
+    )
+}
+
+/** A recent playlist as a cover tile; a tick badge when every song is in it, a dash when some are. */
+@Composable
+private fun PlaylistTile(p: PlaylistSummary, k: Int, n: Int, modifier: Modifier, onClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val type = LocalEncoreType.current
+    val on = k == n
+    val some = k in 1 until n
+    val pop by androidx.compose.animation.core.animateFloatAsState(
+        if (on || some) 1f else 0f,
+        androidx.compose.animation.core.spring(dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy, stiffness = androidx.compose.animation.core.Spring.StiffnessMedium),
+        label = "badge",
+    )
+    Column(
+        modifier
+            .clip(RoundedCornerShape(TILE_RADIUS_DP.dp))
+            .toggleable(value = on, role = Role.Checkbox, onValueChange = { onClick() })
+            .padding(4.dp),
+    ) {
+        Box(Modifier.fillMaxWidth().aspectRatio(1f)) {
+            Artwork(uk.gcartee.encore.core.ArtworkOf.PLAYLIST, p.id, TILE_ART_DP.dp, Modifier.fillMaxSize(), cornerRadius = TILE_RADIUS_DP.dp, fill = true)
+            if (pop > 0.01f) {
+                Box(
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(6.dp)
+                        .size(SHEET_BADGE_DP.dp)
+                        .graphicsLayer { scaleX = pop; scaleY = pop }
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (on) scheme.primary else scheme.primaryContainer),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (on) {
+                        Icon(Icons.check(), contentDescription = null, tint = scheme.onPrimary, modifier = Modifier.size(18.dp))
+                    } else {
+                        Box(Modifier.size(width = 12.dp, height = 3.dp).clip(RoundedCornerShape(2.dp)).background(scheme.onPrimaryContainer))
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(p.name, style = type.listRowTitle.copy(fontSize = 14.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(holdingLine(k, n, p.songCount.toInt()), style = type.caption, color = scheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** The New tile: the theme's soft colour with a plus, first among the recent playlists. */
+@Composable
+private fun NewPlaylistTile(modifier: Modifier, onClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Column(modifier.clip(RoundedCornerShape(TILE_RADIUS_DP.dp)).clickable(onClick = onClick).padding(4.dp)) {
+        Box(
+            Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(TILE_RADIUS_DP.dp)).background(scheme.primaryContainer),
+            contentAlignment = Alignment.Center,
+        ) { Icon(Icons.add(), contentDescription = null, tint = scheme.onPrimaryContainer, modifier = Modifier.size(32.dp)) }
+        Spacer(Modifier.height(6.dp))
+        Text("New playlist", style = LocalEncoreType.current.listRowTitle.copy(fontSize = 14.sp), maxLines = 1)
+    }
+}
+
+private const val SHEET_MOSAIC_DP = 52
+private const val FIND_FROM = 4
+private const val RECENT_TILES = 5
+private const val TILE_COLUMNS = 3
+private const val SHEET_BADGE_DP = 28
+private const val SHEET_LIST_MAX_DP = 520
+private const val SHEET_ROW_ART_DP = 44
+private const val SHEET_ROW_RADIUS_DP = 16
 
 /** Board 38: one or two reasons in plain words, and the songs it sounds like. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -736,3 +962,5 @@ fun describe(r: PickReason): String = when (r.kind) {
         else -> "It fits what you've been playing"
     }
 }
+
+private const val RECENT_PLAYLISTS = 6

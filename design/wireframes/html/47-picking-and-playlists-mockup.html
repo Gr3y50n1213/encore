@@ -1,0 +1,262 @@
+<title>Encore Picking and Playlists</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Mock-up 47: picking songs with more of Material 3 Expressive, one-tap adding, and a playlist's press-and-hold menu. */
+:root {
+  --bg: #f3f1f7; --ink: #1b1a22; --muted: #5d5b6b; --line: #dcd8e6;
+  --screen: #fdfbff; --surface: #f1eef8; --surface2: #e6e1f2; --surface3: #ddd6ee; --on-surface: #1d1b24; --on-muted: #5f5b70;
+  --primary: #5b3fd0; --on-primary: #ffffff; --pc: #e3dcfb; --on-pc: #22105f;
+  --tertiary: #8a3f6a; --tc: #ffd8ea; --on-tc: #3a0727;
+  --bad: #b3261e; --bad-soft: #f9dedc; --on-bad-soft: #410e0b;
+  --c1: #c9b8f2; --c2: #b9dccb; --c3: #f2c9b0; --c4: #b9cdee; --c5: #ecc4dc; --c6: #e3deb5;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f0e14; --ink: #ece9f5; --muted: #a29fb4; --line: #2b2938;
+  --screen: #131219; --surface: #1c1a24; --surface2: #262331; --surface3: #312d40; --on-surface: #ece9f5; --on-muted: #a9a5bd;
+  --primary: #c8b8ff; --on-primary: #2a1a73; --pc: #3f3478; --on-pc: #e9e1ff;
+  --tertiary: #f2b0d4; --tc: #63294b; --on-tc: #ffd8ea;
+  --bad: #f2b8b5; --bad-soft: #5c2421; --on-bad-soft: #ffdad6;
+  --c1: #4a3d78; --c2: #2c5145; --c3: #5a3b2a; --c4: #2c4466; --c5: #5a3049; --c6: #4d4a27;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0f0e14; --ink: #ece9f5; --muted: #a29fb4; --line: #2b2938;
+  --screen: #131219; --surface: #1c1a24; --surface2: #262331; --surface3: #312d40; --on-surface: #ece9f5; --on-muted: #a9a5bd;
+  --primary: #c8b8ff; --on-primary: #2a1a73; --pc: #3f3478; --on-pc: #e9e1ff;
+  --tertiary: #f2b0d4; --tc: #63294b; --on-tc: #ffd8ea;
+  --bad: #f2b8b5; --bad-soft: #5c2421; --on-bad-soft: #ffdad6;
+  --c1: #4a3d78; --c2: #2c5145; --c3: #5a3b2a; --c4: #2c4466; --c5: #5a3049; --c6: #4d4a27;
+  color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.45;
+  padding-block: 28px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1240px; margin: 0 auto; }
+h1 { font-size: clamp(26px, 4vw, 36px); margin: 0 0 6px; letter-spacing: -0.02em; text-wrap: balance; }
+h2 { font-size: 20px; margin: 44px 0 6px; letter-spacing: -0.01em; }
+.lede { color: var(--muted); max-width: 68ch; margin: 0 0 26px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 34px 28px; align-items: start; }
+figure { margin: 0; min-width: 0; }
+.cap { margin-top: 14px; max-width: 360px; }
+.cap b { display: block; font-size: 15px; margin-bottom: 3px; }
+.cap span { color: var(--muted); font-size: 13.5px; }
+.tag { display: inline-block; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 2px 9px; margin-bottom: 8px; }
+.phone { width: 100%; max-width: 360px; background: var(--screen); border-radius: 32px; border: 1px solid var(--line); overflow: hidden; color: var(--on-surface); position: relative; }
+.status { display: flex; justify-content: space-between; font-size: 12px; padding: 12px 22px 6px; color: var(--on-muted); }
+svg { display: block; }
+.ic { width: 22px; height: 22px; }
+
+/* Board 1: the selection bar */
+.selbar { margin: 0 10px; background: var(--pc); color: var(--on-pc); border-radius: 28px; padding: 10px 10px 14px 10px; display: grid; grid-template-columns: auto 1fr auto; gap: 4px 10px; align-items: center; }
+.tonalbtn { width: 48px; height: 48px; border-radius: 16px; background: color-mix(in srgb, var(--on-pc) 10%, transparent); display: grid; place-items: center; }
+.count { display: flex; align-items: baseline; gap: 8px; }
+.count b { font-size: 34px; font-weight: 750; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.count span { font-size: 15px; font-weight: 600; }
+.sub { grid-column: 2 / 4; font-size: 12.5px; opacity: .8; margin-top: -2px; }
+.allbtn { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px; border-radius: 20px; background: var(--primary); color: var(--on-primary); font-weight: 600; font-size: 13.5px; }
+.list { padding: 10px 10px 92px; display: flex; flex-direction: column; gap: 2px; }
+.r { display: flex; align-items: center; gap: 12px; padding: 8px 10px; min-height: 60px; background: transparent; border-radius: 18px; }
+.r .t { flex: 1; min-width: 0; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.r .t small { display: block; color: var(--on-muted); font-size: 12.5px; }
+.r .d { font-size: 12.5px; color: var(--on-muted); font-variant-numeric: tabular-nums; }
+/* picked rows join into one group: outer corners round, inner corners tight */
+.r.on { background: var(--surface3); border-radius: 6px; }
+.r.on.first { border-top-left-radius: 22px; border-top-right-radius: 22px; }
+.r.on.last { border-bottom-left-radius: 22px; border-bottom-right-radius: 22px; }
+.cover { width: 46px; height: 46px; border-radius: 12px; flex: none; }
+.pick { width: 46px; height: 46px; flex: none; display: grid; place-items: center; color: var(--on-primary); }
+.pick svg.shape { position: absolute; }
+.pickwrap { position: relative; width: 46px; height: 46px; flex: none; display: grid; place-items: center; }
+.pickwrap .tick { position: relative; color: var(--on-primary); }
+.ring { width: 46px; height: 46px; border-radius: 50%; border: 2px solid var(--on-muted); opacity: .55; flex: none; }
+.dock { position: absolute; left: 10px; right: 10px; bottom: 14px; display: flex; gap: 8px; align-items: center; }
+.toolbar { flex: 1; display: flex; justify-content: space-around; align-items: center; background: var(--surface2); border-radius: 30px; height: 60px; padding: 0 6px; box-shadow: 0 4px 14px rgba(0,0,0,.16); }
+.tb { display: grid; place-items: center; gap: 1px; font-size: 10.5px; color: var(--on-surface); width: 54px; }
+.fab { width: 60px; height: 60px; border-radius: 18px; background: var(--primary); color: var(--on-primary); display: grid; place-items: center; box-shadow: 0 6px 16px rgba(0,0,0,.22); flex: none; }
+
+/* Board 2: quick add */
+.toast { margin: 10px 12px 14px; background: var(--on-surface); color: var(--screen); border-radius: 16px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; }
+.toast b { color: var(--c1); }
+.split { display: flex; gap: 3px; }
+.split .main { display: inline-flex; align-items: center; gap: 8px; height: 52px; padding: 0 16px 0 18px; background: var(--primary); color: var(--on-primary); border-radius: 26px 8px 8px 26px; font-weight: 650; font-size: 14px; white-space: nowrap; }
+.split .menu { width: 48px; height: 52px; background: var(--primary); color: var(--on-primary); border-radius: 8px 26px 26px 8px; display: grid; place-items: center; }
+.quick { display: flex; gap: 8px; padding: 4px 12px 0; flex-wrap: wrap; }
+.qt { flex: 1 1 30%; min-width: 92px; background: var(--surface2); border-radius: 18px; padding: 12px 10px; display: grid; place-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; text-align: center; }
+.qt.hl { background: var(--tc); color: var(--on-tc); }
+.sheet { background: var(--surface); border-radius: 28px 28px 0 0; padding: 12px 14px 18px; }
+.grab { width: 36px; height: 4px; border-radius: 2px; background: var(--line); margin: 0 auto 12px; }
+.sh { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+.mosaic { width: 52px; height: 52px; border-radius: 14px; overflow: hidden; display: grid; grid-template-columns: 1fr 1fr; flex: none; }
+.sh b { display: block; font-size: 18px; } .sh span { font-size: 12.5px; color: var(--on-muted); }
+.find { display: flex; align-items: center; gap: 10px; height: 48px; border-radius: 24px; background: var(--surface2); padding: 0 16px; color: var(--on-muted); font-size: 14px; margin-bottom: 12px; }
+.label { font-size: 12px; font-weight: 650; letter-spacing: .03em; color: var(--primary); margin: 4px 4px 8px; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.tile { display: grid; gap: 6px; font-size: 12.5px; font-weight: 600; }
+.tile .art { aspect-ratio: 1; border-radius: 20px; position: relative; max-width: 100%; }
+.tile .art.new { background: var(--pc); color: var(--on-pc); display: grid; place-items: center; font-size: 30px; font-weight: 300; border-radius: 20px; }
+.tile small { display: block; font-weight: 400; color: var(--on-muted); font-size: 11.5px; }
+.badge { position: absolute; right: 6px; bottom: 6px; width: 28px; height: 28px; border-radius: 10px; background: var(--primary); color: var(--on-primary); display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+.badge.some { background: var(--pc); color: var(--on-pc); }
+.pl { display: flex; align-items: center; gap: 12px; padding: 8px 6px; min-height: 58px; border-radius: 16px; }
+.pl .t { flex: 1; font-size: 14.5px; } .pl small { display: block; color: var(--on-muted); font-size: 12px; }
+
+/* Board 3: playlist menu */
+.lib { padding: 6px 12px 0; }
+.libh { font-size: 26px; font-weight: 700; padding: 4px 6px 10px; }
+.chips { display: flex; gap: 6px; padding: 0 4px 10px; }
+.chip { padding: 7px 14px; border-radius: 12px; background: var(--surface2); font-size: 13px; }
+.chip.on { background: var(--primary); color: var(--on-primary); font-weight: 600; }
+.prow { display: flex; gap: 12px; align-items: center; padding: 8px 6px; border-radius: 18px; }
+.prow.held { background: var(--surface3); transform: scale(.98); }
+.prow .art { width: 56px; height: 56px; border-radius: 14px; flex: none; }
+.prow .t { font-size: 15px; } .prow small { display: block; font-size: 12.5px; color: var(--on-muted); }
+.menu { margin-top: 10px; background: var(--surface); border-radius: 28px 28px 0 0; padding: 12px 14px 18px; }
+.qrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; margin: 10px 0; }
+.q { background: var(--pc); color: var(--on-pc); display: grid; place-items: center; gap: 4px; padding: 12px 4px; font-size: 12.5px; font-weight: 600; }
+.q:first-child { border-radius: 20px 6px 6px 20px; } .q:last-child { border-radius: 6px 20px 20px 6px; } .q:nth-child(2) { border-radius: 6px; }
+.grp { background: var(--surface2); border-radius: 22px; overflow: hidden; margin-top: 8px; }
+.gi { display: flex; align-items: center; gap: 14px; padding: 13px 16px; font-size: 14.5px; }
+.gi + .gi { border-top: 1px solid var(--line); }
+.grp.bad { background: var(--bad-soft); color: var(--on-bad-soft); }
+.notes { max-width: 70ch; color: var(--muted); font-size: 14px; }
+.notes li { margin: 6px 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .rolling { display: inline-block; animation: roll 2.4s ease-in-out infinite; }
+  @keyframes roll { 0%, 40% { transform: translateY(0); } 50%, 90% { transform: translateY(-1em); } 100% { transform: translateY(0); } }
+}
+.digits { display: inline-block; height: 1em; overflow: hidden; vertical-align: bottom; line-height: 1; }
+.digits .rolling > span { display: block; height: 1em; }
+</style>
+
+<div class="wrap">
+  <h1>Picking songs, adding in one tap, and a playlist menu</h1>
+  <p class="lede">Mock-up 47, 24 November 2026. You found the picking screen plain and adding to a playlist still too many steps. This version uses more of Material 3 Expressive: a coloured bar with a big count, picked songs joined into one group, a toolbar with a big Add button, a one-tap "Add to" your last playlist everywhere, and a press-and-hold menu on playlists.</p>
+
+  <h2>1. Picking songs, with more of Material 3</h2>
+  <div class="grid">
+    <figure>
+      <span class="tag">Picking</span>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span>100%</span></div>
+        <div class="selbar">
+          <div class="tonalbtn" title="Stop selecting"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+          <div class="count"><b><span class="digits"><span class="rolling"><span>4</span><span>5</span></span></span></b><span>selected</span></div>
+          <div class="allbtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:18px;height:18px"><path d="M4 7l3 3 5-6M4 17l3 3 5-6M15 8h6M15 18h6"/></svg>All</div>
+          <div class="sub">13 min · from Songs</div>
+        </div>
+        <div class="list">
+          <div class="r on first"><div class="pickwrap"><svg class="shape" width="46" height="46" viewBox="0 0 46 46"><path fill="var(--primary)" d="M23 2c3 0 4.6 2.6 7.2 3.4 2.6.8 5.6-.4 7.6 1.6s.8 5 1.6 7.6c.8 2.6 3.4 4.2 3.4 7.4s-2.6 4.8-3.4 7.4c-.8 2.6.4 5.6-1.6 7.6s-5 .8-7.6 1.6C27.6 41.4 26 44 23 44s-4.6-2.6-7.2-3.4c-2.6-.8-5.6.4-7.6-1.6s-.8-5-1.6-7.6C5.8 28.8 3 27.2 3 24s2.6-4.8 3.4-7.4c.8-2.6-.4-5.6 1.6-7.6s5-.8 7.6-1.6C18.4 4.6 20 2 23 2z"/></svg><svg class="tick" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l4.5 4.5L19 7"/></svg></div><div class="t">So Cold<small>BoyWithUke</small></div><div class="d">3:00</div></div>
+          <div class="r on"><div class="pickwrap"><svg class="shape" width="46" height="46" viewBox="0 0 46 46"><path fill="var(--primary)" d="M23 2c3 0 4.6 2.6 7.2 3.4 2.6.8 5.6-.4 7.6 1.6s.8 5 1.6 7.6c.8 2.6 3.4 4.2 3.4 7.4s-2.6 4.8-3.4 7.4c-.8 2.6.4 5.6-1.6 7.6s-5 .8-7.6 1.6C27.6 41.4 26 44 23 44s-4.6-2.6-7.2-3.4c-2.6-.8-5.6.4-7.6-1.6s-.8-5-1.6-7.6C5.8 28.8 3 27.2 3 24s2.6-4.8 3.4-7.4c.8-2.6-.4-5.6 1.6-7.6s5-.8 7.6-1.6C18.4 4.6 20 2 23 2z"/></svg><svg class="tick" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l4.5 4.5L19 7"/></svg></div><div class="t">Just Let Me Go<small>BoyWithUke</small></div><div class="d">3:16</div></div>
+          <div class="r on"><div class="pickwrap"><svg class="shape" width="46" height="46" viewBox="0 0 46 46"><path fill="var(--primary)" d="M23 2c3 0 4.6 2.6 7.2 3.4 2.6.8 5.6-.4 7.6 1.6s.8 5 1.6 7.6c.8 2.6 3.4 4.2 3.4 7.4s-2.6 4.8-3.4 7.4c-.8 2.6.4 5.6-1.6 7.6s-5 .8-7.6 1.6C27.6 41.4 26 44 23 44s-4.6-2.6-7.2-3.4c-2.6-.8-5.6.4-7.6-1.6s-.8-5-1.6-7.6C5.8 28.8 3 27.2 3 24s2.6-4.8 3.4-7.4c.8-2.6-.4-5.6 1.6-7.6s5-.8 7.6-1.6C18.4 4.6 20 2 23 2z"/></svg><svg class="tick" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l4.5 4.5L19 7"/></svg></div><div class="t">Zoning Out<small>BoyWithUke</small></div><div class="d">3:00</div></div>
+          <div class="r on last"><div class="pickwrap"><svg class="shape" width="46" height="46" viewBox="0 0 46 46"><path fill="var(--primary)" d="M23 2c3 0 4.6 2.6 7.2 3.4 2.6.8 5.6-.4 7.6 1.6s.8 5 1.6 7.6c.8 2.6 3.4 4.2 3.4 7.4s-2.6 4.8-3.4 7.4c-.8 2.6.4 5.6-1.6 7.6s-5 .8-7.6 1.6C27.6 41.4 26 44 23 44s-4.6-2.6-7.2-3.4c-2.6-.8-5.6.4-7.6-1.6s-.8-5-1.6-7.6C5.8 28.8 3 27.2 3 24s2.6-4.8 3.4-7.4c.8-2.6-.4-5.6 1.6-7.6s5-.8 7.6-1.6C18.4 4.6 20 2 23 2z"/></svg><svg class="tick" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l4.5 4.5L19 7"/></svg></div><div class="t">Nihilist<small>BoyWithUke</small></div><div class="d">2:27</div></div>
+          <div class="r"><div class="cover" style="background:var(--c4);opacity:.55"></div><div class="t">Lovely<small>BoyWithUke</small></div><div class="d">5:31</div></div>
+          <div class="r"><div class="cover" style="background:var(--c5);opacity:.55"></div><div class="t">Galaxy<small>BoyWithUke</small></div><div class="d">2:40</div></div>
+        </div>
+        <div class="dock">
+          <div class="toolbar">
+            <div class="tb"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 5l9 7-9 7z"/><path d="M18 5v14"/></svg>Next</div>
+            <div class="tb"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h12M4 12h12M4 18h8"/></svg>Queue</div>
+            <div class="tb"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.6-7 10-7 10z"/></svg>Like</div>
+            <div class="tb"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Save</div>
+          </div>
+          <div class="fab" title="Add to playlist"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 6h11M4 12h11M4 18h7M18 13v8M14 17h8"/></svg></div>
+        </div>
+      </div>
+      <div class="cap"><b>A bar with weight, and picks that join up</b><span>The top bar becomes a rounded block in your theme's soft colour, with the count large (it rolls as it changes), the minutes picked, ✕ and "All". A picked cover morphs into a scalloped badge with a tick and gives a small bounce; songs picked one after another join into one rounded group, the way Google's own apps show a selection. The rest dim a little.</span></div>
+    </figure>
+
+    <figure>
+      <span class="tag">The toolbar</span>
+      <div class="phone" style="padding-bottom:16px">
+        <div class="status"><span>9:41</span><span>100%</span></div>
+        <div class="list" style="padding-bottom:6px">
+          <div class="r on first last"><div class="pickwrap"><svg class="shape" width="46" height="46" viewBox="0 0 46 46"><path fill="var(--primary)" d="M23 2c3 0 4.6 2.6 7.2 3.4 2.6.8 5.6-.4 7.6 1.6s.8 5 1.6 7.6c.8 2.6 3.4 4.2 3.4 7.4s-2.6 4.8-3.4 7.4c-.8 2.6.4 5.6-1.6 7.6s-5 .8-7.6 1.6C27.6 41.4 26 44 23 44s-4.6-2.6-7.2-3.4c-2.6-.8-5.6.4-7.6-1.6s-.8-5-1.6-7.6C5.8 28.8 3 27.2 3 24s2.6-4.8 3.4-7.4c.8-2.6-.4-5.6 1.6-7.6s5-.8 7.6-1.6C18.4 4.6 20 2 23 2z"/></svg><svg class="tick" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l4.5 4.5L19 7"/></svg></div><div class="t">So Cold<small>BoyWithUke</small></div><div class="d">3:00</div></div>
+        </div>
+        <div style="padding:6px 12px 4px; display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+          <div class="split"><div class="main"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h11M4 12h11M4 18h7M18 13v8M14 17h8"/></svg>Add to My Favorites</div><div class="menu"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M7 10l5 5 5-5"/></svg></div></div>
+        </div>
+        <div class="toast"><span>Added 4 songs to <b>My Favorites</b></span><span style="font-weight:650">Undo</span></div>
+      </div>
+      <div class="cap"><b>The big button remembers your playlist</b><span>The round Add button opens the sheet. Once you've added to a playlist, the toolbar's Add becomes a split button: the left half adds straight to that playlist ("Add to My Favorites"), the arrow opens the sheet for any other. One tap, then Undo if it was wrong.</span></div>
+    </figure>
+  </div>
+
+  <h2>2. Adding to a playlist, easier</h2>
+  <div class="grid">
+    <figure>
+      <span class="tag">One tap, anywhere</span>
+      <div class="phone" style="padding-bottom:10px">
+        <div class="status"><span>9:41</span><span>100%</span></div>
+        <div style="padding:6px 14px 4px; display:flex; gap:12px; align-items:center"><div class="cover" style="background:var(--c2);width:56px;height:56px;border-radius:14px"></div><div><b style="font-size:17px">Migraine</b><div style="font-size:12.5px;color:var(--on-muted)">BoyWithUke · Serotonin Dreams</div></div></div>
+        <div class="quick">
+          <div class="qt"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 5l9 7-9 7z"/><path d="M18 5v14"/></svg>Play next</div>
+          <div class="qt"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h12M4 12h12M4 18h8"/></svg>Add to queue</div>
+          <div class="qt hl"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h11M4 12h11M4 18h7M18 13v8M14 17h8"/></svg>Add to My Favorites</div>
+        </div>
+        <div style="padding:10px 12px 0"><div class="grp"><div class="gi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h11M4 12h11M4 18h7M18 13v8M14 17h8"/></svg>Add to another playlist…</div><div class="gi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Select</div><div class="gi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Download</div></div></div>
+      </div>
+      <div class="cap"><b>Your last playlist is one tap from every song</b><span>In a song's menu the third quick tile becomes "Add to" the playlist you used last, in a stand-out colour; "Add to another playlist…" is just below. A new swipe choice in Settings can make a swipe right add to that playlist too, if you'd rather swipe than open a menu.</span></div>
+    </figure>
+
+    <figure>
+      <span class="tag">The sheet</span>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span>100%</span></div>
+        <div style="height:40px"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="sh"><div class="mosaic"><i style="background:var(--c1)"></i><i style="background:var(--c2)"></i><i style="background:var(--c3)"></i><i style="background:var(--c4)"></i></div><div><b>Add 4 songs</b><span>Tap a playlist. Tap again to take them out.</span></div></div>
+          <div class="find"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg>Find a playlist</div>
+          <div class="label">Recent</div>
+          <div class="tiles">
+            <div class="tile"><div class="art new">+</div>New</div>
+            <div class="tile"><div class="art" style="background:var(--c3)"><div class="badge"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l4.5 4.5L19 7"/></svg></div></div>My Favorites<small>All 4 here</small></div>
+            <div class="tile"><div class="art" style="background:var(--c4)"><div class="badge some"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M7 12h10"/></svg></div></div>Main<small>1 of 4 here</small></div>
+          </div>
+          <div class="label">All playlists</div>
+          <div class="pl"><div class="cover" style="background:var(--c6);width:44px;height:44px"></div><div class="t">Night drive<small>58 songs</small></div></div>
+          <div class="pl"><div class="cover" style="background:var(--c5);width:44px;height:44px"></div><div class="t">Gym<small>31 songs</small></div></div>
+        </div>
+      </div>
+      <div class="cap"><b>Covers first, and a search</b><span>The sheet leads with the songs' covers, then a search box, then your recent playlists as big cover tiles (New first). A tick badge means all are there, a dash means some. Every other playlist is listed below, with its cover. Saves on tap, as now.</span></div>
+    </figure>
+  </div>
+
+  <h2>3. Press and hold a playlist</h2>
+  <div class="grid">
+    <figure>
+      <span class="tag">Library › Playlists</span>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span>100%</span></div>
+        <div class="lib">
+          <div class="libh">Library</div>
+          <div class="chips"><span class="chip">Albums</span><span class="chip on">Playlists</span><span class="chip">Artists</span><span class="chip">Songs</span></div>
+          <div class="prow held"><div class="art" style="background:var(--c3)"></div><div class="t">My Favorites<small>171 songs</small></div></div>
+          <div class="prow"><div class="art" style="background:var(--c4)"></div><div class="t">Main<small>58 songs</small></div></div>
+        </div>
+        <div class="menu">
+          <div class="grab"></div>
+          <div class="sh"><div class="mosaic"><i style="background:var(--c3)"></i><i style="background:var(--c1)"></i><i style="background:var(--c2)"></i><i style="background:var(--c5)"></i></div><div><b>My Favorites</b><span>171 songs · 9 hr 12 min</span></div></div>
+          <div class="qrow">
+            <div class="q"><svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5l11 7-11 7z"/></svg>Play</div>
+            <div class="q"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h3l10 10h3M4 17h3l3-3M14 10l3-3h3"/></svg>Shuffle</div>
+            <div class="q"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 5l9 7-9 7z"/><path d="M18 5v14"/></svg>Play next</div>
+          </div>
+          <div class="grp">
+            <div class="gi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h12M4 12h12M4 18h8"/></svg>Add to queue</div>
+            <div class="gi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h11M4 12h11M4 18h7M18 13v8M14 17h8"/></svg>Add all to another playlist</div>
+            <div class="gi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Download</div>
+            <div class="gi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>Rename</div>
+          </div>
+          <div class="grp bad"><div class="gi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 7h14M10 11v6M14 11v6M7 7l1 13h8l1-13M9 7V4h6v3"/></svg>Delete playlist</div></div>
+        </div>
+      </div>
+      <div class="cap"><b>Everything you can do to a playlist, without opening it</b><span>Hold a playlist (in Library, Search or Home) and its menu opens in the app's usual sheet: Play, Shuffle and Play next as the quick tiles, then Add to queue, Add all to another playlist, Download, Rename, and Delete in red behind its confirm. The held row shrinks a touch so you can see which one it is for.</span></div>
+    </figure>
+  </div>
+
+  <h2>Also</h2>
+  <ul class="notes">
+    <li>Recent searches now only show while you're typing in the search bar (already built, in the next update).</li>
+    <li>Remove still needs a longer swipe than Play next or Add to queue, on purpose, so a scroll can't delete a song. Say if it's too far and I'll shorten it.</li>
+    <li>With Reduce motion on, the count doesn't roll and the badge doesn't bounce.</li>
+  </ul>
+</div>

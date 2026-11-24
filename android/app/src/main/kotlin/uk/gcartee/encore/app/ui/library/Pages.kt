@@ -242,7 +242,7 @@ private fun DownloadLine(item: uk.gcartee.encore.core.DownloadedItem?, tint: Pag
 
 /** The head of an album's or mix's action sheet: its cover, title and one line. */
 @Composable
-private fun SheetHeader(title: String, line: String?, cover: @Composable () -> Unit) {
+internal fun SheetHeader(title: String, line: String?, cover: @Composable () -> Unit) {
     val type = LocalEncoreType.current
     Row(verticalAlignment = Alignment.CenterVertically) {
         cover()
@@ -282,7 +282,7 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
     val multiDisc = remember(detail) { detail.songs.mapNotNull { it.discNumber }.distinct().size > 1 }
     SystemBarIconsFor(tint.top)
     // Mock-up 46: the whole album to a playlist in one go, or pick songs from it.
-    uk.gcartee.encore.app.ui.components.SelectableSongs(detail.songs)
+    uk.gcartee.encore.app.ui.components.SelectableSongs(detail.songs, label = album.title)
     val selection = uk.gcartee.encore.app.ui.components.LocalSongSelection.current
     var addAll by remember { mutableStateOf(false) }
     if (addAll) uk.gcartee.encore.app.ui.components.AddToPlaylistSheet(detail.songs) { addAll = false }
@@ -431,7 +431,7 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
             }
         }
     }
-    uk.gcartee.encore.app.ui.components.SelectableSongs(playable, removePicked)
+    uk.gcartee.encore.app.ui.components.SelectableSongs(playable, removePicked, label = name)
     val selection = uk.gcartee.encore.app.ui.components.LocalSongSelection.current
     var addAll by remember { mutableStateOf(false) }
     if (addAll) uk.gcartee.encore.app.ui.components.AddToPlaylistSheet(playable) { addAll = false }
@@ -440,57 +440,11 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
     val target = uk.gcartee.encore.app.core.playlistTarget(playlistId)
     var confirmRemove by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf(false) }
-    // Owner, 24 November 2026: "we need to be able to delete playlists". It goes from the
-    // server and every device, with no Undo, so it asks first.
+    // Owner, 24 November 2026: "we need to be able to delete playlists". The same dialogs as
+    // the playlist's press-and-hold menu (PlaylistTools.kt).
     var deleting by remember { mutableStateOf(false) }
-    if (deleting) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { deleting = false },
-            title = { Text("Delete “$name”?") },
-            text = { Text("It's removed from your server and every device. The songs stay in your library.") },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = {
-                    deleting = false
-                    runCatching { host.core.deletePlaylist(playlistId) }
-                        .onSuccess {
-                            actions.toaster.show("Deleted $name")
-                            onBack()
-                        }
-                        .onFailure { actions.toaster.show(it.userMessage()) }
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
-            },
-            dismissButton = { androidx.compose.material3.TextButton(onClick = { deleting = false }) { Text("Cancel") } },
-        )
-    }
-    if (renaming) {
-        var typed by remember { mutableStateOf(name) }
-        fun save() {
-            val wanted = typed.trim()
-            renaming = false
-            if (wanted.isEmpty() || wanted == name) return
-            runCatching { host.core.renamePlaylist(playlistId, wanted) }
-                .onSuccess { r ->
-                    version++
-                    actions.toaster.show("Renamed to $wanted") { r.editId?.let { runCatching { host.core.undo(it) } }; version++ }
-                }
-                .onFailure { actions.toaster.show(it.userMessage()) }
-        }
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { renaming = false },
-            title = { Text("Rename playlist") },
-            text = {
-                androidx.compose.material3.OutlinedTextField(
-                    typed,
-                    { typed = it },
-                    singleLine = true,
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Done),
-                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { save() }),
-                )
-            },
-            confirmButton = { androidx.compose.material3.TextButton(onClick = { save() }, enabled = typed.isNotBlank()) { Text("Rename") } },
-            dismissButton = { androidx.compose.material3.TextButton(onClick = { renaming = false }) { Text("Cancel") } },
-        )
-    }
+    if (deleting) DeletePlaylistDialog(host, playlistId, name, onDismiss = { deleting = false }, onDeleted = onBack)
+    if (renaming) RenamePlaylistDialog(host, playlistId, name) { renamed -> renaming = false; if (renamed) version++ }
     Box(Modifier.fillMaxSize().background(tint.brush)) {
         LazyColumn(contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding() + (Grid.base * 2).dp)) {
             item {
@@ -595,7 +549,7 @@ fun ArtistScreen(host: CoreHost, artistId: Long, playingSongId: Long?, onBack: (
     }
     val name = detail.artist.name
     val ids = remember(songs) { songs.map { it.id } }
-    uk.gcartee.encore.app.ui.components.SelectableSongs(songs)
+    uk.gcartee.encore.app.ui.components.SelectableSongs(songs, label = name)
     val tint = PageTint(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.onSurface, MaterialTheme.colorScheme.onSurfaceVariant, themed = true)
     LazyColumn(Modifier.fillMaxSize().background(tint.field), contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding() + (Grid.base * 2).dp)) {
         item {
@@ -670,7 +624,7 @@ fun MixScreen(host: CoreHost, mixId: String, playingSongId: Long?, onBack: () ->
     SystemBarIconsFor(field.base)
     val ids = remember(page) { page.songs.map { it.song.id } }
     val mixSongs = remember(page) { page.songs.map { it.song } }
-    uk.gcartee.encore.app.ui.components.SelectableSongs(mixSongs)
+    uk.gcartee.encore.app.ui.components.SelectableSongs(mixSongs, label = summary.title)
     var pinned by remember(summary.pinned) { mutableStateOf(summary.pinned) }
     val notIcon = Icons.block()
     val download = uk.gcartee.encore.app.ui.components.LocalDownloads.current.mix(mixId)

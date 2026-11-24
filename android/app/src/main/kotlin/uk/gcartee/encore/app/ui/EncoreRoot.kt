@@ -311,6 +311,10 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     // Mock-up 46: picking songs ends when the page changes, Now Playing opens, or on Back.
     val selection = remember { uk.gcartee.encore.app.ui.components.SongSelection() }
     LaunchedEffect(nav.tab, nav.top, nowPlaying, switches) { selection.clear() }
+    // Mock-up 47: the last playlist added to, for the swipe that can add to it.
+    LaunchedEffect(actions.playlistMemory, switches) {
+        actions.lastPlaylistNow = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { actions.lastPlaylist() }
+    }
     BackHandler(enabled = selection.active) { selection.clear() }
 
     CompositionLocalProvider(
