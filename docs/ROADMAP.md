@@ -19,7 +19,8 @@ The owner asked to send music from the phone to a TV the way Spotify Connect or 
 
 - **Which TVs, most common first:** Google Cast (Chromecast, Google TV and Android TV sets and projectors, many smart TVs), then Roku (an Encore channel installed through Roku's developer mode, started over the local network), then plain DLNA as a fallback that plays the music without Encore's screen.
 - **Privacy:** the TV gets a short-lived pass that can only play, never the sign-in, so a TV elsewhere can't keep access to the library.
-- **Open before building:** Google's Cast library is an outside, closed library (the owner's OK is needed, and F-Droid builds must leave it out); a Cast receiver app needs registering with Google (a one-time fee) and an https home for its page, likely the companion server. Mock-ups first, as always.
+- **One TV look (owner, 24 November 2026):** Android TV, Roku and LG webOS share one design, the Encore TV look of mock-up 45, from the same design tokens; only Apple TV differs, in Apple's own style with Liquid Glass, built with the Apple track (it needs a Mac). The owner has a Roku TV and may use a Roku stick. Android TV runs the real Encore TV app (Google's Cast Connect can start it as the cast target); Roku can't run the Rust core, so it shows what the phone and the companion send it; webOS may run the core as WebAssembly.
+- **Open before building:** Google's Cast library is an outside, closed library (the owner's OK is needed, and F-Droid builds must leave it out); a Cast receiver app needs registering with Google (a one-time US$5 fee, per Google's Cast help pages in November 2026) and an https home for its page, likely the companion server. Mock-ups first, as always.
 
 ## The master roadmap (word for word from the plan)
 
