@@ -73,6 +73,8 @@ class CorePlayback(
     private val scope: CoroutineScope,
     /** The rolling cache holds the song under this cache key whole ([RollingCache.isWhole]). */
     private val wholeInCache: (String) -> Boolean = { false },
+    /** The device's own media volume (the service's AudioManager); null in tests. */
+    private val deviceVolume: DeviceVolume? = null,
 ) : Player.Listener {
     private val core get() = host.core
     private val clock = ListenClock { SystemClock.elapsedRealtime() }
@@ -421,7 +423,18 @@ class CorePlayback(
             RemoteCommandKind.NEXT -> next(SkipOrigin.BUTTON)
             RemoteCommandKind.PREVIOUS -> previous(SkipOrigin.BUTTON)
             RemoteCommandKind.SEEK_TO -> c.positionMs?.let(::seekTo)
-            RemoteCommandKind.SET_VOLUME -> c.level?.let { setVolume(it.toFloat()) }
+            // Owner, 24 November 2026: the slider on the controlling device was a volume
+            // inside this device's volume. It now moves this device's own media volume, as
+            // Spotify's does, and what is reported is that volume.
+            RemoteCommandKind.SET_VOLUME -> c.level?.let { level ->
+                val dv = deviceVolume
+                if (dv == null) {
+                    setVolume(level.toFloat())
+                } else {
+                    dv.set(level)
+                    reportDeviceVolume(force = true)
+                }
+            }
             // Queue edits are done by the core; QueueChanged follows.
             else -> Unit
         }
@@ -752,10 +765,22 @@ class CorePlayback(
         tidy()
     }
 
+    /** The device's media volume as last told to the core, so presence shows the real one. */
+    private var reportedVolume: Double? = null
+
+    private fun reportDeviceVolume(force: Boolean = false) {
+        val level = deviceVolume?.level() ?: return
+        if (!force && reportedVolume != null && kotlin.math.abs(level - reportedVolume!!) < 0.005) return
+        reportedVolume = level
+        runCatching { core.setVolumeLevel(level) }
+    }
+
     private fun tick() {
         if (exo.isPlaying && startedUid != null) {
             core.playbackProgress(exo.currentPosition, clock.listenedMs)
         }
+        // The volume keys and the system's slider change it too: follow it each second.
+        reportDeviceVolume()
         // Phase 9: the sleep timer's fade while playing; its end while paused.
         if (exo.isPlaying) sleepTick() else if (!exo.playWhenReady) endSleepTimerIfRunOut()
         if (transcodeKeys.isNotEmpty() && exo.mediaItemCount > 0) useWholeSongs()

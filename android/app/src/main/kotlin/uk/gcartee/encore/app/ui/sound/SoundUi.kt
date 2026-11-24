@@ -289,7 +289,7 @@ fun SoundAnalysisPage(host: CoreHost, onBack: () -> Unit, contentPadding: Paddin
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
             title = { Text("Delete sound analysis?") },
-            text = { Text("Encore forgets what every song sounds like and turns sound analysis off. Suggestions fall back to tags and your listening. Turning it on again starts over.") },
+            text = { Text("Encore forgets what every song sounds like, on this device, your other devices and your companion server, and turns sound analysis off here. Suggestions fall back to tags and your listening. Turning it on again starts over.") },
             confirmButton = {
                 TextButton(onClick = {
                     confirmDelete = false
