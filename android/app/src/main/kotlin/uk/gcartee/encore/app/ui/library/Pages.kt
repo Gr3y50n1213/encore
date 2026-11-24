@@ -473,7 +473,7 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
                                 val deleteIcon = Icons.delete()
                                 uk.gcartee.encore.app.ui.components.ActionSheet(
                                     onDismiss = { open = false },
-                                    header = { SheetHeader(name, songs(detail.playlist.songCount.toInt())) { Box(Modifier.size(56.dp).clip(RoundedCornerShape(14.dp))) { MosaicFill(playable.take(4).map { it.id }, Modifier.fillMaxSize()) } } },
+                                    header = { SheetHeader(name, songs(detail.playlist.songCount.toInt())) { Box(Modifier.size(56.dp).clip(RoundedCornerShape(14.dp))) { MosaicFill(coverSongs(playable), Modifier.fillMaxSize()) } } },
                                     quick = listOf(
                                         uk.gcartee.encore.app.ui.components.SheetAction("Play next", next) { actions.playNext(playable) },
                                         uk.gcartee.encore.app.ui.components.SheetAction("Add to queue", queue) { actions.addToQueue(playable) },
@@ -493,8 +493,9 @@ fun PlaylistScreen(host: CoreHost, playlistId: Long, playingSongId: Long?, onBac
                 ) {
                     // The server's playlist image, over a mosaic of its first songs for playlists without one.
                     Box {
-                        Mosaic(playable.take(4).map { it.id })
-                        Artwork(ArtworkOf.PLAYLIST, playlistId, COVER_DP.dp, Modifier.fillMaxWidth(), cornerRadius = COVER_RADIUS_DP.dp, placeholder = false)
+                        // Owner, 24 November 2026: the server's own picture is its first four
+                        // songs, often one album four times; ours takes four different albums.
+                        Mosaic(coverSongs(playable))
                     }
                 }
                 DownloadLine(download, tint)
@@ -732,6 +733,10 @@ fun MixScreen(host: CoreHost, mixId: String, playingSongId: Long?, onBack: () ->
 @Composable
 fun Mosaic(songIds: List<Long>, modifier: Modifier = Modifier, size: Int = COVER_DP) {
     val ids = songIds.take(4)
+    if (ids.size == 1) {
+        Artwork(ArtworkOf.SONG, ids[0], size.dp, modifier.fillMaxWidth(), cornerRadius = COVER_RADIUS_DP.dp)
+        return
+    }
     Column(modifier.fillMaxWidth().clip(RoundedCornerShape(COVER_RADIUS_DP.dp))) {
         ids.chunked(2).forEach { row ->
             Row(Modifier.fillMaxWidth()) {
@@ -746,6 +751,10 @@ fun Mosaic(songIds: List<Long>, modifier: Modifier = Modifier, size: Int = COVER
 @Composable
 fun MosaicFill(songIds: List<Long>, modifier: Modifier = Modifier) {
     val ids = songIds.take(4)
+    if (ids.size == 1) {
+        Artwork(ArtworkOf.SONG, ids[0], 160.dp, modifier, cornerRadius = 0.dp, fill = true)
+        return
+    }
     Column(modifier) {
         ids.chunked(2).forEach { row ->
             Row(Modifier.weight(1f).fillMaxWidth()) {

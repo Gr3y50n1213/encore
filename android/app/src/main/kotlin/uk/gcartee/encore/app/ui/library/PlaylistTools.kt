@@ -10,6 +10,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.background
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -139,7 +141,7 @@ fun PlaylistMenu(host: CoreHost, playlist: PlaylistSummary, onDismiss: () -> Uni
             onDismiss = { sheet = false },
             header = {
                 SheetHeader(playlist.name, listOf(if (n == 1) "1 song" else "$n songs", formatLength(playlist.durationMs)).joinToString(" · ")) {
-                    Box(Modifier.size(56.dp).clip(RoundedCornerShape(14.dp))) { MosaicFill(ids.take(4), Modifier.fillMaxSize()) }
+                    Box(Modifier.size(56.dp).clip(RoundedCornerShape(14.dp))) { MosaicFill(coverSongs(list), Modifier.fillMaxSize()) }
                 }
             },
             quick = if (empty) emptyList() else listOf(
@@ -167,3 +169,33 @@ fun PlaylistMenu(host: CoreHost, playlist: PlaylistSummary, onDismiss: () -> Uni
     if (deleting) DeletePlaylistDialog(host, playlist.id, playlist.name, onDismiss = { deleting = false }, onDeleted = {})
     addAll?.let { list -> AddToPlaylistSheet(list) { addAll = null } }
 }
+
+/**
+ * A playlist's cover (owner, 24 November 2026): its first four songs were often one album
+ * four times. Four different albums, in the playlist's order; with fewer than four, the
+ * first song's cover alone, as Spotify does.
+ */
+fun coverSongs(songs: List<Song>): List<Long> {
+    val firsts = songs.distinctBy { it.albumId ?: -it.id }.map { it.id }
+    return if (firsts.size >= COVER_TILES) firsts.take(COVER_TILES) else songs.take(1).map { it.id }
+}
+
+/** A playlist's cover anywhere it is listed, from its songs (read once, off the main thread). */
+@Composable
+fun PlaylistCover(playlistId: Long, modifier: Modifier = Modifier) {
+    val host = LocalAppActions.current.host
+    val changes by host.remoteChanges.collectAsState()
+    val ids by produceState(coverCache[playlistId].orEmpty(), playlistId, changes) {
+        value = withContext(Dispatchers.IO) {
+            runCatching { coverSongs(host.core.playlist(playlistId).entries.mapNotNull { it.song }) }.getOrDefault(emptyList())
+        }
+        coverCache[playlistId] = value
+    }
+    Box(modifier.background(MaterialTheme.colorScheme.surfaceContainerHighest)) {
+        if (ids.isNotEmpty()) MosaicFill(ids, Modifier.fillMaxSize())
+    }
+}
+
+/** Covers already worked out, so a list scrolling back shows them at once. */
+private val coverCache = java.util.concurrent.ConcurrentHashMap<Long, List<Long>>()
+private const val COVER_TILES = 4

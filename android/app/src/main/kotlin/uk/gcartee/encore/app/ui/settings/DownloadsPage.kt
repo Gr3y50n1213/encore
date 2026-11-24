@@ -413,7 +413,7 @@ private fun ItemRow(item: DownloadedItem) {
         Box {
             when (item.target.kind) {
                 DownloadKind.ALBUM -> Artwork(ArtworkOf.ALBUM, item.target.id, ITEM_ART_DP.dp, Modifier.size(ITEM_ART_DP.dp), cornerRadius = 10.dp)
-                DownloadKind.PLAYLIST -> Artwork(ArtworkOf.PLAYLIST, item.target.id, ITEM_ART_DP.dp, Modifier.size(ITEM_ART_DP.dp), cornerRadius = 10.dp)
+                DownloadKind.PLAYLIST -> uk.gcartee.encore.app.ui.library.PlaylistCover(item.target.id, Modifier.size(ITEM_ART_DP.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(10.dp)))
                 DownloadKind.SONG -> Artwork(ArtworkOf.SONG, item.target.id, ITEM_ART_DP.dp, Modifier.size(ITEM_ART_DP.dp), cornerRadius = 10.dp)
                 else -> Box(Modifier.size(ITEM_ART_DP.dp).background(scheme.secondaryContainer, RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
                     Icon(

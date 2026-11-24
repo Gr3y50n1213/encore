@@ -747,7 +747,7 @@ fun AddToPlaylistSheet(songs: List<Song>, onDone: () -> Unit) {
                                 .padding(horizontal = Grid.base.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Artwork(uk.gcartee.encore.core.ArtworkOf.PLAYLIST, p.id, SHEET_ROW_ART_DP.dp, Modifier.size(SHEET_ROW_ART_DP.dp), cornerRadius = 12.dp)
+                            uk.gcartee.encore.app.ui.library.PlaylistCover(p.id, Modifier.size(SHEET_ROW_ART_DP.dp).clip(RoundedCornerShape(12.dp)))
                             Spacer(Modifier.width((Grid.base * 1.5f).dp))
                             Column(Modifier.weight(1f)) {
                                 Text(p.name, style = rowTitle, maxLines = 1, overflow = TextOverflow.Ellipsis, color = if (on) scheme.onSecondaryContainer else scheme.onSurface)
@@ -809,7 +809,7 @@ private fun PlaylistTile(p: PlaylistSummary, k: Int, n: Int, modifier: Modifier,
             .padding(4.dp),
     ) {
         Box(Modifier.fillMaxWidth().aspectRatio(1f)) {
-            Artwork(uk.gcartee.encore.core.ArtworkOf.PLAYLIST, p.id, TILE_ART_DP.dp, Modifier.fillMaxSize(), cornerRadius = TILE_RADIUS_DP.dp, fill = true)
+            uk.gcartee.encore.app.ui.library.PlaylistCover(p.id, Modifier.fillMaxSize().clip(RoundedCornerShape(TILE_RADIUS_DP.dp)))
             if (pop > 0.01f) {
                 Box(
                     Modifier

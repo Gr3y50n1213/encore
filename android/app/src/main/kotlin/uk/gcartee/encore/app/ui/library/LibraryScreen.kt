@@ -378,7 +378,7 @@ private fun PlaylistsList(host: CoreHost, generation: Int, onOpen: (Route) -> Un
             var menu by remember { mutableStateOf(false) }
             if (menu) PlaylistMenu(host, p) { menu = false }
             ListRow(p.name, if (n == 1) "1 song" else "$n songs", onClick = { onOpen(Route.Playlist(p.id)) }, onLongClick = { menu = true }) {
-                uk.gcartee.encore.app.ui.components.Artwork(uk.gcartee.encore.core.ArtworkOf.PLAYLIST, p.id, LIST_ART_DP.dp, Modifier.size(LIST_ART_DP.dp), cornerRadius = LIST_ART_RADIUS_DP.dp)
+                PlaylistCover(p.id, Modifier.size(LIST_ART_DP.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(LIST_ART_RADIUS_DP.dp)))
             }
         }
     }
@@ -666,7 +666,7 @@ private fun DownloadedArt(item: uk.gcartee.encore.core.DownloadedItem) {
     val art = Modifier.size(LIST_ART_DP.dp)
     when (item.target.kind) {
         uk.gcartee.encore.core.DownloadKind.ALBUM -> uk.gcartee.encore.app.ui.components.Artwork(uk.gcartee.encore.core.ArtworkOf.ALBUM, item.target.id, LIST_ART_DP.dp, art, cornerRadius = LIST_ART_RADIUS_DP.dp)
-        uk.gcartee.encore.core.DownloadKind.PLAYLIST -> uk.gcartee.encore.app.ui.components.Artwork(uk.gcartee.encore.core.ArtworkOf.PLAYLIST, item.target.id, LIST_ART_DP.dp, art, cornerRadius = LIST_ART_RADIUS_DP.dp)
+        uk.gcartee.encore.core.DownloadKind.PLAYLIST -> PlaylistCover(item.target.id, art.clip(androidx.compose.foundation.shape.RoundedCornerShape(LIST_ART_RADIUS_DP.dp)))
         else -> {
             val icon = when (item.target.kind) {
                 uk.gcartee.encore.core.DownloadKind.LIKED_SONGS -> Icons.favorite(true)
