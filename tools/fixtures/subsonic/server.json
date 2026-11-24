@@ -1,0 +1,154 @@
+[
+  {
+    "method": "GET",
+    "path": "/rest/ping.view",
+    "query": {
+      "u": "listener"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/ping.view",
+    "query": {
+      "apiKey": "fixture-api-key-0001"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/ping.view",
+    "query": {},
+    "body": {
+      "subsonic-response": {
+        "status": "failed",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "error": {
+          "code": 10,
+          "message": "Required parameter is missing: u"
+        }
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/getOpenSubsonicExtensions.view",
+    "query": {},
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "openSubsonicExtensions": [
+          {
+            "name": "songLyrics",
+            "versions": [
+              1
+            ]
+          },
+          {
+            "name": "apiKeyAuthentication",
+            "versions": [
+              1
+            ]
+          },
+          {
+            "name": "transcodeOffset",
+            "versions": [
+              1
+            ]
+          },
+          {
+            "name": "formPost",
+            "versions": [
+              1
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/tokenInfo.view",
+    "query": {
+      "apiKey": "fixture-api-key-0001"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "tokenInfo": {
+          "username": "listener"
+        }
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/getUser.view",
+    "query": {
+      "username": "listener"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "user": {
+          "username": "listener",
+          "email": "listener@example.com",
+          "scrobblingEnabled": true,
+          "adminRole": false,
+          "settingsRole": true,
+          "downloadRole": true,
+          "uploadRole": false,
+          "playlistRole": true,
+          "coverArtRole": false,
+          "commentRole": false,
+          "podcastRole": false,
+          "streamRole": true,
+          "jukeboxRole": false,
+          "shareRole": true,
+          "folder": [
+            1
+          ]
+        }
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/getAvatar.view",
+    "query": {
+      "username": "listener"
+    },
+    "bodyHex": "89504e470d0a1a0a0000000d49484452"
+  }
+]

@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 pub enum SourceKind {
     Jellyfin,
+    /// Navidrome, gonic, Airsonic and other (Open)Subsonic servers (ADR core-0021).
+    Subsonic,
 }
 
 impl SourceKind {
@@ -17,12 +19,14 @@ impl SourceKind {
     pub fn as_str(self) -> &'static str {
         match self {
             SourceKind::Jellyfin => "jellyfin",
+            SourceKind::Subsonic => "subsonic",
         }
     }
 
     pub fn parse(s: &str) -> Option<SourceKind> {
         match s {
             "jellyfin" => Some(SourceKind::Jellyfin),
+            "subsonic" => Some(SourceKind::Subsonic),
             _ => None,
         }
     }

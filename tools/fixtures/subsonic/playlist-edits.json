@@ -1,0 +1,380 @@
+[
+  {
+    "method": "GET",
+    "path": "/rest/getPlaylist.view",
+    "query": {
+      "id": "pl1"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "playlist": {
+          "id": "pl1",
+          "name": "Evening Drive",
+          "owner": "listener",
+          "public": false,
+          "songCount": 4,
+          "duration": 898,
+          "created": "2026-10-01T09:00:00Z",
+          "changed": "2026-11-01T09:00:00Z",
+          "entry": [
+            {
+              "id": "s5",
+              "parent": "al3",
+              "isDir": false,
+              "title": "Evening Gate",
+              "album": "Orchard Lights",
+              "artist": "The Glass Orchard",
+              "track": 2,
+              "year": 2021,
+              "genre": "Folk",
+              "coverArt": "mf-s5_6740a1b2",
+              "size": 4123456,
+              "contentType": "audio/flac",
+              "suffix": "flac",
+              "duration": 255,
+              "bitRate": 912,
+              "path": "fixture/s5.flac",
+              "discNumber": 1,
+              "created": "2025-11-06T03:33:20.000Z",
+              "albumId": "al3",
+              "artistId": "ar3",
+              "type": "music",
+              "mediaType": "song"
+            },
+            {
+              "id": "s1",
+              "parent": "al1",
+              "isDir": false,
+              "title": "Low Lantern",
+              "album": "Quiet Rooms",
+              "artist": "Paper Harbour",
+              "track": 1,
+              "year": 2021,
+              "genre": "Folk",
+              "coverArt": "mf-s1_6740a1b2",
+              "size": 4123456,
+              "contentType": "audio/flac",
+              "suffix": "flac",
+              "duration": 201,
+              "bitRate": 912,
+              "path": "fixture/s1.flac",
+              "discNumber": 1,
+              "created": "2025-11-06T03:33:20.000Z",
+              "albumId": "al1",
+              "artistId": "ar1",
+              "type": "music",
+              "mediaType": "song",
+              "musicBrainzId": "5b11f4ce-a62d-471e-81fc-a69a8278c7da",
+              "sortName": "low lantern",
+              "genres": [
+                {
+                  "name": "Folk"
+                },
+                {
+                  "name": "Ambient"
+                }
+              ],
+              "artists": [
+                {
+                  "id": "ar1",
+                  "name": "Paper Harbour"
+                },
+                {
+                  "id": "ar2",
+                  "name": "Wren Alder"
+                }
+              ],
+              "albumArtists": [
+                {
+                  "id": "ar1",
+                  "name": "Paper Harbour"
+                }
+              ],
+              "displayArtist": "Paper Harbour & Wren Alder",
+              "replayGain": {
+                "trackGain": -6.5,
+                "albumGain": -5.9,
+                "trackPeak": 0.98
+              },
+              "starred": "2026-10-01T10:00:00Z",
+              "playCount": 12,
+              "played": "2026-11-05T21:15:00Z"
+            },
+            {
+              "id": "s5",
+              "parent": "al3",
+              "isDir": false,
+              "title": "Evening Gate",
+              "album": "Orchard Lights",
+              "artist": "The Glass Orchard",
+              "track": 2,
+              "year": 2021,
+              "genre": "Folk",
+              "coverArt": "mf-s5_6740a1b2",
+              "size": 4123456,
+              "contentType": "audio/flac",
+              "suffix": "flac",
+              "duration": 255,
+              "bitRate": 912,
+              "path": "fixture/s5.flac",
+              "discNumber": 1,
+              "created": "2025-11-06T03:33:20.000Z",
+              "albumId": "al3",
+              "artistId": "ar3",
+              "type": "music",
+              "mediaType": "song"
+            },
+            {
+              "id": "s2",
+              "parent": "al1",
+              "isDir": false,
+              "title": "Tin Roof Rain",
+              "album": "Quiet Rooms",
+              "artist": "Paper Harbour",
+              "track": 2,
+              "year": 2021,
+              "genre": "Folk",
+              "coverArt": "mf-s2_6740a1b2",
+              "size": 4123456,
+              "contentType": "audio/flac",
+              "suffix": "flac",
+              "duration": 187,
+              "bitRate": 912,
+              "path": "fixture/s2.flac",
+              "discNumber": 1,
+              "created": "2025-11-06T03:33:20.000Z",
+              "albumId": "al1",
+              "artistId": "ar1",
+              "type": "music",
+              "mediaType": "song",
+              "playCount": 3
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/createPlaylist.view",
+    "query": {
+      "name": "Road Trip"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "playlist": {
+          "id": "pl9",
+          "name": "Road Trip",
+          "owner": "listener",
+          "public": false,
+          "songCount": 2,
+          "duration": 388,
+          "created": "2026-11-24T09:00:00Z",
+          "changed": "2026-11-24T09:00:00Z",
+          "entry": [
+            {
+              "id": "s1",
+              "parent": "al1",
+              "isDir": false,
+              "title": "Low Lantern",
+              "album": "Quiet Rooms",
+              "artist": "Paper Harbour",
+              "track": 1,
+              "year": 2021,
+              "genre": "Folk",
+              "coverArt": "mf-s1_6740a1b2",
+              "size": 4123456,
+              "contentType": "audio/flac",
+              "suffix": "flac",
+              "duration": 201,
+              "bitRate": 912,
+              "path": "fixture/s1.flac",
+              "discNumber": 1,
+              "created": "2025-11-06T03:33:20.000Z",
+              "albumId": "al1",
+              "artistId": "ar1",
+              "type": "music",
+              "mediaType": "song",
+              "musicBrainzId": "5b11f4ce-a62d-471e-81fc-a69a8278c7da",
+              "sortName": "low lantern",
+              "genres": [
+                {
+                  "name": "Folk"
+                },
+                {
+                  "name": "Ambient"
+                }
+              ],
+              "artists": [
+                {
+                  "id": "ar1",
+                  "name": "Paper Harbour"
+                },
+                {
+                  "id": "ar2",
+                  "name": "Wren Alder"
+                }
+              ],
+              "albumArtists": [
+                {
+                  "id": "ar1",
+                  "name": "Paper Harbour"
+                }
+              ],
+              "displayArtist": "Paper Harbour & Wren Alder",
+              "replayGain": {
+                "trackGain": -6.5,
+                "albumGain": -5.9,
+                "trackPeak": 0.98
+              },
+              "starred": "2026-10-01T10:00:00Z",
+              "playCount": 12,
+              "played": "2026-11-05T21:15:00Z"
+            },
+            {
+              "id": "s2",
+              "parent": "al1",
+              "isDir": false,
+              "title": "Tin Roof Rain",
+              "album": "Quiet Rooms",
+              "artist": "Paper Harbour",
+              "track": 2,
+              "year": 2021,
+              "genre": "Folk",
+              "coverArt": "mf-s2_6740a1b2",
+              "size": 4123456,
+              "contentType": "audio/flac",
+              "suffix": "flac",
+              "duration": 187,
+              "bitRate": 912,
+              "path": "fixture/s2.flac",
+              "discNumber": 1,
+              "created": "2025-11-06T03:33:20.000Z",
+              "albumId": "al1",
+              "artistId": "ar1",
+              "type": "music",
+              "mediaType": "song",
+              "playCount": 3
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/createPlaylist.view",
+    "query": {
+      "playlistId": "pl1"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "playlist": {
+          "id": "pl1",
+          "name": "Evening Drive",
+          "owner": "listener",
+          "public": false,
+          "songCount": 4,
+          "duration": 898,
+          "created": "2026-10-01T09:00:00Z",
+          "changed": "2026-11-24T09:00:00Z"
+        }
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/updatePlaylist.view",
+    "query": {
+      "playlistId": "pl1"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/updatePlaylist.view",
+    "query": {
+      "playlistId": "pl9"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/deletePlaylist.view",
+    "query": {
+      "id": "pl1"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/star.view",
+    "query": {
+      "id": "s3"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/unstar.view",
+    "query": {
+      "id": "s1"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true
+      }
+    }
+  }
+]

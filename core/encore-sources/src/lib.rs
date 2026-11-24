@@ -16,10 +16,11 @@ pub mod model;
 pub mod ranged;
 pub mod song_key;
 pub mod source;
+pub mod subsonic;
 pub mod transport;
 pub mod ws;
 
 pub use error::{Result, SourceError, Unreachable};
 pub use model::*;
-pub use source::{JellyfinSource, MediaSource};
+pub use source::{JellyfinSource, MediaSource, SubsonicSource};
 pub use transport::{FixtureExchange, FixtureTransport, Transport};
