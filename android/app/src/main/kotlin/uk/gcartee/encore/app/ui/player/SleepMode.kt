@@ -10,22 +10,9 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.text.BasicText
-import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.graphics.BlurEffect
-import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.TileMode
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -53,7 +40,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -269,6 +255,7 @@ fun SleepModeScreen(host: CoreHost, onExit: () -> Unit, onSleepTimer: () -> Unit
                     title = song?.title.orEmpty(),
                     style = type.body.copy(fontSize = now, lineHeight = now * 1.2f, fontWeight = FontWeight.Bold),
                     gap = gap,
+                    colour = SLEEP_NOW,
                 )
             }
         }
@@ -319,130 +306,8 @@ fun SleepModeScreen(host: CoreHost, onExit: () -> Unit, onSleepTimer: () -> Unit
     }
 }
 
-/**
- * The lines as one strip that glides: the sung line sharp in the middle, and two lines each
- * side that grow smaller, fainter and more blurred the further they are from it (owner, 24
- * November 2026: blur, not only darkness). When the line changes each one moves to its new
- * place, size, fade and blur on a soft spring with no bounce. Every line is whole, however
- * long; none ends in "...".
- *
- * Smoothness: the text is drawn once into its own layer (offscreen) in one fixed colour, and
- * everything that moves is a property of that layer: position, size, fade and blur. Nothing
- * asks the text to be measured or its letters drawn again while it glides. Blur needs Android
- * 12; before that the lines only fade.
- */
-@Composable
-private fun SleepLyrics(lines: List<String>, current: Int, title: String, style: TextStyle, gap: Dp) {
-    val density = LocalDensity.current
-    val gapPx = with(density) { gap.toPx() }
-    val fontPx = with(density) { style.fontSize.toPx() }
-    val fallback = fontPx * 1.2f
-    // Room around each line for its blur, so the soft edge isn't cut off by the layer.
-    val pad = with(density) { (fontPx * BLUR_ROOM).toDp() }
-    val padPx = fontPx * BLUR_ROOM
-    val centred = remember(style) { style.copy(textAlign = TextAlign.Center, color = SLEEP_NOW) }
-    // Each line's height at full size without its blur room, once it has been laid out.
-    val heights = remember(lines) { mutableStateMapOf<Int, Int>() }
-    fun h(i: Int): Float = heights[i]?.toFloat() ?: fallback
-    var boxHalf by remember { mutableFloatStateOf(0f) }
-    // A sung line too tall for the screen (a long line wrapped many times) shrinks, with its
-    // neighbours, until it fits whole.
-    val fit = if (boxHalf <= 0f) 1f else minOf(1f, boxHalf * 2f * FIT_SHARE / h(current))
-    fun offset(i: Int): Float {
-        val role = i - current
-        if (role == 0) return 0f
-        val dir = if (role > 0) 1 else -1
-        var y = h(current) * fit / 2f
-        for (k in 1 until kotlin.math.abs(role)) y += gapPx + h(current + dir * k) * scaleOf(dir * k) * fit
-        y += gapPx + h(i) * scaleOf(role) * fit / 2f
-        return dir * y
-    }
-    Box(
-        Modifier.fillMaxSize().clipToBounds().onSizeChanged { boxHalf = it.height / 2f },
-        contentAlignment = Alignment.Center,
-    ) {
-        // -1 is the song's title, shown before the first line. The third line each side is
-        // there only to fade in and out, so no line appears or vanishes at once.
-        for (i in (current - REACH).coerceAtLeast(-1)..(current + REACH).coerceAtMost(lines.lastIndex)) {
-            key(title, i) {
-                val role = (i - current).coerceIn(-REACH, REACH)
-                val move = spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = LINE_STIFFNESS)
-                val y = animateFloatAsState(offset(i), move, label = "y")
-                val scale = animateFloatAsState(scaleOf(role) * fit, move, label = "scale")
-                val fade = animateFloatAsState(fadeOf(role), move, label = "fade")
-                val blur = animateFloatAsState(fontPx * blurOf(role), move, label = "blur")
-                BasicText(
-                    if (i < 0) title else lines[i],
-                    style = centred,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .onSizeChanged { heights[i] = (it.height - 2 * padPx).toInt().coerceAtLeast(1) }
-                        .graphicsLayer {
-                            compositingStrategy = CompositingStrategy.Offscreen
-                            translationY = y.value
-                            scaleX = scale.value
-                            scaleY = scale.value
-                            // A line reaching the top or bottom fades into the dark there
-                            // instead of being cut (per line: a whole-screen mask cost the
-                            // weak tablet's graphics a full extra pass every frame).
-                            val edge = if (boxHalf <= 0f) 1f else {
-                                // Whole until its middle is within the last stretch, gone when
-                                // its middle reaches the edge.
-                                ((boxHalf - kotlin.math.abs(y.value)) / (boxHalf * EDGE_FADE_SHARE)).coerceIn(0f, 1f)
-                            }
-                            alpha = fade.value * edge
-                            val r = blur.value
-                            renderEffect = if (r < 0.5f) null else BlurEffect(r, r, TileMode.Decal)
-                        }
-                        .padding(horizontal = pad, vertical = pad),
-                )
-            }
-        }
-    }
-}
-
-/** How far each side of the sung line the strip reaches; the last one is fully faded. */
-private const val REACH = 3
-private const val NEXT_SCALE = 0.62f
-private const val PREV_SCALE = 0.55f
-private const val EDGE_SCALE = 0.46f
-private const val OUT_SCALE = 0.4f
-
-private fun scaleOf(role: Int): Float = when {
-    role == 0 -> 1f
-    role == 1 -> NEXT_SCALE
-    role == -1 -> PREV_SCALE
-    kotlin.math.abs(role) == 2 -> EDGE_SCALE
-    else -> OUT_SCALE
-}
-
-/** The sung line full, the next one clearer than the one just sung, the outer ones faint. */
-private fun fadeOf(role: Int): Float = when {
-    role == 0 -> 1f
-    role == 1 -> 0.6f
-    role == -1 -> 0.45f
-    kotlin.math.abs(role) == 2 -> 0.28f
-    else -> 0f
-}
-
-/** Blur as a share of the font size, more the further a line is from the sung one. */
-private fun blurOf(role: Int): Float = when (kotlin.math.abs(role)) {
-    0 -> 0f
-    1 -> 0.05f
-    2 -> 0.12f
-    else -> 0.2f
-}
-
-/** Room around a line for its blur, as a share of the font size. */
-private const val BLUR_ROOM = 0.25f
-/** Between Compose's low and very low stiffness: about half a second to settle, no overshoot. */
-private const val LINE_STIFFNESS = 120f
 private const val DIM_STEPS = 12
 private const val CAPTION_ROOM = 56
-/** The stretch by each edge, as a share of half the strip's height, where lines fade out. */
-private const val EDGE_FADE_SHARE = 0.3f
-/** The most of the strip's height the sung line may take. */
-private const val FIT_SHARE = 0.7f
 
 @Composable
 private fun SleepButton(icon: Painter, label: String, colour: Color, size: Dp = 52.dp, shape: androidx.compose.ui.graphics.Shape = CircleShape, modifier: Modifier = Modifier, onClick: () -> Unit) {
