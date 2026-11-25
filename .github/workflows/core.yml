@@ -869,7 +869,7 @@ jobs:
       - name: Navidrome 0.64.2
         run: |
           docker run -d --name navidrome -p 4533:4533 -v "$RUNNER_TEMP/music:/music:ro" \
-            -e ND_SCANNER_SCHEDULE=0 -e ND_LOGLEVEL=info \
+            -e ND_SCANNER_SCHEDULE=0 -e ND_LOGLEVEL=debug -e ND_ENABLEEXTERNALSERVICES=false \
             deluan/navidrome:0.64.2@sha256:38dc2727bfcfd5ede290f8ada114fc90368146f265ae4701ddddbcbe2a44ee52
           for _ in $(seq 1 60); do curl -fs http://127.0.0.1:4533/ping > /dev/null && break; sleep 1; done
           # The first user becomes the admin.
@@ -893,5 +893,8 @@ jobs:
           NAVIDROME_PASSWORD: ci-only-password
           NAVIDROME_SONGS: "6"
         run: |
-          cargo test --locked -p encore-core navidrome_flow_over_http -- --ignored --nocapture \
-            || { docker logs navidrome 2>&1 | tail -n 40; exit 1; }
+          ok=1
+          cargo test --locked -p encore-core navidrome_flow_over_http -- --ignored --nocapture || ok=
+          # What the server was asked, for reading a failure (the token and salt are blanked).
+          docker logs navidrome 2>&1 | grep -E 'Playlist|playlist|star' | sed -E 's/([?&](t|s|p|u))=[^&" ]+/\1=x/g' | tail -n 60
+          test -n "$ok"

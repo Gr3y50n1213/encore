@@ -232,9 +232,21 @@ fn navidrome_flow_over_http() {
         .find(|p| p.name == "From CI")
         .expect("the playlist came back from the server");
     assert_eq!(on_server.song_count, 3);
+    let titles = |id: i64| -> Vec<String> {
+        core.playlist(id)
+            .unwrap()
+            .entries
+            .iter()
+            .map(|e| e.song.as_ref().map(|s| s.title.clone()).unwrap_or_default())
+            .collect()
+    };
+    println!("before the removal: {:?}", titles(on_server.id));
     core.remove_from_playlist(on_server.id, vec![1]).unwrap();
-    block(core.send_edits()).unwrap();
+    println!("removed here: {:?}", titles(on_server.id));
+    let sent = block(core.send_edits()).unwrap();
+    println!("sent: {sent:?}; after sending: {:?}", titles(on_server.id));
     block(core.sync_library()).unwrap();
+    println!("after a sync: {:?}", titles(on_server.id));
     assert_eq!(core.playlist(on_server.id).unwrap().entries.len(), 2);
     core.delete_playlist(on_server.id).unwrap();
     block(core.send_edits()).unwrap();
