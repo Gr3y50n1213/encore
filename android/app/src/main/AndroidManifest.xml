@@ -100,6 +100,18 @@
             </intent-filter>
         </service>
 
+        <!-- Headphone and Bluetooth buttons when Encore isn't running: Android sends the press
+             here, and Media3 starts the service and picks up the queue (onPlaybackResumption in
+             AutoLibrary). Without it, an earbud tap did nothing once Android had closed the app
+             (owner, 25 November 2026). -->
+        <receiver
+            android:name="androidx.media3.session.MediaButtonReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </receiver>
+
         <!-- Covers for Android Auto's lists: not exported; each address is granted to
              the one controller that asked (playback/ArtworkProvider.kt). -->
         <provider
