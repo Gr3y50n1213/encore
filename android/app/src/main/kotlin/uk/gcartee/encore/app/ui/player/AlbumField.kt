@@ -149,7 +149,8 @@ private const val TONE_OUTLINE = 0.5f
  */
 @Composable
 fun AlbumField(colours: FieldColours, modifier: Modifier = Modifier) {
-    val phase = rememberDriftPhase(still = reduceMotion(), turnMs = Timing.GradientBlobLoopSeconds.min * 1000)
+    val covered = uk.gcartee.encore.app.ui.components.LocalCovered.current
+    val phase = rememberDriftPhase(still = reduceMotion() || covered, turnMs = Timing.GradientBlobLoopSeconds.min * 1000)
     Box(modifier.background(colours.base).clearAndSetSemantics { }) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ShaderField(colours, phase)

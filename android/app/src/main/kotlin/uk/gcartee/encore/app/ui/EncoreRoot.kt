@@ -209,6 +209,9 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     val homeData = remember(switches) { HomeData(host) }
     val still = reduceMotion()
     val playingSongId = player.entry?.song?.id
+    // The pages are out of sight under a fully open Now Playing or Sleep mode.
+    val nowPlayingCovers by remember { androidx.compose.runtime.derivedStateOf { expand.value >= 0.999f } }
+    val pagesCovered = sleepMode || (nowPlaying && nowPlayingCovers)
     val widthDp = LocalConfiguration.current.screenWidthDp
     val wide = widthDp >= Breakpoints.railFrom
     val expanded = widthDp >= Breakpoints.expandedRailFrom
@@ -371,6 +374,10 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                     Box(Modifier.weight(1f)) {
                         val inner = PaddingValues(bottom = with(LocalDensity.current) { miniHeight.toDp() })
                         val top = nav.top
+                        CompositionLocalProvider(
+                            uk.gcartee.encore.app.ui.components.LocalPlaying provides player.isPlaying,
+                            uk.gcartee.encore.app.ui.components.LocalCovered provides pagesCovered,
+                        ) {
                         AnimatedContent(
                             targetState = nav.tab to top,
                             transitionSpec = {
@@ -412,6 +419,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                                     Tab.Search -> SearchScreen(host, playingSongId, actions.open, inner, onLibrary = { nav.select(Tab.Library) })
                                 }
                             }
+                        }
                         }
                         // The mini player and, on phones, the navigation bar float over the
                         // page together; pages pad their lists by the pair's height.
@@ -611,7 +619,10 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                     },
             ) {
                 // The queue's rows don't pick songs.
-                CompositionLocalProvider(uk.gcartee.encore.app.ui.components.LocalSongSelection provides null) {
+                CompositionLocalProvider(
+                    uk.gcartee.encore.app.ui.components.LocalSongSelection provides null,
+                    uk.gcartee.encore.app.ui.components.LocalPlaying provides player.isPlaying,
+                ) {
                 // Sleep mode covers Now Playing completely, so Now Playing steps out while it is
                 // on: its wavy bar and lyrics kept drawing every frame underneath, which made
                 // Sleep mode drop frames (owner, 24 November 2026). Its saved state is kept.
