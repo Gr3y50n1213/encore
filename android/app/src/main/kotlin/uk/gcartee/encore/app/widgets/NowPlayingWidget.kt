@@ -17,7 +17,6 @@ import androidx.glance.LocalContext
 import androidx.glance.LocalSize
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
-import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.LocalAppWidgetOptions
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.provideContent
@@ -85,15 +84,8 @@ class NowPlayingWidget : GlanceAppWidget() {
 }
 
 /** The receiver Android sends widget updates to (exported, as App Widget receivers must be). */
-class NowPlayingWidgetReceiver : GlanceAppWidgetReceiver() {
+class NowPlayingWidgetReceiver : DrawnOnceWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = NowPlayingWidget()
-
-    override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
-        // The 3-hour update: let running sessions read the file again, so the 24 h dim and
-        // the "playing" check use the time now.
-        WidgetRedraws.bump()
-        super.onUpdate(context, appWidgetManager, appWidgetIds)
-    }
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
         WidgetConfig.forget(context, appWidgetIds)
