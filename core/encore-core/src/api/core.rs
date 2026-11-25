@@ -151,6 +151,10 @@ struct Profile {
     recs: Mutex<Option<recs::RecsCache>>,
     /// Handoff and remote control (Phase 7). A leaf lock.
     live: Mutex<live::Live>,
+    /// One send of waiting edits at a time. Every edit asks for a send and so does a sync;
+    /// two at once each sent the same queued write before either marked it done, so a new
+    /// playlist was made twice or three times (caught by CI's Navidrome, 25 November 2026).
+    sending: tokio::sync::Mutex<()>,
 }
 
 struct Inner {
@@ -492,6 +496,7 @@ impl Inner {
             companion: Mutex::new(None),
             recs: Mutex::new(None),
             live: Mutex::new(Default::default()),
+            sending: tokio::sync::Mutex::new(()),
             store: Mutex::new(store),
             sources: Mutex::new(sources),
             playback: Mutex::new(Playback {
@@ -706,6 +711,7 @@ async fn send_all(inner: &Inner) -> Result<SentEdits, EncoreError> {
         refused: 0,
         waiting: 0,
     };
+    let _one_at_a_time = p.sending.lock().await;
     for (id, source) in sources {
         let f = edits::flush(&p.store, id, source.as_ref(), now_ms()).await?;
         total.sent += f.sent;
@@ -1663,7 +1669,10 @@ impl EncoreCore {
                 };
                 // Edits made here go first, so the pull can't put back what they
                 // changed. If the server can't be reached they keep waiting.
-                let _ = edits::flush(&p.store, id, source.as_ref(), now_ms()).await;
+                {
+                    let _one_at_a_time = p.sending.lock().await;
+                    let _ = edits::flush(&p.store, id, source.as_ref(), now_ms()).await;
+                }
                 let stats: Result<_, EncoreError> = crate::library::sync_source(
                     &p.store,
                     id,
