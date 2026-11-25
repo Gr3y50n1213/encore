@@ -118,19 +118,18 @@ fn block(state: &mut [u32; 4], chunk: &[u8]) {
 /// The 16-byte MD5 digest of `data`.
 pub(crate) fn md5(data: &[u8]) -> [u8; 16] {
     let mut state: [u32; 4] = [0x6745_2301, 0xefcd_ab89, 0x98ba_dcfe, 0x1032_5476];
-    let mut chunks = data.chunks_exact(64);
-    for chunk in &mut chunks {
+    let (blocks, rest) = data.as_chunks::<64>();
+    for chunk in blocks {
         block(&mut state, chunk);
     }
     // Padding: a 1 bit, zeros to 56 mod 64 bytes, then the length in bits (little endian).
-    let rest = chunks.remainder();
     let mut tail = [0u8; 128];
     tail[..rest.len()].copy_from_slice(rest);
     tail[rest.len()] = 0x80;
     let tail_len = if rest.len() < 56 { 64 } else { 128 };
     let bits = (data.len() as u64).wrapping_mul(8);
     tail[tail_len - 8..tail_len].copy_from_slice(&bits.to_le_bytes());
-    for chunk in tail[..tail_len].chunks_exact(64) {
+    for chunk in tail[..tail_len].as_chunks::<64>().0 {
         block(&mut state, chunk);
     }
     let mut out = [0u8; 16];
