@@ -20,10 +20,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.BlurEffect
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.graphicsLayer
@@ -56,6 +53,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -353,16 +351,9 @@ private fun SleepLyrics(lines: List<String>, current: Int, title: String, style:
         y += gapPx + h(i) * scaleOf(role) / 2f
         return dir * y
     }
+    var boxHalf by remember { mutableFloatStateOf(0f) }
     Box(
-        Modifier
-            .fillMaxSize()
-            .clipToBounds()
-            // The outer lines fade into the dark at the top and bottom instead of being cut.
-            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-            .drawWithContent {
-                drawContent()
-                drawRect(EDGE_FADE, blendMode = BlendMode.DstIn)
-            },
+        Modifier.fillMaxSize().clipToBounds().onSizeChanged { boxHalf = it.height / 2f },
         contentAlignment = Alignment.Center,
     ) {
         // -1 is the song's title, shown before the first line. The third line each side is
@@ -386,7 +377,15 @@ private fun SleepLyrics(lines: List<String>, current: Int, title: String, style:
                             translationY = y.value
                             scaleX = scale.value
                             scaleY = scale.value
-                            alpha = fade.value
+                            // A line reaching the top or bottom fades into the dark there
+                            // instead of being cut (per line: a whole-screen mask cost the
+                            // weak tablet's graphics a full extra pass every frame).
+                            val edge = if (boxHalf <= 0f) 1f else {
+                                // Whole until its middle is within the last stretch, gone when
+                                // its middle reaches the edge.
+                                ((boxHalf - kotlin.math.abs(y.value)) / (boxHalf * EDGE_FADE_SHARE)).coerceIn(0f, 1f)
+                            }
+                            alpha = fade.value * edge
                             val r = blur.value
                             renderEffect = if (r < 0.5f) null else BlurEffect(r, r, TileMode.Decal)
                         }
@@ -435,12 +434,8 @@ private const val BLUR_ROOM = 0.25f
 private const val LINE_STIFFNESS = 120f
 private const val DIM_STEPS = 12
 private const val CAPTION_ROOM = 56
-private val EDGE_FADE = Brush.verticalGradient(
-    0f to Color.Transparent,
-    0.14f to Color.Black,
-    0.86f to Color.Black,
-    1f to Color.Transparent,
-)
+/** The stretch by each edge, as a share of half the strip's height, where lines fade out. */
+private const val EDGE_FADE_SHARE = 0.3f
 
 @Composable
 private fun SleepButton(icon: Painter, label: String, colour: Color, size: Dp = 52.dp, shape: androidx.compose.ui.graphics.Shape = CircleShape, modifier: Modifier = Modifier, onClick: () -> Unit) {
