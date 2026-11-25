@@ -17,6 +17,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 /**
  * Redraws every placed widget, each one by the widget class its own receiver is for.
@@ -63,19 +64,32 @@ object WidgetRefresh {
     private val drawing = Mutex()
 
     /**
+     * Where a drawing runs: one thread's worth, off the main thread. Glance builds the widget
+     * on one coroutine and copies it for sending on another, and expects them never to run at
+     * once, as in its own sessions. On the shared pool they did: the copy caught the widget half
+     * built, so some widgets were sent blank, and one copy failed outright
+     * (ConcurrentModificationException in RemoteViewsRoot.copy; Tab A7 Lite, 25 November 2026).
+     */
+    private val drawThread = Dispatchers.Default.limitedParallelism(1)
+
+    /**
      * Draws [widget] once, at every size its size mode asks for, and sends that to the home
      * screen. The composition ends with the drawing, so nothing keeps redrawing it after. It
      * reads the widget's options as it draws, so a drawing asked for before a resize still
      * comes out at the size the widget has now.
      */
-    @OptIn(ExperimentalGlanceApi::class)
     suspend fun draw(context: Context, widget: GlanceAppWidget, appWidgetId: Int) {
         drawing.withLock {
-            val manager = AppWidgetManager.getInstance(context)
-            val id = GlanceAppWidgetManager(context).getGlanceIdBy(appWidgetId)
-            val views = widget.compose(context, id, manager.getAppWidgetOptions(appWidgetId))
-            manager.updateAppWidget(appWidgetId, views)
+            withContext(drawThread) { drawNow(context, widget, appWidgetId) }
         }
+    }
+
+    @OptIn(ExperimentalGlanceApi::class)
+    private suspend fun drawNow(context: Context, widget: GlanceAppWidget, appWidgetId: Int) {
+        val manager = AppWidgetManager.getInstance(context)
+        val id = GlanceAppWidgetManager(context).getGlanceIdBy(appWidgetId)
+        val views = widget.compose(context, id, manager.getAppWidgetOptions(appWidgetId))
+        manager.updateAppWidget(appWidgetId, views)
     }
 }
 
