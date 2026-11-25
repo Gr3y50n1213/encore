@@ -27,7 +27,6 @@ import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.glance.appwidget.GlanceAppWidget
-import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
@@ -51,6 +50,7 @@ import uk.gcartee.encore.app.widgets.RecentWidgetReceiver
 import uk.gcartee.encore.app.widgets.SnapshotReader
 import uk.gcartee.encore.app.widgets.WidgetConfig
 import uk.gcartee.encore.app.widgets.WidgetProfileChoice
+import uk.gcartee.encore.app.widgets.WidgetRefresh
 
 /**
  * The widgets redesign (11 November 2026), on an emulator: every widget, at every size it
@@ -188,7 +188,7 @@ class WidgetGalleryTest {
         }
         // Ask each provider to draw at the size it was just told.
         for ((spec, _, id) in views) {
-            runCatching { runBlocking { spec.kind.widget.update(context, GlanceAppWidgetManager(context).getGlanceIdBy(id)) } }
+            runCatching { runBlocking { WidgetRefresh.draw(context, spec.kind.widget, id) } }
         }
         Thread.sleep(SETTLE_MS)
         rule.waitForIdle()

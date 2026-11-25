@@ -10,7 +10,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.ParcelFileDescriptor
 import android.util.Log
-import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import java.util.UUID
@@ -28,6 +27,7 @@ import uk.gcartee.encore.app.widgets.NowPlayingWidget
 import uk.gcartee.encore.app.widgets.NowPlayingWidgetReceiver
 import uk.gcartee.encore.app.widgets.WidgetConfig
 import uk.gcartee.encore.app.widgets.WidgetIntents
+import uk.gcartee.encore.app.widgets.WidgetRefresh
 import uk.gcartee.encore.core.AlbumSort
 import uk.gcartee.encore.core.StartedFrom
 
@@ -62,7 +62,7 @@ class NowPlayingWidgetTest {
         val id = bind(host)
         try {
             runBlocking {
-                NowPlayingWidget().update(context, GlanceAppWidgetManager(context).getGlanceIdBy(id))
+                WidgetRefresh.draw(context, NowPlayingWidget(), id)
             }
             // And the way Android asks (updatePeriodMillis), through the receiver.
             context.sendBroadcast(

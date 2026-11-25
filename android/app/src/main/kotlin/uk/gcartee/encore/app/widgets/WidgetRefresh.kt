@@ -15,6 +15,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Redraws every placed widget, each one by the widget class its own receiver is for.
@@ -57,16 +59,23 @@ object WidgetRefresh {
         }
     }
 
+    /** One drawing at a time, in the order asked for, so the last one asked for is the one shown. */
+    private val drawing = Mutex()
+
     /**
      * Draws [widget] once, at every size its size mode asks for, and sends that to the home
-     * screen. The composition ends with the drawing, so nothing keeps redrawing it after.
+     * screen. The composition ends with the drawing, so nothing keeps redrawing it after. It
+     * reads the widget's options as it draws, so a drawing asked for before a resize still
+     * comes out at the size the widget has now.
      */
     @OptIn(ExperimentalGlanceApi::class)
-    suspend fun draw(context: Context, widget: GlanceAppWidget, appWidgetId: Int, options: Bundle? = null) {
-        val manager = AppWidgetManager.getInstance(context)
-        val id = GlanceAppWidgetManager(context).getGlanceIdBy(appWidgetId)
-        val views = widget.compose(context, id, options ?: manager.getAppWidgetOptions(appWidgetId))
-        manager.updateAppWidget(appWidgetId, views)
+    suspend fun draw(context: Context, widget: GlanceAppWidget, appWidgetId: Int) {
+        drawing.withLock {
+            val manager = AppWidgetManager.getInstance(context)
+            val id = GlanceAppWidgetManager(context).getGlanceIdBy(appWidgetId)
+            val views = widget.compose(context, id, manager.getAppWidgetOptions(appWidgetId))
+            manager.updateAppWidget(appWidgetId, views)
+        }
     }
 }
 
@@ -81,22 +90,22 @@ abstract class DrawnOnceWidgetReceiver : GlanceAppWidgetReceiver() {
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         // Also the 3-hour update: each drawing reads the file again, so the 24 h dim and the
         // "playing" check use the time now.
-        drawLater(context, appWidgetIds, null)
+        drawLater(context, appWidgetIds)
     }
 
     @SuppressLint("MissingSuperCall")
     override fun onAppWidgetOptionsChanged(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int, newOptions: Bundle) {
-        drawLater(context, intArrayOf(appWidgetId), newOptions)
+        drawLater(context, intArrayOf(appWidgetId))
     }
 
-    private fun drawLater(context: Context, ids: IntArray, options: Bundle?) {
+    private fun drawLater(context: Context, ids: IntArray) {
         val app = context.applicationContext
         val widget = glanceAppWidget
         val pending = goAsync()
         WidgetRefresh.scope.launch {
             try {
                 for (id in ids) {
-                    runCatching { WidgetRefresh.draw(app, widget, id, options) }
+                    runCatching { WidgetRefresh.draw(app, widget, id) }
                         .onFailure { android.util.Log.w(WidgetRefresh.TAG, "couldn't draw appWidgetId $id", it) }
                 }
             } finally {
