@@ -549,6 +549,10 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                     morphScope.launch { expand.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.8f, stiffness = androidx.compose.animation.core.Spring.StiffnessMedium), initialVelocity = perSecond) }
                 }
             }
+            // Now Playing keeps its state only while Sleep mode covers it. Closed, it opens
+            // fresh next time (on the artwork), as before: kept, it came back on the queue
+            // with no way to close it (CI, 25 November 2026).
+            LaunchedEffect(shown) { if (!shown) nowPlayingState.removeState("now-playing") }
             if (shown && !still) {
                 // The page behind, dimmed while Now Playing covers it, clears as it goes.
                 Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = SCRIM * expand.value.coerceIn(0f, 1f))))
