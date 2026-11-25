@@ -227,7 +227,9 @@ fun SleepModeScreen(host: CoreHost, onExit: () -> Unit, onSleepTimer: () -> Unit
             .semantics { contentDescription = "Sleep mode. Press a key or tap for controls." },
     ) {
         // Sized from the screen: a projector's 960 dp and a phone's 400 dp both read well.
-        val now = (maxWidth.value * if (tv) 0.05f else 0.085f).coerceIn(28f, 64f).sp
+        // From the shorter side too: a phone on its side is wide but short, and a long line
+        // sized from the width alone ran off the bottom (owner, 24 November 2026).
+        val now = minOf(maxWidth.value * if (tv) 0.05f else 0.085f, maxHeight.value * 0.1f).coerceIn(24f, 64f).sp
         val near = now * 0.58f
         val far = now * 0.5f
         val gap: Dp = (maxWidth.value * if (tv) 0.024f else 0.05f).coerceIn(16f, 40f).dp
@@ -342,16 +344,19 @@ private fun SleepLyrics(lines: List<String>, current: Int, title: String, style:
     // Each line's height at full size without its blur room, once it has been laid out.
     val heights = remember(lines) { mutableStateMapOf<Int, Int>() }
     fun h(i: Int): Float = heights[i]?.toFloat() ?: fallback
+    var boxHalf by remember { mutableFloatStateOf(0f) }
+    // A sung line too tall for the screen (a long line wrapped many times) shrinks, with its
+    // neighbours, until it fits whole.
+    val fit = if (boxHalf <= 0f) 1f else minOf(1f, boxHalf * 2f * FIT_SHARE / h(current))
     fun offset(i: Int): Float {
         val role = i - current
         if (role == 0) return 0f
         val dir = if (role > 0) 1 else -1
-        var y = h(current) / 2f
-        for (k in 1 until kotlin.math.abs(role)) y += gapPx + h(current + dir * k) * scaleOf(dir * k)
-        y += gapPx + h(i) * scaleOf(role) / 2f
+        var y = h(current) * fit / 2f
+        for (k in 1 until kotlin.math.abs(role)) y += gapPx + h(current + dir * k) * scaleOf(dir * k) * fit
+        y += gapPx + h(i) * scaleOf(role) * fit / 2f
         return dir * y
     }
-    var boxHalf by remember { mutableFloatStateOf(0f) }
     Box(
         Modifier.fillMaxSize().clipToBounds().onSizeChanged { boxHalf = it.height / 2f },
         contentAlignment = Alignment.Center,
@@ -363,7 +368,7 @@ private fun SleepLyrics(lines: List<String>, current: Int, title: String, style:
                 val role = (i - current).coerceIn(-REACH, REACH)
                 val move = spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = LINE_STIFFNESS)
                 val y = animateFloatAsState(offset(i), move, label = "y")
-                val scale = animateFloatAsState(scaleOf(role), move, label = "scale")
+                val scale = animateFloatAsState(scaleOf(role) * fit, move, label = "scale")
                 val fade = animateFloatAsState(fadeOf(role), move, label = "fade")
                 val blur = animateFloatAsState(fontPx * blurOf(role), move, label = "blur")
                 BasicText(
@@ -436,6 +441,8 @@ private const val DIM_STEPS = 12
 private const val CAPTION_ROOM = 56
 /** The stretch by each edge, as a share of half the strip's height, where lines fade out. */
 private const val EDGE_FADE_SHARE = 0.3f
+/** The most of the strip's height the sung line may take. */
+private const val FIT_SHARE = 0.7f
 
 @Composable
 private fun SleepButton(icon: Painter, label: String, colour: Color, size: Dp = 52.dp, shape: androidx.compose.ui.graphics.Shape = CircleShape, modifier: Modifier = Modifier, onClick: () -> Unit) {
