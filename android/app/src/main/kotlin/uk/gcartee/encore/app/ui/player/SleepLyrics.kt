@@ -204,6 +204,8 @@ private fun lerp(a: Float, b: Float, t: Float): Float = a + (b - a) * t
  * Draws [text] once, centred and balanced over as many rows as it needs, as a sharp alpha
  * picture with room round it for the softest blur, then the two soft pictures from it.
  */
+// Layout.BREAK_STRATEGY_BALANCED is the same value lint wants from LineBreaker (API 29).
+@android.annotation.SuppressLint("WrongConstant")
 private fun renderLine(text: String, typeface: Typeface, fontPx: Float, width: Int): LineArt {
     val paint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
         this.typeface = typeface
