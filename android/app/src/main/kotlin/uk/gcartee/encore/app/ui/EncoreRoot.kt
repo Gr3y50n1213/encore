@@ -200,6 +200,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     var sleepTint by remember { mutableStateOf<uk.gcartee.encore.app.ui.player.FieldColours?>(null) }
     // Sleep mode (mock-up 45): over everything, until Back, its own button or a swipe down.
     var sleepMode by rememberSaveable { mutableStateOf(false) }
+    val nowPlayingState = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
     // Encore TV: a projector's picture can be cut at its edges, so pages keep clear of them.
     val tv = uk.gcartee.encore.app.ui.tv.LocalTv.current
     var addingAccount by rememberSaveable { mutableStateOf(false) }
@@ -611,6 +612,10 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
             ) {
                 // The queue's rows don't pick songs.
                 CompositionLocalProvider(uk.gcartee.encore.app.ui.components.LocalSongSelection provides null) {
+                // Sleep mode covers Now Playing completely, so Now Playing steps out while it is
+                // on: its wavy bar and lyrics kept drawing every frame underneath, which made
+                // Sleep mode drop frames (owner, 24 November 2026). Its saved state is kept.
+                if (!sleepMode) nowPlayingState.SaveableStateProvider("now-playing") {
                 NowPlayingScreen(
                     host,
                     player,
@@ -631,6 +636,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                     },
                     onScrubHeld = { scrubHeld = it },
                 )
+                }
                 }
             }
             if (sleepMode) uk.gcartee.encore.app.ui.player.SleepModeScreen(host, onExit = { sleepMode = false }, onSleepTimer = { sleepTint = null; sleepSheet = true })

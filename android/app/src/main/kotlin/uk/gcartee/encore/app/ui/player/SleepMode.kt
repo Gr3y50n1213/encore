@@ -20,7 +20,10 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.BlurEffect
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.graphicsLayer
@@ -243,7 +246,9 @@ fun SleepModeScreen(host: CoreHost, onExit: () -> Unit, onSleepTimer: () -> Unit
             targetState = mode,
             animationSpec = tween(MODE_FADE_MS),
             label = "view",
-            modifier = Modifier.fillMaxSize().padding(horizontal = maxWidth * 0.1f).padding(bottom = room),
+            // Clear of the song's name at the bottom, and as much room at the top so the sung
+            // line stays in the middle.
+            modifier = Modifier.fillMaxSize().padding(horizontal = maxWidth * 0.1f).padding(vertical = CAPTION_ROOM.dp).padding(bottom = room),
         ) { m ->
             when (m) {
                 SleepView.NOTHING -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -348,7 +353,18 @@ private fun SleepLyrics(lines: List<String>, current: Int, title: String, style:
         y += gapPx + h(i) * scaleOf(role) / 2f
         return dir * y
     }
-    Box(Modifier.fillMaxSize().clipToBounds(), contentAlignment = Alignment.Center) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .clipToBounds()
+            // The outer lines fade into the dark at the top and bottom instead of being cut.
+            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+            .drawWithContent {
+                drawContent()
+                drawRect(EDGE_FADE, blendMode = BlendMode.DstIn)
+            },
+        contentAlignment = Alignment.Center,
+    ) {
         // -1 is the song's title, shown before the first line. The third line each side is
         // there only to fade in and out, so no line appears or vanishes at once.
         for (i in (current - REACH).coerceAtLeast(-1)..(current + REACH).coerceAtMost(lines.lastIndex)) {
@@ -418,6 +434,13 @@ private const val BLUR_ROOM = 0.25f
 /** Between Compose's low and very low stiffness: about half a second to settle, no overshoot. */
 private const val LINE_STIFFNESS = 120f
 private const val DIM_STEPS = 12
+private const val CAPTION_ROOM = 56
+private val EDGE_FADE = Brush.verticalGradient(
+    0f to Color.Transparent,
+    0.14f to Color.Black,
+    0.86f to Color.Black,
+    1f to Color.Transparent,
+)
 
 @Composable
 private fun SleepButton(icon: Painter, label: String, colour: Color, size: Dp = 52.dp, shape: androidx.compose.ui.graphics.Shape = CircleShape, modifier: Modifier = Modifier, onClick: () -> Unit) {
