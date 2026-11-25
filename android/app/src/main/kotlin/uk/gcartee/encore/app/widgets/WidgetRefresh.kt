@@ -1,5 +1,6 @@
 package uk.gcartee.encore.app.widgets
 
+import android.annotation.SuppressLint
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
@@ -75,12 +76,15 @@ object WidgetRefresh {
  * Its widgets' taps are all intents, so no session is needed to answer them.
  */
 abstract class DrawnOnceWidgetReceiver : GlanceAppWidgetReceiver() {
+    // Not super: Glance's own onUpdate and onAppWidgetOptionsChanged start the sessions this replaces.
+    @SuppressLint("MissingSuperCall")
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         // Also the 3-hour update: each drawing reads the file again, so the 24 h dim and the
         // "playing" check use the time now.
         drawLater(context, appWidgetIds, null)
     }
 
+    @SuppressLint("MissingSuperCall")
     override fun onAppWidgetOptionsChanged(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int, newOptions: Bundle) {
         drawLater(context, intArrayOf(appWidgetId), newOptions)
     }
