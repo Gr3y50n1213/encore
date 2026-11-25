@@ -51,6 +51,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.text.TextLayoutResult
@@ -262,6 +263,11 @@ private fun Lines(host: CoreHost, lyrics: SongLyrics, position: () -> Long, colo
                         modifier = Modifier
                             .graphicsLayer {
                                 alpha = lineAlpha
+                                // Faded straight onto the screen, not drawn into a layer of its
+                                // own first: a line is one text, so it looks the same, and a dozen
+                                // faded lines no longer cost a dozen layer switches a frame while
+                                // the list moves (Tab A7 Lite, 25 November 2026).
+                                compositingStrategy = CompositingStrategy.ModulateAlpha
                                 scaleX = scale
                                 scaleY = scale
                                 transformOrigin = TransformOrigin(if (opposite) 1f else 0f, 0.5f)
