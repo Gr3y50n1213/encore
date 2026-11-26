@@ -1541,8 +1541,9 @@ async fn emby_check_over_http() {
 }
 
 /// ADR core-0023, point 10: a Plex sign-in is checked on the trusted Plex server it was
-/// issued for, the account is named by that server and the token's hash, and a server
-/// that would let anyone in is never trusted to vouch for a token.
+/// issued for, the account is named by that server and plex.tv's account number (the
+/// token's hash when plex.tv doesn't know the token), and a server that would let
+/// anyone in is never trusted to vouch for a token.
 #[tokio::test]
 async fn a_plex_sign_in_is_checked_on_its_trusted_server_and_never_on_an_open_one() {
     use crate::auth::MediaCheck;
@@ -1579,12 +1580,78 @@ async fn a_plex_sign_in_is_checked_on_its_trusted_server_and_never_on_an_open_on
             200,
             Some(json!({"MediaContainer": {"size": 0}})),
         ),
+        x(
+            "/api/v2/user",
+            200,
+            Some(json!({"id": 4242, "uuid": "fixture-uuid", "username": "fixture-listener"})),
+        ),
     ]));
     let check = crate::JellyfinCheck::new(vec![url.clone()], t.clone());
     let user = check.check("fixture-machine-0001", token).await.unwrap();
     assert!(user.user_id.starts_with("plex:"), "{user:?}");
     assert_eq!(user.user_id.len(), "plex:".len() + 32 + 1 + 32);
     assert!(!user.user_id.contains("fixture-server-token"));
+    assert_eq!(user.user_name, "fixture-listener");
+    // The account names the profile: another device's token for the same account is
+    // the same companion user.
+    let other = "plex1:t=fixture-other-device-token&m=fixture-machine-0001";
+    let t2 = Arc::new(FixtureTransport::new(vec![
+        identity(),
+        x("/library/sections", 401, None),
+        x(
+            "/library/sections",
+            200,
+            Some(json!({"MediaContainer": {"size": 0}})),
+        ),
+        x(
+            "/api/v2/user",
+            200,
+            Some(json!({"id": 4242, "username": "fixture-listener"})),
+        ),
+    ]));
+    let again = crate::JellyfinCheck::new(vec![url.clone()], t2.clone())
+        .check("fixture-machine-0001", other)
+        .await
+        .unwrap();
+    assert_eq!(again.user_id, user.user_id);
+    let sent2 = t2.sent();
+    let asked = sent2
+        .iter()
+        .find(|r| r.url.path() == "/api/v2/user")
+        .cloned()
+        .expect("plex.tv was asked");
+    assert_eq!(asked.url.host_str(), Some("plex.tv"));
+    assert_eq!(
+        asked
+            .headers
+            .iter()
+            .find(|(k, _)| k == "X-Plex-Token")
+            .map(|(_, v)| v.as_str()),
+        Some("fixture-other-device-token")
+    );
+    // plex.tv doesn't know the token: named by its hash. Out of reach: try later.
+    for (status, expect_ok) in [(401u16, true), (503, false)] {
+        let t3 = Arc::new(FixtureTransport::new(vec![
+            identity(),
+            x("/library/sections", 401, None),
+            x(
+                "/library/sections",
+                200,
+                Some(json!({"MediaContainer": {"size": 0}})),
+            ),
+            x("/api/v2/user", status, None),
+        ]));
+        let got = crate::JellyfinCheck::new(vec![url.clone()], t3)
+            .check("fixture-machine-0001", token)
+            .await;
+        if expect_ok {
+            let u = got.unwrap();
+            assert_ne!(u.user_id, user.user_id);
+            assert_eq!(u.user_name, "Plex");
+        } else {
+            assert!(matches!(got, Err(CheckError::Unreachable(_))), "{got:?}");
+        }
+    }
     let probe = &t.sent()[1];
     let sent_token = probe
         .headers

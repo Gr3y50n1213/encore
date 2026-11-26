@@ -16,6 +16,7 @@ use axum::extract::{ConnectInfo, FromRequestParts, Path, State};
 use axum::http::StatusCode;
 use axum::http::request::Parts;
 use encore_sources::jellyfin::{DeviceInfo, Flavor, JellyfinClient};
+use encore_sources::plex::tv::{AccountToken, PlexTv};
 use encore_sources::plex::{PlexClient, PlexCredentials, PlexIdentity, client_identifier};
 use encore_sources::subsonic::{SubsonicClient, SubsonicCredentials, server_id_for};
 use encore_sources::{SourceError, Transport};
@@ -177,6 +178,26 @@ impl JellyfinCheck {
     /// `plex:<server>:<token hash>`. A token can only ever reach its own profile; two
     /// devices share a profile when the server gave them the same token (ADR, point 10,
     /// says when that is). A server that would take any token can't vouch for one.
+    /// Who a Plex token belongs to (ADR core-0023, point 10; the owner chose this on
+    /// 26 November 2026): plex.tv is asked once per check, with only the token it
+    /// issued, so one person's devices share one companion profile. A token plex.tv
+    /// doesn't know (some servers' own tokens) is named by its hash, as before; plex.tv
+    /// out of reach is a check to try again later, never a guess.
+    async fn plex_account(
+        &self,
+        identity: &PlexIdentity,
+        creds: &PlexCredentials,
+    ) -> Result<(String, String), CheckError> {
+        let tv = PlexTv::new(self.transport.clone(), identity.clone(), Duration::from_secs(10));
+        match tv.account(&AccountToken::new(creds.token().to_owned())).await {
+            Ok(a) => Ok((short_hash("plex-account", &a.id), a.user_name)),
+            Err(SourceError::WrongCredentials) => {
+                Ok((short_hash("plex-token", creds.token()), "Plex".into()))
+            }
+            Err(e) => Err(CheckError::Unreachable(e.to_string())),
+        }
+    }
+
     async fn check_plex(
         &self,
         server_id: &str,
@@ -231,13 +252,14 @@ impl JellyfinCheck {
             .signed_in(creds.clone());
             match signed.check_sign_in().await {
                 Ok(_) => {
+                    let (who, user_name) = self.plex_account(&identity, &creds).await?;
                     return Ok(CheckedUser {
                         user_id: format!(
                             "plex:{}:{}",
                             short_hash("plex-server", &info.server_id),
-                            short_hash("plex-token", creds.token())
+                            who
                         ),
-                        user_name: "Plex".into(),
+                        user_name,
                     });
                 }
                 Err(SourceError::WrongCredentials | SourceError::SessionExpired) => rejected = true,
