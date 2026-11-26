@@ -978,7 +978,7 @@ jobs:
           curl -fsS -H 'Accept: application/json' "$base/identity"; echo
           echo "--- agents"
           curl -sS -H 'Accept: application/json' "$base/system/agents" \
-            | python3 -c 'import json,sys; [print(a["identifier"], a["name"]) for a in json.load(sys.stdin)["MediaContainer"]["Agent"]]'
+            | python3 -c 'import json,sys; [print(a.get("identifier"), a.get("name"), a.get("title")) for a in json.load(sys.stdin)["MediaContainer"]["Agent"]]' || true
           echo "--- user"; curl -sS -w ' %{http_code}\n' -H 'Accept: application/json' "$base/user" | head -c 2000; echo
           echo "--- user, made-up token"; curl -sS -w ' %{http_code}\n' -H 'Accept: application/json' -H 'X-Plex-Token: made-up' "$base/user" | head -c 2000; echo
 
