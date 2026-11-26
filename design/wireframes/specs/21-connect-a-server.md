@@ -28,3 +28,12 @@ Connect a server
 7. Try a demo library. [TAP] opens a small library of openly licensed tracks, with synced lyrics and artwork, built from files bundled in the app. It needs no server, no sign-in and no network, and every feature that does not need a server works, so App Review and Play reviewers can try the app without credentials. A banner reads "Demo library" with a "Connect a server" button, and demo data is never mixed into a real profile. Tracks are credited in About and licenses.
 
 Local network access. The system may ask to find devices on the local network the first time this screen contacts a home address. The app explains why first; see the Permissions board. Denying it only turns off address discovery and LAN addresses, and a public https address still works. Next steps. Choose what to include lists the server's music libraries with check rows, all ticked by default. Then the optional companion step offers a sync address, or "Skip, use this device only". Finish opens Home while indexing runs in the background. Keyboard. The form scrolls above the keyboard, the Return key moves to the next field and then submits. Add account / add server later reuses this exact screen.
+
+---
+
+Amendment, Phase 12 (owner approved mock-up 48 on 2026-11-26; `design/wireframes/html/48-plex-sign-in-mockup.html`)
+
+- Rule 2, Server type: the group is Jellyfin, Emby, Navidrome, Plex. Emby and Navidrome use the address, username and password form; Quick Connect is Jellyfin's only. An address that turns out to be another type moves the group to that type.
+- Plex has no address field and no password. "Sign in with Plex" asks plex.tv for a 4-character code (nothing is sent before that tap). The code screen shows the code, plex.tv/link, a "Waiting for you to sign in" row with a countdown, "Open Plex sign-in here" (Plex's page with the code filled in), "Copy code" and Cancel. An expired code offers "Get a new code".
+- Choose your server: shown only when the account has more than one server. Rows say whose server it is and how it is reached; unreachable servers are dimmed. A typed Plex address picks that server automatically.
+- Only the chosen server's access token is kept, in the system keystore. plex.tv is contacted only to sign in and to look up a server's new address.
