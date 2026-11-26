@@ -65,6 +65,7 @@ pub struct _CoreConfig {
 pub enum _ServerKind {
     Jellyfin,
     Subsonic,
+    Emby,
 }
 
 #[frb(mirror(ServerCheck))]

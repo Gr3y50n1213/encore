@@ -1,0 +1,27 @@
+[
+  {
+    "method": "GET",
+    "path": "/emby/Items",
+    "query": {"ids": "31", "fields": "MediaStreams,MediaSources"},
+    "body": {"Items": [{"Name": "Slow Tide", "Id": "31", "Type": "Audio",
+      "MediaStreams": [
+        {"Codec": "flac", "Type": "Audio", "Index": 0, "IsExternal": false, "IsTextSubtitleStream": false},
+        {"Codec": "lrc", "DisplayTitle": "(LRC)", "Type": "Subtitle", "Index": 1, "IsExternal": true,
+         "IsTextSubtitleStream": true, "SupportsExternalStream": true}],
+      "MediaSources": [{"Id": "mediasource_31", "Container": "flac"}]}],
+      "TotalRecordCount": 1}
+  },
+  {
+    "method": "GET",
+    "path": "/emby/Items/31/mediasource_31/Subtitles/1/Stream.js",
+    "bodyText": "﻿{\"TrackEvents\":[{\"Text\":\"Salt on the window\",\"StartPositionTicks\":12000000,\"EndPositionTicks\":61000000},{\"Text\":\"The tide comes slow\",\"StartPositionTicks\":61000000}]}"
+  },
+  {
+    "method": "GET",
+    "path": "/emby/Items",
+    "query": {"ids": "32", "fields": "MediaStreams,MediaSources"},
+    "body": {"Items": [{"Name": "Low Lantern", "Id": "32", "Type": "Audio",
+      "MediaStreams": [{"Codec": "flac", "Type": "Audio", "Index": 0}],
+      "MediaSources": [{"Id": "mediasource_32"}]}], "TotalRecordCount": 1}
+  }
+]

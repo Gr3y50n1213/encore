@@ -168,7 +168,8 @@ async fn not_jellyfin_too_old_and_unreachable() {
     let plan = plan_address("https://music.example", &[443], 8096).unwrap();
     for (reply, want) in [
         (
-            public_info("12.0.0", "Emby Server"),
+            // Emby is told apart (ADR core-0022); another product is neither.
+            public_info("12.0.0", "Some Other Server"),
             SourceError::NotJellyfin,
         ),
         (

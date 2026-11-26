@@ -63,7 +63,7 @@ Build one great experience on Apple devices first, then bring the server, the br
     - Done when: v2 beats v1's early-skip rate in an offline replay test.
 11. **Year-end recap.** The `encore-recap` engine in the core (section 25), four design packs, sharing, the detail page, monthly and year-so-far recaps, and the same recap on the server and on every device.
     - Done when: two test profiles with different histories get visibly different recaps, a re-run for next year picks a different pack, the same log gives byte-identical recap data on the server and on every platform, and late plays synced before January 8 appear in the final recap.
-12. **More sources.** OpenSubsonic (Navidrome and others), then Plex, Emby and local files.
+12. **More sources.** OpenSubsonic (Navidrome and others), then Plex, Emby and local files. Emby is the Jellyfin adapter's Emby flavour (ADR core-0022), tested against a real Emby in CI.
     - Done when: a Navidrome user can do everything a Jellyfin user can, with no UI changes.
 13. **Release.** Docs site, install guides, App Store and TestFlight, Play Store and F-Droid, Flathub, Windows installer (winget), reproducible builds. The section 24 checklist is ticked for every platform.
 

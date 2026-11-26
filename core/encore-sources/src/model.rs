@@ -12,6 +12,8 @@ pub enum SourceKind {
     Jellyfin,
     /// Navidrome, gonic, Airsonic and other (Open)Subsonic servers (ADR core-0021).
     Subsonic,
+    /// Emby, through the Jellyfin adapter's Emby flavour (ADR core-0022).
+    Emby,
 }
 
 impl SourceKind {
@@ -20,6 +22,7 @@ impl SourceKind {
         match self {
             SourceKind::Jellyfin => "jellyfin",
             SourceKind::Subsonic => "subsonic",
+            SourceKind::Emby => "emby",
         }
     }
 
@@ -27,6 +30,7 @@ impl SourceKind {
         match s {
             "jellyfin" => Some(SourceKind::Jellyfin),
             "subsonic" => Some(SourceKind::Subsonic),
+            "emby" => Some(SourceKind::Emby),
             _ => None,
         }
     }
