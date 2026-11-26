@@ -944,4 +944,4 @@ jobs:
           docker run -d --name emby -p 8096:8096 -v "$RUNNER_TEMP/music:/music:ro" \
             emby/embyserver:4.10.2.0@sha256:7082c63b10a2fcb3805a7eaebba407d5723bc57c085c9f0b29b7d0a702765cc1
           for _ in $(seq 1 90); do curl -fs http://127.0.0.1:8096/emby/System/Info/Public > /dev/null && break; sleep 2; done
-          bash tools/ci/emby_explore.sh
+          MUSIC="$RUNNER_TEMP/music" bash tools/ci/emby_explore.sh
