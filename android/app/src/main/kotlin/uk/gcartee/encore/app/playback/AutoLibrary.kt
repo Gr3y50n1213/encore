@@ -194,16 +194,18 @@ class AutoLibrary(
             parentId == HOME -> {
                 val home = core.home()
                 val mixes = home.madeForYou.mixes.map { m ->
-                    folder("mix:${m.mixId}", m.title, m.subtitle, art = m.coverSongIds.firstOrNull()?.let { ArtworkProvider.uri(context, ArtworkOf.SONG, it) }, playable = true)
+                    folder("mix:${m.mixId}", m.title, m.subtitle, art = m.coverSongIds.firstOrNull()?.let { ArtworkProvider.uri(context, ArtworkOf.SONG, it) } ?: ArtworkProvider.icon(context, "mix"), playable = true)
                 }
                 val played = home.recentlyPlayed.filter { v.canPlay(it.id) }.map { song(it, "home") }
                 mixes + played
             }
             parentId == LIBRARY -> listOf(
-                folder(PLAYLISTS, "Playlists"),
-                folder(ALBUMS, "Albums"),
-                folder(ARTISTS, "Artists"),
-                folder(LIKED, "Liked songs", playable = true),
+                // The car shows these as grid tiles, and a tile with no picture gets a
+                // warning triangle: each has its own icon tile (ArtworkProvider).
+                folder(PLAYLISTS, "Playlists", art = ArtworkProvider.icon(context, "playlists")),
+                folder(ALBUMS, "Albums", art = ArtworkProvider.icon(context, "albums")),
+                folder(ARTISTS, "Artists", art = ArtworkProvider.icon(context, "artists")),
+                folder(LIKED, "Liked songs", art = ArtworkProvider.icon(context, "liked"), playable = true),
             )
             parentId == PLAYLISTS -> core.playlists(0u, LIMIT).filter { v.online || v.playlist(it.id) != null }.map { p ->
                 folder("playlist:${p.id}", p.name, "${p.songCount} songs", art = ArtworkProvider.uri(context, ArtworkOf.PLAYLIST, p.id), playable = true)
@@ -216,8 +218,8 @@ class AutoLibrary(
                 when (i.target.kind) {
                     DownloadKind.ALBUM -> folder("album:${i.target.id}", i.title, i.subtitle, art = ArtworkProvider.uri(context, ArtworkOf.ALBUM, i.target.id), playable = true)
                     DownloadKind.PLAYLIST -> folder("playlist:${i.target.id}", i.title, "${i.saved} songs", art = ArtworkProvider.uri(context, ArtworkOf.PLAYLIST, i.target.id), playable = true)
-                    DownloadKind.MIX -> folder("mix:${i.target.mixId}", i.title, playable = true)
-                    DownloadKind.LIKED_SONGS -> folder(LIKED, i.title, playable = true)
+                    DownloadKind.MIX -> folder("mix:${i.target.mixId}", i.title, art = ArtworkProvider.icon(context, "mix"), playable = true)
+                    DownloadKind.LIKED_SONGS -> folder(LIKED, i.title, art = ArtworkProvider.icon(context, "liked"), playable = true)
                     DownloadKind.SONG -> runCatching { songById(i.target.id) }.getOrNull()?.let { song(it, "downloads") }
                     DownloadKind.SMART -> null
                 }
@@ -244,7 +246,7 @@ class AutoLibrary(
         val v = view
         return r.songs.filter { v.canPlay(it.id) }.map { song(it, "search") } +
             r.albums.filter { v.online || v.album(it.id) != null }.map(::album) +
-            r.playlists.filter { v.online || v.playlist(it.id) != null }.map { p -> folder("playlist:${p.id}", p.name, playable = true) }
+            r.playlists.filter { v.online || v.playlist(it.id) != null }.map { p -> folder("playlist:${p.id}", p.name, art = ArtworkProvider.uri(context, ArtworkOf.PLAYLIST, p.id), playable = true) }
     }
 
     // --- Playing. ---

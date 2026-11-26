@@ -188,6 +188,18 @@ class OfflineAndCarTest {
             assertEquals("the album's songs", songs.size, inAlbum.size)
             val downloads = onMain { browser.getChildren("downloads", 0, 100, null) }.get(TIMEOUT, TimeUnit.MILLISECONDS).value!!
             assertTrue("Downloads lists the album", downloads.any { it.mediaId == "album:${album.id}" })
+            // The car draws a warning triangle on a grid tile without a picture: every
+            // Library tile, artist and playlist has one that opens, even with no cover
+            // on the server (the icon tile stands in).
+            val library = onMain { browser.getChildren("library", 0, 10, null) }.get(TIMEOUT, TimeUnit.MILLISECONDS).value!!
+            val artists = onMain { browser.getChildren("library/artists", 0, 5, null) }.get(TIMEOUT, TimeUnit.MILLISECONDS).value!!
+            val playlists = onMain { browser.getChildren("library/playlists", 0, 5, null) }.get(TIMEOUT, TimeUnit.MILLISECONDS).value!!
+            for (item in library + artists + playlists + downloads) {
+                val art = item.mediaMetadata.artworkUri
+                assertTrue("${item.mediaId} has a picture", art != null)
+                val bitmap = context.contentResolver.openInputStream(art!!)!!.use(android.graphics.BitmapFactory::decodeStream)
+                assertTrue("${item.mediaId}'s picture opens", bitmap != null && bitmap.width > 0)
+            }
             // A tap in the car on the second song plays it with its album.
             val chosen: MediaItem = inAlbum[1]
             onMain {

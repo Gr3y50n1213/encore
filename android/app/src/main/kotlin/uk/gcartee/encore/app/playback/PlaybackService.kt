@@ -127,6 +127,9 @@ class PlaybackService : MediaLibraryService() {
                 ),
             )
             .setBitmapLoader(DataSourceBitmapLoader.Builder(this).setDataSourceFactory(dataSourceFactory(cached = false)).build())
+            // Controllers work the position out from the last state and the speed; Media3's
+            // re-send every 3 seconds only made the car redraw its progress needlessly.
+            .setPeriodicPositionUpdateEnabled(false)
             .build()
     }
 
