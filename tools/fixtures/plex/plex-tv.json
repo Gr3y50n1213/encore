@@ -1,0 +1,93 @@
+[
+  {
+    "origin": "https://plex.tv",
+    "method": "POST",
+    "path": "/api/v2/pins",
+    "query": { "strong": "false" },
+    "status": 201,
+    "body": {
+      "id": 4242001,
+      "code": "K7QZ",
+      "product": "Encore",
+      "trusted": false,
+      "qr": "https://plex.tv/api/v2/pins/qr/K7QZ",
+      "clientIdentifier": "fixture-client",
+      "location": { "code": "XX", "country": "Nowhere", "city": "Invented" },
+      "expiresIn": 900,
+      "createdAt": "2026-11-26T10:00:00Z",
+      "expiresAt": "2026-11-26T10:15:00Z",
+      "authToken": null,
+      "newRegistration": null
+    }
+  },
+  {
+    "origin": "https://plex.tv",
+    "method": "GET",
+    "path": "/api/v2/pins/4242001",
+    "query": { "code": "K7QZ" },
+    "body": { "id": 4242001, "code": "K7QZ", "expiresIn": 880, "authToken": null }
+  },
+  {
+    "origin": "https://plex.tv",
+    "method": "GET",
+    "path": "/api/v2/pins/4242001",
+    "query": { "code": "K7QZ" },
+    "body": { "id": 4242001, "code": "K7QZ", "expiresIn": 860, "authToken": "fixture-account-token" }
+  },
+  {
+    "origin": "https://plex.tv",
+    "method": "GET",
+    "path": "/api/v2/user",
+    "body": {
+      "id": 31415926,
+      "uuid": "00000000fixture0",
+      "username": "tone_listener",
+      "title": "Tone Listener"
+    }
+  },
+  {
+    "origin": "https://plex.tv",
+    "method": "GET",
+    "path": "/api/v2/resources",
+    "query": { "includeHttps": "1", "includeRelay": "1" },
+    "body": [
+      {
+        "name": "Living Room Player",
+        "product": "Plexamp",
+        "clientIdentifier": "player-0001",
+        "provides": "player,pubsub-player",
+        "owned": true,
+        "accessToken": "fixture-player-token",
+        "connections": []
+      },
+      {
+        "name": "Attic Server",
+        "product": "Plex Media Server",
+        "productVersion": "1.43.5.11079-fixture",
+        "platform": "Linux",
+        "clientIdentifier": "fixture-machine-0001",
+        "provides": "server",
+        "owned": true,
+        "accessToken": "fixture-server-token",
+        "connections": [
+          { "protocol": "https", "address": "203.0.113.9", "port": 32400, "uri": "https://203-0-113-9.fixturehash.plex.direct:32400", "local": false, "relay": false, "IPv6": false },
+          { "protocol": "http", "address": "203.0.113.9", "port": 32400, "uri": "http://203.0.113.9:32400", "local": false, "relay": false, "IPv6": false },
+          { "protocol": "http", "address": "192.168.7.20", "port": 32400, "uri": "http://192.168.7.20:32400", "local": true, "relay": false, "IPv6": false },
+          { "protocol": "https", "address": "192.168.7.20", "port": 32400, "uri": "https://192-168-7-20.fixturehash.plex.direct:32400", "local": true, "relay": false, "IPv6": false }
+        ]
+      },
+      {
+        "name": "Friend's Server",
+        "product": "Plex Media Server",
+        "productVersion": "1.42.0.0-fixture",
+        "clientIdentifier": "fixture-machine-0002",
+        "provides": "server",
+        "owned": false,
+        "accessToken": "fixture-shared-token",
+        "connections": [
+          { "protocol": "https", "uri": "https://198-51-100-4.otherhash.plex.direct:32400", "local": false, "relay": false }
+        ]
+      }
+    ]
+  }
+]

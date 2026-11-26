@@ -27,7 +27,8 @@ pub struct CoreConfig {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
 pub struct ServerCheck {
-    /// Jellyfin, or Navidrome and other OpenSubsonic servers (ADR core-0021).
+    /// Jellyfin, Navidrome and other OpenSubsonic servers (ADR core-0021), or Plex
+    /// (ADR core-0023).
     pub kind: ServerKind,
     /// The address that answered; pass it to the sign-in calls.
     pub base_url: String,
@@ -38,12 +39,49 @@ pub struct ServerCheck {
     pub plain_http_on_local_network: bool,
 }
 
-/// The kind of media server at an address. Quick Connect is Jellyfin's only.
+/// The kind of media server at an address. Quick Connect is Jellyfin's only; a Plex
+/// server is signed in to through plex.tv (`plex_link_start`, ADR core-0023).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
 pub enum ServerKind {
     Jellyfin,
     Subsonic,
+    Plex,
+}
+
+/// A plex.tv link code to show (ADR core-0023): "Go to plex.tv/link and enter `code`",
+/// or a button that opens `auth_url`. Then call `plex_link_wait`.
+#[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct PlexLinkStart {
+    /// Four characters to type at `link_url`.
+    pub code: String,
+    /// "https://plex.tv/link".
+    pub link_url: String,
+    /// Plex's sign-in page with the code filled in, for an "Open in browser" button.
+    pub auth_url: String,
+    pub expires_in_seconds: u32,
+}
+
+impl std::fmt::Debug for PlexLinkStart {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PlexLinkStart")
+            .field("expires_in_seconds", &self.expires_in_seconds)
+            .finish_non_exhaustive()
+    }
+}
+
+/// A Plex Media Server the signed-in Plex account may use (`plex_link_wait`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct PlexServerChoice {
+    /// The server's `machineIdentifier`; the same as `ServerCheck.server_id` when the
+    /// user typed this server's address, so the UI can pick it for them.
+    pub server_id: String,
+    pub name: String,
+    pub version: String,
+    /// The account owns it (else a friend shared it).
+    pub owned: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

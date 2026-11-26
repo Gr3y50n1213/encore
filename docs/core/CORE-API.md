@@ -22,6 +22,7 @@ This file is the only thing the platform tracks may rely on. Every public call, 
 | 8 | 10 | Added, nothing removed. Sound analysis (docs/adr/core-0019 and core-0020): `set_sound_model`, `sound_settings` / `set_sound_settings`, `sound_status`, `run_sound_analysis` (async) / `stop_sound_analysis`, `retry_unreadable_sounds`, `delete_sound_analysis`, `train_ranker_if_due` (async), `moods`; types `MoodTile` and `MixKind::Mood`; types `SoundSettings`, `PowerState`, `SoundStop`, `SoundRun`, `SoundStatus`. `CoreEvent` gains `sound` and the kind `SoundAnalysisChanged`. The profile database gains the `sound_profiles` table (migration 9). `Song` (the engine's, and the catalog the device sends the companion server) gains an optional `sound`; a catalog without it still loads. The smart-picks engine uses what songs sound like when it has it (similarity, candidates, flow, Why this song's "sounds like" songs). `Response` in `encore-sources` gains `content_range_total` (Rust only). A platform that builds `CoreEvent` itself adds the field; one that switches over every `EventKind` adds the kind. The Dart bridge's `frb_generated.rs` and all three bindings were regenerated. |
 | 8 | 10 | Also added, nothing removed (24 November 2026). `delete_playlist`. Writes: a 403 means "not yours to change" (no longer an ended sign-in); a playlist the server refuses changes to is made again as the user's own (`docs/core` edits, `fork_playlist`); a pull never removes a playlist the server hasn't made yet. |
 | 9 | 12 | Added, nothing removed (24 November 2026, ADR core-0021). Navidrome and other OpenSubsonic servers: `check_address` also recognises them; `ServerCheck` gains `kind` (`ServerKind`: `Jellyfin`, `Subsonic`); `sign_in` signs in to either (Subsonic keeps the user name and a salted token, never the password); Quick Connect stays Jellyfin's. A platform that builds `ServerCheck` itself adds the field; one that switches over every enum adds `ServerKind`. |
+| 9 (the lead sets the number on merge) | 12 | Added, nothing removed (26 November 2026, ADR core-0023). Plex Media Server: `check_address` also recognises it (`ServerKind::Plex`, `server_id` is its `machineIdentifier`), after Jellyfin and Subsonic and also on Plex's port 32400. Signing in is the plex.tv link: `plex_link_start`, `plex_link_wait`, `plex_sign_in`, `plex_link_cancel`; types `PlexLinkStart`, `PlexServerChoice`. `ServerRow.kind` can be "plex". A platform that switches over every `ServerKind` adds `Plex`. |
 
 ## How every platform gets the core
 
@@ -94,6 +95,10 @@ Inputs and outputs use the types under "Types". "async" marks calls that wait on
 | `quick_connect_start(base_url)` async | `QuickConnectStart` | The 6-character code and its expiry (`library.quickConnectExpirySeconds`, 300). `QuickConnectDisabled` when the server has it off. |
 | `quick_connect_wait()` async | `SignedIn` | Returns once the code is approved on another device. Fails with `QuickConnectExpired` or `QuickConnectCancelled`. |
 | `quick_connect_cancel()` | – | Cancel on board 21. |
+| `plex_link_start()` async | `PlexLinkStart` | Plex (ADR core-0023). A four-character `code` to enter at `link_url` (plex.tv/link), and `auth_url`, Plex's sign-in page with the code filled in, for an "Open in browser" button. `expires_in_seconds` comes from plex.tv (usually 900). Calling it again starts over. This call and `plex_link_wait` are the only ones that reach plex.tv. |
+| `plex_link_wait()` async | `[PlexServerChoice]` | Returns once the code is approved, with the account's Plex Media Servers. When `check_address` found a Plex server, pick the choice with the same `server_id` for the user; otherwise let them choose (`owned` false: a friend's server). Fails with `QuickConnectExpired` (the code expired: start again), `QuickConnectCancelled`, `NotFound` (no server on the account), `Unreachable` (plex.tv not reachable) or `WrongCredentials` (plex.tv refused the approval). Calling it again after it returned gives the same list. |
+| `plex_sign_in(server_id)` async | `SignedIn` | Signs in to that server: its addresses are tried local first and https first, and the first that is this server and takes its token is kept, with the others to fall back on. Opens the account's profile as `sign_in` does. `SignedIn.token` (store it in the keychain as for every source) holds only that server's token and addresses, never the account's. Fails with `Unreachable` (no address answered: the server may be off), `CertificateUntrusted { sha256 }` (trust it, then call `plex_sign_in` again), `WrongCredentials`, `NotFound` (not one of the listed servers) or `QuickConnectExpired` (no approved link: start again). The account token is forgotten once this succeeds. |
+| `plex_link_cancel()` | – | Cancel on the link screen: the wait ends with `QuickConnectCancelled` and an approved account is forgotten. |
 
 ### Profiles
 
@@ -460,8 +465,10 @@ All are plain records and enums. IDs and times are 64-bit signed integers (milli
 | Type | Fields |
 | --- | --- |
 | `CoreConfig` | `data_dir`, `device_id`, `device_name`, `platform` |
-| `ServerCheck` | `base_url`, `name`, `version`, `server_id`, `plain_http_on_local_network` |
+| `ServerCheck` | `kind` (`ServerKind`: Jellyfin, Subsonic, Plex), `base_url`, `name`, `version`, `server_id`, `plain_http_on_local_network` |
 | `QuickConnectStart` | `code`, `expires_in_seconds` |
+| `PlexLinkStart` | `code`, `link_url`, `auth_url`, `expires_in_seconds` |
+| `PlexServerChoice` | `server_id`, `name`, `version`, `owned` |
 | `SignedIn` | `profile_id`, `source_id`, `credential_key`, `token`, `user_name` |
 | `SourceToken` | `source_id`, `token` |
 | `PickReason` / `ReasonKind` | `kind`, `song?`, `count?`, `of?`, `days?`, `time_of_day?`, `artist?`, `genre?` / FinishedOften, PlayedTogether, TimeOfDay, YouLikedIt, Rediscover, SameArtist, SameGenre, PlayedElsewhere, NewToYou, RecentlyAdded |
