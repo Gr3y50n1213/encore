@@ -69,6 +69,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.BackHandler
+import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -82,6 +84,7 @@ import uk.gcartee.encore.app.ui.theme.LocalEncoreType
 import uk.gcartee.encore.app.ui.theme.tokenColor
 import uk.gcartee.encore.core.EncoreException
 import uk.gcartee.encore.core.ServerCheck
+import uk.gcartee.encore.core.ServerKind
 import uk.gcartee.encore.core.SignedIn
 import uk.gcartee.encore.tokens.EncoreTokens.Color.Accents.Fern
 import uk.gcartee.encore.tokens.EncoreTokens.Grid
@@ -123,6 +126,10 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
     var quick by remember { mutableStateOf<QuickConnect?>(null) }
     var quickJob by remember { mutableStateOf<Job?>(null) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    // Mock-up 48: Plex signs in through plex.tv (ADR core-0023), not with a password.
+    var plex by remember { mutableStateOf<PlexStep?>(null) }
+    var plexJob by remember { mutableStateOf<Job?>(null) }
+    val context = LocalContext.current
     val shake = remember { Animatable(0f) }
 
     // Item 3: checks once the user stops typing for 600 ms.
@@ -141,8 +148,8 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
             },
         )
     }
-    LaunchedEffect(quick) {
-        while (quick != null) {
+    LaunchedEffect(quick, plex is PlexStep.Code) {
+        while (quick != null || plex is PlexStep.Code) {
             now = System.currentTimeMillis()
             delay(1_000)
         }
@@ -214,6 +221,84 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
         }
     }
 
+    fun plexSignIn(serverId: String) {
+        val choose = plex as? PlexStep.Choose
+        plex = (choose ?: PlexStep.Choose(emptyList(), serverId)).copy(selected = serverId, signingIn = true)
+        signInError = null
+        plexJob = scope.launch {
+            runCatching { host.core.plexSignIn(serverId) }
+                .onSuccess {
+                    plex = null
+                    haptics.perform(Haptic.Confirm)
+                    onSignedIn(it)
+                }
+                .onFailure { e ->
+                    haptics.perform(Haptic.Reject)
+                    val back = choose ?: PlexStep.Choose(emptyList(), serverId)
+                    when (e) {
+                        is EncoreException.Unreachable -> plex = back.copy(selected = serverId, signingIn = false, unreachable = back.unreachable + serverId)
+                        is EncoreException.QuickConnectExpired -> plex = PlexStep.Expired
+                        else -> {
+                            plex = if (back.servers.isEmpty()) null else back.copy(signingIn = false)
+                            signInError = e.userMessage()
+                        }
+                    }
+                }
+        }
+    }
+
+    fun startPlex() {
+        if (plex != null && plex !is PlexStep.Expired) return
+        signInError = null
+        focus.clearFocus()
+        plex = PlexStep.Starting
+        plexJob = scope.launch {
+            runCatching { host.core.plexLinkStart() }
+                .onSuccess { start ->
+                    plex = PlexStep.Code(start.code, start.authUrl, System.currentTimeMillis() + start.expiresInSeconds.toLong() * 1000)
+                    runCatching { host.core.plexLinkWait() }
+                        .onSuccess { servers ->
+                            haptics.perform(Haptic.Confirm)
+                            // A typed Plex address picks its server; one server needs no choice.
+                            val typed = found?.takeIf { it.kind == ServerKind.PLEX }?.serverId
+                            val pick = servers.firstOrNull { it.serverId == typed } ?: servers.singleOrNull()
+                            if (pick != null) {
+                                plexSignIn(pick.serverId)
+                            } else {
+                                plex = PlexStep.Choose(servers, servers.firstOrNull()?.serverId)
+                            }
+                        }
+                        .onFailure { e ->
+                            when (e) {
+                                is EncoreException.QuickConnectExpired -> plex = PlexStep.Expired
+                                is EncoreException.QuickConnectCancelled -> plex = null
+                                is EncoreException.NotFound -> {
+                                    plex = null
+                                    signInError = "This Plex account has no servers yet."
+                                }
+                                else -> {
+                                    plex = null
+                                    signInError = e.userMessage()
+                                }
+                            }
+                        }
+                }
+                .onFailure { e ->
+                    haptics.perform(Haptic.Reject)
+                    plex = null
+                    signInError = e.userMessage()
+                }
+        }
+    }
+
+    fun cancelPlex() {
+        runCatching { host.core.plexLinkCancel() }
+        plexJob?.cancel()
+        plex = null
+    }
+
+    BackHandler(enabled = plex != null) { cancelPlex() }
+
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
         Column(
             Modifier
@@ -227,7 +312,7 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
             Column(Modifier.widthIn(max = 560.dp).fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     FilledTonalIconButton(
-                        onClick = onBack,
+                        onClick = { if (plex != null) cancelPlex() else onBack() },
                         shapes = androidx.compose.material3.IconButtonDefaults.shapes(RoundedCornerShape(12.dp), RoundedCornerShape(50)),
                         modifier = Modifier.size((TouchTarget.android).dp),
                     ) { Icon(Icons.back(), contentDescription = "Back") }
@@ -244,40 +329,85 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
                     contentAlignment = Alignment.Center,
                 ) { Icon(Icons.servers(), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(32.dp)) }
                 Spacer(Modifier.height((Grid.base * 2).dp))
-                Text("Connect your server", style = type.onboardingTitle, color = MaterialTheme.colorScheme.onSurface)
+                val step = plex
+                Text(
+                    when (step) {
+                        is PlexStep.Code, PlexStep.Expired -> "Enter this code at plex.tv/link"
+                        is PlexStep.Choose -> "Choose your server"
+                        else -> "Connect your server"
+                    },
+                    style = type.onboardingTitle,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
                 Spacer(Modifier.height(Grid.base.dp))
                 Text(
-                    "Your music stays on your server. This app only plays it.",
+                    when (step) {
+                        is PlexStep.Code, PlexStep.Expired -> "Use this device or any other where you can sign in to Plex."
+                        is PlexStep.Choose -> "Your Plex account can reach these servers."
+                        else -> "Your music stays on your server. This app only plays it."
+                    },
                     style = type.body.copy(fontSize = 15.sp, lineHeight = 21.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height((Grid.base * 3).dp))
 
-                // Item 2: server type, a connected button group. Jellyfin and, since Phase 12
-                // (ADR core-0021), Navidrome and other OpenSubsonic servers; the address decides
-                // which, and the group follows what was found there.
-                var chosen by remember { mutableStateOf(0) }
+                when (step) {
+                    is PlexStep.Code -> PlexCode(
+                        step,
+                        now,
+                        onOpen = {
+                            runCatching {
+                                context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(step.authUrl)))
+                            }
+                        },
+                        onCopy = {
+                            val clip = context.getSystemService(android.content.ClipboardManager::class.java)
+                            clip?.setPrimaryClip(android.content.ClipData.newPlainText("Plex code", step.code))
+                            plex = step.copy(copied = true)
+                        },
+                        onCancel = ::cancelPlex,
+                    )
+                    PlexStep.Expired -> PlexExpired(onAgain = ::startPlex, onCancel = ::cancelPlex)
+                    is PlexStep.Choose -> PlexChoose(
+                        step,
+                        onSelect = { plex = step.copy(selected = it) },
+                        onContinue = { step.selected?.let(::plexSignIn) },
+                    )
+                    else -> Unit
+                }
+                if (step != null && step != PlexStep.Starting) {
+                    signInError?.let { PlexError(it) }
+                } else {
+
+                // Item 2: server type, a connected button group (mock-up 48): Jellyfin, Emby
+                // (ADR core-0022), Navidrome and other OpenSubsonic servers (core-0021), and Plex
+                // (core-0023). The address decides which, and the group follows what was found.
+                var chosen by rememberSaveable { mutableStateOf(TYPE_JELLYFIN) }
                 val foundKind = (check as? Check.Found)?.server?.kind
+                val shown = when (foundKind) {
+                    ServerKind.JELLYFIN -> TYPE_JELLYFIN
+                    ServerKind.EMBY -> TYPE_EMBY
+                    ServerKind.SUBSONIC -> TYPE_NAVIDROME
+                    ServerKind.PLEX -> TYPE_PLEX
+                    null -> chosen
+                }
                 uk.gcartee.encore.app.ui.library.ChoiceGroup(
-                    options = listOf(0 to "Jellyfin", 1 to "Navidrome", 2 to "Plex (soon)"),
-                    selected = when (foundKind) {
-                        uk.gcartee.encore.core.ServerKind.JELLYFIN -> 0
-                        uk.gcartee.encore.core.ServerKind.SUBSONIC -> 1
-                        null -> chosen
-                    },
+                    options = listOf(TYPE_JELLYFIN to "Jellyfin", TYPE_EMBY to "Emby", TYPE_NAVIDROME to "Navidrome", TYPE_PLEX to "Plex"),
+                    selected = shown,
                     onSelect = { chosen = it },
-                    enabled = { it != 2 },
                 )
                 Text(
-                    "Navidrome includes gonic, Airsonic and other Subsonic servers. Other servers are added as they are built.",
+                    "Navidrome includes gonic, Airsonic and other Subsonic servers.",
                     style = type.caption,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = Grid.base.dp, start = 4.dp),
                 )
                 Spacer(Modifier.height((Grid.base * 3).dp))
 
-                // Item 3: the address and what was found there.
-                OutlinedTextField(
+                // Item 3: the address and what was found there. Plex needs none (plex.tv finds the
+                // servers), but a Plex address typed under any type is still recognised.
+                val plexChosen = shown == TYPE_PLEX
+                if (!(plexChosen && address.isBlank())) OutlinedTextField(
                     value = address,
                     onValueChange = { address = it },
                     label = { Text("Server address") },
@@ -296,7 +426,12 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
                         is Check.Found -> Text(
                             run {
                                 // Item 3: the server type and version that answered.
-                                val what = if (c.server.kind == uk.gcartee.encore.core.ServerKind.SUBSONIC) c.server.name else "Jellyfin"
+                                val what = when (c.server.kind) {
+                                    ServerKind.SUBSONIC -> c.server.name
+                                    ServerKind.EMBY -> "Emby"
+                                    ServerKind.PLEX -> "Plex Media Server"
+                                    ServerKind.JELLYFIN -> "Jellyfin"
+                                }
                                 if (c.server.plainHttpOnLocalNetwork) {
                                     "Found $what ${c.server.version} on your home network. The connection is not encrypted."
                                 } else {
@@ -312,6 +447,19 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
                     }
                 }
                 Spacer(Modifier.height((Grid.base * 2).dp))
+
+                if (plexChosen) {
+                    if (foundKind == ServerKind.PLEX) {
+                        Text(
+                            "Plex servers sign in through plex.tv. This server will be chosen for you afterwards.",
+                            style = type.caption,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = (Grid.base * 2).dp, start = 4.dp),
+                        )
+                    }
+                    PlexStart(starting = plex == PlexStep.Starting, onStart = ::startPlex)
+                    signInError?.let { PlexError(it) }
+                } else {
 
                 // Item 4: credentials. Autofill works; nothing but the token is stored.
                 Column(Modifier.graphicsLayer { translationX = shake.value * density }) {
@@ -372,8 +520,9 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
                     }
                 }
 
-                // Quick Connect is Jellyfin's: a Subsonic server has none, so neither is shown.
-                if (found?.kind != uk.gcartee.encore.core.ServerKind.SUBSONIC) Row(Modifier.padding(vertical = (Grid.base * 2).dp), verticalAlignment = Alignment.CenterVertically) {
+                // Quick Connect is Jellyfin's only: Emby and Subsonic servers have none.
+                val quickConnect = found == null && shown == TYPE_JELLYFIN || found?.kind == ServerKind.JELLYFIN
+                if (quickConnect) Row(Modifier.padding(vertical = (Grid.base * 2).dp), verticalAlignment = Alignment.CenterVertically) {
                     HorizontalDivider(Modifier.weight(1f))
                     Text("or", style = type.caption, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = Grid.base.dp))
                     HorizontalDivider(Modifier.weight(1f))
@@ -381,8 +530,8 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
 
                 // Item 6: Quick Connect, a 6-character code approved on another device.
                 val q = quick
-                if (found?.kind == uk.gcartee.encore.core.ServerKind.SUBSONIC) {
-                    // No Quick Connect on a Subsonic server.
+                if (!quickConnect) {
+                    // No Quick Connect here.
                 } else if (q == null) {
                     FilledTonalButton(
                         onClick = ::startQuickConnect,
@@ -422,6 +571,8 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
                         }
                     }
                 }
+                } // not Plex
+                } // no Plex step
                 // Item 7, the demo library, waits for openly licensed tracks to bundle
                 // (docs/android/REVIEW-PHASE2.md); no button that does nothing is shown.
             }
@@ -462,6 +613,10 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
 }
 
 private const val CHECK_AFTER_MS = 600L
+private const val TYPE_JELLYFIN = 0
+private const val TYPE_EMBY = 1
+private const val TYPE_NAVIDROME = 2
+private const val TYPE_PLEX = 3
 private const val BUTTON_DP = 56
 private const val SPINNER_DP = 20
 private const val LOADING_DP = 28
