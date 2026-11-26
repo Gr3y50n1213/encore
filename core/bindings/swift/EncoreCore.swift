@@ -1110,6 +1110,35 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     func playlists(offset: UInt32, limit: UInt32) throws  -> [PlaylistSummary]
     
     /**
+     * Stop signing in with Plex (Cancel): the wait ends, and the account token, if the
+     * code was already approved, is forgotten.
+     */
+    func plexLinkCancel() 
+    
+    /**
+     * Start signing in with Plex (ADR core-0023): a short code from plex.tv to show with
+     * plex.tv/link, and Plex's sign-in page with the code filled in. Then call
+     * `plex_link_wait`. Only the link calls reach plex.tv. Async.
+     */
+    func plexLinkStart() async throws  -> PlexLinkStart
+    
+    /**
+     * Wait until the code is approved on plex.tv, then list the account's Plex Media
+     * Servers to choose from (pass one's `server_id` to `plex_sign_in`). Fails with
+     * QuickConnectExpired when the code expires, QuickConnectCancelled after
+     * `plex_link_cancel`, NotFound when the account has no server. Async.
+     */
+    func plexLinkWait() async throws  -> [PlexServerChoice]
+    
+    /**
+     * Sign in to the chosen Plex server (`PlexServerChoice.server_id`): its addresses
+     * are tried in order and the one that answers is kept, with the others to fall
+     * back on. Opens the account's profile, as `sign_in` does, and the account token is
+     * forgotten. Async.
+     */
+    func plexSignIn(serverId: String) async throws  -> SignedIn
+    
+    /**
      * Previous from the button (`from_swipe` false) or a swipe (true). The same
      * as `skip_previous` with that origin.
      */
@@ -2615,6 +2644,83 @@ open func playlists(offset: UInt32, limit: UInt32)throws  -> [PlaylistSummary]  
         FfiConverterUInt32.lower(limit),uniffiCallStatus
     )
 })
+}
+    
+    /**
+     * Stop signing in with Plex (Cancel): the wait ends, and the account token, if the
+     * code was already approved, is forgotten.
+     */
+open func plexLinkCancel()  {try! rustCall() {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_plex_link_cancel(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * Start signing in with Plex (ADR core-0023): a short code from plex.tv to show with
+     * plex.tv/link, and Plex's sign-in page with the code filled in. Then call
+     * `plex_link_wait`. Only the link calls reach plex.tv. Async.
+     */
+open func plexLinkStart()async throws  -> PlexLinkStart  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_plex_link_start(
+                        self.uniffiCloneHandle()
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_rust_buffer,
+            completeFunc: ffi_encore_core_rust_future_complete_rust_buffer,
+            freeFunc: ffi_encore_core_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterTypePlexLinkStart_lift,
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
+}
+    
+    /**
+     * Wait until the code is approved on plex.tv, then list the account's Plex Media
+     * Servers to choose from (pass one's `server_id` to `plex_sign_in`). Fails with
+     * QuickConnectExpired when the code expires, QuickConnectCancelled after
+     * `plex_link_cancel`, NotFound when the account has no server. Async.
+     */
+open func plexLinkWait()async throws  -> [PlexServerChoice]  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_plex_link_wait(
+                        self.uniffiCloneHandle()
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_rust_buffer,
+            completeFunc: ffi_encore_core_rust_future_complete_rust_buffer,
+            freeFunc: ffi_encore_core_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterSequenceTypePlexServerChoice.lift,
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
+}
+    
+    /**
+     * Sign in to the chosen Plex server (`PlexServerChoice.server_id`): its addresses
+     * are tried in order and the one that answers is kept, with the others to fall
+     * back on. Opens the account's profile, as `sign_in` does, and the account token is
+     * forgotten. Async.
+     */
+open func plexSignIn(serverId: String)async throws  -> SignedIn  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_plex_sign_in(
+                        self.uniffiCloneHandle(),FfiConverterString.lower(serverId)
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_rust_buffer,
+            completeFunc: ffi_encore_core_rust_future_complete_rust_buffer,
+            freeFunc: ffi_encore_core_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterTypeSignedIn_lift,
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
 }
     
     /**
@@ -7958,6 +8064,169 @@ public func FfiConverterTypePlaylistSummary_lower(_ value: PlaylistSummary) -> R
 
 
 /**
+ * A plex.tv link code to show (ADR core-0023): "Go to plex.tv/link and enter `code`",
+ * or a button that opens `auth_url`. Then call `plex_link_wait`.
+ */
+public struct PlexLinkStart: Equatable, Hashable {
+    /**
+     * Four characters to type at `link_url`.
+     */
+    public var code: String
+    /**
+     * "https://plex.tv/link".
+     */
+    public var linkUrl: String
+    /**
+     * Plex's sign-in page with the code filled in, for an "Open in browser" button.
+     */
+    public var authUrl: String
+    public var expiresInSeconds: UInt32
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * Four characters to type at `link_url`.
+         */code: String, 
+        /**
+         * "https://plex.tv/link".
+         */linkUrl: String, 
+        /**
+         * Plex's sign-in page with the code filled in, for an "Open in browser" button.
+         */authUrl: String, expiresInSeconds: UInt32) {
+        self.code = code
+        self.linkUrl = linkUrl
+        self.authUrl = authUrl
+        self.expiresInSeconds = expiresInSeconds
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension PlexLinkStart: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypePlexLinkStart: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> PlexLinkStart {
+        return
+            try PlexLinkStart(
+                code: FfiConverterString.read(from: &buf), 
+                linkUrl: FfiConverterString.read(from: &buf), 
+                authUrl: FfiConverterString.read(from: &buf), 
+                expiresInSeconds: FfiConverterUInt32.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: PlexLinkStart, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.code, into: &buf)
+        FfiConverterString.write(value.linkUrl, into: &buf)
+        FfiConverterString.write(value.authUrl, into: &buf)
+        FfiConverterUInt32.write(value.expiresInSeconds, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypePlexLinkStart_lift(_ buf: RustBuffer) throws -> PlexLinkStart {
+    return try FfiConverterTypePlexLinkStart.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypePlexLinkStart_lower(_ value: PlexLinkStart) -> RustBuffer {
+    return FfiConverterTypePlexLinkStart.lower(value)
+}
+
+
+/**
+ * A Plex Media Server the signed-in Plex account may use (`plex_link_wait`).
+ */
+public struct PlexServerChoice: Equatable, Hashable {
+    /**
+     * The server's `machineIdentifier`; the same as `ServerCheck.server_id` when the
+     * user typed this server's address, so the UI can pick it for them.
+     */
+    public var serverId: String
+    public var name: String
+    public var version: String
+    /**
+     * The account owns it (else a friend shared it).
+     */
+    public var owned: Bool
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * The server's `machineIdentifier`; the same as `ServerCheck.server_id` when the
+         * user typed this server's address, so the UI can pick it for them.
+         */serverId: String, name: String, version: String, 
+        /**
+         * The account owns it (else a friend shared it).
+         */owned: Bool) {
+        self.serverId = serverId
+        self.name = name
+        self.version = version
+        self.owned = owned
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension PlexServerChoice: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypePlexServerChoice: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> PlexServerChoice {
+        return
+            try PlexServerChoice(
+                serverId: FfiConverterString.read(from: &buf), 
+                name: FfiConverterString.read(from: &buf), 
+                version: FfiConverterString.read(from: &buf), 
+                owned: FfiConverterBool.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: PlexServerChoice, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.serverId, into: &buf)
+        FfiConverterString.write(value.name, into: &buf)
+        FfiConverterString.write(value.version, into: &buf)
+        FfiConverterBool.write(value.owned, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypePlexServerChoice_lift(_ buf: RustBuffer) throws -> PlexServerChoice {
+    return try FfiConverterTypePlexServerChoice.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypePlexServerChoice_lower(_ value: PlexServerChoice) -> RustBuffer {
+    return FfiConverterTypePlexServerChoice.lower(value)
+}
+
+
+/**
  * What the platform knows about power, handed to `run_sound_analysis` each time it starts the job.
  */
 public struct PowerState: Equatable, Hashable {
@@ -8900,7 +9169,8 @@ public func FfiConverterTypeSentEdits_lower(_ value: SentEdits) -> RustBuffer {
 
 public struct ServerCheck: Equatable, Hashable {
     /**
-     * Jellyfin, or Navidrome and other OpenSubsonic servers (ADR core-0021).
+     * Jellyfin, Emby (ADR core-0022), Navidrome and other OpenSubsonic servers
+     * (ADR core-0021), or Plex (ADR core-0023).
      */
     public var kind: ServerKind
     /**
@@ -8919,7 +9189,8 @@ public struct ServerCheck: Equatable, Hashable {
     // declare one manually.
     public init(
         /**
-         * Jellyfin, or Navidrome and other OpenSubsonic servers (ADR core-0021).
+         * Jellyfin, Emby (ADR core-0022), Navidrome and other OpenSubsonic servers
+         * (ADR core-0021), or Plex (ADR core-0023).
          */kind: ServerKind, 
         /**
          * The address that answered; pass it to the sign-in calls.
@@ -14526,13 +14797,20 @@ public func FfiConverterTypeResultKind_lower(_ value: ResultKind) -> RustBuffer 
 
 
 /**
- * The kind of media server at an address. Quick Connect is Jellyfin's only.
+ * The kind of media server at an address. Quick Connect is Jellyfin's only; a Plex
+ * server is signed in to through plex.tv (`plex_link_start`, ADR core-0023).
  */
 
 public enum ServerKind: Equatable, Hashable {
     
     case jellyfin
     case subsonic
+    /**
+     * Emby: signs in with a user name and password like Jellyfin, no Quick Connect
+     * (ADR core-0022).
+     */
+    case emby
+    case plex
 
 
 
@@ -14558,6 +14836,10 @@ public struct FfiConverterTypeServerKind: FfiConverterRustBuffer {
         
         case 2: return .subsonic
         
+        case 3: return .emby
+        
+        case 4: return .plex
+        
         default: throw UniffiInternalError.unexpectedEnumCase
         }
     }
@@ -14572,6 +14854,14 @@ public struct FfiConverterTypeServerKind: FfiConverterRustBuffer {
         
         case .subsonic:
             writeInt(&buf, Int32(2))
+        
+        
+        case .emby:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .plex:
+            writeInt(&buf, Int32(4))
         
         }
     }
@@ -17245,6 +17535,31 @@ fileprivate struct FfiConverterSequenceTypePlaylistSummary: FfiConverterRustBuff
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterSequenceTypePlexServerChoice: FfiConverterRustBuffer {
+    typealias SwiftType = [PlexServerChoice]
+
+    public static func write(_ value: [PlexServerChoice], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypePlexServerChoice.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [PlexServerChoice] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [PlexServerChoice]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypePlexServerChoice.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterSequenceTypeProfileSummary: FfiConverterRustBuffer {
     typealias SwiftType = [ProfileSummary]
 
@@ -17772,6 +18087,18 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_playlists() != 30414) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_plex_link_cancel() != 40807) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_plex_link_start() != 27977) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_plex_link_wait() != 42717) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_plex_sign_in() != 45817) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_previous() != 37808) {

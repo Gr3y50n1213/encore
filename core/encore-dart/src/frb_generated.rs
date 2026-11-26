@@ -12133,6 +12133,8 @@ impl SseDecode for crate::api::core::ServerKind {
         return match inner {
             0 => crate::api::core::ServerKind::Jellyfin,
             1 => crate::api::core::ServerKind::Subsonic,
+            2 => crate::api::core::ServerKind::Emby,
+            3 => crate::api::core::ServerKind::Plex,
             _ => unreachable!("Invalid variant for ServerKind: {}", inner),
         };
     }
@@ -15349,6 +15351,8 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::ServerKind> 
         match self.0 {
             crate::api::core::ServerKind::Jellyfin => 0.into_dart(),
             crate::api::core::ServerKind::Subsonic => 1.into_dart(),
+            crate::api::core::ServerKind::Emby => 2.into_dart(),
+            crate::api::core::ServerKind::Plex => 3.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -18350,6 +18354,8 @@ impl SseEncode for crate::api::core::ServerKind {
             match self {
                 crate::api::core::ServerKind::Jellyfin => 0,
                 crate::api::core::ServerKind::Subsonic => 1,
+                crate::api::core::ServerKind::Emby => 2,
+                crate::api::core::ServerKind::Plex => 3,
                 _ => {
                     unimplemented!("");
                 }
