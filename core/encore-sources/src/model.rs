@@ -12,6 +12,8 @@ pub enum SourceKind {
     Jellyfin,
     /// Navidrome, gonic, Airsonic and other (Open)Subsonic servers (ADR core-0021).
     Subsonic,
+    /// Plex Media Server (ADR core-0023).
+    Plex,
 }
 
 impl SourceKind {
@@ -20,6 +22,7 @@ impl SourceKind {
         match self {
             SourceKind::Jellyfin => "jellyfin",
             SourceKind::Subsonic => "subsonic",
+            SourceKind::Plex => "plex",
         }
     }
 
@@ -27,6 +30,7 @@ impl SourceKind {
         match s {
             "jellyfin" => Some(SourceKind::Jellyfin),
             "subsonic" => Some(SourceKind::Subsonic),
+            "plex" => Some(SourceKind::Plex),
             _ => None,
         }
     }

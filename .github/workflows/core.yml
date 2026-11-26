@@ -901,3 +901,119 @@ jobs:
           # What the server was asked, for reading a failure (the token and salt are blanked).
           docker logs navidrome 2>&1 | grep -E 'Playlist|playlist|star' | sed -E 's/([?&](t|s|p|u))=[^&" ]+/\1=x/g' | tail -n 60
           test -n "$ok"
+
+  plex:
+    # Phase 12, stage 2 (docs/adr/core-0023): the production path against a real Plex Media
+    # Server, pinned by digest, on six made-up tone files, here on GitHub's runner and never
+    # on the owner's PC. The server stays unclaimed (no plex.tv account, no claim token) and
+    # sits on a Docker network with no way out, so neither it nor the test can reach plex.tv;
+    # ALLOWED_NETWORKS lets this runner (the network's gateway) in without a sign-in. The
+    # plex.tv half of the sign-in is covered by the fixture tests only.
+    name: "Plex: find, sign in, sync, lyrics, cover colours, playlists, likes and plays over HTTP"
+    if: ${{ !inputs.regenerate }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Rust (stable)
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            core/target
+          key: core-plex-${{ hashFiles('core/Cargo.lock') }}
+          restore-keys: core-plex-
+
+      - name: Six made-up songs and one lyrics file
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          music="$RUNNER_TEMP/music"
+          make() { # artist album track title frequency
+            dir="$music/$1/$2"; mkdir -p "$dir"
+            ffmpeg -loglevel error -f lavfi -i "sine=frequency=$5:duration=20" -c:a libmp3lame -b:a 96k \
+              -metadata artist="$1" -metadata album_artist="$1" -metadata album="$2" \
+              -metadata track="$3" -metadata title="$4" -metadata date=2026 "$dir/0$3 $4.mp3"
+          }
+          make "Tone Choir" "First Light" 1 "Opening" 330
+          make "Tone Choir" "First Light" 2 "Middle" 392
+          make "Tone Choir" "First Light" 3 "Closing" 440
+          make "Sine Wave Band" "Low Hum" 1 "Hum" 220
+          make "Sine Wave Band" "Low Hum" 2 "Drone" 247
+          make "Sine Wave Band" "Low Hum" 3 "Fade" 262
+          printf '[00:01.00]A line to sing\n[00:05.00]Another line\n' > "$music/Tone Choir/First Light/01 Opening.lrc"
+          # A flat teal cover for one album.
+          ffmpeg -loglevel error -f lavfi -i "color=c=0x1E6E8C:s=600x600" -frames:v 1 \
+            "$music/Tone Choir/First Light/cover.jpg"
+          chmod -R a+rX "$music"
+          find "$music" -type f | sort
+
+      - name: Plex Media Server 1.43.5, unclaimed, with no way out to the internet
+        run: |
+          # --internal: no route out of this network, so the server can't reach plex.tv (or
+          # anything else) and nothing in this job does; the runner reaches it on its own
+          # address. ALLOWED_NETWORKS lets the runner in without a sign-in, which is the only
+          # way into a server nobody has claimed.
+          docker network create --internal --subnet 172.30.0.0/24 plexnet
+          mkdir -p "$RUNNER_TEMP/plex-config"
+          docker run -d --name plex --network plexnet --ip 172.30.0.10 --hostname plex-ci \
+            --add-host plex.tv:127.0.0.1 --add-host clients.plex.tv:127.0.0.1 \
+            -e TZ=UTC -e ALLOWED_NETWORKS=172.30.0.0/24 \
+            -v "$RUNNER_TEMP/plex-config:/config" -v "$RUNNER_TEMP/music:/music:ro" \
+            plexinc/pms-docker:1.43.5.11079-b3b13e506@sha256:6d778d41daae68f89115aa87a44ae14a96b23e71a2093da173b5a9aac4091336
+          base=http://172.30.0.10:32400
+          j='Accept: application/json'
+          # /identity answers while the server is still starting ("startState"); wait for the end.
+          for _ in $(seq 1 150); do
+            s="$(curl -fs "$base/identity" 2>/dev/null || true)"
+            if echo "$s" | grep -q machineIdentifier && ! echo "$s" | grep -q startState; then break; fi
+            sleep 2
+          done
+          curl -fsS -H "$j" "$base/identity"; echo
+          # A music library with the offline agent: "Plex Personal Media" reads the tags and,
+          # through Local Media Assets, cover.jpg and the .lrc sidecar. ("Plex Music" needs
+          # Plex's online metadata service and finds nothing offline.)
+          curl -fsS -o /dev/null -X POST -H "$j" \
+            "$base/library/sections?name=Music&type=artist&agent=tv.plex.agents.none&scanner=Plex%20Music&language=en-US&location=%2Fmusic"
+          py() { python3 -c "$1" "${2:-}"; }
+          for _ in $(seq 1 90); do
+            n="$(curl -fsS -H "$j" "$base/library/sections/1/all?type=10" | py 'import json,sys; print(json.load(sys.stdin)["MediaContainer"].get("size",0))')"
+            [ "$n" = 6 ] && break; sleep 2
+          done
+          echo "tracks: $n"; [ "$n" = 6 ]
+          # Local assets arrive once the local media agent is up; ask again until both show.
+          al="$(curl -fsS -H "$j" "$base/library/sections/1/all?type=9&title=First%20Light" | py 'import json,sys; print(json.load(sys.stdin)["MediaContainer"]["Metadata"][0]["ratingKey"])')"
+          t="$(curl -fsS -H "$j" "$base/library/sections/1/all?type=10&title=Opening" | py 'import json,sys; print(json.load(sys.stdin)["MediaContainer"]["Metadata"][0]["ratingKey"])')"
+          for i in $(seq 1 60); do
+            thumb="$(curl -fsS -H "$j" "$base/library/metadata/$al" | py 'import json,sys; print(json.load(sys.stdin)["MediaContainer"]["Metadata"][0].get("thumb") or "")')"
+            lrc="$(curl -fsS -H "$j" "$base/library/metadata/$t" | py 'import json,sys
+          m=json.load(sys.stdin)["MediaContainer"]["Metadata"][0]
+          print(sum(1 for md in m.get("Media",[]) for p in md.get("Part",[]) for s in p.get("Stream",[]) if s.get("streamType")==4))')"
+            echo "cover: ${thumb:-none}, lyric streams: $lrc"
+            if [ -n "$thumb" ] && [ "$lrc" -gt 0 ]; then break; fi
+            if [ $((i % 10)) = 0 ]; then curl -fsS -o /dev/null -X PUT "$base/library/metadata/$al/refresh?force=1" || true; fi
+            sleep 3
+          done
+          [ -n "$thumb" ] && [ "$lrc" -gt 0 ]
+
+      - name: The core against it
+        working-directory: core
+        env:
+          PLEX_URL: http://172.30.0.10:32400
+          PLEX_SONGS: "6"
+        run: |
+          ok=1
+          cargo test --locked -p encore-core plex_flow_over_http -- --ignored --nocapture || ok=
+          # What the server was asked, for reading a failure (no token is ever logged by Plex
+          # for the allowed network, and this job's token is a made-up one anyway).
+          find "$RUNNER_TEMP/plex-config" -name 'Plex Media Server.log' -exec grep -E 'Request: .*(playlists|/:/rate|scrobble|transcode|photo|streams)' {} \; \
+            | sed -E 's/(X-Plex-Token=)[^& ]+/\1x/g' | cut -c1-220 | tail -n 60
+          test -n "$ok"

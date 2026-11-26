@@ -14,9 +14,11 @@ use axum::extract::{ConnectInfo, FromRequestParts, Path, State};
 use axum::http::StatusCode;
 use axum::http::request::Parts;
 use encore_sources::jellyfin::{DeviceInfo, JellyfinClient};
+use encore_sources::plex::{PlexClient, PlexCredentials, PlexIdentity, client_identifier};
 use encore_sources::subsonic::{SubsonicClient, SubsonicCredentials, server_id_for};
 use encore_sources::{SourceError, Transport};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use url::Url;
 
 use crate::db::{Authed, DeviceRow, Refreshed};
@@ -37,6 +39,10 @@ pub enum CheckError {
     /// The media server says the token isn't valid.
     Rejected,
     Unreachable(String),
+    /// The media server lets this companion in without any sign-in (a Plex server that
+    /// isn't claimed, or whose "allowed without auth" networks include the companion),
+    /// so it would vouch for any token: no sign-in can be checked there.
+    Unverifiable,
 }
 
 pub type CheckFuture<'a> =
@@ -149,11 +155,108 @@ impl JellyfinCheck {
     }
 }
 
+/// The first 16 bytes of SHA-256 over a label and a value, in hex.
+fn short_hash(label: &str, value: &str) -> String {
+    Sha256::digest(format!("{label}\u{1f}{value}").as_bytes())[..16]
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
+}
+
+impl JellyfinCheck {
+    /// A Plex sign-in (ADR core-0023, point 10): the server token is tried on the trusted
+    /// Plex server whose ID it was issued for, and kept nowhere. Plex Media Server has no
+    /// "who am I" call, so the account is named by that server and a hash of the token:
+    /// `plex:<server>:<token hash>`. A token can only ever reach its own profile; two
+    /// devices share a profile when the server gave them the same token (ADR, point 10,
+    /// says when that is). A server that would take any token can't vouch for one.
+    async fn check_plex(
+        &self,
+        server_id: &str,
+        creds: PlexCredentials,
+    ) -> Result<CheckedUser, CheckError> {
+        let identity = PlexIdentity {
+            product: "Encore companion".into(),
+            version: env!("CARGO_PKG_VERSION").into(),
+            platform: "server".into(),
+            client_id: client_identifier("encore-server"),
+        };
+        let mut rejected = false;
+        let mut open = false;
+        let mut last_error = None;
+        for url in &self.urls {
+            let plain = PlexClient::new(
+                self.transport.clone(),
+                url.clone(),
+                identity.clone(),
+                Duration::from_secs(10),
+            );
+            let info = match plain.server_info().await {
+                Ok(info) => info,
+                // Not a Plex server (a Jellyfin or Subsonic address in the same list).
+                Err(SourceError::Protocol(_) | SourceError::NotFound) => continue,
+                Err(e) => {
+                    last_error = Some(e.to_string());
+                    continue;
+                }
+            };
+            // Only the server the token was issued for, and the device signed in to.
+            if info.server_id != creds.machine_id || info.server_id != server_id {
+                continue;
+            }
+            match plain.lets_anyone_in().await {
+                Ok(false) => {}
+                Ok(true) => {
+                    open = true;
+                    continue;
+                }
+                Err(e) => {
+                    last_error = Some(e.to_string());
+                    continue;
+                }
+            }
+            let signed = PlexClient::new(
+                self.transport.clone(),
+                url.clone(),
+                identity.clone(),
+                Duration::from_secs(10),
+            )
+            .signed_in(creds.clone());
+            match signed.check_sign_in().await {
+                Ok(_) => {
+                    return Ok(CheckedUser {
+                        user_id: format!(
+                            "plex:{}:{}",
+                            short_hash("plex-server", &info.server_id),
+                            short_hash("plex-token", creds.token())
+                        ),
+                        user_name: "Plex".into(),
+                    });
+                }
+                Err(SourceError::WrongCredentials | SourceError::SessionExpired) => rejected = true,
+                Err(e) => last_error = Some(e.to_string()),
+            }
+        }
+        Err(if rejected {
+            CheckError::Rejected
+        } else if open {
+            CheckError::Unverifiable
+        } else if let Some(e) = last_error {
+            CheckError::Unreachable(e)
+        } else {
+            CheckError::UnknownServer
+        })
+    }
+}
+
 impl MediaCheck for JellyfinCheck {
     fn check<'a>(&'a self, server_id: &'a str, token: &'a str) -> CheckFuture<'a> {
         Box::pin(async move {
             if let Some(creds) = SubsonicCredentials::from_token_string(token) {
                 return self.check_subsonic(creds).await;
+            }
+            if let Some(creds) = PlexCredentials::from_token_string(token) {
+                return self.check_plex(server_id, creds).await;
             }
             let url = self.url_for(server_id).await?;
             let me = self
@@ -283,6 +386,12 @@ pub(crate) async fn exchange(
             CheckError::Unreachable(e) => {
                 ApiError::Unavailable(format!("The media server can't be reached ({e})."))
             }
+            CheckError::Unverifiable => ApiError::Forbidden(
+                "This Plex server lets the companion in without a sign-in, so it can't check \
+                 who you are. Claim the server, and take the companion's address out of \
+                 Plex's networks allowed without auth."
+                    .into(),
+            ),
         })?;
     let now = now_ms();
     let profile = state

@@ -190,7 +190,7 @@ pub fn server_id_for(base: &Url) -> String {
 /// least six characters; it is not a key. It comes from the standard library's
 /// randomly seeded hasher keys and the clock, mixed with SHA-256, so no random-number
 /// crate is needed.
-fn random_salt() -> String {
+pub(crate) fn random_salt() -> String {
     use std::hash::{BuildHasher, Hasher};
     let nanos = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)

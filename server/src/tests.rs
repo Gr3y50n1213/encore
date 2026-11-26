@@ -1382,3 +1382,84 @@ async fn a_subsonic_sign_in_is_checked_on_the_trusted_address_and_named_by_it() 
         )
     );
 }
+
+/// ADR core-0023, point 10: a Plex sign-in is checked on the trusted Plex server it was
+/// issued for, the account is named by that server and the token's hash, and a server
+/// that would let anyone in is never trusted to vouch for a token.
+#[tokio::test]
+async fn a_plex_sign_in_is_checked_on_its_trusted_server_and_never_on_an_open_one() {
+    use crate::auth::MediaCheck;
+    use encore_sources::{FixtureExchange, FixtureTransport};
+    let x = |path: &str, status: u16, body: Option<serde_json::Value>| FixtureExchange {
+        origin: None,
+        method: "GET".into(),
+        path: path.into(),
+        query: Default::default(),
+        status,
+        body,
+        body_text: None,
+        body_hex: None,
+        error: None,
+        date: None,
+    };
+    let identity = || {
+        x(
+            "/identity",
+            200,
+            Some(
+                json!({"MediaContainer": {"machineIdentifier": "fixture-machine-0001", "claimed": true}}),
+            ),
+        )
+    };
+    let token = "plex1:t=fixture-server-token&m=fixture-machine-0001";
+    let url = url::Url::parse("http://192.168.7.20:32400/").unwrap();
+    // Replayed in order: the made-up token is refused, then the device's is taken.
+    let t = Arc::new(FixtureTransport::new(vec![
+        identity(),
+        x("/library/sections", 401, None),
+        x(
+            "/library/sections",
+            200,
+            Some(json!({"MediaContainer": {"size": 0}})),
+        ),
+    ]));
+    let check = crate::JellyfinCheck::new(vec![url.clone()], t.clone());
+    let user = check.check("fixture-machine-0001", token).await.unwrap();
+    assert!(user.user_id.starts_with("plex:"), "{user:?}");
+    assert_eq!(user.user_id.len(), "plex:".len() + 32 + 1 + 32);
+    assert!(!user.user_id.contains("fixture-server-token"));
+    let probe = &t.sent()[1];
+    let sent_token = probe
+        .headers
+        .iter()
+        .find(|(k, _)| k == "X-Plex-Token")
+        .map(|(_, v)| v.clone())
+        .unwrap();
+    assert_ne!(
+        sent_token, "fixture-server-token",
+        "the first try is a made-up token"
+    );
+
+    // A token issued for another server, or a device naming another server: no match.
+    let t = Arc::new(FixtureTransport::new(vec![identity()]));
+    let check = crate::JellyfinCheck::new(vec![url.clone()], t);
+    assert_eq!(
+        check.check("someone-elses-server", token).await,
+        Err(CheckError::UnknownServer)
+    );
+
+    // A server that takes any token can't vouch for this one.
+    let t = Arc::new(FixtureTransport::new(vec![
+        identity(),
+        x(
+            "/library/sections",
+            200,
+            Some(json!({"MediaContainer": {"size": 0}})),
+        ),
+    ]));
+    let check = crate::JellyfinCheck::new(vec![url], t);
+    assert_eq!(
+        check.check("fixture-machine-0001", token).await,
+        Err(CheckError::Unverifiable)
+    );
+}

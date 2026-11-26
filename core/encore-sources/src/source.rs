@@ -15,6 +15,7 @@ use crate::jellyfin::{
 use crate::model::{
     Capabilities, Cursor, EditOutcome, LibraryDelta, PlaylistEntry, ServerEdit, SourceKind,
 };
+use crate::plex::{self, PlexClient};
 use crate::subsonic::{self, SubsonicClient};
 use crate::transport::{BoxFuture, Downloaded, Progress};
 
@@ -194,6 +195,100 @@ impl MediaSource for SubsonicSource {
         progress: &'a (dyn Fn(SyncProgress) + Send + Sync),
     ) -> BoxFuture<'a, Result<LibraryDelta>> {
         Box::pin(subsonic::sync_library(
+            &self.client,
+            since,
+            known_ids,
+            page_size,
+            progress,
+        ))
+    }
+
+    fn stream_info(&self, item_id: &str, req: &StreamRequest) -> Result<StreamInfo> {
+        self.client.stream(item_id, req)
+    }
+
+    fn artwork(&self, item_id: &str, size_px: u32) -> Result<ArtworkInfo> {
+        self.client.artwork(item_id, size_px)
+    }
+
+    fn lyrics<'a>(&'a self, item_id: &'a str) -> BoxFuture<'a, Result<Option<RawLyrics>>> {
+        Box::pin(self.client.lyrics(item_id))
+    }
+
+    fn cover_png<'a>(
+        &'a self,
+        item_id: &'a str,
+        size_px: u32,
+        tag: Option<&'a str>,
+    ) -> BoxFuture<'a, Result<Option<Vec<u8>>>> {
+        Box::pin(self.client.cover_png(item_id, size_px, tag))
+    }
+
+    fn edit<'a>(&'a self, edit: &'a ServerEdit) -> BoxFuture<'a, Result<EditOutcome>> {
+        Box::pin(self.client.edit(edit))
+    }
+
+    fn playlist_entries<'a>(
+        &'a self,
+        playlist_id: &'a str,
+    ) -> BoxFuture<'a, Result<Vec<PlaylistEntry>>> {
+        Box::pin(self.client.playlist_entries(playlist_id))
+    }
+
+    fn download<'a>(
+        &'a self,
+        item_id: &'a str,
+        req: &'a StreamRequest,
+        to: &'a std::path::Path,
+        resume_from: u64,
+        progress: Progress<'a>,
+        cancel: &'a std::sync::atomic::AtomicBool,
+    ) -> BoxFuture<'a, Result<Downloaded>> {
+        Box::pin(
+            self.client
+                .download(item_id, req, to, resume_from, progress, cancel),
+        )
+    }
+
+    fn artwork_bytes<'a>(
+        &'a self,
+        item_id: &'a str,
+        size_px: u32,
+    ) -> BoxFuture<'a, Result<Option<Vec<u8>>>> {
+        Box::pin(self.client.artwork_bytes(item_id, size_px))
+    }
+}
+
+/// A signed-in Plex Media Server (ADR core-0023).
+#[derive(Debug)]
+pub struct PlexSource {
+    pub client: PlexClient,
+}
+
+impl PlexSource {
+    /// Whether any music library changed since the sync that returned `since`.
+    pub async fn library_changed(&self, since: Option<&Cursor>) -> Result<bool> {
+        plex::library_changed(&self.client, since).await
+    }
+}
+
+impl MediaSource for PlexSource {
+    fn kind(&self) -> SourceKind {
+        SourceKind::Plex
+    }
+
+    fn capabilities(&self) -> Capabilities {
+        plex::capabilities()
+    }
+
+    fn sync_library<'a>(
+        &'a self,
+        since: Option<&'a Cursor>,
+        known_ids: &'a HashSet<String>,
+        page_size: u32,
+        progress: &'a (dyn Fn(SyncProgress) + Send + Sync),
+    ) -> BoxFuture<'a, Result<LibraryDelta>> {
+        Box::pin(plex::sync_library(
             &self.client,
             since,
             known_ids,
