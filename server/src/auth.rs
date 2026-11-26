@@ -188,8 +188,15 @@ impl JellyfinCheck {
         identity: &PlexIdentity,
         creds: &PlexCredentials,
     ) -> Result<(String, String), CheckError> {
-        let tv = PlexTv::new(self.transport.clone(), identity.clone(), Duration::from_secs(10));
-        match tv.account(&AccountToken::new(creds.token().to_owned())).await {
+        let tv = PlexTv::new(
+            self.transport.clone(),
+            identity.clone(),
+            Duration::from_secs(10),
+        );
+        match tv
+            .account(&AccountToken::new(creds.token().to_owned()))
+            .await
+        {
             Ok(a) => Ok((short_hash("plex-account", &a.id), a.user_name)),
             Err(SourceError::WrongCredentials) => {
                 Ok((short_hash("plex-token", creds.token()), "Plex".into()))
