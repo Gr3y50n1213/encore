@@ -230,21 +230,48 @@ impl JellyfinClient {
     pub(super) async fn emby_token_owner(&self) -> Result<String> {
         let sessions: Vec<SessionInfo> = self.get_json("/Sessions", &[]).await?;
         let device = self.device();
-        let mut users: Vec<String> = sessions
-            .into_iter()
-            .filter(|s| {
-                s.device_id.as_deref() == Some(device.device_id.as_str())
-                    && s.client.as_deref() == Some(device.client.as_str())
+        // For the error only: which devices Emby listed (IDs and app names, no users).
+        let seen: Vec<String> = sessions
+            .iter()
+            .map(|s| {
+                format!(
+                    "{}/{}",
+                    s.device_id.as_deref().unwrap_or("?"),
+                    s.client.as_deref().unwrap_or("?")
+                )
             })
-            .filter_map(|s| s.user_id.filter(|u| !u.is_empty()))
             .collect();
-        users.sort();
-        users.dedup();
+        // By the device ID. The client name is compared only to choose between users,
+        // as Emby may keep it as sent, percent-encoded (CI, 26 November 2026).
+        let ours: Vec<SessionInfo> = sessions
+            .into_iter()
+            .filter(|s| s.device_id.as_deref() == Some(device.device_id.as_str()))
+            .collect();
+        let users_of = |only_client: bool| {
+            let encoded = super::auth::encode(&device.client);
+            let mut users: Vec<String> = ours
+                .iter()
+                .filter(|s| {
+                    !only_client
+                        || s.client.as_deref() == Some(device.client.as_str())
+                        || s.client.as_deref() == Some(encoded.as_str())
+                })
+                .filter_map(|s| s.user_id.clone().filter(|u| !u.is_empty()))
+                .collect();
+            users.sort();
+            users.dedup();
+            users
+        };
+        let mut users = users_of(false);
+        if users.len() > 1 {
+            users = users_of(true);
+        }
         match users.as_slice() {
             [one] => Ok(one.clone()),
-            [] => Err(SourceError::Protocol(
-                "Emby didn't list this sign-in's session".into(),
-            )),
+            [] => Err(SourceError::Protocol(format!(
+                "Emby didn't list this sign-in's session (it listed {})",
+                seen.join(", ")
+            ))),
             _ => Err(SourceError::Protocol(
                 "Emby listed this device under two users; try again".into(),
             )),
