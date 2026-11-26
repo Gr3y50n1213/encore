@@ -825,6 +825,9 @@ jobs:
     # runner and never on the owner's PC.
     name: "Navidrome: sign in, sync, lyrics, cover colours, playlists and likes over HTTP"
     needs: linux
+    # After linux, but not only when it passed: a real server's answers don't depend on
+    # the checked-in bindings, which a change to the API makes stale until regenerated.
+    if: ${{ !cancelled() && !inputs.regenerate }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     defaults:
@@ -909,6 +912,9 @@ jobs:
     # the companion's check runs for that user and for the administrator.
     name: "Emby: sign in, sync, lyrics, cover colours, streams, playlists, likes and plays over HTTP"
     needs: linux
+    # After linux, but not only when it passed: a real server's answers don't depend on
+    # the checked-in bindings, which a change to the API makes stale until regenerated.
+    if: ${{ !cancelled() && !inputs.regenerate }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     defaults:
