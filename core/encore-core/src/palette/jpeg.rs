@@ -260,7 +260,7 @@ impl Frame {
         };
         // RGB when an Adobe marker says so, or the components are named R, G, B.
         let ids: Vec<u8> = self.components.iter().map(|c| c.id).collect();
-        let rgb = adobe_transform == Some(0) || ids == [b'R', b'G', b'B'];
+        let rgb = adobe_transform == Some(0) || ids == b"RGB";
         let mut out = Vec::with_capacity(w * h * 4);
         for y in 0..h {
             for x in 0..w {
