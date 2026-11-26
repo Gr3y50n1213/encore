@@ -295,6 +295,7 @@ fn library() -> LibraryDelta {
     tracks.push(dup);
     LibraryDelta {
         full: true,
+        playlists_complete: false,
         artists: vec![],
         albums,
         tracks,

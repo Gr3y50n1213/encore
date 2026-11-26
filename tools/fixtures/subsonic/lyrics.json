@@ -1,0 +1,220 @@
+[
+  {
+    "method": "GET",
+    "path": "/rest/getOpenSubsonicExtensions.view",
+    "query": {},
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "openSubsonicExtensions": [
+          {
+            "name": "songLyrics",
+            "versions": [
+              1
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/getLyricsBySongId.view",
+    "query": {
+      "id": "s1"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "lyricsList": {
+          "structuredLyrics": [
+            {
+              "displayArtist": "Paper Harbour",
+              "displayTitle": "Low Lantern",
+              "lang": "und",
+              "synced": false,
+              "line": [
+                {
+                  "value": "A lamp left on"
+                },
+                {
+                  "value": "for no one"
+                }
+              ]
+            },
+            {
+              "displayArtist": "Paper Harbour",
+              "displayTitle": "Low Lantern",
+              "lang": "eng",
+              "offset": 120,
+              "synced": true,
+              "line": [
+                {
+                  "start": 1500,
+                  "value": "A lamp left on"
+                },
+                {
+                  "start": 4250,
+                  "value": "for no one"
+                },
+                {
+                  "start": 61010,
+                  "value": ""
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/getLyricsBySongId.view",
+    "query": {
+      "id": "s2"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "lyricsList": {}
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/getSong.view",
+    "query": {
+      "id": "s3"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "song": {
+          "id": "s3",
+          "parent": "al2",
+          "isDir": false,
+          "title": "Signal Fires",
+          "album": "Northern Static",
+          "artist": "Wren Alder",
+          "track": 1,
+          "year": 2019,
+          "genre": "Folk",
+          "coverArt": "mf-s3_6740a1b2",
+          "size": 4123456,
+          "contentType": "audio/mpeg",
+          "suffix": "mp3",
+          "duration": 244,
+          "bitRate": 912,
+          "path": "fixture/s3.flac",
+          "discNumber": 1,
+          "created": "2025-11-06T03:33:20.000Z",
+          "albumId": "al2",
+          "artistId": "ar2",
+          "type": "music",
+          "mediaType": "song"
+        }
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/getLyrics.view",
+    "query": {
+      "artist": "Wren Alder",
+      "title": "Signal Fires"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "lyrics": {
+          "artist": "Wren Alder",
+          "title": "Signal Fires",
+          "value": "Smoke on the ridge\nwe keep the fire low"
+        }
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/getSong.view",
+    "query": {
+      "id": "s4"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "song": {
+          "id": "s4",
+          "parent": "al3",
+          "isDir": false,
+          "title": "Copper Leaves",
+          "album": "Orchard Lights",
+          "artist": "The Glass Orchard",
+          "track": 1,
+          "year": 2021,
+          "genre": "Folk",
+          "coverArt": "mf-s4_6740a1b2",
+          "size": 4123456,
+          "contentType": "audio/flac",
+          "suffix": "flac",
+          "duration": 199,
+          "bitRate": 912,
+          "path": "fixture/s4.flac",
+          "discNumber": 1,
+          "created": "2025-11-06T03:33:20.000Z",
+          "albumId": "al3",
+          "artistId": "ar3",
+          "type": "music",
+          "mediaType": "song",
+          "starred": "2026-09-12T08:00:00Z"
+        }
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/getLyrics.view",
+    "query": {
+      "artist": "The Glass Orchard",
+      "title": "Copper Leaves"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "lyrics": {
+          "artist": "The Glass Orchard",
+          "title": "Copper Leaves"
+        }
+      }
+    }
+  }
+]

@@ -69,6 +69,8 @@ impl Store {
         stats.removed += remove_items(&tx, source_id, &removed)?;
         if d.full {
             stats.removed += remove_missing(&tx, source_id, d)?;
+        } else if d.playlists_complete {
+            stats.removed += remove_missing_playlists(&tx, source_id, d)?;
         }
         if let Some(favorites) = &d.favorite_item_ids {
             set_favorites(&tx, source_id, favorites)?;
@@ -395,6 +397,31 @@ fn remove_missing(tx: &Transaction<'_>, source_id: i64, d: &LibraryDelta) -> Res
     remove_items(tx, source_id, &refs)
 }
 
+/// A delta that isn't full but has every playlist (`playlists_complete`): the server's
+/// playlists not in it were deleted there. Ones made here and not sent yet stay.
+fn remove_missing_playlists(
+    tx: &Transaction<'_>,
+    source_id: i64,
+    d: &LibraryDelta,
+) -> Result<usize> {
+    let keep: HashSet<&str> = d
+        .playlists
+        .iter()
+        .map(|p| p.source_item_id.as_str())
+        .collect();
+    let mut st = tx.prepare("SELECT source_item_id FROM playlists WHERE source_id = ?1")?;
+    let ids = st.query_map([source_id], |r| r.get::<_, String>(0))?;
+    let mut gone = Vec::new();
+    for id in ids {
+        let id = id?;
+        if !keep.contains(id.as_str()) && !id.starts_with(LOCAL_ITEM_PREFIX) {
+            gone.push(id);
+        }
+    }
+    let refs: Vec<&str> = gone.iter().map(String::as_str).collect();
+    remove_items(tx, source_id, &refs)
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
@@ -435,6 +462,7 @@ pub(crate) mod tests {
     pub(crate) fn sample_delta() -> LibraryDelta {
         LibraryDelta {
             full: true,
+            playlists_complete: false,
             artists: vec![Artist {
                 source_item_id: "ar1".into(),
                 name: "Ember Cove".into(),
@@ -541,6 +569,34 @@ pub(crate) mod tests {
         store.apply_delta(src, &sample_delta()).unwrap();
         assert_eq!(snapshot(&store), before);
         assert_eq!(store.mirrored_item_ids(src).unwrap(), ids_before);
+    }
+
+    #[test]
+    fn a_light_delta_with_every_playlist_drops_the_ones_deleted_on_the_server() {
+        let (store, src) = store_with_source();
+        store.apply_delta(src, &sample_delta()).unwrap();
+        assert_eq!(count(&store, "playlists"), 1);
+        // Not complete: an empty list says nothing about the server's playlists.
+        let partial = LibraryDelta {
+            favorite_item_ids: None,
+            play_counts: None,
+            ..LibraryDelta::default()
+        };
+        store.apply_delta(src, &partial).unwrap();
+        assert_eq!(count(&store, "playlists"), 1);
+        // Complete (a Subsonic light sync): the playlist is gone there, so it goes here,
+        // and nothing else does.
+        let light = LibraryDelta {
+            playlists_complete: true,
+            favorite_item_ids: None,
+            play_counts: None,
+            ..LibraryDelta::default()
+        };
+        let stats = store.apply_delta(src, &light).unwrap();
+        assert_eq!(stats.removed, 1);
+        assert_eq!(count(&store, "playlists"), 0);
+        assert_eq!(count(&store, "tracks"), 3);
+        assert_eq!(count(&store, "albums"), 1);
     }
 
     #[test]

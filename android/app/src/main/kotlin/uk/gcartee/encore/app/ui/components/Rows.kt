@@ -208,13 +208,36 @@ fun SongRow(
 /** Board 06, item 5: what a refused tap says offline. */
 const val NOT_DOWNLOADED = "Not downloaded. It plays when you're back online"
 
-/** Three bars that move while a song plays (board 08, item 5). Decorative. */
+/** Whether music is playing, for decorations that move only while it does. */
+val LocalPlaying = androidx.compose.runtime.compositionLocalOf { true }
+
+/**
+ * True for a part of the screen that something else covers completely (the pages under Now
+ * Playing or Sleep mode). Endless decorations there stand still: unseen, they still drew every
+ * frame, and that made Sleep mode drop frames (measured on the Tab A7 Lite, 24 November 2026).
+ */
+val LocalCovered = androidx.compose.runtime.compositionLocalOf { false }
+
+/**
+ * Three bars that move while a song plays (board 08, item 5) and stand still while it is
+ * paused or out of sight. Decorative.
+ */
 @Composable
 fun LevelBars(colour: Color, size: Dp = 16.dp) {
+    if (LocalPlaying.current && !LocalCovered.current) MovingBars(colour, size) else Bars(colour, size, 0.6f, 1f, 0.75f)
+}
+
+@Composable
+private fun MovingBars(colour: Color, size: Dp) {
     val t = rememberInfiniteTransition(label = "bars")
     val a by t.animateFloat(0.3f, 1f, infiniteRepeatable(tween(420), RepeatMode.Reverse), label = "a")
     val b by t.animateFloat(1f, 0.4f, infiniteRepeatable(tween(530), RepeatMode.Reverse), label = "b")
     val c by t.animateFloat(0.5f, 0.9f, infiniteRepeatable(tween(370), RepeatMode.Reverse), label = "c")
+    Bars(colour, size, a, b, c)
+}
+
+@Composable
+private fun Bars(colour: Color, size: Dp, a: Float, b: Float, c: Float) {
     Canvas(Modifier.size(size)) {
         val w = this.size.width / 5f
         listOf(a, b, c).forEachIndexed { i, h ->

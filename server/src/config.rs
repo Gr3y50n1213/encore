@@ -19,6 +19,9 @@ pub const DATA_DIR_ENV: &str = "ENCORE_DATA_DIR";
 /// in with an account on one of these: the server never takes a Jellyfin address
 /// from a device, or a fake Jellyfin could claim to be anyone.
 pub const JELLYFIN_URLS_ENV: &str = "ENCORE_JELLYFIN_URLS";
+/// The media servers this server trusts, Jellyfin or OpenSubsonic (Navidrome and others):
+/// the new name for `ENCORE_JELLYFIN_URLS`, which is still read when this isn't set.
+pub const MEDIA_URLS_ENV: &str = "ENCORE_MEDIA_URLS";
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -42,7 +45,10 @@ impl Config {
             .map(|d| d.trim().to_owned())
             .filter(|d| !d.is_empty())
             .unwrap_or_else(|| default_data_dir(&get));
-        let urls = get(JELLYFIN_URLS_ENV).unwrap_or_default();
+        let urls = get(MEDIA_URLS_ENV)
+            .filter(|v| !v.trim().is_empty())
+            .or_else(|| get(JELLYFIN_URLS_ENV))
+            .unwrap_or_default();
         let jellyfin_urls = jellyfin_urls(&urls)?;
         Ok(Config {
             bind,
@@ -93,15 +99,13 @@ pub fn jellyfin_urls(value: &str) -> Result<Vec<Url>, String> {
                 .ok()
                 .filter(|p| matches!(p.scheme(), "http" | "https") && p.host().is_some())
                 .ok_or_else(|| {
-                    format!(
-                        "{JELLYFIN_URLS_ENV}: {u:?} is not an address like http://jellyfin:8096"
-                    )
+                    format!("{MEDIA_URLS_ENV}: {u:?} is not an address like http://jellyfin:8096")
                 })
         })
         .collect::<Result<_, _>>()?;
     if urls.is_empty() {
         return Err(format!(
-            "{JELLYFIN_URLS_ENV} is not set: name your Jellyfin, for example http://jellyfin:8096"
+            "{MEDIA_URLS_ENV} is not set: name your Jellyfin or Navidrome, for example http://jellyfin:8096"
         ));
     }
     Ok(urls)

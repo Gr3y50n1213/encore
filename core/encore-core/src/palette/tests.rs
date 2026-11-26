@@ -88,7 +88,75 @@ fn board_example(name: &str) -> (String, Vec<String>, f64) {
 fn the_board_covers_give_the_boards_palettes() {
     let s = settings();
     for b in &BOARD {
-        let p = palette_of_png(b.file, &s).unwrap().unwrap();
+        check_board(b, palette_of_png(b.file, &s).unwrap().unwrap());
+    }
+}
+
+/// The same covers as a Subsonic server sends them: 512 px baseline JPEGs, read at
+/// one eighth (jpeg.rs). The board's palettes must come out again.
+#[test]
+fn the_board_covers_as_jpeg_give_the_boards_palettes() {
+    let s = settings();
+    let jpegs: [&[u8]; 4] = [
+        include_bytes!("../../../../tools/fixtures/artwork/jpeg/golden-hour-static.jpg"),
+        include_bytes!("../../../../tools/fixtures/artwork/jpeg/tidewater.jpg"),
+        include_bytes!("../../../../tools/fixtures/artwork/jpeg/brass-arches.jpg"),
+        include_bytes!("../../../../tools/fixtures/artwork/jpeg/paper-moon.jpg"),
+    ];
+    for (b, jpeg) in BOARD.iter().zip(jpegs) {
+        let (w, h, _) = jpeg::decode_dc(jpeg).unwrap();
+        assert_eq!((w, h), (64, 64), "{}", b.name);
+        check_board(b, palette_of_image(jpeg, &s).unwrap().unwrap());
+    }
+}
+
+#[test]
+fn other_jpeg_kinds() {
+    let s = settings();
+    let png = palette_of_png(BOARD[1].file, &s).unwrap().unwrap();
+    // 4:4:4 with restart markers, and greyscale: read.
+    let restarts =
+        include_bytes!("../../../../tools/fixtures/artwork/jpeg/tidewater-restarts-444.jpg");
+    assert_eq!(
+        jpeg::decode_dc(restarts).map(|(w, h, _)| (w, h)),
+        Some((25, 17))
+    );
+    let p = palette_of_image(restarts, &s).unwrap().unwrap();
+    assert!(
+        dist(&p.base, &png.base) < 0.05,
+        "{} vs {}",
+        p.base,
+        png.base
+    );
+    let grey = include_bytes!("../../../../tools/fixtures/artwork/jpeg/tidewater-grey.jpg");
+    let (_, _, rgba) = jpeg::decode_dc(grey).unwrap();
+    assert!(rgba.chunks(4).all(|px| px[0] == px[1] && px[1] == px[2]));
+    // Progressive: refused, so no palette (the profile accent).
+    let progressive =
+        include_bytes!("../../../../tools/fixtures/artwork/jpeg/tidewater-progressive.jpg");
+    assert_eq!(jpeg::decode_dc(progressive), None);
+    assert_eq!(palette_of_image(progressive, &s).unwrap(), None);
+    // Neither PNG nor JPEG: no palette, not an error.
+    assert_eq!(palette_of_image(b"GIF89a", &s).unwrap(), None);
+}
+
+#[test]
+fn broken_jpegs_give_nothing_and_never_panic() {
+    let good = include_bytes!("../../../../tools/fixtures/artwork/jpeg/tidewater.jpg");
+    assert_eq!(jpeg::decode_dc(b""), None);
+    assert_eq!(jpeg::decode_dc(&[0xFF, 0xD8]), None);
+    for cut in (0..good.len()).step_by(97) {
+        let _ = jpeg::decode_dc(&good[..cut]);
+    }
+    for i in (2..good.len()).step_by(13) {
+        let mut flipped = good.to_vec();
+        flipped[i] ^= 0x5a;
+        let _ = jpeg::decode_dc(&flipped);
+    }
+}
+
+fn check_board(b: &Board, p: Palette) {
+    {
         let (scheme, board_colours, board_contrast) = board_example(b.name);
         let sampled: Vec<String> = p.sampled.iter().map(|x| x.colour.clone()).collect();
         let mut ours = vec![p.base.clone()];

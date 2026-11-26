@@ -200,6 +200,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     var sleepTint by remember { mutableStateOf<uk.gcartee.encore.app.ui.player.FieldColours?>(null) }
     // Sleep mode (mock-up 45): over everything, until Back, its own button or a swipe down.
     var sleepMode by rememberSaveable { mutableStateOf(false) }
+    val nowPlayingState = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
     // Encore TV: a projector's picture can be cut at its edges, so pages keep clear of them.
     val tv = uk.gcartee.encore.app.ui.tv.LocalTv.current
     var addingAccount by rememberSaveable { mutableStateOf(false) }
@@ -208,6 +209,9 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     val homeData = remember(switches) { HomeData(host) }
     val still = reduceMotion()
     val playingSongId = player.entry?.song?.id
+    // The pages are out of sight under a fully open Now Playing or Sleep mode.
+    val nowPlayingCovers by remember { androidx.compose.runtime.derivedStateOf { expand.value >= 0.999f } }
+    val pagesCovered = sleepMode || (nowPlaying && nowPlayingCovers)
     val widthDp = LocalConfiguration.current.screenWidthDp
     val wide = widthDp >= Breakpoints.railFrom
     val expanded = widthDp >= Breakpoints.expandedRailFrom
@@ -370,6 +374,10 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                     Box(Modifier.weight(1f)) {
                         val inner = PaddingValues(bottom = with(LocalDensity.current) { miniHeight.toDp() })
                         val top = nav.top
+                        CompositionLocalProvider(
+                            uk.gcartee.encore.app.ui.components.LocalPlaying provides player.isPlaying,
+                            uk.gcartee.encore.app.ui.components.LocalCovered provides pagesCovered,
+                        ) {
                         AnimatedContent(
                             targetState = nav.tab to top,
                             transitionSpec = {
@@ -411,6 +419,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                                     Tab.Search -> SearchScreen(host, playingSongId, actions.open, inner, onLibrary = { nav.select(Tab.Library) })
                                 }
                             }
+                        }
                         }
                         // The mini player and, on phones, the navigation bar float over the
                         // page together; pages pad their lists by the pair's height.
@@ -540,6 +549,10 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                     morphScope.launch { expand.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.8f, stiffness = androidx.compose.animation.core.Spring.StiffnessMedium), initialVelocity = perSecond) }
                 }
             }
+            // Now Playing keeps its state only while Sleep mode covers it. Closed, it opens
+            // fresh next time (on the artwork), as before: kept, it came back on the queue
+            // with no way to close it (CI, 25 November 2026).
+            LaunchedEffect(shown) { if (!shown) nowPlayingState.removeState("now-playing") }
             if (shown && !still) {
                 // The page behind, dimmed while Now Playing covers it, clears as it goes.
                 Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = SCRIM * expand.value.coerceIn(0f, 1f))))
@@ -610,7 +623,14 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                     },
             ) {
                 // The queue's rows don't pick songs.
-                CompositionLocalProvider(uk.gcartee.encore.app.ui.components.LocalSongSelection provides null) {
+                CompositionLocalProvider(
+                    uk.gcartee.encore.app.ui.components.LocalSongSelection provides null,
+                    uk.gcartee.encore.app.ui.components.LocalPlaying provides player.isPlaying,
+                ) {
+                // Sleep mode covers Now Playing completely, so Now Playing steps out while it is
+                // on: its wavy bar and lyrics kept drawing every frame underneath, which made
+                // Sleep mode drop frames (owner, 24 November 2026). Its saved state is kept.
+                if (!sleepMode) nowPlayingState.SaveableStateProvider("now-playing") {
                 NowPlayingScreen(
                     host,
                     player,
@@ -631,6 +651,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                     },
                     onScrubHeld = { scrubHeld = it },
                 )
+                }
                 }
             }
             if (sleepMode) uk.gcartee.encore.app.ui.player.SleepModeScreen(host, onExit = { sleepMode = false }, onSleepTimer = { sleepTint = null; sleepSheet = true })

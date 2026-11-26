@@ -15,7 +15,7 @@ Everything is set with environment variables.
 
 | Variable | What it is | Default |
 | --- | --- | --- |
-| `ENCORE_JELLYFIN_URLS` | Your Jellyfin's address as this machine reaches it, for example `http://127.0.0.1:8096`. Several, comma-separated. Required. Devices can only sign in with an account on one of these. | none |
+| `ENCORE_MEDIA_URLS` | Your Jellyfin's or Navidrome's address as this machine reaches it, for example `http://127.0.0.1:8096`. Several, comma-separated, either kind. Required (the older name `ENCORE_JELLYFIN_URLS` still works). Devices can only sign in with an account on one of these. | none |
 | `ENCORE_SERVER_BIND` | Where it listens. | `127.0.0.1:8097` (this machine only) |
 | `ENCORE_DATA_DIR` | The database folder. Back this up. | Windows `C:\ProgramData\Encore Server`, macOS `~/Library/Application Support/Encore Server`, Linux `/var/lib/encore-server`, Docker `/data` |
 

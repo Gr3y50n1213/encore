@@ -6103,12 +6103,16 @@ waiting: dco_decode_u_32(arr[2]),); }
 
 @protected ServerCheck dco_decode_server_check(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
 final arr = raw as List<dynamic>;
-                if (arr.length != 5) throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
-                return ServerCheck(baseUrl: dco_decode_String(arr[0]),
-name: dco_decode_String(arr[1]),
-version: dco_decode_String(arr[2]),
-serverId: dco_decode_String(arr[3]),
-plainHttpOnLocalNetwork: dco_decode_bool(arr[4]),); }
+                if (arr.length != 6) throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+                return ServerCheck(kind: dco_decode_server_kind(arr[0]),
+baseUrl: dco_decode_String(arr[1]),
+name: dco_decode_String(arr[2]),
+version: dco_decode_String(arr[3]),
+serverId: dco_decode_String(arr[4]),
+plainHttpOnLocalNetwork: dco_decode_bool(arr[5]),); }
+
+@protected ServerKind dco_decode_server_kind(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return ServerKind.values[raw as int]; }
 
 @protected ServerRow dco_decode_server_row(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
 final arr = raw as List<dynamic>;
@@ -7782,12 +7786,17 @@ var var_waiting = sse_decode_u_32(deserializer);
 return SentEdits(sent: var_sent, refused: var_refused, waiting: var_waiting); }
 
 @protected ServerCheck sse_decode_server_check(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_kind = sse_decode_server_kind(deserializer);
 var var_baseUrl = sse_decode_String(deserializer);
 var var_name = sse_decode_String(deserializer);
 var var_version = sse_decode_String(deserializer);
 var var_serverId = sse_decode_String(deserializer);
 var var_plainHttpOnLocalNetwork = sse_decode_bool(deserializer);
-return ServerCheck(baseUrl: var_baseUrl, name: var_name, version: var_version, serverId: var_serverId, plainHttpOnLocalNetwork: var_plainHttpOnLocalNetwork); }
+return ServerCheck(kind: var_kind, baseUrl: var_baseUrl, name: var_name, version: var_version, serverId: var_serverId, plainHttpOnLocalNetwork: var_plainHttpOnLocalNetwork); }
+
+@protected ServerKind sse_decode_server_kind(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var inner = sse_decode_i_32(deserializer);
+        return ServerKind.values[inner]; }
 
 @protected ServerRow sse_decode_server_row(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
 var var_sourceId = sse_decode_i_64(deserializer);
@@ -9244,12 +9253,16 @@ sse_encode_u_32(self.waiting, serializer);
  }
 
 @protected void sse_encode_server_check(ServerCheck self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_server_kind(self.kind, serializer);
 sse_encode_String(self.baseUrl, serializer);
 sse_encode_String(self.name, serializer);
 sse_encode_String(self.version, serializer);
 sse_encode_String(self.serverId, serializer);
 sse_encode_bool(self.plainHttpOnLocalNetwork, serializer);
  }
+
+@protected void sse_encode_server_kind(ServerKind self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.index, serializer); }
 
 @protected void sse_encode_server_row(ServerRow self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
 sse_encode_i_64(self.sourceId, serializer);

@@ -253,15 +253,23 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
                 )
                 Spacer(Modifier.height((Grid.base * 3).dp))
 
-                // Item 2: server type, a connected button group. Only Jellyfin works today.
+                // Item 2: server type, a connected button group. Jellyfin and, since Phase 12
+                // (ADR core-0021), Navidrome and other OpenSubsonic servers; the address decides
+                // which, and the group follows what was found there.
+                var chosen by remember { mutableStateOf(0) }
+                val foundKind = (check as? Check.Found)?.server?.kind
                 uk.gcartee.encore.app.ui.library.ChoiceGroup(
-                    options = listOf(0 to "Jellyfin", 1 to "Plex (soon)", 2 to "Other"),
-                    selected = 0,
-                    onSelect = { },
-                    enabled = { it == 0 },
+                    options = listOf(0 to "Jellyfin", 1 to "Navidrome", 2 to "Plex (soon)"),
+                    selected = when (foundKind) {
+                        uk.gcartee.encore.core.ServerKind.JELLYFIN -> 0
+                        uk.gcartee.encore.core.ServerKind.SUBSONIC -> 1
+                        null -> chosen
+                    },
+                    onSelect = { chosen = it },
+                    enabled = { it != 2 },
                 )
                 Text(
-                    "Other servers are added through adapters as they are built.",
+                    "Navidrome includes gonic, Airsonic and other Subsonic servers. Other servers are added as they are built.",
                     style = type.caption,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = Grid.base.dp, start = 4.dp),
@@ -286,10 +294,14 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
                         Check.Idle -> Unit
                         Check.Checking -> Text("Checking…", style = type.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         is Check.Found -> Text(
-                            if (c.server.plainHttpOnLocalNetwork) {
-                                "Found Jellyfin ${c.server.version} on your home network. The connection is not encrypted."
-                            } else {
-                                "Found Jellyfin ${c.server.version}. Connection is secure."
+                            run {
+                                // Item 3: the server type and version that answered.
+                                val what = if (c.server.kind == uk.gcartee.encore.core.ServerKind.SUBSONIC) c.server.name else "Jellyfin"
+                                if (c.server.plainHttpOnLocalNetwork) {
+                                    "Found $what ${c.server.version} on your home network. The connection is not encrypted."
+                                } else {
+                                    "Found $what ${c.server.version}. Connection is secure."
+                                }
                             },
                             style = type.caption,
                             color = if (c.server.plainHttpOnLocalNetwork) MaterialTheme.colorScheme.onSurfaceVariant
@@ -360,7 +372,8 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
                     }
                 }
 
-                Row(Modifier.padding(vertical = (Grid.base * 2).dp), verticalAlignment = Alignment.CenterVertically) {
+                // Quick Connect is Jellyfin's: a Subsonic server has none, so neither is shown.
+                if (found?.kind != uk.gcartee.encore.core.ServerKind.SUBSONIC) Row(Modifier.padding(vertical = (Grid.base * 2).dp), verticalAlignment = Alignment.CenterVertically) {
                     HorizontalDivider(Modifier.weight(1f))
                     Text("or", style = type.caption, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = Grid.base.dp))
                     HorizontalDivider(Modifier.weight(1f))
@@ -368,7 +381,9 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
 
                 // Item 6: Quick Connect, a 6-character code approved on another device.
                 val q = quick
-                if (q == null) {
+                if (found?.kind == uk.gcartee.encore.core.ServerKind.SUBSONIC) {
+                    // No Quick Connect on a Subsonic server.
+                } else if (q == null) {
                     FilledTonalButton(
                         onClick = ::startQuickConnect,
                         enabled = found != null && !signingIn,

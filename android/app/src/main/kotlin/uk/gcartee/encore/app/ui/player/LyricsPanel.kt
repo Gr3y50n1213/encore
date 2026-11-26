@@ -1,6 +1,5 @@
 package uk.gcartee.encore.app.ui.player
 
-import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -10,7 +9,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.graphics.TransformOrigin
@@ -22,7 +20,6 @@ import androidx.compose.ui.draw.clip
 import kotlin.math.abs
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -51,10 +48,14 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -116,7 +117,6 @@ fun LyricsPanel(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Lines(host: CoreHost, lyrics: SongLyrics, position: () -> Long, colour: Color, onSeek: (Long) -> Unit, modifier: Modifier) {
     val type = LocalEncoreType.current
@@ -208,7 +208,6 @@ private fun Lines(host: CoreHost, lyrics: SongLyrics, position: () -> Long, colo
                 )
                 // The sung line grows a touch; the others settle back, all on one curve.
                 val scale by animateFloatAsState(if (active || !synced) 1f else IDLE_SCALE, tween(LINE_FADE_MS, easing = FastOutSlowInEasing), label = "scale")
-                val blurDp by animateFloatAsState(if (past) PAST_BLUR_DP else 0f, tween(LINE_FADE_MS), label = "blur")
                 val gap = remember(i) { lyrics.gaps.firstOrNull { g -> (g.afterLine?.toInt() ?: -1) == i - 1 } }
                 val inGap by remember(i) { derivedStateOf { gap != null && position() in gap.startMs until gap.endMs } }
                 Column(
@@ -237,29 +236,54 @@ private fun Lines(host: CoreHost, lyrics: SongLyrics, position: () -> Long, colo
                         BreathingDots(colour) { if (g == null) 0f else ((position() - g.startMs).toFloat() / (g.endMs - g.startMs)).coerceIn(0f, 1f) }
                     }
                     val opposite = line.side == LyricSide.OPPOSITE
-                    val lineModifier = Modifier
-                        .graphicsLayer {
-                            alpha = lineAlpha
-                            scaleX = scale
-                            scaleY = scale
-                            transformOrigin = TransformOrigin(if (opposite) 1f else 0f, 0.5f)
-                        }
-                        .let { if (blurDp > 0.05f && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) it.blur(blurDp.dp) else it }
-                    if (synced && line.words.isNotEmpty()) {
-                        // Word-timed lines are laid out as words whether sung or not, so a
-                        // line becoming the sung one never reflows (it did: a small jump).
-                        FlowRow(lineModifier, horizontalArrangement = if (opposite) Arrangement.End else Arrangement.Start) {
-                            line.words.forEach { w -> SungWord(w, position, colour, sung = { active }) }
-                        }
-                    } else {
-                        Text(
-                            line.text,
-                            style = type.lyricLine,
-                            color = colour,
-                            textAlign = if (line.side == LyricSide.OPPOSITE) TextAlign.End else TextAlign.Start,
-                            modifier = lineModifier,
-                        )
+                    // A word-timed line is one text like any other, so becoming the sung line
+                    // never reflows it; its words fill as they are sung (drawSung). One text
+                    // a line, not two a word each in its own layer: the list drew hundreds of
+                    // layers and dropped frames on the Tab A7 Lite (25 November 2026).
+                    val timed = synced && line.words.isNotEmpty()
+                    val text = remember(line) {
+                        if (line.words.isEmpty()) line.text else line.words.joinToString("") { w -> w.text + if (w.spaceAfter) " " else "" }
                     }
+                    val starts = remember(line) {
+                        var at = 0
+                        IntArray(line.words.size) { k ->
+                            val w = line.words[k]
+                            val here = at
+                            at += w.text.length + if (w.spaceAfter) 1 else 0
+                            here
+                        }
+                    }
+                    val laid = remember(line) { arrayOfNulls<TextLayoutResult>(1) }
+                    Text(
+                        text,
+                        style = type.lyricLine,
+                        color = colour,
+                        textAlign = if (opposite) TextAlign.End else TextAlign.Start,
+                        onTextLayout = { laid[0] = it },
+                        modifier = Modifier
+                            .graphicsLayer {
+                                alpha = lineAlpha
+                                // Faded straight onto the screen, not drawn into a layer of its
+                                // own first: a line is one text, so it looks the same, and a dozen
+                                // faded lines no longer cost a dozen layer switches a frame while
+                                // the list moves (Tab A7 Lite, 25 November 2026).
+                                compositingStrategy = CompositingStrategy.ModulateAlpha
+                                scaleX = scale
+                                scaleY = scale
+                                transformOrigin = TransformOrigin(if (opposite) 1f else 0f, 0.5f)
+                            }
+                            .let {
+                                if (!timed) {
+                                    it
+                                } else {
+                                    it.drawWithContent {
+                                        val layout = laid[0]
+                                        // Read while drawing: the fill moves every frame without recomposing.
+                                        if (active && layout != null) drawSung(layout, line.words, starts, position() + LEAD_MS, colour) else drawContent()
+                                    }
+                                }
+                            },
+                    )
                     // Item 5: background vocals, smaller and dimmer, while sung.
                     if (active) line.background.forEach { bg ->
                         Text(bg.text, style = type.lyricLine.copy(fontSize = type.lyricLine.fontSize * 0.65f), color = colour.copy(alpha = 0.6f))
@@ -284,52 +308,45 @@ private fun Lines(host: CoreHost, lyrics: SongLyrics, position: () -> Long, colo
 }
 
 /**
- * Each word fills left to right across its own sung time, with a soft edge that leads the
- * fill. Off the sung line a word is drawn whole, in the line's own colour and fade.
+ * The sung line: dim, with each word filling left to right across its own sung time and a
+ * soft edge leading the fill. Drawn from the line's one text with clips and a gradient, so it
+ * needs no layer of its own: the words already sung whole, the word being sung up to its
+ * fill, the rest dim.
  */
-@Composable
-private fun SungWord(w: LyricWord, position: () -> Long, colour: Color, sung: () -> Boolean) {
-    val type = LocalEncoreType.current
-    val span = (w.endMs - w.startMs).coerceAtLeast(1)
-    val text = w.text + if (w.spaceAfter) " " else ""
-    Box {
-        Text(
-            text,
-            style = type.lyricLine,
-            color = colour.copy(alpha = UPCOMING_ALPHA),
-            modifier = Modifier.drawWithContent { if (sung()) drawContent() },
-        )
-        Text(
-            text,
-            style = type.lyricLine,
-            color = colour,
-            modifier = Modifier
-                .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
-                .drawWithContent {
-                    // Read while drawing: the fill moves every frame without recomposing.
-                    if (!sung()) {
-                        drawContent()
-                        return@drawWithContent
-                    }
-                    val fill = ((position() + LEAD_MS - w.startMs).toFloat() / span).coerceIn(0f, 1f)
-                    if (fill <= 0f) return@drawWithContent
-                    drawContent()
-                    if (fill >= 1f) return@drawWithContent
-                    val edge = FILL_EDGE_DP.dp.toPx()
-                    val x = (size.width + edge) * fill
-                    drawRect(
-                        androidx.compose.ui.graphics.Brush.horizontalGradient(
-                            0f to Color.Black,
-                            1f to Color.Transparent,
-                            startX = x - edge,
-                            endX = x,
-                        ),
-                        blendMode = androidx.compose.ui.graphics.BlendMode.DstIn,
-                    )
-                },
-        )
+private fun DrawScope.drawSung(layout: TextLayoutResult, words: List<LyricWord>, starts: IntArray, at: Long, colour: Color) {
+    drawText(layout, color = colour.copy(alpha = UPCOMING_ALPHA))
+    val cur = words.indexOfLast { it.startMs <= at }
+    if (cur < 0) return
+    val w = words[cur]
+    val end = layout.layoutInput.text.length - 1
+    if (end < 0) return
+    val first = starts[cur].coerceIn(0, end)
+    val last = (starts[cur] + w.text.length - 1).coerceIn(first, end)
+    val row = layout.getLineForOffset(first)
+    val top = layout.getLineTop(row)
+    val bottom = layout.getLineBottom(row)
+    val wide = size.width * 2f
+    // The rows above, and the words before it on its row, are sung: whole.
+    if (row > 0) clipRect(left = -wide, top = -wide, right = wide, bottom = top) { drawText(layout, color = colour) }
+    val left = layout.getBoundingBox(first).left
+    val right = layout.getBoundingBox(last).right
+    clipRect(left = -wide, top = top, right = left, bottom = bottom) { drawText(layout, color = colour) }
+    // The word itself, up to its fill, with the soft edge just ahead.
+    val edge = FILL_EDGE_DP.dp.toPx()
+    val fill = ((at - w.startMs).toFloat() / (w.endMs - w.startMs).coerceAtLeast(1)).coerceIn(0f, 1f)
+    if (fill <= 0f) return
+    val x = left + (right - left + edge) * fill
+    clipRect(left = left, top = top, right = right + WORD_OVERHANG_DP.dp.toPx(), bottom = bottom) {
+        if (fill >= 1f) {
+            drawText(layout, color = colour)
+        } else {
+            drawText(layout, brush = Brush.horizontalGradient(0f to colour, 1f to colour.copy(alpha = 0f), startX = x - edge, endX = x))
+        }
     }
 }
+
+/** A glyph's edge can reach a little past its box; the word's clip leaves it that room. */
+private const val WORD_OVERHANG_DP = 2
 
 /** The soft edge at the front of a word's fill. */
 private const val FILL_EDGE_DP = 14
@@ -352,7 +369,6 @@ private fun BreathingDots(colour: Color, progress: () -> Float) {
 
 private const val PAST_ALPHA = 0.4f
 private const val UPCOMING_ALPHA = 0.55f
-private const val PAST_BLUR_DP = 1.2f
 private const val LEAD_MS = 150L
 
 /**

@@ -818,3 +818,86 @@ jobs:
             server/target/release/${{ matrix.exe }}
             server/LICENSE
           if-no-files-found: error
+
+  navidrome:
+    # Phase 12, stage 1 (docs/adr/core-0021): the production path against a real Navidrome,
+    # pinned by digest, on six made-up tone files (no recorded music), here on GitHub's
+    # runner and never on the owner's PC.
+    name: "Navidrome: sign in, sync, lyrics, cover colours, playlists and likes over HTTP"
+    needs: linux
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Rust (stable)
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            core/target
+          key: core-navidrome-${{ hashFiles('core/Cargo.lock') }}
+          restore-keys: core-navidrome-
+
+      - name: Six made-up songs and one lyrics file
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          music="$RUNNER_TEMP/music"
+          make() { # artist album track title frequency
+            dir="$music/$1/$2"; mkdir -p "$dir"
+            ffmpeg -loglevel error -f lavfi -i "sine=frequency=$5:duration=20" -c:a libmp3lame -b:a 96k \
+              -metadata artist="$1" -metadata album_artist="$1" -metadata album="$2" \
+              -metadata track="$3" -metadata title="$4" -metadata date=2026 "$dir/0$3 $4.mp3"
+          }
+          make "Tone Choir" "First Light" 1 "Opening" 330
+          make "Tone Choir" "First Light" 2 "Middle" 392
+          make "Tone Choir" "First Light" 3 "Closing" 440
+          make "Sine Wave Band" "Low Hum" 1 "Hum" 220
+          make "Sine Wave Band" "Low Hum" 2 "Drone" 247
+          make "Sine Wave Band" "Low Hum" 3 "Fade" 262
+          printf '[00:01.00]A line to sing\n[00:05.00]Another line\n' > "$music/Tone Choir/First Light/01 Opening.lrc"
+          # A flat teal cover for one album: Navidrome sends it as a JPEG, which the palette reads.
+          ffmpeg -loglevel error -f lavfi -i "color=c=0x1E6E8C:s=600x600" -frames:v 1 \
+            "$music/Tone Choir/First Light/cover.jpg"
+          find "$music" -type f | sort
+
+      - name: Navidrome 0.64.2
+        run: |
+          docker run -d --name navidrome -p 4533:4533 -v "$RUNNER_TEMP/music:/music:ro" \
+            -e ND_SCANNER_SCHEDULE=0 -e ND_LOGLEVEL=debug -e ND_ENABLEEXTERNALSERVICES=false \
+            deluan/navidrome:0.64.2@sha256:38dc2727bfcfd5ede290f8ada114fc90368146f265ae4701ddddbcbe2a44ee52
+          for _ in $(seq 1 60); do curl -fs http://127.0.0.1:4533/ping > /dev/null && break; sleep 1; done
+          # The first user becomes the admin.
+          curl -fsS -X POST http://127.0.0.1:4533/auth/createAdmin -H 'Content-Type: application/json' \
+            -d '{"username":"listener","password":"ci-only-password"}' > /dev/null
+          auth='u=listener&p=ci-only-password&v=1.16.1&c=ci&f=json'
+          curl -fsS "http://127.0.0.1:4533/rest/startScan.view?$auth" > /dev/null || true
+          for _ in $(seq 1 90); do
+            s="$(curl -fsS "http://127.0.0.1:4533/rest/getScanStatus.view?$auth")"
+            echo "$s"
+            if echo "$s" | grep -q '"scanning":false' && echo "$s" | grep -q '"count":6'; then break; fi
+            sleep 2
+          done
+          echo "$s" | grep -q '"count":6' || { docker logs navidrome; exit 1; }
+
+      - name: The core against it
+        working-directory: core
+        env:
+          NAVIDROME_URL: http://127.0.0.1:4533
+          NAVIDROME_USER: listener
+          NAVIDROME_PASSWORD: ci-only-password
+          NAVIDROME_SONGS: "6"
+        run: |
+          ok=1
+          cargo test --locked -p encore-core navidrome_flow_over_http -- --ignored --nocapture || ok=
+          # What the server was asked, for reading a failure (the token and salt are blanked).
+          docker logs navidrome 2>&1 | grep -E 'Playlist|playlist|star' | sed -E 's/([?&](t|s|p|u))=[^&" ]+/\1=x/g' | tail -n 60
+          test -n "$ok"

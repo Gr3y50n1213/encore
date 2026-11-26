@@ -118,6 +118,7 @@ fn library() -> LibraryDelta {
         .collect();
     LibraryDelta {
         full: true,
+        playlists_complete: false,
         artists,
         albums,
         tracks,

@@ -601,5 +601,16 @@ pub fn palette_of_png(bytes: &[u8], s: &Settings) -> Result<Option<Palette>, Pal
     Ok(palette_of_rgba(w, h, &rgba, s))
 }
 
+/// The palette of a cover in PNG or JPEG (a Subsonic server's covers are JPEG; see
+/// `jpeg.rs`). Any other format, or a JPEG kind the reader refuses, gives None: no
+/// colours, the profile accent shows.
+pub fn palette_of_image(bytes: &[u8], s: &Settings) -> Result<Option<Palette>, PaletteError> {
+    if bytes.starts_with(b"\x89PNG") {
+        return palette_of_png(bytes, s);
+    }
+    Ok(jpeg::decode_dc(bytes).and_then(|(w, h, rgba)| palette_of_rgba(w, h, &rgba, s)))
+}
+
+mod jpeg;
 #[cfg(test)]
 mod tests;

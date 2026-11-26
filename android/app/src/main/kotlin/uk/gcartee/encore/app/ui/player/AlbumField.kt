@@ -26,7 +26,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.compositeOver
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -149,7 +152,8 @@ private const val TONE_OUTLINE = 0.5f
  */
 @Composable
 fun AlbumField(colours: FieldColours, modifier: Modifier = Modifier) {
-    val phase = rememberDriftPhase(still = reduceMotion(), turnMs = Timing.GradientBlobLoopSeconds.min * 1000)
+    val covered = uk.gcartee.encore.app.ui.components.LocalCovered.current
+    val phase = rememberDriftPhase(still = reduceMotion() || covered, turnMs = Timing.GradientBlobLoopSeconds.min * 1000)
     Box(modifier.background(colours.base).clearAndSetSemantics { }) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ShaderField(colours, phase)
@@ -189,6 +193,33 @@ internal fun rememberDriftPhase(still: Boolean, turnMs: Int): FloatState {
 }
 
 private const val DRIFT_TURNS_PER_LOOP = 10
+
+/**
+ * The field is drawn a quarter of the screen's size each way into its own layer, and that
+ * layer is stretched over the screen. The blobs are so soft that it looks the same, but the
+ * colours are worked out for one pixel in sixteen. Drawn full size, the field took a large
+ * share of every frame on the Tab A7 Lite (25 November 2026). The layer is drawn again only
+ * when the drift steps; in between, frames reuse it.
+ */
+private fun Modifier.lowRes(): Modifier = layout { measurable, constraints ->
+    if (!constraints.hasBoundedWidth || !constraints.hasBoundedHeight) {
+        val p = measurable.measure(constraints)
+        return@layout layout(p.width, p.height) { p.place(0, 0) }
+    }
+    val w = constraints.maxWidth
+    val h = constraints.maxHeight
+    val p = measurable.measure(Constraints.fixed(((w + FIELD_SCALE - 1) / FIELD_SCALE).coerceAtLeast(1), ((h + FIELD_SCALE - 1) / FIELD_SCALE).coerceAtLeast(1)))
+    layout(w, h) {
+        p.placeWithLayer(0, 0) {
+            scaleX = FIELD_SCALE.toFloat()
+            scaleY = FIELD_SCALE.toFloat()
+            transformOrigin = TransformOrigin(0f, 0f)
+            compositingStrategy = CompositingStrategy.Offscreen
+        }
+    }
+}
+
+private const val FIELD_SCALE = 4
 private const val DRIFT_FRAME_MS = 33L
 
 private val travel = (AlbumGradient.BlobTravelPercentOfWidth.min + AlbumGradient.BlobTravelPercentOfWidth.max) / 200f
@@ -197,7 +228,7 @@ private val anchors = listOf(Offset(0.2f, 0.18f), Offset(0.85f, 0.35f), Offset(0
 
 @Composable
 private fun BrushField(colours: FieldColours, phase: FloatState) {
-    Canvas(Modifier.fillMaxSize().graphicsLayer { }) {
+    Canvas(Modifier.lowRes()) {
         val t = phase.floatValue
         // Round blobs of one pixel size in either orientation, centred at the same fractions
         // of the screen (owner, 12 November 2026: landscape must keep the colours but not
@@ -254,7 +285,7 @@ half4 main(float2 p) {
 @Composable
 private fun ShaderField(colours: FieldColours, phase: FloatState) {
     val shader = remember { RuntimeShader(SHADER) }
-    Canvas(Modifier.fillMaxSize().graphicsLayer { }) {
+    Canvas(Modifier.lowRes()) {
         shader.setFloatUniform("size", size.width, size.height)
         shader.setFloatUniform("t", phase.floatValue)
         shader.setFloatUniform("travel", travel)

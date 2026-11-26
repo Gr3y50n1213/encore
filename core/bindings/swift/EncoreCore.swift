@@ -1019,9 +1019,10 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     
     /**
      * A song's lyrics, read and ready to draw (board 10); None when it has none.
-     * Kept per song: once fetched they show offline. They are fetched again after
-     * `lyrics.refreshAfterDays`, or sooner when the server's copy of the song
-     * changes. When the server can't be reached the kept copy is used, however old.
+     * Kept per song: once fetched they show offline. They are checked again after
+     * an hour (`LYRICS_RECHECK_MS`; at most `lyrics.refreshAfterDays`), or sooner when the
+     * server's copy of the song changes. When the server can't be reached the kept copy is
+     * used, however old.
      * A file that can't be read counts as no lyrics, so the view never fails. Async.
      */
     func lyrics(songId: Int64) async throws  -> SongLyrics?
@@ -2360,9 +2361,10 @@ open func lyricLineTapped(lineIndex: UInt32, lineStartMs: Int64)throws   {try ru
     
     /**
      * A song's lyrics, read and ready to draw (board 10); None when it has none.
-     * Kept per song: once fetched they show offline. They are fetched again after
-     * `lyrics.refreshAfterDays`, or sooner when the server's copy of the song
-     * changes. When the server can't be reached the kept copy is used, however old.
+     * Kept per song: once fetched they show offline. They are checked again after
+     * an hour (`LYRICS_RECHECK_MS`; at most `lyrics.refreshAfterDays`), or sooner when the
+     * server's copy of the song changes. When the server can't be reached the kept copy is
+     * used, however old.
      * A file that can't be read counts as no lyrics, so the view never fails. Async.
      */
 open func lyrics(songId: Int64)async throws  -> SongLyrics?  {
@@ -8898,6 +8900,10 @@ public func FfiConverterTypeSentEdits_lower(_ value: SentEdits) -> RustBuffer {
 
 public struct ServerCheck: Equatable, Hashable {
     /**
+     * Jellyfin, or Navidrome and other OpenSubsonic servers (ADR core-0021).
+     */
+    public var kind: ServerKind
+    /**
      * The address that answered; pass it to the sign-in calls.
      */
     public var baseUrl: String
@@ -8913,11 +8919,15 @@ public struct ServerCheck: Equatable, Hashable {
     // declare one manually.
     public init(
         /**
+         * Jellyfin, or Navidrome and other OpenSubsonic servers (ADR core-0021).
+         */kind: ServerKind, 
+        /**
          * The address that answered; pass it to the sign-in calls.
          */baseUrl: String, name: String, version: String, serverId: String, 
         /**
          * Plain http on the local network: show the quiet warning (board 21).
          */plainHttpOnLocalNetwork: Bool) {
+        self.kind = kind
         self.baseUrl = baseUrl
         self.name = name
         self.version = version
@@ -8941,6 +8951,7 @@ public struct FfiConverterTypeServerCheck: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ServerCheck {
         return
             try ServerCheck(
+                kind: FfiConverterTypeServerKind.read(from: &buf), 
                 baseUrl: FfiConverterString.read(from: &buf), 
                 name: FfiConverterString.read(from: &buf), 
                 version: FfiConverterString.read(from: &buf), 
@@ -8950,6 +8961,7 @@ public struct FfiConverterTypeServerCheck: FfiConverterRustBuffer {
     }
 
     public static func write(_ value: ServerCheck, into buf: inout [UInt8]) {
+        FfiConverterTypeServerKind.write(value.kind, into: &buf)
         FfiConverterString.write(value.baseUrl, into: &buf)
         FfiConverterString.write(value.name, into: &buf)
         FfiConverterString.write(value.version, into: &buf)
@@ -14513,6 +14525,75 @@ public func FfiConverterTypeResultKind_lower(_ value: ResultKind) -> RustBuffer 
 
 
 
+/**
+ * The kind of media server at an address. Quick Connect is Jellyfin's only.
+ */
+
+public enum ServerKind: Equatable, Hashable {
+    
+    case jellyfin
+    case subsonic
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension ServerKind: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeServerKind: FfiConverterRustBuffer {
+    typealias SwiftType = ServerKind
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ServerKind {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .jellyfin
+        
+        case 2: return .subsonic
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: ServerKind, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .jellyfin:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .subsonic:
+            writeInt(&buf, Int32(2))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeServerKind_lift(_ buf: RustBuffer) throws -> ServerKind {
+    return try FfiConverterTypeServerKind.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeServerKind_lower(_ value: ServerKind) -> RustBuffer {
+    return FfiConverterTypeServerKind.lower(value)
+}
+
+
+
 
 public enum SingerKind: Equatable, Hashable {
     
@@ -17639,7 +17720,7 @@ private let initializationResult: InitializationResult = {
     if (uniffi_encore_core_checksum_method_encorecore_lyric_line_tapped() != 50507) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_encore_core_checksum_method_encorecore_lyrics() != 53568) {
+    if (uniffi_encore_core_checksum_method_encorecore_lyrics() != 21438) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_lyrics_raw() != 18296) {

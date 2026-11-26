@@ -11,7 +11,6 @@ import android.content.pm.PackageManager
 import android.os.ParcelFileDescriptor
 import android.util.Log
 import androidx.glance.appwidget.GlanceAppWidget
-import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import java.util.UUID
@@ -30,6 +29,7 @@ import uk.gcartee.encore.app.widgets.RecentWidget
 import uk.gcartee.encore.app.widgets.RecentWidgetReceiver
 import uk.gcartee.encore.app.widgets.WidgetConfig
 import uk.gcartee.encore.app.widgets.WidgetIntents
+import uk.gcartee.encore.app.widgets.WidgetRefresh
 
 /**
  * Phase 9 (WP7) on an emulator, with no activity open:
@@ -65,7 +65,7 @@ class CollectionWidgetsTest {
         )
         try {
             for ((id, widget) in ids) {
-                runBlocking { widget.update(context, GlanceAppWidgetManager(context).getGlanceIdBy(id)) }
+                runBlocking { WidgetRefresh.draw(context, widget, id) }
             }
             // And the way Android asks (updatePeriodMillis), through each receiver.
             context.sendBroadcast(

@@ -1,7 +1,7 @@
 //! `encore-server`: the companion server.
 //!
 //! - `encore-server` serves. Settings come from the environment:
-//!   `ENCORE_JELLYFIN_URLS` (required), `ENCORE_SERVER_BIND` (127.0.0.1:8097),
+//!   `ENCORE_MEDIA_URLS` (required; the old `ENCORE_JELLYFIN_URLS` still works), `ENCORE_SERVER_BIND` (127.0.0.1:8097),
 //!   `ENCORE_DATA_DIR` (/data).
 //! - `encore-server backup <file>` writes a consistent copy of the database, even
 //!   while the server runs.

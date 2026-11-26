@@ -8,23 +8,11 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.text.BasicText
-import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -114,7 +102,6 @@ private const val CONTROLS_MS = 5_000L
 /** How long the controls take to slide in: slow enough to read as calm, not as a cut. */
 private const val MOVE_MS = 450
 private const val MODE_FADE_MS = 600
-private const val COLOUR_MS = 900
 private const val DIM_MS = 1_200
 
 private enum class SleepView { NOTHING, TITLE, LYRICS }
@@ -152,8 +139,12 @@ fun SleepModeScreen(host: CoreHost, onExit: () -> Unit, onSleepTimer: () -> Unit
     LaunchedEffect(Unit) {
         val window = context.findActivity()?.window ?: return@LaunchedEffect
         val from = window.attributes.screenBrightness.takeIf { it in 0f..1f } ?: 0.5f
-        animate(from, SLEEP_BRIGHTNESS, animationSpec = tween(DIM_MS, easing = LinearOutSlowInEasing)) { v, _ ->
-            window.attributes = window.attributes.apply { screenBrightness = v }
+        // A dozen steps, not one a frame: each is a window update, and sixty of them a second
+        // made the first moment stutter.
+        for (step in 1..DIM_STEPS) {
+            val t = LinearOutSlowInEasing.transform(step / DIM_STEPS.toFloat())
+            window.attributes = window.attributes.apply { screenBrightness = from + (SLEEP_BRIGHTNESS - from) * t }
+            delay(DIM_MS.toLong() / DIM_STEPS)
         }
     }
 
@@ -172,7 +163,7 @@ fun SleepModeScreen(host: CoreHost, onExit: () -> Unit, onSleepTimer: () -> Unit
         runCatching { if (shown) play.requestFocus() else root.requestFocus() }
     }
 
-    val smooth = rememberSmoothPosition(state.positionMs, state.isPlaying, state.durationMs)
+    val smooth = rememberFramePosition(state.positionMs, state.isPlaying, state.durationMs)
     var lyrics by remember { mutableStateOf<SongLyrics?>(null) }
     val songId = entry?.song?.id
     LaunchedEffect(songId) {
@@ -182,6 +173,8 @@ fun SleepModeScreen(host: CoreHost, onExit: () -> Unit, onSleepTimer: () -> Unit
     val l = lyrics
     val synced = l != null && !l.instrumental && l.syncLevel != LyricsSync.UNSYNCED && l.lines.isNotEmpty()
     val current by remember(l) { derivedStateOf { if (l != null && synced) lyricIndex(l, smooth.value) else -1 } }
+    // The same list each time, so the strip isn't recomposed by every position report.
+    val lineTexts = remember(l) { l?.lines?.map { it.text }.orEmpty() }
     val density = LocalDensity.current
 
     BoxWithConstraints(
@@ -220,7 +213,9 @@ fun SleepModeScreen(host: CoreHost, onExit: () -> Unit, onSleepTimer: () -> Unit
             .semantics { contentDescription = "Sleep mode. Press a key or tap for controls." },
     ) {
         // Sized from the screen: a projector's 960 dp and a phone's 400 dp both read well.
-        val now = (maxWidth.value * if (tv) 0.05f else 0.085f).coerceIn(28f, 64f).sp
+        // From the shorter side too: a phone on its side is wide but short, and a long line
+        // sized from the width alone ran off the bottom (owner, 24 November 2026).
+        val now = minOf(maxWidth.value * if (tv) 0.05f else 0.085f, maxHeight.value * 0.1f).coerceIn(24f, 64f).sp
         val near = now * 0.58f
         val far = now * 0.5f
         val gap: Dp = (maxWidth.value * if (tv) 0.024f else 0.05f).coerceIn(16f, 40f).dp
@@ -237,7 +232,9 @@ fun SleepModeScreen(host: CoreHost, onExit: () -> Unit, onSleepTimer: () -> Unit
             targetState = mode,
             animationSpec = tween(MODE_FADE_MS),
             label = "view",
-            modifier = Modifier.fillMaxSize().padding(horizontal = maxWidth * 0.1f).padding(bottom = room),
+            // Clear of the song's name at the bottom, and as much room at the top so the sung
+            // line stays in the middle.
+            modifier = Modifier.fillMaxSize().padding(horizontal = maxWidth * 0.1f).padding(vertical = CAPTION_ROOM.dp).padding(bottom = room),
         ) { m ->
             when (m) {
                 SleepView.NOTHING -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -253,11 +250,12 @@ fun SleepModeScreen(host: CoreHost, onExit: () -> Unit, onSleepTimer: () -> Unit
                     Text(song?.artist.orEmpty(), style = type.body.copy(fontSize = near), color = SLEEP_NEAR, textAlign = TextAlign.Center)
                 }
                 SleepView.LYRICS -> SleepLyrics(
-                    lines = l?.lines?.map { it.text }.orEmpty(),
+                    lines = lineTexts,
                     current = current,
                     title = song?.title.orEmpty(),
                     style = type.body.copy(fontSize = now, lineHeight = now * 1.2f, fontWeight = FontWeight.Bold),
                     gap = gap,
+                    colour = SLEEP_NOW,
                 )
             }
         }
@@ -308,74 +306,8 @@ fun SleepModeScreen(host: CoreHost, onExit: () -> Unit, onSleepTimer: () -> Unit
     }
 }
 
-/**
- * The lines as one strip that glides: the sung line in the middle, the one before above and
- * the next one below, smaller and dimmer. When the line changes each one moves to its new
- * place, size and colour on a soft spring (no bounce) instead of the whole set fading out and
- * in. Position, size and colour are read only while drawing, so a moving line never asks the
- * text to be measured again; that was the stutter.
- */
-@Composable
-private fun SleepLyrics(lines: List<String>, current: Int, title: String, style: TextStyle, gap: Dp) {
-    val density = LocalDensity.current
-    val gapPx = with(density) { gap.toPx() }
-    val fallback = with(density) { style.fontSize.toPx() * 1.2f }
-    // Each line's height at full size, once it has been laid out.
-    val heights = remember(lines) { mutableStateMapOf<Int, Int>() }
-    fun h(i: Int): Float = heights[i]?.toFloat() ?: fallback
-    fun offset(i: Int): Float {
-        val role = i - current
-        val half = h(current) / 2f
-        return when {
-            role == 0 -> 0f
-            role == 1 -> half + gapPx + h(i) * NEXT_SCALE / 2f
-            role >= 2 -> half + gapPx + h(current + 1) * NEXT_SCALE + gapPx + h(i) * EDGE_SCALE / 2f
-            role == -1 -> -(half + gapPx + h(i) * PREV_SCALE / 2f)
-            else -> -(half + gapPx + h(current - 1) * PREV_SCALE + gapPx + h(i) * EDGE_SCALE / 2f)
-        }
-    }
-    Box(Modifier.fillMaxSize().clipToBounds(), contentAlignment = Alignment.Center) {
-        // -1 is the song's title, shown before the first line.
-        for (i in (current - 2).coerceAtLeast(-1)..(current + 2).coerceAtMost(lines.lastIndex)) {
-            key(title, i) {
-                val role = (i - current).coerceIn(-2, 2)
-                val move = spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = LINE_STIFFNESS)
-                val y = animateFloatAsState(offset(i), move, label = "y")
-                val scale = animateFloatAsState(
-                    when (role) { 0 -> 1f; 1 -> NEXT_SCALE; -1 -> PREV_SCALE; else -> EDGE_SCALE },
-                    move,
-                    label = "scale",
-                )
-                val colour = animateColorAsState(
-                    when (role) { 0 -> SLEEP_NOW; 1 -> SLEEP_NEAR; -1 -> SLEEP_FAR; else -> SLEEP_BG },
-                    tween(COLOUR_MS),
-                    label = "colour",
-                )
-                BasicText(
-                    if (i < 0) title else lines[i],
-                    style = style.copy(textAlign = TextAlign.Center),
-                    color = { colour.value },
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .onSizeChanged { heights[i] = it.height }
-                        .graphicsLayer {
-                            translationY = y.value
-                            scaleX = scale.value
-                            scaleY = scale.value
-                        },
-                )
-            }
-        }
-    }
-}
-
-private const val NEXT_SCALE = 0.58f
-private const val PREV_SCALE = 0.5f
-private const val EDGE_SCALE = 0.42f
-/** Between Compose's low and very low stiffness: about half a second to settle, no overshoot. */
-private const val LINE_STIFFNESS = 120f
+private const val DIM_STEPS = 12
+private const val CAPTION_ROOM = 56
 
 @Composable
 private fun SleepButton(icon: Painter, label: String, colour: Color, size: Dp = 52.dp, shape: androidx.compose.ui.graphics.Shape = CircleShape, modifier: Modifier = Modifier, onClick: () -> Unit) {

@@ -1,0 +1,687 @@
+[
+  {
+    "method": "GET",
+    "path": "/rest/getIndexes.view",
+    "query": {
+      "ifModifiedSince": "99999999999999"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "indexes": {
+          "lastModified": 1762400000000,
+          "ignoredArticles": "The El La Los Las Le Les"
+        }
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/getArtists.view",
+    "query": {},
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "artists": {
+          "ignoredArticles": "The El La Los Las Le Les",
+          "index": [
+            {
+              "name": "G",
+              "artist": [
+                {
+                  "id": "ar3",
+                  "name": "The Glass Orchard",
+                  "sortName": "Glass Orchard, The",
+                  "coverArt": "ar-ar3",
+                  "albumCount": 1
+                }
+              ]
+            },
+            {
+              "name": "P",
+              "artist": [
+                {
+                  "id": "ar1",
+                  "name": "Paper Harbour",
+                  "coverArt": "ar-ar1",
+                  "albumCount": 1,
+                  "musicBrainzId": "0c1d2e3f-0000-4000-8000-0000000000a1"
+                }
+              ]
+            },
+            {
+              "name": "W",
+              "artist": {
+                "id": "ar2",
+                "name": "Wren Alder",
+                "albumCount": 1
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/getAlbumList2.view",
+    "query": {
+      "type": "alphabeticalByName",
+      "offset": "0",
+      "size": "2"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "albumList2": {
+          "album": [
+            {
+              "id": "al2",
+              "name": "Northern Static",
+              "artist": "Wren Alder",
+              "artistId": "ar2",
+              "coverArt": "al-al2_6740a1b2",
+              "songCount": 1,
+              "duration": 244,
+              "created": "2025-11-06T03:33:20.000Z",
+              "year": 2019,
+              "genre": "Folk"
+            },
+            {
+              "id": "al3",
+              "name": "Orchard Lights",
+              "artist": "The Glass Orchard",
+              "artistId": "ar3",
+              "songCount": 2,
+              "duration": 454,
+              "created": "2025-11-06T03:33:20.000Z",
+              "year": 2021,
+              "genre": "Folk"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/getAlbumList2.view",
+    "query": {
+      "type": "alphabeticalByName",
+      "offset": "2",
+      "size": "2"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "albumList2": {
+          "album": [
+            {
+              "id": "al1",
+              "name": "Quiet Rooms",
+              "artist": "Paper Harbour",
+              "artistId": "ar1",
+              "coverArt": "al-al1_6740a1b2",
+              "songCount": 2,
+              "duration": 388,
+              "created": "2025-11-06T03:33:20.000Z",
+              "year": 2021,
+              "genre": "Folk",
+              "musicBrainzId": "0c1d2e3f-0000-4000-8000-000000000001",
+              "sortName": "Quiet Rooms",
+              "genres": [
+                {
+                  "name": "Folk"
+                }
+              ],
+              "artists": [
+                {
+                  "id": "ar1",
+                  "name": "Paper Harbour"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/getAlbum.view",
+    "query": {
+      "id": "al1"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "album": {
+          "id": "al1",
+          "name": "Quiet Rooms",
+          "artist": "Paper Harbour",
+          "artistId": "ar1",
+          "coverArt": "al-al1_6740a1b2",
+          "songCount": 2,
+          "duration": 388,
+          "created": "2025-11-06T03:33:20.000Z",
+          "year": 2021,
+          "genre": "Folk",
+          "musicBrainzId": "0c1d2e3f-0000-4000-8000-000000000001",
+          "sortName": "Quiet Rooms",
+          "genres": [
+            {
+              "name": "Folk"
+            }
+          ],
+          "artists": [
+            {
+              "id": "ar1",
+              "name": "Paper Harbour"
+            }
+          ],
+          "song": [
+            {
+              "id": "s1",
+              "parent": "al1",
+              "isDir": false,
+              "title": "Low Lantern",
+              "album": "Quiet Rooms",
+              "artist": "Paper Harbour",
+              "track": 1,
+              "year": 2021,
+              "genre": "Folk",
+              "coverArt": "mf-s1_6740a1b2",
+              "size": 4123456,
+              "contentType": "audio/flac",
+              "suffix": "flac",
+              "duration": 201,
+              "bitRate": 912,
+              "path": "fixture/s1.flac",
+              "discNumber": 1,
+              "created": "2025-11-06T03:33:20.000Z",
+              "albumId": "al1",
+              "artistId": "ar1",
+              "type": "music",
+              "mediaType": "song",
+              "musicBrainzId": "5b11f4ce-a62d-471e-81fc-a69a8278c7da",
+              "sortName": "low lantern",
+              "genres": [
+                {
+                  "name": "Folk"
+                },
+                {
+                  "name": "Ambient"
+                }
+              ],
+              "artists": [
+                {
+                  "id": "ar1",
+                  "name": "Paper Harbour"
+                },
+                {
+                  "id": "ar2",
+                  "name": "Wren Alder"
+                }
+              ],
+              "albumArtists": [
+                {
+                  "id": "ar1",
+                  "name": "Paper Harbour"
+                }
+              ],
+              "displayArtist": "Paper Harbour & Wren Alder",
+              "replayGain": {
+                "trackGain": -6.5,
+                "albumGain": -5.9,
+                "trackPeak": 0.98
+              },
+              "starred": "2026-10-01T10:00:00Z",
+              "playCount": 12,
+              "played": "2026-11-05T21:15:00Z"
+            },
+            {
+              "id": "s2",
+              "parent": "al1",
+              "isDir": false,
+              "title": "Tin Roof Rain",
+              "album": "Quiet Rooms",
+              "artist": "Paper Harbour",
+              "track": 2,
+              "year": 2021,
+              "genre": "Folk",
+              "coverArt": "mf-s2_6740a1b2",
+              "size": 4123456,
+              "contentType": "audio/flac",
+              "suffix": "flac",
+              "duration": 187,
+              "bitRate": 912,
+              "path": "fixture/s2.flac",
+              "discNumber": 1,
+              "created": "2025-11-06T03:33:20.000Z",
+              "albumId": "al1",
+              "artistId": "ar1",
+              "type": "music",
+              "mediaType": "song",
+              "playCount": 3
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/getAlbum.view",
+    "query": {
+      "id": "al2"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "album": {
+          "id": "al2",
+          "name": "Northern Static",
+          "artist": "Wren Alder",
+          "artistId": "ar2",
+          "coverArt": "al-al2_6740a1b2",
+          "songCount": 1,
+          "duration": 244,
+          "created": "2025-11-06T03:33:20.000Z",
+          "year": 2019,
+          "genre": "Folk",
+          "song": [
+            {
+              "id": "s3",
+              "parent": "al2",
+              "isDir": false,
+              "title": "Signal Fires",
+              "album": "Northern Static",
+              "artist": "Wren Alder",
+              "track": 1,
+              "year": 2019,
+              "genre": "Folk",
+              "coverArt": "mf-s3_6740a1b2",
+              "size": 4123456,
+              "contentType": "audio/mpeg",
+              "suffix": "mp3",
+              "duration": 244,
+              "bitRate": 912,
+              "path": "fixture/s3.flac",
+              "discNumber": 1,
+              "created": "2025-11-06T03:33:20.000Z",
+              "albumId": "al2",
+              "artistId": "ar2",
+              "type": "music",
+              "mediaType": "song"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/getAlbum.view",
+    "query": {
+      "id": "al3"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "album": {
+          "id": "al3",
+          "name": "Orchard Lights",
+          "artist": "The Glass Orchard",
+          "artistId": "ar3",
+          "songCount": 2,
+          "duration": 454,
+          "created": "2025-11-06T03:33:20.000Z",
+          "year": 2021,
+          "genre": "Folk",
+          "song": [
+            {
+              "id": "s4",
+              "parent": "al3",
+              "isDir": false,
+              "title": "Copper Leaves",
+              "album": "Orchard Lights",
+              "artist": "The Glass Orchard",
+              "track": 1,
+              "year": 2021,
+              "genre": "Folk",
+              "coverArt": "mf-s4_6740a1b2",
+              "size": 4123456,
+              "contentType": "audio/flac",
+              "suffix": "flac",
+              "duration": 199,
+              "bitRate": 912,
+              "path": "fixture/s4.flac",
+              "discNumber": 1,
+              "created": "2025-11-06T03:33:20.000Z",
+              "albumId": "al3",
+              "artistId": "ar3",
+              "type": "music",
+              "mediaType": "song",
+              "starred": "2026-09-12T08:00:00Z"
+            },
+            {
+              "id": "s5",
+              "parent": "al3",
+              "isDir": false,
+              "title": "Evening Gate",
+              "album": "Orchard Lights",
+              "artist": "The Glass Orchard",
+              "track": 2,
+              "year": 2021,
+              "genre": "Folk",
+              "coverArt": "mf-s5_6740a1b2",
+              "size": 4123456,
+              "contentType": "audio/flac",
+              "suffix": "flac",
+              "duration": 255,
+              "bitRate": 912,
+              "path": "fixture/s5.flac",
+              "discNumber": 1,
+              "created": "2025-11-06T03:33:20.000Z",
+              "albumId": "al3",
+              "artistId": "ar3",
+              "type": "music",
+              "mediaType": "song"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/getPlaylists.view",
+    "query": {},
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "playlists": {
+          "playlist": [
+            {
+              "id": "pl1",
+              "name": "Evening Drive",
+              "owner": "listener",
+              "public": false,
+              "songCount": 3,
+              "duration": 710,
+              "created": "2026-10-01T09:00:00Z",
+              "changed": "2026-11-01T09:00:00Z",
+              "coverArt": "pl-pl1_6740a1b2"
+            },
+            {
+              "id": "pl2",
+              "name": "Shared Mix",
+              "owner": "housemate",
+              "public": true,
+              "songCount": 1,
+              "duration": 244,
+              "created": "2026-10-02T09:00:00Z",
+              "changed": "2026-10-02T09:00:00Z"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/getPlaylist.view",
+    "query": {
+      "id": "pl1"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "playlist": {
+          "id": "pl1",
+          "name": "Evening Drive",
+          "owner": "listener",
+          "public": false,
+          "songCount": 3,
+          "duration": 710,
+          "created": "2026-10-01T09:00:00Z",
+          "changed": "2026-11-01T09:00:00Z",
+          "coverArt": "pl-pl1_6740a1b2",
+          "readonly": false,
+          "entry": [
+            {
+              "id": "s5",
+              "parent": "al3",
+              "isDir": false,
+              "title": "Evening Gate",
+              "album": "Orchard Lights",
+              "artist": "The Glass Orchard",
+              "track": 2,
+              "year": 2021,
+              "genre": "Folk",
+              "coverArt": "mf-s5_6740a1b2",
+              "size": 4123456,
+              "contentType": "audio/flac",
+              "suffix": "flac",
+              "duration": 255,
+              "bitRate": 912,
+              "path": "fixture/s5.flac",
+              "discNumber": 1,
+              "created": "2025-11-06T03:33:20.000Z",
+              "albumId": "al3",
+              "artistId": "ar3",
+              "type": "music",
+              "mediaType": "song"
+            },
+            {
+              "id": "s1",
+              "parent": "al1",
+              "isDir": false,
+              "title": "Low Lantern",
+              "album": "Quiet Rooms",
+              "artist": "Paper Harbour",
+              "track": 1,
+              "year": 2021,
+              "genre": "Folk",
+              "coverArt": "mf-s1_6740a1b2",
+              "size": 4123456,
+              "contentType": "audio/flac",
+              "suffix": "flac",
+              "duration": 201,
+              "bitRate": 912,
+              "path": "fixture/s1.flac",
+              "discNumber": 1,
+              "created": "2025-11-06T03:33:20.000Z",
+              "albumId": "al1",
+              "artistId": "ar1",
+              "type": "music",
+              "mediaType": "song",
+              "musicBrainzId": "5b11f4ce-a62d-471e-81fc-a69a8278c7da",
+              "sortName": "low lantern",
+              "genres": [
+                {
+                  "name": "Folk"
+                },
+                {
+                  "name": "Ambient"
+                }
+              ],
+              "artists": [
+                {
+                  "id": "ar1",
+                  "name": "Paper Harbour"
+                },
+                {
+                  "id": "ar2",
+                  "name": "Wren Alder"
+                }
+              ],
+              "albumArtists": [
+                {
+                  "id": "ar1",
+                  "name": "Paper Harbour"
+                }
+              ],
+              "displayArtist": "Paper Harbour & Wren Alder",
+              "replayGain": {
+                "trackGain": -6.5,
+                "albumGain": -5.9,
+                "trackPeak": 0.98
+              },
+              "starred": "2026-10-01T10:00:00Z",
+              "playCount": 12,
+              "played": "2026-11-05T21:15:00Z"
+            },
+            {
+              "id": "s5",
+              "parent": "al3",
+              "isDir": false,
+              "title": "Evening Gate",
+              "album": "Orchard Lights",
+              "artist": "The Glass Orchard",
+              "track": 2,
+              "year": 2021,
+              "genre": "Folk",
+              "coverArt": "mf-s5_6740a1b2",
+              "size": 4123456,
+              "contentType": "audio/flac",
+              "suffix": "flac",
+              "duration": 255,
+              "bitRate": 912,
+              "path": "fixture/s5.flac",
+              "discNumber": 1,
+              "created": "2025-11-06T03:33:20.000Z",
+              "albumId": "al3",
+              "artistId": "ar3",
+              "type": "music",
+              "mediaType": "song"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/getPlaylist.view",
+    "query": {
+      "id": "pl2"
+    },
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "playlist": {
+          "id": "pl2",
+          "name": "Shared Mix",
+          "owner": "housemate",
+          "public": true,
+          "songCount": 1,
+          "duration": 244,
+          "created": "2026-10-02T09:00:00Z",
+          "changed": "2026-10-02T09:00:00Z",
+          "readonly": true,
+          "entry": [
+            {
+              "id": "s3",
+              "parent": "al2",
+              "isDir": false,
+              "title": "Signal Fires",
+              "album": "Northern Static",
+              "artist": "Wren Alder",
+              "track": 1,
+              "year": 2019,
+              "genre": "Folk",
+              "coverArt": "mf-s3_6740a1b2",
+              "size": 4123456,
+              "contentType": "audio/mpeg",
+              "suffix": "mp3",
+              "duration": 244,
+              "bitRate": 912,
+              "path": "fixture/s3.flac",
+              "discNumber": 1,
+              "created": "2025-11-06T03:33:20.000Z",
+              "albumId": "al2",
+              "artistId": "ar2",
+              "type": "music",
+              "mediaType": "song"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/getStarred2.view",
+    "query": {},
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "starred2": {
+          "song": [
+            {
+              "id": "s1",
+              "title": "Low Lantern",
+              "starred": "2026-11-01T10:00:00Z"
+            },
+            {
+              "id": "s4",
+              "title": "Copper Leaves",
+              "starred": "2026-11-02T10:00:00Z"
+            }
+          ],
+          "album": [
+            {
+              "id": "al2",
+              "name": "The Quiet Room"
+            }
+          ]
+        }
+      }
+    }
+  }
+]

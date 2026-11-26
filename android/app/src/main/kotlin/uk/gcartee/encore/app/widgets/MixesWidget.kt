@@ -1,6 +1,5 @@
 package uk.gcartee.encore.app.widgets
 
-import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
@@ -15,7 +14,6 @@ import androidx.glance.LocalContext
 import androidx.glance.LocalSize
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
-import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.provideContent
 import kotlinx.coroutines.Dispatchers
@@ -54,14 +52,8 @@ class MixesWidget : GlanceAppWidget() {
     }
 }
 
-class MixesWidgetReceiver : GlanceAppWidgetReceiver() {
+class MixesWidgetReceiver : DrawnOnceWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = MixesWidget()
-
-    override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
-        // The 3-hour update: read the file again so the 24 h dim uses the time now.
-        WidgetRedraws.bump()
-        super.onUpdate(context, appWidgetManager, appWidgetIds)
-    }
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
         WidgetConfig.forget(context, appWidgetIds)

@@ -27,9 +27,9 @@ pub use encore_core::api::{
     ChosenBy, CoreConfig, CoreEvent, CredentialKey, EncoreError, EndReason, ErrorKind, EventKind,
     GenreSummary, HttpHeader, ListeningMode, Network, PlaylistDetail, PlaylistEntry,
     PlaylistSummary, PreviousResult, ProfileSummary, QueueEntry, QueueState, QuickConnectStart,
-    RemoteChange, RepeatMode, ResultKind, SearchResults, ServerCheck, ServerRow, SignedIn, Song,
-    SongSort, SourceToken, StartedFrom, StreamInfo, StreamQuality, SyncResult, SyncState,
-    SyncStatus, TopResult, TranscodeCodec,
+    RemoteChange, RepeatMode, ResultKind, SearchResults, ServerCheck, ServerKind, ServerRow,
+    SignedIn, Song, SongSort, SourceToken, StartedFrom, StreamInfo, StreamQuality, SyncResult,
+    SyncState, SyncStatus, TopResult, TranscodeCodec,
 };
 use encore_core::api::{CoreListener, EncoreCore};
 pub use encore_core::api::{
@@ -61,8 +61,15 @@ pub struct _CoreConfig {
     pub platform: String,
 }
 
+#[frb(mirror(ServerKind))]
+pub enum _ServerKind {
+    Jellyfin,
+    Subsonic,
+}
+
 #[frb(mirror(ServerCheck))]
 pub struct _ServerCheck {
+    pub kind: ServerKind,
     pub base_url: String,
     pub name: String,
     pub version: String,

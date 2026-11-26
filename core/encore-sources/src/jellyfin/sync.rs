@@ -183,6 +183,7 @@ pub async fn sync_library(
         .map(|ms| Cursor(format_utc(ms - CURSOR_MARGIN_MS)));
     Ok(LibraryDelta {
         full: since.is_none(),
+        playlists_complete: false,
         artists: artists.iter().filter_map(map::to_artist).collect(),
         albums: albums.iter().filter_map(map::to_album).collect(),
         tracks: tracks.iter().filter_map(map::to_track).collect(),

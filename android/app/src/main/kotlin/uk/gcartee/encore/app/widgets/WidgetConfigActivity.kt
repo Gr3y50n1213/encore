@@ -38,7 +38,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.glance.appwidget.GlanceAppWidget
-import androidx.glance.appwidget.GlanceAppWidgetManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -127,10 +126,8 @@ class WidgetConfigActivity : ComponentActivity() {
         val id = appWidgetId
         // Outlives this screen: the widget redraws after it has closed.
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
-            runCatching {
-                val glanceId = GlanceAppWidgetManager(context).getGlanceIdBy(id)
-                widget.update(context, glanceId)
-            }
+            // One drawing, not a session (WidgetRefresh).
+            runCatching { WidgetRefresh.draw(context, widget, id) }
         }
         setResult(Activity.RESULT_OK, resultIntent())
         finish()
