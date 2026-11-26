@@ -15,7 +15,10 @@
 //!   songs, adds that whole order at the end and then removes every entry that was
 //!   there before, by the set of their IDs (the same set however Emby pairs them).
 //!   It first waits, up to 15 seconds, for a gap left by an earlier removal to close,
-//!   so no ID moves under it.
+//!   so no ID moves under it. Emby may still renumber between the add and the removal
+//!   (CI saw a move followed at once by a removal end in the wrong order), so the
+//!   playlist is read back a moment later and, if its songs aren't the new order, the
+//!   same rewrite is done again from what is there, up to three times in all.
 //! - Writes: a playlist is made from query parameters (a JSON body is a 500), added to
 //!   at the end only, renamed by saving the item itself, deleted as an item;
 //!   favourites live under the user.
@@ -37,6 +40,9 @@ use crate::transport::Method;
 /// entry IDs, at most (it took up to about eight seconds in CI).
 const SETTLE_TRIES: u32 = 15;
 const SETTLE_STEP: Duration = Duration::from_secs(1);
+/// How many times a playlist is rewritten before the edit gives up (it is then sent
+/// again later, like any edit that failed).
+const REWRITE_TRIES: u32 = 3;
 
 /// Songs and entry IDs per request, so a long playlist's query stays a sane length.
 const CHUNK: usize = 200;
@@ -109,6 +115,11 @@ pub(crate) fn entries_of(items: &[BaseItem]) -> Vec<PlaylistEntry> {
             track_item_id: song,
         })
         .collect()
+}
+
+/// A playlist's songs, in order.
+fn songs_of(items: &[BaseItem]) -> Vec<String> {
+    items.iter().filter_map(|i| i.id.clone()).collect()
 }
 
 /// Whether the entry IDs run on without a gap, as they do once Emby has closed the
@@ -348,8 +359,30 @@ impl JellyfinClient {
         Ok(())
     }
 
-    /// Make the playlist hold `songs`, in that order: add them all at the end, then
-    /// remove every entry that was there before (`items`), by their IDs.
+    /// Make the playlist hold `songs`, in that order, from `items` (what it holds now):
+    /// rewrite it, read it back a moment later, and rewrite again from what is there
+    /// until the songs are right.
+    async fn emby_make(
+        &self,
+        playlist_id: &str,
+        mut items: Vec<BaseItem>,
+        songs: &[String],
+    ) -> Result<()> {
+        for _ in 0..REWRITE_TRIES {
+            self.emby_rewrite(playlist_id, &items, songs).await?;
+            tokio::time::sleep(self.settle_step()).await;
+            items = self.emby_playlist_settled(playlist_id).await?;
+            if songs_of(&items) == songs {
+                return Ok(());
+            }
+        }
+        Err(SourceError::Protocol(
+            "Emby didn't keep the playlist's new order".into(),
+        ))
+    }
+
+    /// Add `songs` at the end, then remove every entry that was there before
+    /// (`items`), by their IDs.
     async fn emby_rewrite(
         &self,
         playlist_id: &str,
@@ -416,7 +449,7 @@ impl JellyfinClient {
                 let items = self.emby_playlist_settled(playlist_id).await?;
                 // None: already as asked (removed or moved there elsewhere).
                 if let Some(songs) = songs_after(edit, &items) {
-                    self.emby_rewrite(playlist_id, &items, &songs).await?;
+                    self.emby_make(playlist_id, items, &songs).await?;
                 }
                 Ok(EditOutcome::Done)
             }

@@ -400,6 +400,13 @@ async fn emby_playlist_writes() {
             "/emby/Playlists/40/Items",
             &[("entryIds", "2,1,3")],
         ),
+        // Read back: the new order.
+        x(
+            "GET",
+            "/emby/Playlists/40/Items",
+            &[],
+            listing(&["32", "33"], &["4", "5"]),
+        ),
         // A gap a removal left (5, 7), then closed (5, 6).
         x(
             "GET",
@@ -415,6 +422,12 @@ async fn emby_playlist_writes() {
         ),
         done("POST", "/emby/Playlists/42/Items", &[("ids", "33,31")]),
         done("DELETE", "/emby/Playlists/42/Items", &[("entryIds", "5,6")]),
+        x(
+            "GET",
+            "/emby/Playlists/42/Items",
+            &[],
+            listing(&["33", "31"], &["7", "8"]),
+        ),
         x(
             "GET",
             "/emby/Users/5e6f7a8b9c0d41e2b3c4d5e6f7a8b9c0/Items/40",
@@ -493,10 +506,12 @@ async fn emby_playlist_writes() {
             "GET /emby/Playlists/40/Items",
             "POST /emby/Playlists/40/Items",
             "DELETE /emby/Playlists/40/Items",
+            "GET /emby/Playlists/40/Items",
             "GET /emby/Playlists/42/Items",
             "GET /emby/Playlists/42/Items",
             "POST /emby/Playlists/42/Items",
             "DELETE /emby/Playlists/42/Items",
+            "GET /emby/Playlists/42/Items",
             "GET /emby/Users/5e6f7a8b9c0d41e2b3c4d5e6f7a8b9c0/Items/40",
             "POST /emby/Items/40",
             "DELETE /emby/Items/40",
@@ -508,9 +523,9 @@ async fn emby_playlist_writes() {
     assert!(sent[0].body.is_none());
     assert_eq!(value(&sent[2], "ids").as_deref(), Some("32,33"));
     assert_eq!(value(&sent[3], "entryIds").as_deref(), Some("2,1,3"));
-    assert_eq!(value(&sent[6], "ids").as_deref(), Some("33,31"));
+    assert_eq!(value(&sent[7], "ids").as_deref(), Some("33,31"));
     // The rename saves the item back whole, with only its name changed.
-    let saved: serde_json::Value = serde_json::from_slice(sent[9].body.as_ref().unwrap()).unwrap();
+    let saved: serde_json::Value = serde_json::from_slice(sent[11].body.as_ref().unwrap()).unwrap();
     assert_eq!(saved["Name"], "Night Drive");
     assert_eq!(saved["Overview"], "kept");
 }
@@ -530,6 +545,12 @@ async fn an_emby_insert_rewrites_and_an_append_just_adds() {
             &[("ids", "31,33,34,32")],
         ),
         done("DELETE", "/emby/Playlists/40/Items", &[("entryIds", "1,2")]),
+        x(
+            "GET",
+            "/emby/Playlists/40/Items",
+            &[],
+            listing(&["31", "33", "34", "32"], &["3", "4", "5", "6"]),
+        ),
     ]));
     signed_in(t.clone())
         .edit(&ServerEdit::AddToPlaylist {
@@ -539,7 +560,7 @@ async fn an_emby_insert_rewrites_and_an_append_just_adds() {
         })
         .await
         .unwrap();
-    assert_eq!(t.sent().len(), 3);
+    assert_eq!(t.sent().len(), 4);
     assert_eq!(value(&t.sent()[1], "ids").as_deref(), Some("31,33,34,32"));
     // At the end: one add, nothing read or removed.
     let t = Arc::new(FixtureTransport::new(vec![done(
@@ -557,6 +578,53 @@ async fn an_emby_insert_rewrites_and_an_append_just_adds() {
         .unwrap();
     assert_eq!(t.sent().len(), 1);
     assert_eq!(t.sent()[0].method, Method::Post);
+}
+
+/// CI, 26 November 2026: a move and then at once a removal left Emby's playlist in the
+/// wrong order, because Emby renumbered its entries between the add and the removal.
+/// What is read back decides: a wrong order is rewritten again from what is there.
+#[tokio::test]
+async fn an_emby_rewrite_that_comes_out_wrong_is_done_again() {
+    // Moving 33 to the front of [32, 33]: the first rewrite comes back as [32, 33].
+    let t = Arc::new(FixtureTransport::new(vec![
+        x(
+            "GET",
+            "/emby/Playlists/40/Items",
+            &[],
+            listing(&["32", "33"], &["4", "5"]),
+        ),
+        done("POST", "/emby/Playlists/40/Items", &[("ids", "33,32")]),
+        done("DELETE", "/emby/Playlists/40/Items", &[("entryIds", "4,5")]),
+        x(
+            "GET",
+            "/emby/Playlists/40/Items",
+            &[],
+            listing(&["32", "33"], &["1", "2"]),
+        ),
+        done("POST", "/emby/Playlists/40/Items", &[("ids", "33,32")]),
+        done("DELETE", "/emby/Playlists/40/Items", &[("entryIds", "1,2")]),
+        x(
+            "GET",
+            "/emby/Playlists/40/Items",
+            &[],
+            listing(&["33", "32"], &["3", "4"]),
+        ),
+    ]));
+    signed_in(t.clone())
+        .edit(&ServerEdit::MoveInPlaylist {
+            playlist_id: "40".into(),
+            entry_id: "1:33".into(),
+            new_index: 0,
+        })
+        .await
+        .unwrap();
+    let calls: Vec<String> = t
+        .sent()
+        .iter()
+        .map(|r| format!("{} {}", r.method.as_str(), r.url.path()))
+        .collect();
+    assert_eq!(calls.len(), 7, "{calls:?}");
+    assert_eq!(value(&t.sent()[5], "entryIds").as_deref(), Some("1,2"));
 }
 
 #[tokio::test]
