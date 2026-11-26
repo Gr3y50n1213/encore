@@ -537,13 +537,28 @@ impl PlexClient {
         else {
             return Ok(None);
         };
+        // The file as it is: asked for as text, not JSON (the server would wrap it).
+        let mut headers = self.headers();
+        for (k, v) in &mut headers {
+            if k == "Accept" {
+                *v = "text/plain, */*".into();
+            }
+        }
         let resp = self
-            .request(Method::Get, stream.key.as_deref().unwrap_or(""), &[])
+            .transport
+            .send(Request {
+                method: Method::Get,
+                url: self.url(stream.key.as_deref().unwrap_or(""), &[])?,
+                headers,
+                body: None,
+                timeout: self.timeout,
+            })
             .await?;
         let body = match check(resp, &SourceError::SessionExpired) {
             Err(SourceError::NotFound) => return Ok(None),
             other => other?.text(),
         };
+        let body = body.trim_start_matches('\u{feff}').to_owned();
         if body.trim().is_empty() {
             return Ok(None);
         }

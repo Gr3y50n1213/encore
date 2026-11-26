@@ -360,7 +360,14 @@ fn plex_flow_over_http() {
     // The song with a sidecar .lrc has timed lyrics, from its lyric stream.
     let lyrics = all
         .iter()
-        .find_map(|s| block(core.lyrics(s.id)).ok().flatten())
+        .find_map(|s| match block(core.lyrics(s.id)) {
+            Ok(Some(l)) => Some(l),
+            other => {
+                let raw = block(core.lyrics_raw(s.id));
+                println!("lyrics of {}: {other:?}; raw {raw:?}", s.title);
+                None
+            }
+        })
         .expect("a song with lyrics");
     assert_eq!(lyrics.sync_level, LyricsSync::Line);
     assert_eq!(lyrics.lines[0].text, "A line to sing");
