@@ -901,3 +901,39 @@ jobs:
           # What the server was asked, for reading a failure (the token and salt are blanked).
           docker logs navidrome 2>&1 | grep -E 'Playlist|playlist|star' | sed -E 's/([?&](t|s|p|u))=[^&" ]+/\1=x/g' | tail -n 60
           test -n "$ok"
+
+  emby:
+    # TEMPORARY exploration of a real Emby (Phase 12 stage 3); replaced by the real job.
+    name: "Emby: explore"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Songs
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg jq > /dev/null
+          music="$RUNNER_TEMP/music"
+          make() { # artist album track title frequency
+            dir="$music/$1/$2"; mkdir -p "$dir"
+            ffmpeg -loglevel error -f lavfi -i "sine=frequency=$5:duration=20" -c:a libmp3lame -b:a 96k \
+              -metadata artist="$1" -metadata album_artist="$1" -metadata album="$2" \
+              -metadata track="$3" -metadata title="$4" -metadata date=2026 "$dir/0$3 $4.mp3"
+          }
+          make "Tone Choir" "First Light" 1 "Opening" 330
+          make "Tone Choir" "First Light" 2 "Middle" 392
+          make "Tone Choir" "First Light" 3 "Closing" 440
+          make "Sine Wave Band" "Low Hum" 1 "Hum" 220
+          make "Sine Wave Band" "Low Hum" 2 "Drone" 247
+          make "Sine Wave Band" "Low Hum" 3 "Fade" 262
+          printf '[00:01.00]A line to sing\n[00:05.00]Another line\n' > "$music/Tone Choir/First Light/01 Opening.lrc"
+          ffmpeg -loglevel error -f lavfi -i "color=c=0x1E6E8C:s=600x600" -frames:v 1 \
+            "$music/Tone Choir/First Light/cover.jpg"
+      - name: Explore
+        run: |
+          docker run -d --name emby -p 8096:8096 -v "$RUNNER_TEMP/music:/music:ro" \
+            emby/embyserver:4.10.2.0@sha256:7082c63b10a2fcb3805a7eaebba407d5723bc57c085c9f0b29b7d0a702765cc1
+          for _ in $(seq 1 90); do curl -fs http://127.0.0.1:8096/emby/System/Info/Public > /dev/null && break; sleep 2; done
+          bash tools/ci/emby_explore.sh
