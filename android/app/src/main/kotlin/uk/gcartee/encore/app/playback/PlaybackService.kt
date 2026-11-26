@@ -21,6 +21,7 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.util.EventLogger
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
 import java.util.concurrent.ConcurrentHashMap
@@ -133,6 +134,17 @@ class PlaybackService : MediaLibraryService() {
             // measured on the Desktop Head Unit, 26 November 2026.)
             .setPeriodicPositionUpdateEnabled(false)
             .build()
+
+        // The playing song's cover is this app's own address (ArtworkProvider): the car,
+        // Bluetooth and the system's media controls read it themselves, so each is allowed
+        // to read that one cover, like every controller that is connected.
+        exo.addListener(object : Player.Listener {
+            override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+                val art = mediaMetadata.artworkUri ?: return
+                val readers = COVER_READERS + session?.connectedControllers.orEmpty().map { it.packageName }
+                readers.forEach { ArtworkProvider.grant(this@PlaybackService, it, art) }
+            }
+        })
     }
 
     /** Who sent the transport command being handled, for the skip's origin (board 42, rule 15). */
@@ -291,6 +303,14 @@ class PlaybackService : MediaLibraryService() {
             Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,
             Player.COMMAND_SEEK_TO_PREVIOUS,
             Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,
+        )
+
+        /** Who reads the playing song's cover from its address without connecting first. */
+        val COVER_READERS = listOf(
+            "com.google.android.projection.gearhead", // Android Auto
+            "com.android.bluetooth", // cover art for cars and headphones over Bluetooth
+            "com.google.android.bluetooth",
+            "com.android.systemui", // the media controls
         )
     }
 }

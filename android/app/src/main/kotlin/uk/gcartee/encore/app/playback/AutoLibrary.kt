@@ -63,6 +63,11 @@ class AutoLibrary(
         return Futures.immediateFuture(LibraryResult.ofItem(root, LibraryParams.Builder().setExtras(extras).build()))
     }
 
+    /** A controller that connects mid-song may read the playing cover (ArtworkProvider). */
+    override fun onPostConnect(session: MediaSession, controller: MediaSession.ControllerInfo) {
+        session.player.mediaMetadata.artworkUri?.let { ArtworkProvider.grant(context, controller.packageName, it) }
+    }
+
     override fun onGetChildren(
         session: MediaLibrarySession,
         browser: MediaSession.ControllerInfo,

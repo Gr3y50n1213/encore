@@ -1,6 +1,5 @@
 package uk.gcartee.encore.app.playback
 
-import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -962,9 +961,10 @@ class CorePlayback(
         } else {
             info.url
         }
-        val art = runCatching { core.artwork(ArtworkOf.SONG, entry.song.id, ARTWORK_PX.toUInt()) }.getOrNull()
-        art?.let { headers[it.url] = it.headers.associate { h -> h.name to h.value } }
         val song = entry.song
+        // The cover goes out as this app's own address (ArtworkProvider), never the
+        // server's: the session's metadata is read by other apps, and the car can't send
+        // the server's sign-in header (its Now Playing card stayed grey without a cover).
         return MediaItem.Builder()
             .setMediaId("$UID_PREFIX${entry.uid}")
             .setUri(uri)
@@ -977,7 +977,7 @@ class CorePlayback(
                     .setAlbumTitle(song.albumTitle)
                     .setAlbumArtist(song.albumArtist)
                     .setDurationMs(song.durationMs)
-                    .setArtworkUri(art?.url?.let(Uri::parse))
+                    .setArtworkUri(ArtworkProvider.uri(host.context, ArtworkOf.SONG, song.id))
                     .setIsPlayable(true)
                     .setIsBrowsable(false)
                     .build(),
@@ -1016,7 +1016,6 @@ class CorePlayback(
         private const val LATE_SWAP_MS = 8_000L
         private const val ARRIVED_SLACK_MS = 1_000L
         private const val TICK_MS = 1_000L
-        private const val ARTWORK_PX = 512
         private const val MAX_ERRORS_IN_A_ROW = 3
         private const val SONGS_REMEMBERED = 512
         private const val SCAN_STEP_MS = 250L
