@@ -1,22 +1,24 @@
 //! Where Emby differs from Jellyfin (ADR core-0022). The rest of the Jellyfin client
 //! is used as it is; every difference here was seen on a real Emby 4.10.2.0 in CI.
 //!
-//! - Lyrics: Emby keeps a song's sidecar `.lrc` as a text subtitle stream on the
-//!   song and serves it as JSON lines (`Stream.js`, start ticks per
-//!   line); `/Audio/{id}/Lyrics` is read as a container there and fails.
-//! - Playlist entries: Emby's `PlaylistItemId`s are slots, not names. They rise with
-//!   the position: after a move the songs change slots (the first position has the
-//!   lowest ID again), and after a removal the slots are renumbered to run on without
-//!   a gap a second or so later. For a moment after a move, the listing still shows
-//!   each song with its old ID, in the new order, while a removal already goes by the
-//!   new ones (a removal by the listed ID took the wrong song in CI). So the mirror
-//!   names an entry by its position and song (as for Subsonic), and every removal and
-//!   move reads the playlist first, waits for a renumbering in progress to finish, finds
-//!   the entry's position there, and takes the slot that position has: the IDs in
-//!   rising order, whatever the listing pairs them with.
-//! - Writes: a playlist is made from query parameters (a JSON body is a 500), added
-//!   to at the end only (an insert is an add and then moves), renamed by saving the
-//!   item itself, deleted as an item; favourites live under the user.
+//! - Lyrics: Emby keeps a song's sidecar `.lrc` as a text subtitle stream on the song
+//!   and serves it as JSON lines (`Stream.js`, start ticks per line);
+//!   `/Audio/{id}/Lyrics` is read as a container name there and fails.
+//! - Playlist entries: Emby's `PlaylistItemId`s can't be trusted to name an entry for
+//!   long. After some moves Emby gives the entries new IDs by position, a moment later
+//!   and not after every move, and its listing may go on pairing songs with the old
+//!   ones meanwhile; after a removal it closes the gap in the IDs a second or so later.
+//!   A removal by the listed ID took the wrong song in CI, more than once, while the
+//!   order of the songs was always right. So the mirror names an entry by its position
+//!   and song (as for Subsonic), and a removal, a move or an insert is done on the
+//!   songs, not the IDs: the adapter reads the playlist, works out the new order of
+//!   songs, adds that whole order at the end and then removes every entry that was
+//!   there before, by the set of their IDs (the same set however Emby pairs them).
+//!   It first waits, up to 15 seconds, for a gap left by an earlier removal to close,
+//!   so no ID moves under it.
+//! - Writes: a playlist is made from query parameters (a JSON body is a 500), added to
+//!   at the end only, renamed by saving the item itself, deleted as an item;
+//!   favourites live under the user.
 //! - Who a token belongs to: there is no `/Users/Me`. Emby records each device's
 //!   session under the user whose token it sent, so `GET /Sessions` sent with the
 //!   token shows this very client's session with that user.
@@ -31,10 +33,13 @@ use crate::model::{EditOutcome, PlaylistEntry, ServerEdit};
 use crate::subsonic::client::resolve_entry;
 use crate::transport::Method;
 
-/// How long a removal waits for Emby to finish renumbering a playlist's slots, at
-/// most (it took about eight seconds in CI).
+/// How long a playlist edit waits for Emby to close the gap a removal left in the
+/// entry IDs, at most (it took up to about eight seconds in CI).
 const SETTLE_TRIES: u32 = 15;
 const SETTLE_STEP: Duration = Duration::from_secs(1);
+
+/// Songs and entry IDs per request, so a long playlist's query stays a sane length.
+const CHUNK: usize = 200;
 
 /// The stream index of a song's lyrics on Emby: its first text subtitle stream.
 pub(crate) fn lyric_stream(item: &BaseItem) -> Option<i64> {
@@ -106,33 +111,69 @@ pub(crate) fn entries_of(items: &[BaseItem]) -> Vec<PlaylistEntry> {
         .collect()
 }
 
-/// The slots in position order: the IDs the listing shows, in rising order. None
-/// when they aren't all numbers (then the listing's own pairing is used).
-fn slots_in_order(items: &[BaseItem]) -> Option<Vec<String>> {
-    let mut ids: Vec<(i64, String)> = items
-        .iter()
-        .map(|i| {
-            let s = i.playlist_item_id.clone()?;
-            Some((s.parse().ok()?, s))
-        })
-        .collect::<Option<_>>()?;
-    ids.sort();
-    Some(ids.into_iter().map(|(_, s)| s).collect())
-}
-
-/// Whether the slots run on without a gap, as they do once Emby has renumbered them.
+/// Whether the entry IDs run on without a gap, as they do once Emby has closed the
+/// gap a removal left. IDs that aren't numbers have nothing to wait for.
 fn settled(items: &[BaseItem]) -> bool {
-    let mut slots: Vec<i64> = match items
+    let mut ids: Vec<i64> = match items
         .iter()
         .map(|i| i.playlist_item_id.as_deref()?.parse().ok())
         .collect::<Option<Vec<i64>>>()
     {
         Some(s) => s,
-        // Not numbers: nothing to wait for.
         None => return true,
     };
-    slots.sort_unstable();
-    slots.windows(2).all(|w| w[1] == w[0] + 1)
+    ids.sort_unstable();
+    ids.windows(2).all(|w| w[1] == w[0] + 1)
+}
+
+/// The playlist's songs after one edit, from its songs now. None when the edit
+/// changes nothing (an entry that is gone already, a move to where it is).
+pub(crate) fn songs_after(edit: &ServerEdit, items: &[BaseItem]) -> Option<Vec<String>> {
+    let now = entries_of(items);
+    let mut songs: Vec<String> = now.iter().map(|e| e.track_item_id.clone()).collect();
+    match edit {
+        ServerEdit::RemoveFromPlaylist { entry_ids, .. } => {
+            let mut taken = Vec::new();
+            for e in entry_ids {
+                if let Some(at) = resolve_entry(e, &now, &taken) {
+                    taken.push(at);
+                }
+            }
+            if taken.is_empty() {
+                return None;
+            }
+            Some(
+                songs
+                    .into_iter()
+                    .enumerate()
+                    .filter(|(i, _)| !taken.contains(i))
+                    .map(|(_, s)| s)
+                    .collect(),
+            )
+        }
+        ServerEdit::MoveInPlaylist {
+            entry_id,
+            new_index,
+            ..
+        } => {
+            let at = resolve_entry(entry_id, &now, &[])?;
+            let to = (*new_index as usize).min(songs.len().saturating_sub(1));
+            if at == to {
+                return None;
+            }
+            let song = songs.remove(at);
+            songs.insert(to, song);
+            Some(songs)
+        }
+        ServerEdit::AddToPlaylist {
+            item_ids, position, ..
+        } => {
+            let at = position.map_or(songs.len(), |p| (p as usize).min(songs.len()));
+            songs.splice(at..at, item_ids.iter().cloned());
+            Some(songs)
+        }
+        _ => None,
+    }
 }
 
 impl JellyfinClient {
@@ -219,7 +260,8 @@ impl JellyfinClient {
             .unwrap_or_default())
     }
 
-    /// The playlist once Emby has finished renumbering its slots (or after the wait).
+    /// The playlist once a gap from an earlier removal has closed (or after the wait:
+    /// a gap still there then is the playlist's own, and stays).
     async fn emby_playlist_settled(&self, playlist_id: &str) -> Result<Vec<BaseItem>> {
         let mut items = self.emby_playlist_now(playlist_id).await?;
         for _ in 0..SETTLE_TRIES {
@@ -245,18 +287,6 @@ impl JellyfinClient {
         }
     }
 
-    /// Where an entry of the mirror is now: its slot ID and index. Not found: Emby
-    /// lost it already (removed elsewhere), so a removal is done and a move is moot.
-    fn emby_slot(entry_id: &str, items: &[BaseItem], taken: &[usize]) -> Option<(usize, String)> {
-        let now = entries_of(items);
-        let at = resolve_entry(entry_id, &now, taken)?;
-        let slot = match slots_in_order(items) {
-            Some(slots) => slots.get(at)?.clone(),
-            None => items.get(at)?.playlist_item_id.clone()?,
-        };
-        Some((at, slot))
-    }
-
     async fn emby_write(
         &self,
         method: Method,
@@ -275,16 +305,51 @@ impl JellyfinClient {
         Self::check(resp, SourceError::SessionExpired)
     }
 
-    /// Move the entry in `slot` to position `to`.
-    async fn emby_move(&self, playlist_id: &str, slot: &str, to: usize) -> Result<()> {
-        self.emby_write(
-            Method::Post,
-            &format!("/Playlists/{playlist_id}/Items/{slot}/Move/{to}"),
-            &[],
-            None,
-        )
-        .await
-        .map(|_| ())
+    /// Add songs at the end, in order.
+    async fn emby_append(&self, playlist_id: &str, songs: &[String]) -> Result<()> {
+        let user = self.user_id()?.to_owned();
+        for chunk in songs.chunks(CHUNK) {
+            let ids = chunk.join(",");
+            self.emby_write(
+                Method::Post,
+                &format!("/Playlists/{playlist_id}/Items"),
+                &[("ids", ids.as_str()), ("userId", user.as_str())],
+                None,
+            )
+            .await?;
+        }
+        Ok(())
+    }
+
+    /// Make the playlist hold `songs`, in that order: add them all at the end, then
+    /// remove every entry that was there before (`items`), by their IDs.
+    async fn emby_rewrite(
+        &self,
+        playlist_id: &str,
+        items: &[BaseItem],
+        songs: &[String],
+    ) -> Result<()> {
+        let before: Vec<String> = items
+            .iter()
+            .filter_map(|i| i.playlist_item_id.clone())
+            .collect();
+        if before.len() != items.len() {
+            return Err(SourceError::Protocol(
+                "Emby listed a playlist entry without its ID".into(),
+            ));
+        }
+        self.emby_append(playlist_id, songs).await?;
+        for chunk in before.chunks(CHUNK) {
+            let ids = chunk.join(",");
+            self.emby_write(
+                Method::Delete,
+                &format!("/Playlists/{playlist_id}/Items"),
+                &[("entryIds", ids.as_str())],
+                None,
+            )
+            .await?;
+        }
+        Ok(())
     }
 
     /// One playlist or favourite write on Emby (`JellyfinClient::edit` hands it here).
@@ -309,80 +374,22 @@ impl JellyfinClient {
                     SourceError::Protocol("no ID for the new playlist".into())
                 })?))
             }
+            // At the end: a plain add.
             ServerEdit::AddToPlaylist {
                 playlist_id,
                 item_ids,
-                position,
+                position: None,
             } => {
-                let before = match position {
-                    Some(_) => self.emby_playlist_settled(playlist_id).await?.len(),
-                    None => 0,
-                };
-                let ids = item_ids.join(",");
-                self.emby_write(
-                    Method::Post,
-                    &format!("/Playlists/{playlist_id}/Items"),
-                    &[("ids", ids.as_str()), ("userId", user.as_str())],
-                    None,
-                )
-                .await?;
-                // Emby adds at the end only: move the new songs up, one by one.
-                if let Some(p) = *position {
-                    let to = (p as usize).min(before);
-                    for i in 0..item_ids.len() {
-                        let items = self.emby_playlist_settled(playlist_id).await?;
-                        let slot = match slots_in_order(&items) {
-                            Some(slots) => slots.get(before + i).cloned(),
-                            None => items
-                                .get(before + i)
-                                .and_then(|it| it.playlist_item_id.clone()),
-                        };
-                        let Some(slot) = slot else {
-                            break;
-                        };
-                        if before + i != to + i {
-                            self.emby_move(playlist_id, &slot, to + i).await?;
-                        }
-                    }
-                }
+                self.emby_append(playlist_id, item_ids).await?;
                 Ok(EditOutcome::Done)
             }
-            ServerEdit::RemoveFromPlaylist {
-                playlist_id,
-                entry_ids,
-            } => {
+            ServerEdit::AddToPlaylist { playlist_id, .. }
+            | ServerEdit::RemoveFromPlaylist { playlist_id, .. }
+            | ServerEdit::MoveInPlaylist { playlist_id, .. } => {
                 let items = self.emby_playlist_settled(playlist_id).await?;
-                let mut taken = Vec::new();
-                let mut slots = Vec::new();
-                for e in entry_ids {
-                    if let Some((at, slot)) = Self::emby_slot(e, &items, &taken) {
-                        taken.push(at);
-                        slots.push(slot);
-                    }
-                }
-                if !slots.is_empty() {
-                    let ids = slots.join(",");
-                    self.emby_write(
-                        Method::Delete,
-                        &format!("/Playlists/{playlist_id}/Items"),
-                        &[("entryIds", ids.as_str())],
-                        None,
-                    )
-                    .await?;
-                }
-                Ok(EditOutcome::Done)
-            }
-            ServerEdit::MoveInPlaylist {
-                playlist_id,
-                entry_id,
-                new_index,
-            } => {
-                let items = self.emby_playlist_settled(playlist_id).await?;
-                if let Some((at, slot)) = Self::emby_slot(entry_id, &items, &[]) {
-                    let to = (*new_index as usize).min(items.len().saturating_sub(1));
-                    if at != to {
-                        self.emby_move(playlist_id, &slot, to).await?;
-                    }
+                // None: already as asked (removed or moved there elsewhere).
+                if let Some(songs) = songs_after(edit, &items) {
+                    self.emby_rewrite(playlist_id, &items, &songs).await?;
                 }
                 Ok(EditOutcome::Done)
             }
@@ -465,28 +472,71 @@ mod tests {
         assert!(!to_track(&none).unwrap().has_lyrics);
     }
 
+    fn items(songs: &[&str], ids: &[&str]) -> Vec<BaseItem> {
+        songs
+            .iter()
+            .zip(ids)
+            .map(|(s, i)| BaseItem {
+                id: Some((*s).to_owned()),
+                playlist_item_id: Some((*i).to_owned()),
+                ..Default::default()
+            })
+            .collect()
+    }
+
     #[test]
-    fn slots_settle_when_they_run_on() {
-        let items = |ids: &[&str]| -> Vec<BaseItem> {
-            ids.iter()
-                .map(|i| BaseItem {
-                    id: Some(format!("s{i}")),
-                    playlist_item_id: Some((*i).to_owned()),
-                    ..Default::default()
-                })
-                .collect()
-        };
-        assert!(settled(&items(&["5", "6", "7"])));
-        assert!(!settled(&items(&["5", "6", "8"])));
-        assert!(settled(&items(&[])));
-        // Just after a move: the new order, each song still with its old ID. The slots
-        // are the IDs in rising order, so position 0 is slot 1.
-        let stale = items(&["3", "1", "2"]);
-        assert!(settled(&stale));
-        assert_eq!(slots_in_order(&stale).unwrap(), ["1", "2", "3"]);
-        let (at, slot) =
-            JellyfinClient::emby_slot(&crate::subsonic::map::entry_id(0, "s3"), &stale, &[])
-                .unwrap();
-        assert_eq!((at, slot.as_str()), (0, "1"));
+    fn ids_settle_when_they_run_on() {
+        assert!(settled(&items(&["a", "b", "c"], &["5", "6", "7"])));
+        assert!(!settled(&items(&["a", "b", "c"], &["5", "6", "8"])));
+        // Just after a move the pairing may be old, but the set runs on.
+        assert!(settled(&items(&["c", "a", "b"], &["3", "1", "2"])));
+        assert!(settled(&[]));
+    }
+
+    #[test]
+    fn each_edit_is_worked_out_on_the_songs() {
+        let now = items(&["c", "a", "b"], &["3", "1", "2"]);
+        let edit = |e: ServerEdit| songs_after(&e, &now);
+        let id = crate::subsonic::map::entry_id;
+        // The mirror still says "a" is first (before an earlier move): the same song
+        // nearest to there is the one meant.
+        assert_eq!(
+            edit(ServerEdit::RemoveFromPlaylist {
+                playlist_id: "p".into(),
+                entry_ids: vec![id(0, "a")],
+            }),
+            Some(vec!["c".to_owned(), "b".to_owned()])
+        );
+        assert_eq!(
+            edit(ServerEdit::RemoveFromPlaylist {
+                playlist_id: "p".into(),
+                entry_ids: vec![id(1, "gone")],
+            }),
+            None
+        );
+        assert_eq!(
+            edit(ServerEdit::MoveInPlaylist {
+                playlist_id: "p".into(),
+                entry_id: id(2, "b"),
+                new_index: 0,
+            }),
+            Some(vec!["b".to_owned(), "c".to_owned(), "a".to_owned()])
+        );
+        assert_eq!(
+            edit(ServerEdit::MoveInPlaylist {
+                playlist_id: "p".into(),
+                entry_id: id(0, "c"),
+                new_index: 0,
+            }),
+            None
+        );
+        assert_eq!(
+            edit(ServerEdit::AddToPlaylist {
+                playlist_id: "p".into(),
+                item_ids: vec!["d".into(), "e".into()],
+                position: Some(1),
+            }),
+            Some(["c", "d", "e", "a", "b"].map(str::to_owned).to_vec())
+        );
     }
 }

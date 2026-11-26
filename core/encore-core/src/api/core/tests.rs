@@ -492,8 +492,8 @@ fn emby_flow_over_http() {
         .id;
     assert_eq!(titles(list), ["Opening", "Middle", "Closing"]);
 
-    // 11. A move and, at once, a removal: Emby renumbers its entry slots on a move and
-    // lists the old ones for a moment, so both must find their song by position.
+    // 11. A move and, at once, a removal: Emby may renumber its entry IDs after a move
+    // and list the old ones for a moment, so both are done on the songs, not the IDs.
     core.move_in_playlist(list, 2, 0).unwrap();
     core.remove_from_playlist(list, vec![1]).unwrap();
     assert_eq!(titles(list), ["Closing", "Middle"]);
@@ -503,7 +503,7 @@ fn emby_flow_over_http() {
     println!("after a move and a removal: {:?}", titles(list));
     assert_eq!(titles(list), ["Closing", "Middle"]);
 
-    // 12. An insert in the middle (Emby adds at the end; the adapter moves it up).
+    // 12. An insert in the middle (Emby adds at the end only).
     core.add_to(
         DropTarget {
             kind: DropTargetKind::Playlist,
@@ -520,7 +520,7 @@ fn emby_flow_over_http() {
     println!("after an insert at 1: {:?}", titles(list));
     assert_eq!(titles(list), ["Closing", "Hum", "Middle"]);
 
-    // 13. A removal right after the insert's moves, then the delete.
+    // 13. A removal right after the insert, then the delete.
     core.remove_from_playlist(list, vec![2]).unwrap();
     let sent = block(core.send_edits()).unwrap();
     assert_eq!((sent.refused, sent.waiting), (0, 0), "{sent:?}");

@@ -387,16 +387,20 @@ async fn emby_playlist_writes() {
             ],
             json!({"Id": "41", "Name": "Road Trip", "ItemAddedCount": 2}),
         ),
-        // Just after a move: the new order (32, 31, 33), each song still with its old
-        // slot. The slots in rising order are the truth: position 1 is slot 2.
+        // Just after a move: the new order (32, 31, 33), the IDs paired old or new.
         x(
             "GET",
             "/emby/Playlists/40/Items",
             &[],
             listing(&["32", "31", "33"], &["2", "1", "3"]),
         ),
-        done("DELETE", "/emby/Playlists/40/Items", &[("entryIds", "2")]),
-        // A removal not yet renumbered (5, 7), then renumbered (5, 6).
+        done("POST", "/emby/Playlists/40/Items", &[("ids", "32,33")]),
+        done(
+            "DELETE",
+            "/emby/Playlists/40/Items",
+            &[("entryIds", "2,1,3")],
+        ),
+        // A gap a removal left (5, 7), then closed (5, 6).
         x(
             "GET",
             "/emby/Playlists/42/Items",
@@ -409,7 +413,8 @@ async fn emby_playlist_writes() {
             &[],
             listing(&["31", "33"], &["5", "6"]),
         ),
-        done("POST", "/emby/Playlists/42/Items/6/Move/0", &[]),
+        done("POST", "/emby/Playlists/42/Items", &[("ids", "33,31")]),
+        done("DELETE", "/emby/Playlists/42/Items", &[("entryIds", "5,6")]),
         x(
             "GET",
             "/emby/Users/5e6f7a8b9c0d41e2b3c4d5e6f7a8b9c0/Items/40",
@@ -441,14 +446,15 @@ async fn emby_playlist_writes() {
         .unwrap(),
         EditOutcome::Created("41".into())
     );
-    // The mirror's "1:31" (Slow Tide, second) is slot 2 now, not the 1 listed with it.
+    // "1:31" (Slow Tide, second) goes: the songs left are added again, in order, and
+    // every entry that was there is removed by the set of IDs, however Emby pairs them.
     c.edit(&ServerEdit::RemoveFromPlaylist {
         playlist_id: "40".into(),
         entry_ids: vec!["1:31".into()],
     })
     .await
     .unwrap();
-    // A move waits for the renumbering, then goes by the slot of the song's position.
+    // A move waits for the gap to close, then the same on the new order.
     c.edit(&ServerEdit::MoveInPlaylist {
         playlist_id: "42".into(),
         entry_id: "1:33".into(),
@@ -485,10 +491,12 @@ async fn emby_playlist_writes() {
         [
             "POST /emby/Playlists",
             "GET /emby/Playlists/40/Items",
+            "POST /emby/Playlists/40/Items",
             "DELETE /emby/Playlists/40/Items",
             "GET /emby/Playlists/42/Items",
             "GET /emby/Playlists/42/Items",
-            "POST /emby/Playlists/42/Items/6/Move/0",
+            "POST /emby/Playlists/42/Items",
+            "DELETE /emby/Playlists/42/Items",
             "GET /emby/Users/5e6f7a8b9c0d41e2b3c4d5e6f7a8b9c0/Items/40",
             "POST /emby/Items/40",
             "DELETE /emby/Items/40",
@@ -498,15 +506,17 @@ async fn emby_playlist_writes() {
     );
     // A playlist is made from the query (Emby answers a JSON body with a 500).
     assert!(sent[0].body.is_none());
-    assert_eq!(value(&sent[2], "entryIds").as_deref(), Some("2"));
+    assert_eq!(value(&sent[2], "ids").as_deref(), Some("32,33"));
+    assert_eq!(value(&sent[3], "entryIds").as_deref(), Some("2,1,3"));
+    assert_eq!(value(&sent[6], "ids").as_deref(), Some("33,31"));
     // The rename saves the item back whole, with only its name changed.
-    let saved: serde_json::Value = serde_json::from_slice(sent[7].body.as_ref().unwrap()).unwrap();
+    let saved: serde_json::Value = serde_json::from_slice(sent[9].body.as_ref().unwrap()).unwrap();
     assert_eq!(saved["Name"], "Night Drive");
     assert_eq!(saved["Overview"], "kept");
 }
 
 #[tokio::test]
-async fn an_emby_insert_is_an_add_then_moves() {
+async fn an_emby_insert_rewrites_and_an_append_just_adds() {
     let t = Arc::new(FixtureTransport::new(vec![
         x(
             "GET",
@@ -514,21 +524,12 @@ async fn an_emby_insert_is_an_add_then_moves() {
             &[],
             listing(&["31", "32"], &["1", "2"]),
         ),
-        done("POST", "/emby/Playlists/40/Items", &[("ids", "33,34")]),
-        x(
-            "GET",
+        done(
+            "POST",
             "/emby/Playlists/40/Items",
-            &[],
-            listing(&["31", "32", "33", "34"], &["1", "2", "3", "4"]),
+            &[("ids", "31,33,34,32")],
         ),
-        done("POST", "/emby/Playlists/40/Items/3/Move/1", &[]),
-        x(
-            "GET",
-            "/emby/Playlists/40/Items",
-            &[],
-            listing(&["31", "33", "32", "34"], &["1", "2", "3", "4"]),
-        ),
-        done("POST", "/emby/Playlists/40/Items/4/Move/2", &[]),
+        done("DELETE", "/emby/Playlists/40/Items", &[("entryIds", "1,2")]),
     ]));
     signed_in(t.clone())
         .edit(&ServerEdit::AddToPlaylist {
@@ -538,20 +539,9 @@ async fn an_emby_insert_is_an_add_then_moves() {
         })
         .await
         .unwrap();
-    let moves: Vec<String> = t
-        .sent()
-        .iter()
-        .filter(|r| r.url.path().contains("/Move/"))
-        .map(|r| r.url.path().to_owned())
-        .collect();
-    assert_eq!(
-        moves,
-        [
-            "/emby/Playlists/40/Items/3/Move/1",
-            "/emby/Playlists/40/Items/4/Move/2"
-        ]
-    );
-    // At the end: no moves at all.
+    assert_eq!(t.sent().len(), 3);
+    assert_eq!(value(&t.sent()[1], "ids").as_deref(), Some("31,33,34,32"));
+    // At the end: one add, nothing read or removed.
     let t = Arc::new(FixtureTransport::new(vec![done(
         "POST",
         "/emby/Playlists/40/Items",
