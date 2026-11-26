@@ -127,8 +127,10 @@ class PlaybackService : MediaLibraryService() {
                 ),
             )
             .setBitmapLoader(DataSourceBitmapLoader.Builder(this).setDataSourceFactory(dataSourceFactory(cached = false)).build())
-            // Controllers work the position out from the last state and the speed; Media3's
-            // re-send every 3 seconds only made the car redraw its progress needlessly.
+            // Controllers work the position out from the last state and the speed, so Media3's
+            // re-send every 3 seconds isn't needed. (It wasn't what made the car's squiggle
+            // step: Android Auto redraws that only every 500 ms whatever the app sends,
+            // measured on the Desktop Head Unit, 26 November 2026.)
             .setPeriodicPositionUpdateEnabled(false)
             .build()
     }
