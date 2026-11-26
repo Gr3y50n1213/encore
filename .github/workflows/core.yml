@@ -969,38 +969,18 @@ jobs:
             plexinc/pms-docker:1.43.5.11079-b3b13e506@sha256:6d778d41daae68f89115aa87a44ae14a96b23e71a2093da173b5a9aac4091336
           base=http://172.30.0.10:32400
           echo "PLEX_URL=$base" >> "$GITHUB_ENV"
-          for _ in $(seq 1 120); do curl -fs "$base/identity" > /dev/null && break; sleep 2; done
+          # /identity answers while the server is still starting ("startState"); wait for the end.
+          for _ in $(seq 1 150); do
+            s="$(curl -fs "$base/identity" 2>/dev/null || true)"
+            if echo "$s" | grep -q machineIdentifier && ! echo "$s" | grep -q startState; then break; fi
+            sleep 2
+          done
           curl -fsS -H 'Accept: application/json' "$base/identity"; echo
-          echo "--- / without a token"; curl -sS -o /dev/null -w '%{http_code}\n' "$base/"
-          curl -sS -H 'Accept: application/json' "$base/" | head -c 3000; echo
-          echo "--- sections without a token"; curl -sS -w ' %{http_code}\n' -H 'Accept: application/json' "$base/library/sections"
-          echo "--- sections with a made-up token"; curl -sS -w ' %{http_code}\n' -H 'Accept: application/json' -H 'X-Plex-Token: made-up' "$base/library/sections"
-          echo "--- agents"; curl -sS -H 'Accept: application/json' "$base/system/agents" | head -c 4000; echo
-          echo "--- accounts"; curl -sS -w ' %{http_code}\n' -H 'Accept: application/json' "$base/accounts" | head -c 2000; echo
-          echo "--- myplex/account"; curl -sS -w ' %{http_code}\n' -H 'Accept: application/json' "$base/myplex/account" | head -c 2000; echo
+          echo "--- agents"
+          curl -sS -H 'Accept: application/json' "$base/system/agents" \
+            | python3 -c 'import json,sys; [print(a["identifier"], a["name"]) for a in json.load(sys.stdin)["MediaContainer"]["Agent"]]'
+          echo "--- user"; curl -sS -w ' %{http_code}\n' -H 'Accept: application/json' "$base/user" | head -c 2000; echo
+          echo "--- user, made-up token"; curl -sS -w ' %{http_code}\n' -H 'Accept: application/json' -H 'X-Plex-Token: made-up' "$base/user" | head -c 2000; echo
 
       - name: A music library, scanned (discovery)
-        run: |
-          base="$PLEX_URL"; j='Accept: application/json'
-          curl -sS -w ' %{http_code}\n' -X POST -H "$j" \
-            "$base/library/sections?name=Music&type=artist&agent=tv.plex.agents.music&scanner=Plex%20Music&language=en-US&location=%2Fmusic"
-          curl -sS -H "$j" "$base/library/sections" ; echo
-          id="$(curl -sS -H "$j" "$base/library/sections" | python3 -c 'import json,sys; print(json.load(sys.stdin)["MediaContainer"]["Directory"][0]["key"])')"
-          echo "section $id"
-          curl -sS -X GET -H "$j" "$base/library/sections/$id/refresh" -w ' %{http_code}\n'
-          for _ in $(seq 1 90); do
-            n="$(curl -sS -H "$j" "$base/library/sections/$id/all?type=10" | python3 -c 'import json,sys; print(json.load(sys.stdin)["MediaContainer"].get("size",0))')"
-            echo "tracks: $n"; [ "$n" = 6 ] && break; sleep 2
-          done
-          sleep 15
-          echo "--- prefs"; curl -sS -H "$j" "$base/library/sections/$id/prefs"; echo
-          echo "--- artists"; curl -sS -H "$j" "$base/library/sections/$id/all?type=8"; echo
-          echo "--- albums"; curl -sS -H "$j" "$base/library/sections/$id/all?type=9"; echo
-          echo "--- tracks"; curl -sS -H "$j" "$base/library/sections/$id/all?type=10"; echo
-          t="$(curl -sS -H "$j" "$base/library/sections/$id/all?type=10&title=Opening" | python3 -c 'import json,sys; print(json.load(sys.stdin)["MediaContainer"]["Metadata"][0]["ratingKey"])')"
-          echo "--- track $t"; curl -sS -H "$j" "$base/library/metadata/$t?includeAllStreams=1"; echo
-          echo "--- playlists"; curl -sS -H "$j" "$base/playlists?playlistType=audio"; echo
-          echo "--- activities"; curl -sS -H "$j" "$base/activities"; echo
-          docker logs plex 2>&1 | tail -n 40
-          ls -R "$RUNNER_TEMP/plex-config" | head -n 40
-          find "$RUNNER_TEMP/plex-config" -name 'Plex Media Server.log' -exec tail -n 120 {} \;
+        run: bash tools/ci/plex_probe.sh
