@@ -884,6 +884,7 @@ impl Inner {
         }
         // Phase 9, WP1: a song or album timer's stop point moves with the queue.
         self.sleep_queue_changed();
+        self.keep_queue();
         Ok((r, state))
     }
 

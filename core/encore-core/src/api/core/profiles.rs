@@ -143,6 +143,25 @@ impl Inner {
         Ok(())
     }
 
+    /// Keep the queue as it is now, after every change to it (owner, 26 November 2026:
+    /// the app came back on a song from long before, because the queue was kept only
+    /// when the profile closed, and an app swiped away never closes it). Never in Guest:
+    /// its queue doesn't outlive it, and the profile's own stays kept.
+    pub(super) fn keep_queue(&self) {
+        let guest = self
+            .profile()
+            .ok()
+            .and_then(|p| {
+                lock(&p.playback)
+                    .ok()
+                    .map(|pb| pb.log.mode() == crate::playlog::ListeningMode::Guest)
+            })
+            .unwrap_or(true);
+        if !guest {
+            let _ = self.save_queue();
+        }
+    }
+
     /// Load the queue the open profile had last time, paused.
     pub(super) fn restore_queue(&self) -> Result<(), EncoreError> {
         let p = self.profile()?;

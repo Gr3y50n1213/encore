@@ -2133,6 +2133,47 @@ fn guest_saves_nothing_and_gives_the_queue_back() {
     );
 }
 
+/// Owner, 26 November 2026: the app came back on an old song after being swiped away.
+/// The queue is kept after every change, so a core that is never closed (the process
+/// ended) still opens on the song that was playing.
+#[test]
+fn the_queue_is_kept_without_a_close() {
+    let dir = temp_dir("kept-queue");
+    let (core, _) = core_on_recording(&dir);
+    let s = signed_in(&core);
+    block(core.sync_library()).unwrap();
+    let songs = core.songs(SongSort::Title, 0, 10).unwrap();
+    core.play(
+        vec![songs[0].id, songs[1].id, songs[2].id],
+        0,
+        StartedFrom::Songs,
+        None,
+    )
+    .unwrap();
+    let q = core.skip_next(SkipOrigin::Button).unwrap();
+    assert_eq!(q.current.map(|c| c.song.id), Some(songs[1].id));
+    // The process ends: no close_profile.
+    drop(core);
+
+    let (again, _) = core_on_recording(&dir);
+    again
+        .open_profile(
+            s.profile_id,
+            vec![SourceToken {
+                source_id: s.source_id,
+                token: s.token,
+            }],
+        )
+        .unwrap();
+    let q = again.queue().unwrap();
+    assert_eq!(
+        q.current.map(|c| c.song.id),
+        Some(songs[1].id),
+        "opens on the song that was playing"
+    );
+    assert_eq!(q.up_next.first().map(|e| e.song.id), Some(songs[2].id));
+}
+
 /// Play `n` songs to the end (ids round robin), as the player would report them.
 fn listen(core: &EncoreCore, ids: &[i64], n: usize) {
     for k in 0..n {
