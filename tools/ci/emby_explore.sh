@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# TEMPORARY: what a real Emby answers, for writing the adapter (Phase 12 stage 3). Round 2.
+# TEMPORARY: what a real Emby answers, for writing the adapter (Phase 12 stage 3). Round 3.
 set -u
 B=http://127.0.0.1:8096
 A='MediaBrowser Client="ci", Device="ci", DeviceId="ci-setup", Version="1.0"'
@@ -14,7 +14,6 @@ e() { # method path [json body]
   echo
 }
 pw="$(openssl rand -hex 16)"; echo "::add-mask::$pw"
-pw2="$(openssl rand -hex 16)"; echo "::add-mask::$pw2"
 e POST /emby/Startup/Configuration '{"UICulture":"en-US","MetadataCountryCode":"US","PreferredMetadataLanguage":"en"}'
 e GET /emby/Startup/User
 e POST /emby/Startup/User "{\"Name\":\"admin\",\"Password\":\"$pw\"}"
@@ -22,98 +21,52 @@ e POST /emby/Startup/Complete
 LIMIT=0 e POST /emby/Users/AuthenticateByName "{\"Username\":\"admin\",\"Pw\":\"$pw\"}"
 TOKEN="$(jq -r .AccessToken /tmp/b)"; echo "::add-mask::$TOKEN"
 ADMIN="$(jq -r .User.Id /tmp/b)"
-ADMIN_TOKEN="$TOKEN"
-e POST /emby/Users/New '{"Name":"listener"}'
-LISTENER="$(jq -r .Id /tmp/b)"
-e POST "/emby/Users/$LISTENER/Password" "{\"Id\":\"$LISTENER\",\"CurrentPw\":\"\",\"NewPw\":\"$pw2\"}"
-e POST "/emby/Library/VirtualFolders?name=Music&collectionType=music&refreshLibrary=true&paths=%2Fmusic" '{"LibraryOptions":{"EnableRealtimeMonitor":false}}'
-for i in $(seq 1 60); do
+e POST "/emby/Library/VirtualFolders?name=Music&collectionType=music&refreshLibrary=true&paths=%2Fmusic" '{"LibraryOptions":{"EnableRealtimeMonitor":false,"EnablePhotos":false}}'
+for i in $(seq 1 40); do
   LIMIT=0 e GET "/emby/Items?Recursive=true&IncludeItemTypes=MusicAlbum&UserId=$ADMIN&EnableTotalRecordCount=true" > /dev/null
   echo "$i: $(jq -c '[.Items[] | {Name, ImageTags}]' /tmp/b)"
-  jq -e '.Items[] | select(.ImageTags.Primary != null)' /tmp/b > /dev/null && break
+  [ "$(jq '[.Items[] | select(.ImageTags.Primary != null)] | length' /tmp/b)" = 2 ] && break
   sleep 3
 done
-LIMIT=0 e GET /emby/ScheduledTasks; jq -c '.[] | {Name, State, LastExecutionResult: .LastExecutionResult.Status}' /tmp/b | head -40
-LIMIT=0 e GET "/emby/Items?Recursive=true&IncludeItemTypes=Audio&UserId=$ADMIN&Fields=MediaStreams"
-jq -c '.Items[] | {Id, Name, AlbumId, ImageTags, Streams: [.MediaStreams[]? | .Type]}' /tmp/b
-ALBUM="$(jq -r '.Items[] | select(.Name=="Opening") | .AlbumId' /tmp/b)"
-curl -sS -o /tmp/img -D /tmp/h -w 'png cover: %{http_code}\n' -H "X-Emby-Token: $TOKEN" "$B/emby/Items/$ALBUM/Images/Primary?maxWidth=64&maxHeight=64&format=Png"; grep -i content-type /tmp/h; head -c 8 /tmp/img | xxd
-curl -sS -o /tmp/img -D /tmp/h -w 'png lower: %{http_code}\n' -H "X-Emby-Token: $TOKEN" "$B/emby/Items/$ALBUM/Images/Primary?maxWidth=64&maxHeight=64&format=png"; grep -i content-type /tmp/h; head -c 8 /tmp/img | xxd
-curl -sS -o /tmp/img -D /tmp/h -w 'fill: %{http_code}\n' -H "X-Emby-Token: $TOKEN" "$B/emby/Items/$ALBUM/Images/Primary?fillWidth=64&fillHeight=64&quality=90"; grep -i content-type /tmp/h; head -c 8 /tmp/img | xxd
-curl -sS -o /tmp/img -w 'no auth: %{http_code}\n' "$B/emby/Items/$ALBUM/Images/Primary?maxWidth=64"
-echo "################ sessions"
-LIMIT=0 e GET /emby/Sessions; jq -c '.[] | {UserId, UserName, DeviceId, Client}' /tmp/b
-e GET /emby/Sessions/Current
-e GET /emby/Users/Current
-LIMIT=300 e GET /emby/System/Info
-TOKEN=
-A='MediaBrowser Client="Encore", Device="Phone", DeviceId="ci-listener", Version="0.1.0"'
-LIMIT=0 e POST /emby/Users/AuthenticateByName "{\"Username\":\"listener\",\"Pw\":\"$pw2\"}"
-TOKEN="$(jq -r .AccessToken /tmp/b)"; echo "::add-mask::$TOKEN"
-LT="$TOKEN"
-TOKEN="$ADMIN_TOKEN"; A='MediaBrowser Client="ci", Device="ci", DeviceId="ci-setup", Version="1.0"'
-LIMIT=0 e GET /emby/Sessions; jq -c '.[] | {UserId, UserName, DeviceId, Client}' /tmp/b
-echo "the listener's token, sent by another device (the companion):"
-TOKEN="$LT"; A='MediaBrowser Client="Encore companion", Device="encore-server", DeviceId="encore-server", Version="0.1.0"'
-LIMIT=0 e GET /emby/Sessions; jq -c '.[] | {UserId, UserName, DeviceId, Client}' /tmp/b
-LIMIT=300 e GET "/emby/Users/$LISTENER"
-echo "the admin's token, sent by the companion:"
-TOKEN="$ADMIN_TOKEN"
-LIMIT=0 e GET /emby/Sessions; jq -c '.[] | {UserId, UserName, DeviceId, Client}' /tmp/b
-TOKEN="$LT"; A='MediaBrowser Client="Encore", Device="Phone", DeviceId="ci-listener", Version="0.1.0"'
-echo "################ the listener's played items"
-LIMIT=0 e GET "/emby/Items?UserId=$LISTENER&Recursive=true&IncludeItemTypes=Audio"
-SONG="$(jq -r '.Items[] | select(.Name=="Opening") | .Id' /tmp/b)"
-S2="$(jq -r '.Items[] | select(.Name=="Middle") | .Id' /tmp/b)"
-S3="$(jq -r '.Items[] | select(.Name=="Closing") | .Id' /tmp/b)"
-S4="$(jq -r '.Items[] | select(.Name=="Hum") | .Id' /tmp/b)"
-e POST "/emby/Users/$LISTENER/PlayedItems/$S4"
-e POST "/emby/Users/$LISTENER/PlayedItems/$S4"
-LIMIT=0 e GET "/emby/Items?UserId=$LISTENER&Recursive=true&IncludeItemTypes=Audio&Filters=IsPlayed&EnableUserData=true"; jq -c '.Items[] | {Name, UserData}' /tmp/b
-LIMIT=0 e GET "/emby/Items?UserId=$LISTENER&Recursive=true&IncludeItemTypes=Audio&Filters=IsPlayed&EnableUserData=true&Fields=UserData"; jq -c '.Items[] | {Name, UserData}' /tmp/b
-LIMIT=0 e GET "/emby/Users/$LISTENER/Items?Recursive=true&IncludeItemTypes=Audio&Filters=IsPlayed"; jq -c '.Items[] | {Name, UserData}' /tmp/b
-LIMIT=0 e GET "/emby/Users/$LISTENER/Items/$S4"; jq -c '.UserData' /tmp/b
-e POST "/emby/Sessions/Playing" "{\"ItemId\":\"$S3\",\"PositionTicks\":0,\"PlaySessionId\":\"x1\",\"MediaSourceId\":\"mediasource_$S3\",\"CanSeek\":true,\"PlayMethod\":\"DirectStream\"}"
-e POST "/emby/Sessions/Playing/Stopped" "{\"ItemId\":\"$S3\",\"PositionTicks\":190000000,\"PlaySessionId\":\"x1\",\"MediaSourceId\":\"mediasource_$S3\"}"
-LIMIT=0 e GET "/emby/Users/$LISTENER/Items/$S3"; jq -c '.UserData' /tmp/b
-echo "################ playlist entry ids around a move"
-pl() { LIMIT=0 e GET "/emby/Playlists/$PL/Items?UserId=$LISTENER" > /dev/null; echo "  $1: $(jq -c '[.Items[] | [.Name, .PlaylistItemId]]' /tmp/b)"; }
-e POST "/emby/Playlists?Name=Moves&Ids=$SONG,$S2,$S3&MediaType=Audio&UserId=$LISTENER"
-PL="$(jq -r .Id /tmp/b)"
-pl created
-E3="$(jq -r '.Items[2].PlaylistItemId' /tmp/b)"
-e POST "/emby/Playlists/$PL/Items/$E3/Move/0"
-pl "after moving Closing to 0"
-sleep 5
-pl "5 s later"
-LIMIT=0 e GET "/emby/Playlists/$PL/Items?UserId=$LISTENER&Fields=SortName"; echo "  other fields: $(jq -c '[.Items[] | [.Name, .PlaylistItemId]]' /tmp/b)"
-LIMIT=0 e GET "/emby/Users/$LISTENER/Items?ParentId=$PL"; echo "  as children: $(jq -c '[.Items[] | [.Name, .PlaylistItemId]]' /tmp/b)"
-E_MID="$(LIMIT=0 e GET "/emby/Playlists/$PL/Items?UserId=$LISTENER" > /dev/null; jq -r '.Items[] | select(.Name=="Middle") | .PlaylistItemId' /tmp/b)"
-echo "removing Middle by its listed id $E_MID"
-e DELETE "/emby/Playlists/$PL/Items?EntryIds=$E_MID"
-pl "after removing Middle"
-e POST "/emby/Playlists/$PL/Items?Ids=$S4&UserId=$LISTENER"
-pl "after adding Hum"
-e POST "/emby/Playlists/$PL/Items/$(jq -r '.Items[2].PlaylistItemId' /tmp/b)/Move/1"
-pl "after moving the third to 1"
-E_LAST="$(jq -r '.Items[2].PlaylistItemId' /tmp/b)"; N_LAST="$(jq -r '.Items[2].Name' /tmp/b)"
-echo "removing $N_LAST by its listed id $E_LAST"
-e DELETE "/emby/Playlists/$PL/Items?EntryIds=$E_LAST"
-pl "after removing the third"
-echo "################ a second playlist, two moves in a row"
-e POST "/emby/Playlists?Name=Moves2&Ids=$SONG,$S2,$S3,$S4&MediaType=Audio&UserId=$LISTENER"
-PL="$(jq -r .Id /tmp/b)"
-pl created
-e POST "/emby/Playlists/$PL/Items/$(jq -r '.Items[0].PlaylistItemId' /tmp/b)/Move/3"
-pl "after moving the first to 3"
-e POST "/emby/Playlists/$PL/Items/$(jq -r '.Items[0].PlaylistItemId' /tmp/b)/Move/2"
-pl "after moving the first to 2"
-docker restart emby > /dev/null; for _ in $(seq 1 60); do curl -fs "$B/emby/System/Info/Public" > /dev/null && break; sleep 2; done
-pl "after a restart"
-echo "################ public info errors"
-TOKEN=
-e GET /emby/System/Info/Public
-e GET /emby/system/info/public
-e POST /emby/Users/AuthenticateByName '{"Username":"listener","Pw":"wrong"}'
-e GET /emby/Users/AuthenticateByName
-docker logs emby 2>&1 | grep -iE "image|error|warn" | grep -viE "api_key|apikey|token" | tail -n 40
+LIMIT=0 e GET "/emby/Items?Recursive=true&IncludeItemTypes=Audio,MusicArtist,Photo&UserId=$ADMIN"
+jq -c '.Items[] | {Id, Name, Type, AlbumId, ImageTags, AlbumPrimaryImageTag}' /tmp/b
+for name in "First Light" "Low Hum"; do
+  LIMIT=0 e GET "/emby/Items?Recursive=true&IncludeItemTypes=MusicAlbum&UserId=$ADMIN" > /dev/null
+  AL="$(jq -r --arg n "$name" '.Items[] | select(.Name==$n) | .Id' /tmp/b)"
+  TAG="$(jq -r --arg n "$name" '.Items[] | select(.Name==$n) | .ImageTags.Primary' /tmp/b)"
+  curl -sS -o /tmp/img -D /tmp/h -w "$name png: %{http_code}\n" -H "X-Emby-Token: $TOKEN" "$B/emby/Items/$AL/Images/Primary?maxWidth=64&maxHeight=64&format=Png&tag=$TAG"; grep -i content-type /tmp/h; head -c 8 /tmp/img | xxd
+  curl -sS -o /tmp/img -D /tmp/h -w "$name fill: %{http_code}\n" -H "X-Emby-Token: $TOKEN" "$B/emby/Items/$AL/Images/Primary?fillWidth=64&fillHeight=64&quality=90"; grep -i content-type /tmp/h; head -c 8 /tmp/img | xxd
+  curl -sS -o /tmp/img -w "$name, no token: %{http_code}\n" "$B/emby/Items/$AL/Images/Primary?maxWidth=64"
+done
+echo "################ playlist entry ids around a move, second by second"
+LIMIT=0 e GET "/emby/Items?UserId=$ADMIN&Recursive=true&IncludeItemTypes=Audio"
+SA="$(jq -r '.Items[] | select(.Name=="Opening") | .Id' /tmp/b)"
+SB="$(jq -r '.Items[] | select(.Name=="Middle") | .Id' /tmp/b)"
+SC="$(jq -r '.Items[] | select(.Name=="Closing") | .Id' /tmp/b)"
+SD="$(jq -r '.Items[] | select(.Name=="Hum") | .Id' /tmp/b)"
+pl() { LIMIT=0 e GET "/emby/Playlists/$PL/Items?UserId=$ADMIN$2" > /dev/null; echo "  $1: $(jq -c '[.Items[] | [.Name, .PlaylistItemId]]' /tmp/b)"; }
+for round in 1 2 3; do
+  e POST "/emby/Playlists?Name=Moves$round&Ids=$SA,$SB,$SC,$SD&MediaType=Audio&UserId=$ADMIN"
+  PL="$(jq -r .Id /tmp/b)"
+  pl created ""
+  LAST="$(jq -r '.Items[3].PlaylistItemId' /tmp/b)"
+  e POST "/emby/Playlists/$PL/Items/$LAST/Move/0"
+  pl "at once" ""
+  pl "at once, ParentId listing" "&ParentId=$PL"
+  pl "at once, another query" "&StartIndex=0&Limit=50&Fields=Path"
+  if [ "$round" = 1 ]; then
+    for s in $(seq 1 12); do sleep 1; pl "$s s" ""; done
+  elif [ "$round" = 2 ]; then
+    MID="$(jq -r '.Items[] | select(.Name=="Middle") | .PlaylistItemId' /tmp/b)"
+    echo "  removing Middle at once by its listed id $MID"
+    e DELETE "/emby/Playlists/$PL/Items?EntryIds=$MID"
+    pl "after" ""; sleep 8; pl "8 s later" ""
+  else
+    sleep 0.5
+    MID="$(jq -r '.Items[] | select(.Name=="Middle") | .PlaylistItemId' /tmp/b)"
+    echo "  moving Middle at once by its listed id $MID to 0"
+    e POST "/emby/Playlists/$PL/Items/$MID/Move/0"
+    pl "after" ""; sleep 8; pl "8 s later" ""
+  fi
+done
+docker logs emby 2>&1 | grep -iE "playlist|image|error" | grep -viE "api_key|apikey|token" | tail -n 40

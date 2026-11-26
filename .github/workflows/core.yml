@@ -931,6 +931,14 @@ jobs:
           printf '[00:01.00]A line to sing\n[00:05.00]Another line\n' > "$music/Tone Choir/First Light/01 Opening.lrc"
           ffmpeg -loglevel error -f lavfi -i "color=c=0x1E6E8C:s=600x600" -frames:v 1 \
             "$music/Tone Choir/First Light/cover.jpg"
+          cp "$music/Tone Choir/First Light/cover.jpg" "$music/Tone Choir/First Light/folder.jpg"
+          # The other album: a red cover inside each file's tags instead.
+          ffmpeg -loglevel error -f lavfi -i "color=c=0xC03020:s=300x300" -frames:v 1 "$RUNNER_TEMP/red.jpg"
+          for f in "$music/Sine Wave Band/Low Hum/"*.mp3; do
+            ffmpeg -loglevel error -i "$f" -i "$RUNNER_TEMP/red.jpg" -map 0 -map 1 -c copy -id3v2_version 3 \
+              -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (front)" "$f.tmp.mp3" && mv "$f.tmp.mp3" "$f"
+          done
+          find "$music" -type f | sort
       - name: Explore
         run: |
           docker run -d --name emby -p 8096:8096 -v "$RUNNER_TEMP/music:/music:ro" \
