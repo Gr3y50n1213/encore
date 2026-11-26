@@ -6,13 +6,17 @@ import android.content.Context
 import android.content.Intent
 import android.database.Cursor
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
+import android.graphics.Rect
 import android.net.Uri
 import android.os.ParcelFileDescriptor
 import androidx.core.content.ContextCompat
 import java.io.File
 import uk.gcartee.encore.app.R
+import uk.gcartee.encore.app.core.CoreHost
 import uk.gcartee.encore.app.ui.components.ArtworkCache
+import uk.gcartee.encore.app.ui.library.coverSongs
 import uk.gcartee.encore.core.ArtworkOf
 import uk.gcartee.encore.tokens.EncoreTokens.Color.Accents.Iris
 
@@ -41,6 +45,17 @@ class ArtworkProvider : ContentProvider() {
         if (segments.size != 2) return null
         val context = context ?: return null
         if (segments[0] == ICON) return tile(context, segments[1])?.let(::open)
+        if (segments[0] == MOSAIC) {
+            val ids = segments[1].split(',').mapNotNull(String::toLongOrNull)
+            return (mosaicFile(context, ids) ?: tile(context, "mix"))?.let(::open)
+        }
+        // A playlist looks as it does in the app (owner, 24 November 2026): four different
+        // albums from its songs, not the server's picture, which repeats one album.
+        if (segments[0] == "playlist") {
+            val id = segments[1].toLongOrNull() ?: return null
+            val songs = runCatching { coverSongs(CoreHost.get(context).core.playlist(id).entries.mapNotNull { it.song }) }.getOrNull()
+            mosaicFile(context, songs.orEmpty())?.let { return open(it) }
+        }
         val of = when (segments[0]) {
             "album" -> ArtworkOf.ALBUM
             "song" -> ArtworkOf.SONG
@@ -66,7 +81,64 @@ class ArtworkProvider : ContentProvider() {
     companion object {
         private const val SIZE_PX = 480
         private const val ICON = "icon"
+        private const val MOSAIC = "mosaic"
         private const val TILE_PX = 256
+
+        /**
+         * A mix's cover as the app draws it (Pages.kt `MosaicFill`): four songs' covers
+         * in a 2x2 square, or the first one's alone when there are fewer than four.
+         */
+        fun mosaic(context: Context, songIds: List<Long>): Uri? =
+            if (songIds.isEmpty()) {
+                null
+            } else if (songIds.size < 4) {
+                uri(context, ArtworkOf.SONG, songIds.first())
+            } else {
+                Uri.Builder()
+                    .scheme("content")
+                    .authority("${context.packageName}.artwork")
+                    .appendPath(MOSAIC)
+                    .appendPath(songIds.take(4).joinToString(","))
+                    .build()
+            }
+
+        /**
+         * The 2x2 cover for these songs (the first alone when fewer than four), drawn
+         * once per set of songs and kept, so a changed playlist gets a new one. A cell
+         * whose cover can't be had stays the tile colour; none at all gives null.
+         */
+        private fun mosaicFile(context: Context, songIds: List<Long>): File? {
+            if (songIds.isEmpty()) return null
+            if (songIds.size < 4) return runCatching { ArtworkCache.file(context, ArtworkOf.SONG, songIds[0], SIZE_PX) }.getOrNull()
+            val ids = songIds.take(4)
+            val dir = File(context.cacheDir, "artwork").apply { mkdirs() }
+            val file = File(dir, "mosaic-v1-${ids.joinToString("-")}.png")
+            if (file.isFile) return file
+            val cell = SIZE_PX / 2
+            val covers = ids.map { runCatching { ArtworkCache.file(context, ArtworkOf.SONG, it, cell) }.getOrNull() }
+            if (covers.all { it == null }) return null
+            return runCatching {
+                val bitmap = Bitmap.createBitmap(SIZE_PX, SIZE_PX, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(bitmap)
+                canvas.drawColor(argb(Iris.Dark.primaryContainer))
+                val paint = android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG)
+                covers.forEachIndexed { i, cover ->
+                    val art = cover?.let { BitmapFactory.decodeFile(it.path) } ?: return@forEachIndexed
+                    // Centre-cropped to a square, as the app's cells are.
+                    val side = minOf(art.width, art.height)
+                    val src = Rect((art.width - side) / 2, (art.height - side) / 2, (art.width + side) / 2, (art.height + side) / 2)
+                    val x = (i % 2) * cell
+                    val y = (i / 2) * cell
+                    canvas.drawBitmap(art, src, Rect(x, y, x + cell, y + cell), paint)
+                    art.recycle()
+                }
+                val part = File(dir, "${file.name}.${Thread.currentThread().id}.part")
+                part.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                bitmap.recycle()
+                check(part.renameTo(file))
+                file
+            }.getOrNull()
+        }
         private const val GLYPH_PX = 112
 
         /** The icon each tile shows: the app's own Material Symbols. */

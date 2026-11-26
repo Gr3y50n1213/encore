@@ -194,7 +194,7 @@ class AutoLibrary(
             parentId == HOME -> {
                 val home = core.home()
                 val mixes = home.madeForYou.mixes.map { m ->
-                    folder("mix:${m.mixId}", m.title, m.subtitle, art = m.coverSongIds.firstOrNull()?.let { ArtworkProvider.uri(context, ArtworkOf.SONG, it) } ?: ArtworkProvider.icon(context, "mix"), playable = true)
+                    folder("mix:${m.mixId}", m.title, m.subtitle, art = ArtworkProvider.mosaic(context, m.coverSongIds) ?: ArtworkProvider.icon(context, "mix"), playable = true)
                 }
                 val played = home.recentlyPlayed.filter { v.canPlay(it.id) }.map { song(it, "home") }
                 mixes + played
