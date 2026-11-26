@@ -10,7 +10,7 @@ use std::fmt;
 
 use crate::error::Result;
 use crate::jellyfin::{
-    self, ArtworkInfo, JellyfinClient, RawLyrics, StreamInfo, StreamRequest, SyncProgress,
+    self, ArtworkInfo, Flavor, JellyfinClient, RawLyrics, StreamInfo, StreamRequest, SyncProgress,
 };
 use crate::model::{
     Capabilities, Cursor, EditOutcome, LibraryDelta, PlaylistEntry, ServerEdit, SourceKind,
@@ -67,7 +67,8 @@ pub trait MediaSource: Send + Sync + fmt::Debug {
     ) -> BoxFuture<'a, Result<Option<Vec<u8>>>>;
 }
 
-/// A signed-in Jellyfin account.
+/// A signed-in Jellyfin account, or an Emby one: the client's `Flavor` says which
+/// (ADR core-0022), and the kind and capabilities follow it.
 #[derive(Debug)]
 pub struct JellyfinSource {
     pub client: JellyfinClient,
@@ -76,11 +77,17 @@ pub struct JellyfinSource {
 
 impl MediaSource for JellyfinSource {
     fn kind(&self) -> SourceKind {
-        SourceKind::Jellyfin
+        match self.client.flavor() {
+            Flavor::Jellyfin => SourceKind::Jellyfin,
+            Flavor::Emby => SourceKind::Emby,
+        }
     }
 
     fn capabilities(&self) -> Capabilities {
-        jellyfin::capabilities(self.quick_connect)
+        match self.client.flavor() {
+            Flavor::Jellyfin => jellyfin::capabilities(self.quick_connect),
+            Flavor::Emby => jellyfin::emby_capabilities(),
+        }
     }
 
     fn sync_library<'a>(
@@ -129,6 +136,9 @@ impl MediaSource for JellyfinSource {
         playlist_id: &'a str,
     ) -> BoxFuture<'a, Result<Vec<PlaylistEntry>>> {
         Box::pin(async move {
+            if self.client.flavor() == Flavor::Emby {
+                return self.client.emby_playlist_entries(playlist_id).await;
+            }
             let page = self.client.playlist_items(playlist_id).await?;
             Ok(page
                 .items

@@ -902,6 +902,134 @@ jobs:
           docker logs navidrome 2>&1 | grep -E 'Playlist|playlist|star' | sed -E 's/([?&](t|s|p|u))=[^&" ]+/\1=x/g' | tail -n 60
           test -n "$ok"
 
+  emby:
+    # Phase 12, stage 3 (docs/adr/core-0022): the production path against a real Emby,
+    # pinned by digest, on the same six made-up tone files, here on GitHub's runner and
+    # never on the owner's PC. The core signs in as a user who is not an administrator;
+    # the companion's check runs for that user and for the administrator.
+    name: "Emby: sign in, sync, lyrics, cover colours, streams, playlists, likes and plays over HTTP"
+    needs: linux
+    if: ${{ !inputs.regenerate }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Rust (stable)
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            core/target
+            server/target
+          key: core-emby-${{ hashFiles('core/Cargo.lock', 'server/Cargo.lock') }}
+          restore-keys: core-emby-
+
+      - name: Six made-up songs, one lyrics file and a cover
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg jq > /dev/null
+          music="$RUNNER_TEMP/music"
+          make() { # artist album track title frequency
+            dir="$music/$1/$2"; mkdir -p "$dir"
+            ffmpeg -loglevel error -f lavfi -i "sine=frequency=$5:duration=20" -c:a libmp3lame -b:a 96k \
+              -metadata artist="$1" -metadata album_artist="$1" -metadata album="$2" \
+              -metadata track="$3" -metadata title="$4" -metadata date=2026 "$dir/0$3 $4.mp3"
+          }
+          make "Tone Choir" "First Light" 1 "Opening" 330
+          make "Tone Choir" "First Light" 2 "Middle" 392
+          make "Tone Choir" "First Light" 3 "Closing" 440
+          make "Sine Wave Band" "Low Hum" 1 "Hum" 220
+          make "Sine Wave Band" "Low Hum" 2 "Drone" 247
+          make "Sine Wave Band" "Low Hum" 3 "Fade" 262
+          printf '[00:01.00]A line to sing\n[00:05.00]Another line\n' > "$music/Tone Choir/First Light/01 Opening.lrc"
+          # A flat teal cover for one album (see the next step for how Emby gets it).
+          ffmpeg -loglevel error -f lavfi -i "color=c=0x1E6E8C:s=600x600" -frames:v 1 \
+            "$music/Tone Choir/First Light/cover.jpg"
+          find "$music" -type f | sort
+
+      - name: Emby 4.10.2.0, set up through its own first-run API
+        run: |
+          docker run -d --name emby -p 8096:8096 -v "$RUNNER_TEMP/music:/music:ro" \
+            emby/embyserver:4.10.2.0@sha256:7082c63b10a2fcb3805a7eaebba407d5723bc57c085c9f0b29b7d0a702765cc1
+          base=http://127.0.0.1:8096/emby
+          for _ in $(seq 1 90); do curl -fs "$base/System/Info/Public" > /dev/null && break; sleep 2; done
+          # Throwaway passwords made here; masked in the log and gone with the runner.
+          admin_pw="$(openssl rand -hex 16)"; echo "::add-mask::$admin_pw"
+          user_pw="$(openssl rand -hex 16)"; echo "::add-mask::$user_pw"
+          who='X-Emby-Authorization: MediaBrowser Client="ci", Device="ci", DeviceId="ci-setup", Version="1.0"'
+          api() { # method path [json]: the reply's body; fails on an error status
+            if [ $# -ge 3 ]; then
+              curl -fsS -X "$1" "$base$2" -H "$who" ${token:+-H "X-Emby-Token: $token"} -H 'Content-Type: application/json' -d "$3"
+            else
+              curl -fsS -X "$1" "$base$2" -H "$who" ${token:+-H "X-Emby-Token: $token"}
+            fi
+          }
+          token=
+          api POST /Startup/Configuration '{"UICulture":"en-US","MetadataCountryCode":"US","PreferredMetadataLanguage":"en"}'
+          api POST /Startup/User "{\"Name\":\"admin\",\"Password\":\"$admin_pw\"}" > /dev/null
+          api POST /Startup/RemoteAccess '{"EnableRemoteAccess":false,"EnableAutomaticPortMapping":false}'
+          api POST /Startup/Complete
+          api POST /Users/AuthenticateByName "{\"Username\":\"admin\",\"Pw\":\"$admin_pw\"}" > "$RUNNER_TEMP/auth.json"
+          token="$(jq -r .AccessToken "$RUNNER_TEMP/auth.json")"; echo "::add-mask::$token"
+          admin="$(jq -r .User.Id "$RUNNER_TEMP/auth.json")"; rm "$RUNNER_TEMP/auth.json"
+          listener="$(api POST /Users/New '{"Name":"listener"}' | jq -r .Id)"
+          api POST "/Users/$listener/Password" "{\"Id\":\"$listener\",\"CurrentPw\":\"\",\"NewPw\":\"$user_pw\"}"
+          api POST "/Library/VirtualFolders?name=Music&collectionType=music&refreshLibrary=true&paths=%2Fmusic" \
+            '{"LibraryOptions":{"EnableRealtimeMonitor":false}}'
+          n=0
+          for _ in $(seq 1 90); do
+            n="$(api GET "/Items?UserId=$listener&Recursive=true&IncludeItemTypes=Audio&Limit=0&EnableTotalRecordCount=true" | jq .TotalRecordCount)"
+            echo "songs: $n"; [ "$n" = 6 ] && break; sleep 2
+          done
+          [ "$n" = 6 ] || { docker logs emby | tail -n 80; exit 1; }
+          # Emby 4.10 in this container picked up neither cover.jpg, folder.jpg nor art in
+          # the tags within minutes (26 November 2026), so the same cover is set through
+          # Emby's own image upload, as its web app does.
+          album="$(api GET "/Items?UserId=$listener&Recursive=true&IncludeItemTypes=MusicAlbum" | jq -r '.Items[] | select(.Name=="First Light") | .Id')"
+          base64 -w0 "$RUNNER_TEMP/music/Tone Choir/First Light/cover.jpg" \
+            | curl -fsS -X POST "$base/Items/$album/Images/Primary" -H "X-Emby-Token: $token" -H 'Content-Type: image/jpeg' --data-binary @-
+          for _ in $(seq 1 30); do
+            api GET "/Items?UserId=$listener&Ids=$album" | jq -e '.Items[0].ImageTags.Primary' > /dev/null && break; sleep 1
+          done
+          # Another app played one song for this user: a play count for the core to read.
+          hum="$(api GET "/Items?UserId=$listener&Recursive=true&IncludeItemTypes=Audio" | jq -r '.Items[] | select(.Name=="Hum") | .Id')"
+          api POST "/Users/$listener/PlayedItems/$hum" > /dev/null
+          api GET /System/Info/Public; echo
+          {
+            echo "EMBY_PASSWORD=$user_pw"
+            echo "EMBY_ADMIN_PASSWORD=$admin_pw"
+          } >> "$GITHUB_ENV"
+          echo "admin $admin, listener $listener"
+
+      - name: The core against it
+        working-directory: core
+        env:
+          EMBY_URL: http://127.0.0.1:8096
+          EMBY_USER: listener
+          EMBY_SONGS: "6"
+          EMBY_PLAYED: Hum
+        run: |
+          ok=1
+          cargo test --locked -p encore-core emby_flow_over_http -- --ignored --nocapture || ok=
+          # What the server was asked about playlists and favourites, for reading a failure.
+          docker logs emby 2>&1 | grep -E 'Playlists|FavoriteItems' | grep -viE 'api_key|token' | tail -n 60
+          test -n "$ok"
+
+      - name: The companion's sign-in check against it
+        working-directory: server
+        env:
+          EMBY_URL: http://127.0.0.1:8096
+          EMBY_USER: listener
+        run: cargo test --locked emby_check_over_http -- --ignored --nocapture
+
   plex:
     # Phase 12, stage 2 (docs/adr/core-0023): the production path against a real Plex Media
     # Server, pinned by digest, on six made-up tone files, here on GitHub's runner and never

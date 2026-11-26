@@ -16,6 +16,7 @@ use encore_sources::{
 
 #[derive(Debug)]
 pub enum AnySource {
+    /// Jellyfin, or Emby: the client's flavour says which (ADR core-0022).
     Jellyfin(JellyfinSource),
     /// Navidrome and other OpenSubsonic servers (ADR core-0021).
     Subsonic(SubsonicSource),
@@ -26,7 +27,8 @@ pub enum AnySource {
 /// What the companion needs to check who a device is (core-0009, core-0021 point 9).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CompanionCredential {
-    /// A Jellyfin access token.
+    /// A Jellyfin or Emby access token: the companion asks the trusted server whose it
+    /// is, and that server's `/System/Info/Public` says which of the two it is.
     Jellyfin(String),
     /// A Subsonic saved sign-in (`SubsonicCredentials::to_token_string`): user name and salted
     /// token or API key, never a password.

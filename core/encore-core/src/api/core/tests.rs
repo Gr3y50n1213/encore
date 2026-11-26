@@ -294,6 +294,338 @@ fn navidrome_flow_over_http() {
     );
 }
 
+/// Phase 12, stage 3 (ADR core-0022): the production path against a real Emby, which CI
+/// starts in Docker on the same made-up tone files (core.yml, "emby"), signed in as a user
+/// who is not an administrator. Recognise it, sign in, sync, read lyrics and cover colours,
+/// stream, like and unlike, read play counts, and edit a playlist end to end, moves too.
+#[test]
+#[ignore = "needs an Emby: EMBY_URL, EMBY_USER, EMBY_PASSWORD, EMBY_SONGS, EMBY_PLAYED"]
+fn emby_flow_over_http() {
+    let env = |k: &str| std::env::var(k).unwrap_or_else(|_| panic!("set {k}"));
+    let songs: usize = env("EMBY_SONGS").parse().unwrap();
+    let dir = temp_dir("emby");
+    let core = EncoreCore::new(CoreConfig {
+        data_dir: dir.0.to_string_lossy().into_owned(),
+        device_id: "device-emby".into(),
+        device_name: "Test Phone".into(),
+        platform: "test".into(),
+    })
+    .unwrap();
+
+    // 1. Found as Emby, not Jellyfin or Subsonic; no Quick Connect.
+    let check = block(core.check_address(env("EMBY_URL"))).unwrap();
+    println!("check: {check:?}");
+    assert_eq!(check.kind, ServerKind::Emby);
+    assert!(!check.server_id.is_empty());
+    assert!(matches!(
+        block(core.quick_connect_start(check.base_url.clone())),
+        Err(EncoreError::QuickConnectDisabled { .. })
+    ));
+
+    // 2. A wrong password is refused as one; the right one signs in.
+    assert!(matches!(
+        block(core.sign_in(
+            check.base_url.clone(),
+            env("EMBY_USER"),
+            "not the password".into()
+        )),
+        Err(EncoreError::WrongCredentials { .. })
+    ));
+    let signed = block(core.sign_in(
+        check.base_url.clone(),
+        env("EMBY_USER"),
+        env("EMBY_PASSWORD"),
+    ))
+    .unwrap();
+    assert!(!signed.token.contains(&env("EMBY_PASSWORD")));
+    assert!(!format!("{signed:?}").contains(&signed.token));
+    let servers = core.servers().unwrap();
+    assert_eq!(servers[0].kind, "emby", "{servers:?}");
+
+    // 3. A full sync: every song, album and artist.
+    let synced = block(core.sync_library()).unwrap();
+    println!("first sync: {synced:?}");
+    assert_eq!(synced[0].songs as usize, songs, "{synced:?}");
+    assert_eq!((synced[0].albums, synced[0].artists), (2, 2), "{synced:?}");
+    let all = core.songs(SongSort::Title, 0, 1000).unwrap();
+    assert_eq!(all.len(), songs);
+    assert_eq!(core.albums(AlbumSort::Title, 0, 100).unwrap().len(), 2);
+    assert_eq!(core.artists(0, 100).unwrap().len(), 2);
+    let by_title = |t: &str| all.iter().find(|s| s.title == t).unwrap().id;
+
+    // 4. A second sync is a delta (what was saved since the first, by Emby's clock),
+    // and the library stays whole.
+    let again = block(core.sync_library()).unwrap();
+    println!("second sync: {again:?}");
+    assert_eq!(again[0].removed, 0);
+    assert_eq!(core.songs(SongSort::Title, 0, 1000).unwrap().len(), songs);
+
+    // 5. The song with a sidecar .lrc has timed lyrics, from Emby's lyrics stream.
+    let lyrics = block(core.lyrics(by_title("Opening")))
+        .unwrap()
+        .expect("Opening has lyrics");
+    println!("lyrics: {lyrics:?}");
+    assert_eq!(lyrics.sync_level, LyricsSync::Line);
+    assert_eq!(lyrics.lines.len(), 2);
+    assert_eq!(lyrics.lines[0].text, "A line to sing");
+    assert_eq!(block(core.lyrics(by_title("Middle"))).unwrap(), None);
+
+    // 6. The album with the cover (flat teal, 1E6E8C) gets its colours from Emby's PNG.
+    let covered = core
+        .albums(AlbumSort::Title, 0, 100)
+        .unwrap()
+        .into_iter()
+        .find(|a| a.has_artwork)
+        .expect("the album with a cover");
+    let palette = block(core.album_palette(covered.id))
+        .unwrap()
+        .expect("a palette");
+    println!("palette of an Emby cover: {palette:?}");
+    let lead = u32::from_str_radix(&palette.sampled[0].colour, 16).unwrap();
+    let [r, g, b] = [lead >> 16, (lead >> 8) & 0xFF, lead & 0xFF].map(|c| c as i32);
+    assert!(
+        (r - 0x1E).abs() < 16 && (g - 0x6E).abs() < 16 && (b - 0x8C).abs() < 16,
+        "{palette:?}"
+    );
+
+    // 7. The stream address really streams: with the headers, and with the key in it.
+    let http = encore_sources::http::HttpTransport::new(None, Duration::from_secs(10)).unwrap();
+    for network in [Network::Wifi, Network::Cellular] {
+        let s = core.stream_for(by_title("Hum"), network).unwrap();
+        for (url, headers) in [
+            (s.url.clone(), s.headers.clone()),
+            (s.url_with_api_key.clone(), vec![]),
+        ] {
+            let got = block(http.send(encore_sources::transport::Request {
+                method: encore_sources::transport::Method::Get,
+                url: url::Url::parse(&url).unwrap(),
+                headers: headers.into_iter().map(|h| (h.name, h.value)).collect(),
+                body: None,
+                timeout: Duration::from_secs(60),
+            }))
+            .unwrap();
+            println!(
+                "{network:?} stream (may transcode: {}): status {}, {} bytes",
+                s.may_transcode,
+                got.status,
+                got.body.len()
+            );
+            assert_eq!(got.status, 200);
+            assert!(got.body.len() > 10_000, "{} bytes", got.body.len());
+        }
+    }
+
+    // 8. Like and unlike: a favourite on the server, and back from it.
+    let liked = by_title("Middle");
+    core.like(vec![liked]).unwrap();
+    block(core.send_edits()).unwrap();
+    block(core.sync_library()).unwrap();
+    assert!(
+        core.liked_songs(0, 10)
+            .unwrap()
+            .iter()
+            .any(|s| s.id == liked)
+    );
+    core.unlike(vec![liked]).unwrap();
+    block(core.send_edits()).unwrap();
+    block(core.sync_library()).unwrap();
+    assert!(
+        core.liked_songs(0, 10)
+            .unwrap()
+            .iter()
+            .all(|s| s.id != liked)
+    );
+
+    // 9. Play counts from other apps: CI marked one song played for this user.
+    let played = env("EMBY_PLAYED");
+    let rows = core
+        .inner
+        .profile()
+        .unwrap()
+        .store
+        .lock()
+        .unwrap()
+        .recs_songs()
+        .unwrap();
+    let row = rows.iter().find(|r| r.title == played).unwrap();
+    println!("{played}: played {} times elsewhere", row.server_play_count);
+    assert!(row.server_play_count >= 1);
+    assert!(
+        rows.iter()
+            .filter(|r| r.title != played)
+            .all(|r| r.server_play_count == 0)
+    );
+
+    // 10. A playlist made here reaches Emby, then a rename.
+    let titles = |id: i64| -> Vec<String> {
+        core.playlist(id)
+            .unwrap()
+            .entries
+            .iter()
+            .map(|e| e.song.as_ref().map(|s| s.title.clone()).unwrap_or_default())
+            .collect()
+    };
+    let find_list = |name: &str| {
+        core.playlists(0, 50)
+            .unwrap()
+            .into_iter()
+            .find(|p| p.name == name)
+    };
+    let made = core
+        .add_to(
+            DropTarget {
+                kind: DropTargetKind::NewPlaylist,
+                id: None,
+            },
+            vec![by_title("Opening"), by_title("Middle"), by_title("Closing")],
+            None,
+            false,
+        )
+        .unwrap();
+    core.rename_playlist(made.playlist_id.unwrap(), "From CI".into())
+        .unwrap();
+    let sent = block(core.send_edits()).unwrap();
+    assert_eq!((sent.refused, sent.waiting), (0, 0), "{sent:?}");
+    block(core.sync_library()).unwrap();
+    let list = find_list("From CI")
+        .expect("the playlist came back from Emby")
+        .id;
+    assert_eq!(titles(list), ["Opening", "Middle", "Closing"]);
+
+    // 11. A move and, at once, a removal: Emby may renumber its entry IDs after a move
+    // and list the old ones for a moment, so both are done on the songs, not the IDs.
+    core.move_in_playlist(list, 2, 0).unwrap();
+    core.remove_from_playlist(list, vec![1]).unwrap();
+    assert_eq!(titles(list), ["Closing", "Middle"]);
+    let sent = block(core.send_edits()).unwrap();
+    assert_eq!((sent.refused, sent.waiting), (0, 0), "{sent:?}");
+    block(core.sync_library()).unwrap();
+    println!("after a move and a removal: {:?}", titles(list));
+    assert_eq!(titles(list), ["Closing", "Middle"]);
+
+    // 12. An insert in the middle (Emby adds at the end only).
+    core.add_to(
+        DropTarget {
+            kind: DropTargetKind::Playlist,
+            id: Some(list),
+        },
+        vec![by_title("Hum")],
+        Some(1),
+        false,
+    )
+    .unwrap();
+    let sent = block(core.send_edits()).unwrap();
+    assert_eq!((sent.refused, sent.waiting), (0, 0), "{sent:?}");
+    block(core.sync_library()).unwrap();
+    println!("after an insert at 1: {:?}", titles(list));
+    assert_eq!(titles(list), ["Closing", "Hum", "Middle"]);
+
+    // 13. A removal right after the insert, then the delete.
+    core.remove_from_playlist(list, vec![2]).unwrap();
+    let sent = block(core.send_edits()).unwrap();
+    assert_eq!((sent.refused, sent.waiting), (0, 0), "{sent:?}");
+    block(core.sync_library()).unwrap();
+    assert_eq!(titles(list), ["Closing", "Hum"]);
+    core.delete_playlist(list).unwrap();
+    let sent = block(core.send_edits()).unwrap();
+    assert_eq!((sent.refused, sent.waiting), (0, 0), "{sent:?}");
+    block(core.sync_library()).unwrap();
+    assert!(find_list("From CI").is_none());
+}
+
+/// ADR core-0022 on the invented Emby replies (tools/fixtures/emby/): found as Emby,
+/// signed in as kind "emby", synced and read under `/emby`, and opened again from the
+/// stored kind after a restart, still as Emby.
+#[test]
+fn an_emby_server_is_found_signed_in_and_restored_by_its_kind() {
+    let fixtures = || -> Arc<FixtureTransport> {
+        let mut all: Vec<serde_json::Value> = Vec::new();
+        for f in [
+            include_str!("../../../../../tools/fixtures/emby/server.json"),
+            include_str!("../../../../../tools/fixtures/emby/library.json"),
+            include_str!("../../../../../tools/fixtures/emby/lyrics.json"),
+        ] {
+            all.extend(serde_json::from_str::<Vec<serde_json::Value>>(f).unwrap());
+        }
+        Arc::new(FixtureTransport::from_json(&serde_json::to_string(&all).unwrap()).unwrap())
+    };
+    let dir = temp_dir("emby-unit");
+    let config = CoreConfig {
+        data_dir: dir.0.to_string_lossy().into_owned(),
+        device_id: "dev-1".into(),
+        device_name: "Test Phone".into(),
+        platform: "test".into(),
+    };
+    let t = fixtures();
+    let core = EncoreCore::build(
+        config.clone(),
+        Duration::ZERO,
+        50,
+        Some(t.clone() as Arc<dyn Transport>),
+    )
+    .unwrap();
+    let check = block(core.check_address("http://192.168.1.20:8096".into())).unwrap();
+    assert_eq!(check.kind, ServerKind::Emby);
+    assert_eq!(check.name, "Den Server");
+    let signed = block(core.sign_in(
+        check.base_url.clone(),
+        "listener".into(),
+        "made-up password".into(),
+    ))
+    .unwrap();
+    assert_eq!(signed.token, "invented-emby-token");
+    assert_eq!(core.servers().unwrap()[0].kind, "emby");
+    let synced = block(core.sync_library()).unwrap();
+    assert_eq!((synced[0].songs, synced[0].albums), (2, 2));
+    let tide = core
+        .songs(SongSort::Title, 0, 10)
+        .unwrap()
+        .into_iter()
+        .find(|s| s.title == "Slow Tide")
+        .unwrap();
+    let lyrics = block(core.lyrics(tide.id)).unwrap().unwrap();
+    assert_eq!(lyrics.sync_level, LyricsSync::Line);
+    assert_eq!(lyrics.lines[1].text, "The tide comes slow");
+    // Every request but the public check (asked at the root, where both servers answer)
+    // went under /emby, with Emby's header; none to /Users/Me.
+    let sent: Vec<_> = t
+        .sent()
+        .into_iter()
+        .filter(|r| r.url.path() != "/System/Info/Public")
+        .collect();
+    assert!(
+        sent.iter().all(|r| r.url.path().starts_with("/emby/")
+            && r.headers.iter().any(|(k, _)| k == "X-Emby-Authorization")),
+        "{:?}",
+        sent.iter()
+            .map(|r| r.url.path().to_owned())
+            .collect::<Vec<_>>()
+    );
+    assert!(sent.iter().all(|r| !r.url.path().ends_with("/Users/Me")));
+    drop(core);
+
+    // The app starts again: the stored kind brings the Emby client back.
+    let t = fixtures();
+    let core = EncoreCore::build(
+        config,
+        Duration::ZERO,
+        50,
+        Some(t.clone() as Arc<dyn Transport>),
+    )
+    .unwrap();
+    core.open_profile(
+        signed.profile_id.clone(),
+        vec![SourceToken {
+            source_id: signed.source_id,
+            token: signed.token.clone(),
+        }],
+    )
+    .unwrap();
+    block(core.sync_library()).unwrap();
+    assert!(!t.sent().is_empty());
+    assert!(t.sent().iter().all(|r| r.url.path().starts_with("/emby/")));
+}
+
 /// Phase 12, stage 2 (ADR core-0023): the production path against a real Plex Media Server,
 /// which CI starts in Docker, unclaimed and with no way out to the internet, on the same
 /// made-up tone files (core.yml, "plex"). plex.tv can't vouch for an unclaimed server, so

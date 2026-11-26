@@ -27,8 +27,8 @@ pub struct CoreConfig {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
 pub struct ServerCheck {
-    /// Jellyfin, Navidrome and other OpenSubsonic servers (ADR core-0021), or Plex
-    /// (ADR core-0023).
+    /// Jellyfin, Emby (ADR core-0022), Navidrome and other OpenSubsonic servers
+    /// (ADR core-0021), or Plex (ADR core-0023).
     pub kind: ServerKind,
     /// The address that answered; pass it to the sign-in calls.
     pub base_url: String,
@@ -46,6 +46,9 @@ pub struct ServerCheck {
 pub enum ServerKind {
     Jellyfin,
     Subsonic,
+    /// Emby: signs in with a user name and password like Jellyfin, no Quick Connect
+    /// (ADR core-0022).
+    Emby,
     Plex,
 }
 

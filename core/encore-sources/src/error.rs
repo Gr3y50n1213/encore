@@ -40,9 +40,9 @@ pub enum SourceError {
     /// A certificate the system does not trust; the user may trust this exact one.
     #[error("The server's certificate isn't trusted")]
     CertificateUntrusted { sha256: String },
-    #[error("This isn't a Jellyfin server")]
+    #[error("This isn't a Jellyfin, Emby or Subsonic server")]
     NotJellyfin,
-    #[error("This server runs Jellyfin {found}; Encore needs {minimum} or later")]
+    #[error("This server runs version {found}; Encore needs {minimum} or later")]
     UnsupportedVersion { found: String, minimum: String },
     #[error("Wrong username or password")]
     WrongCredentials,

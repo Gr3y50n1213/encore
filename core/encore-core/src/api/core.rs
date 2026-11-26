@@ -316,7 +316,11 @@ impl Inner {
             }
         };
         Ok(ServerCheck {
-            kind: ServerKind::Jellyfin,
+            // The same reply tells Jellyfin from Emby (ADR core-0022).
+            kind: match info.flavor {
+                jellyfin::Flavor::Jellyfin => ServerKind::Jellyfin,
+                jellyfin::Flavor::Emby => ServerKind::Emby,
+            },
             base_url: info.base_url.to_string(),
             name: info.name,
             version: info.version,
@@ -547,7 +551,8 @@ impl Inner {
         let transport = self.transport_for(self.pin_for(base_url).as_deref())?;
         let client = JellyfinClient::new(transport, url, self.device(), REQUEST_TIMEOUT);
         let info = client.public_info().await?;
-        Ok((client, info))
+        // Jellyfin or Emby: the client speaks to it the way it answered (core-0022).
+        Ok((client.with_flavor(info.flavor), info))
     }
 
     /// A Subsonic client for an address the user typed (core-0021).
@@ -599,14 +604,19 @@ impl Inner {
         info: ServerInfo,
         session: Session,
     ) -> Result<SignedIn, EncoreError> {
-        // The client used to sign in already holds the session.
+        // The client used to sign in already holds the session. Emby comes this way too
+        // (ADR core-0022), with its own kind.
+        let kind = match client.flavor() {
+            jellyfin::Flavor::Jellyfin => SourceKind::Jellyfin,
+            jellyfin::Flavor::Emby => SourceKind::Emby,
+        };
         let source = crate::source_any::AnySource::Jellyfin(JellyfinSource {
             client: client.signed_in(session.token.clone(), session.user_id.clone()),
-            quick_connect: true,
+            quick_connect: kind == SourceKind::Jellyfin,
         });
         self.finish_sign_in(
             NewAccount {
-                kind: "jellyfin",
+                kind: kind.as_str(),
                 name: &info.name,
                 base_url: info.base_url.as_str(),
                 server_id: &info.server_id,
@@ -707,11 +717,17 @@ impl Inner {
                 client,
             }));
         }
+        let flavor = if record.kind == SourceKind::Emby.as_str() {
+            jellyfin::Flavor::Emby
+        } else {
+            jellyfin::Flavor::Jellyfin
+        };
         let client = JellyfinClient::new(transport, url, self.device(), REQUEST_TIMEOUT)
+            .with_flavor(flavor)
             .signed_in(token.to_owned(), record.user_id.clone());
         Ok(crate::source_any::AnySource::Jellyfin(JellyfinSource {
             client,
-            quick_connect: true,
+            quick_connect: flavor == jellyfin::Flavor::Jellyfin,
         }))
     }
 
@@ -1359,7 +1375,8 @@ impl EncoreCore {
     ) -> Result<SignedIn, EncoreError> {
         let inner = self.inner.clone();
         self.spawn(async move {
-            // Jellyfin, or else an OpenSubsonic server at the same address (core-0021).
+            // Jellyfin or Emby (core-0022), or else an OpenSubsonic server at the same
+            // address (core-0021).
             match inner.client_for(&base_url).await {
                 Ok((client, info)) => {
                     let session = client.sign_in(&username, &password).await?;

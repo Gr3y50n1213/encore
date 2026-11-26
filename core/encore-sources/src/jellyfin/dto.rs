@@ -79,6 +79,9 @@ pub struct BaseItem {
     pub album_normalization_gain: Option<f64>,
     pub image_tags: Option<HashMap<String, Option<String>>>,
     pub playlist_item_id: Option<String>,
+    /// Emby only, when asked for: where its lyrics are (ADR core-0022).
+    pub media_streams: Option<Vec<MediaStream>>,
+    pub media_sources: Option<Vec<MediaSourceInfo>>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -107,4 +110,48 @@ pub struct UserItemData {
     pub last_played_date: Option<String>,
     pub played: Option<bool>,
     pub is_favorite: Option<bool>,
+}
+
+/// One stream of a media file (`fields=MediaStreams`). Emby lists a song's lyrics
+/// here, as a text subtitle stream (ADR core-0022).
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "PascalCase", default)]
+pub struct MediaStream {
+    #[serde(rename = "Type")]
+    pub kind: Option<String>,
+    pub codec: Option<String>,
+    pub index: Option<i64>,
+    pub is_text_subtitle_stream: Option<bool>,
+    pub is_external: Option<bool>,
+}
+
+/// One playable version of an item (`fields=MediaSources`); only its ID is read.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "PascalCase", default)]
+pub struct MediaSourceInfo {
+    pub id: Option<String>,
+}
+
+/// One entry of Emby's `GET /Sessions`.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "PascalCase", default)]
+pub struct SessionInfo {
+    pub user_id: Option<String>,
+    pub user_name: Option<String>,
+    pub device_id: Option<String>,
+    pub client: Option<String>,
+}
+
+/// Emby's subtitle stream as JSON (`Stream.js`): a lyrics file's lines.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "PascalCase", default)]
+pub struct SubtitleTrack {
+    pub track_events: Option<Vec<TrackEvent>>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "PascalCase", default)]
+pub struct TrackEvent {
+    pub text: Option<String>,
+    pub start_position_ticks: Option<i64>,
 }

@@ -1,6 +1,8 @@
 //! Sign-in without a new password (plan section 5): a device sends its Jellyfin
 //! token once, the server asks that Jellyfin who it belongs to, and hands back its
-//! own tokens. The Jellyfin token is used for that one check and never stored.
+//! own tokens. The Jellyfin token is used for that one check and never stored. An
+//! Emby token comes the same way (ADR core-0022): the trusted address says it is Emby,
+//! and Emby says whose the token is.
 
 use std::collections::HashMap;
 use std::future::Future;
@@ -13,7 +15,7 @@ use axum::Json;
 use axum::extract::{ConnectInfo, FromRequestParts, Path, State};
 use axum::http::StatusCode;
 use axum::http::request::Parts;
-use encore_sources::jellyfin::{DeviceInfo, JellyfinClient};
+use encore_sources::jellyfin::{DeviceInfo, Flavor, JellyfinClient};
 use encore_sources::plex::{PlexClient, PlexCredentials, PlexIdentity, client_identifier};
 use encore_sources::subsonic::{SubsonicClient, SubsonicCredentials, server_id_for};
 use encore_sources::{SourceError, Transport};
@@ -58,8 +60,12 @@ pub trait MediaCheck: Send + Sync + std::fmt::Debug {
 pub struct JellyfinCheck {
     urls: Vec<Url>,
     transport: Arc<dyn Transport>,
-    /// Server ID to address, learnt from `/System/Info/Public`.
-    known: Mutex<HashMap<String, Url>>,
+    /// Server ID to address and kind (Jellyfin or Emby), learnt from
+    /// `/System/Info/Public`.
+    known: Mutex<HashMap<String, (Url, Flavor)>>,
+    /// Emby names a token's user through this server's own session there, one per
+    /// device name, so two Emby checks never run at once (ADR core-0022).
+    emby_turn: tokio::sync::Mutex<()>,
 }
 
 impl JellyfinCheck {
@@ -68,6 +74,7 @@ impl JellyfinCheck {
             urls,
             transport,
             known: Mutex::new(HashMap::new()),
+            emby_turn: tokio::sync::Mutex::new(()),
         }
     }
 
@@ -85,7 +92,7 @@ impl JellyfinCheck {
         )
     }
 
-    async fn url_for(&self, server_id: &str) -> Result<Url, CheckError> {
+    async fn url_for(&self, server_id: &str) -> Result<(Url, Flavor), CheckError> {
         if let Some(u) = self
             .known
             .lock()
@@ -101,9 +108,9 @@ impl JellyfinCheck {
                     self.known
                         .lock()
                         .unwrap_or_else(|p| p.into_inner())
-                        .insert(info.server_id.clone(), url.clone());
+                        .insert(info.server_id.clone(), (url.clone(), info.flavor));
                     if info.server_id == server_id {
-                        return Ok(url.clone());
+                        return Ok((url.clone(), info.flavor));
                     }
                 }
                 Err(e) => last_error = Some(e.to_string()),
@@ -258,9 +265,16 @@ impl MediaCheck for JellyfinCheck {
             if let Some(creds) = PlexCredentials::from_token_string(token) {
                 return self.check_plex(server_id, creds).await;
             }
-            let url = self.url_for(server_id).await?;
+            let (url, flavor) = self.url_for(server_id).await?;
+            // Emby has no /Users/Me: the token's user is the one Emby records for this
+            // server's own session, made by the request itself, so one check at a time.
+            let _turn = match flavor {
+                Flavor::Emby => Some(self.emby_turn.lock().await),
+                Flavor::Jellyfin => None,
+            };
             let me = self
                 .client(&url)
+                .with_flavor(flavor)
                 .signed_in(token.to_owned(), String::new())
                 .me()
                 .await
@@ -270,7 +284,8 @@ impl MediaCheck for JellyfinCheck {
                     }
                     other => CheckError::Unreachable(other.to_string()),
                 })?;
-            // The user record names its server on current Jellyfin; it must agree.
+            // The user record names its server on current Jellyfin and on Emby; it must
+            // agree.
             if !me.server_id.is_empty() && me.server_id != server_id {
                 return Err(CheckError::Rejected);
             }
