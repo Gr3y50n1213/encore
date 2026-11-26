@@ -201,12 +201,36 @@ fn navidrome_flow_over_http() {
     let all = core.songs(SongSort::Title, 0, 1000).unwrap();
     assert_eq!(all.len(), songs);
 
+    // Nothing changed on the server: the next sync is a light one (playlists and
+    // likes, no songs), and the library stays whole. The edits below sync this way.
+    let again = block(core.sync_library()).unwrap();
+    assert_eq!(again[0].songs, 0, "{again:?}");
+    assert_eq!(core.songs(SongSort::Title, 0, 1000).unwrap().len(), songs);
+
     // The one song with a sidecar .lrc has timed lyrics.
     let lyrics = all
         .iter()
         .find_map(|s| block(core.lyrics(s.id)).ok().flatten())
         .expect("a song with lyrics");
     assert_eq!(lyrics.sync_level, LyricsSync::Line);
+
+    // The album with a cover (flat teal, 1E6E8C) gets its colours from Navidrome's JPEG.
+    let covered = core
+        .albums(AlbumSort::Title, 0, 100)
+        .unwrap()
+        .into_iter()
+        .find(|a| a.has_artwork)
+        .expect("the album with cover.jpg");
+    let palette = block(core.album_palette(covered.id))
+        .unwrap()
+        .expect("a palette from a JPEG cover");
+    println!("palette of a Navidrome JPEG cover: {palette:?}");
+    let lead = u32::from_str_radix(&palette.sampled[0].colour, 16).unwrap();
+    let [r, g, b] = [lead >> 16, (lead >> 8) & 0xFF, lead & 0xFF].map(|c| c as i32);
+    assert!(
+        (r - 0x1E).abs() < 16 && (g - 0x6E).abs() < 16 && (b - 0x8C).abs() < 16,
+        "{palette:?}"
+    );
 
     // A new playlist made here reaches the server, then a rename, a removal and a delete.
     let made = core

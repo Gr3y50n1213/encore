@@ -823,7 +823,7 @@ jobs:
     # Phase 12, stage 1 (docs/adr/core-0021): the production path against a real Navidrome,
     # pinned by digest, on six made-up tone files (no recorded music), here on GitHub's
     # runner and never on the owner's PC.
-    name: "Navidrome: sign in, sync, lyrics, playlists and likes over HTTP"
+    name: "Navidrome: sign in, sync, lyrics, cover colours, playlists and likes over HTTP"
     needs: linux
     runs-on: ubuntu-24.04
     timeout-minutes: 40
@@ -864,6 +864,9 @@ jobs:
           make "Sine Wave Band" "Low Hum" 2 "Drone" 247
           make "Sine Wave Band" "Low Hum" 3 "Fade" 262
           printf '[00:01.00]A line to sing\n[00:05.00]Another line\n' > "$music/Tone Choir/First Light/01 Opening.lrc"
+          # A flat teal cover for one album: Navidrome sends it as a JPEG, which the palette reads.
+          ffmpeg -loglevel error -f lavfi -i "color=c=0x1E6E8C:s=600x600" -frames:v 1 \
+            "$music/Tone Choir/First Light/cover.jpg"
           find "$music" -type f | sort
 
       - name: Navidrome 0.64.2

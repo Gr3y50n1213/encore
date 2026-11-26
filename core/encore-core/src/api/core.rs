@@ -893,6 +893,10 @@ impl EncoreCore {
     }
 }
 
+/// From when covers in JPEG give palettes (palette/jpeg.rs): 27 November 2026, 00:00
+/// UTC, the day after the change, so builds from before it are covered too.
+const JPEG_COVERS_READ_FROM_MS: i64 = 1_795_737_600_000;
+
 impl Inner {
     /// Make, or read back, the palette of an album's or playlist's cover: the
     /// database first (no network), else one small PNG from the source, kept
@@ -925,8 +929,11 @@ impl Inner {
                 serde_json::from_str(json).map_err(EncoreError::internal)?;
             Ok(Some(palette.into()))
         };
+        // A cover that gave no colours before JPEG covers could be read (a Subsonic
+        // server's) is tried once more.
         if let Some(c) = &cached
             && c.artwork_tag == tag
+            && (c.palette_json.is_some() || c.made_utc_ms >= JPEG_COVERS_READ_FROM_MS)
         {
             return read(c);
         }
@@ -946,8 +953,11 @@ impl Inner {
             (Err(e), None) => return Err(e),
         };
         // A cover that can't be read counts as no cover: the profile accent.
-        let palette =
-            bytes.and_then(|b| crate::palette::palette_of_png(&b, settings).ok().flatten());
+        let palette = bytes.and_then(|b| {
+            crate::palette::palette_of_image(&b, settings)
+                .ok()
+                .flatten()
+        });
         let palette_json = match &palette {
             Some(pal) => Some(serde_json::to_string(pal).map_err(EncoreError::internal)?),
             None => None,

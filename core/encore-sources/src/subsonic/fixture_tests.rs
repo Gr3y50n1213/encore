@@ -304,11 +304,13 @@ async fn a_full_sync_maps_the_whole_library() {
         })
         .await
         .unwrap();
-    assert!(delta.full, "every Subsonic sync is a full one");
+    assert!(delta.full, "with no cursor, a full sync");
+    assert!(delta.playlists_complete);
     assert!(delta.removed_item_ids.is_empty());
-    assert_eq!(
-        delta.cursor,
-        Some(Cursor("subsonic1:lm=1762400000000".into()))
+    let cursor = delta.cursor.clone().unwrap();
+    assert!(
+        cursor.0.starts_with("subsonic1:lm=1762400000000;full="),
+        "{cursor:?}"
     );
 
     let mut artists: Vec<_> = delta.artists.iter().map(|a| a.name.as_str()).collect();
@@ -414,6 +416,63 @@ async fn a_full_sync_maps_the_whole_library() {
     let pairs: Vec<(String, String)> = art.query_pairs().into_owned().collect();
     assert!(pairs.contains(&("id".into(), "al-al1_6740a1b2".into())));
     assert!(pairs.contains(&("size".into(), "300".into())));
+}
+
+#[tokio::test]
+async fn an_unchanged_library_syncs_only_its_playlists_and_favourites() {
+    let t = fixture(LIBRARY);
+    let client = signed_in(&t);
+    let now: i64 = 1_762_500_000_000;
+    let none = HashSet::new();
+    let quiet = |_: SyncProgress| {};
+    let fresh = Cursor(format!("subsonic1:lm=1762400000000;full={}", now - 60_000));
+    let delta = sync::sync_library_at(&client, Some(&fresh), &none, 2, &quiet, now)
+        .await
+        .unwrap();
+    assert!(!delta.full, "a light sync never removes songs");
+    assert!(delta.playlists_complete);
+    assert!(delta.artists.is_empty() && delta.albums.is_empty() && delta.tracks.is_empty());
+    assert_eq!(delta.playlists.len(), 2);
+    assert_eq!(delta.playlists[0].entries.len(), 3);
+    let mut favs = delta.favorite_item_ids.clone().unwrap();
+    favs.sort_unstable();
+    assert_eq!(favs, ["s1", "s4"], "the same set the full sync reads");
+    assert_eq!(
+        delta.play_counts, None,
+        "play counts wait for the full sync"
+    );
+    assert_eq!(
+        delta.cursor,
+        Some(fresh.clone()),
+        "the full sync's time is kept"
+    );
+    assert!(sent_to(&t, "getAlbumList2").is_empty());
+    assert!(sent_to(&t, "getAlbum").is_empty());
+    assert!(sent_to(&t, "getArtists").is_empty());
+
+    // A day after the last full sync, a cursor from before light syncs, or a moved
+    // lastModified: a full sync, with a new full sync time.
+    let stale = [
+        Cursor(format!(
+            "subsonic1:lm=1762400000000;full={}",
+            now - sync::FULL_SYNC_EVERY_MS
+        )),
+        Cursor("subsonic1:lm=1762400000000".into()),
+        Cursor(format!("subsonic1:lm=1762300000000;full={}", now - 60_000)),
+        // A clock that went back: not trusted.
+        Cursor(format!("subsonic1:lm=1762400000000;full={}", now + 60_000)),
+    ];
+    for since in stale {
+        let d = sync::sync_library_at(&client, Some(&since), &none, 2, &quiet, now)
+            .await
+            .unwrap();
+        assert!(d.full, "{since:?}");
+        assert_eq!(d.tracks.len(), 5);
+        assert_eq!(
+            d.cursor,
+            Some(Cursor(format!("subsonic1:lm=1762400000000;full={now}")))
+        );
+    }
 }
 
 #[tokio::test]
@@ -546,7 +605,8 @@ async fn cover_bytes_and_a_missing_cover() {
         .unwrap()
         .unwrap();
     assert_eq!(&bytes[..3], &[0xff, 0xd8, 0xff]);
-    assert_eq!(value(&t.sent()[0], "size").as_deref(), Some("64"));
+    // Eight times the sample size: the JPEG is read at one eighth (palette/jpeg.rs).
+    assert_eq!(value(&t.sent()[0], "size").as_deref(), Some("512"));
     assert_eq!(source.artwork_bytes("al9", 300).await.unwrap(), None);
 }
 

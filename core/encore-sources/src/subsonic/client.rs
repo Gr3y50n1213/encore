@@ -908,9 +908,11 @@ impl SubsonicClient {
         }
     }
 
-    /// The cover for colour sampling, at most `size_px`. `tag` is the album's or
-    /// playlist's `artwork_tag`, which for Subsonic is its cover art ID. Subsonic can't
-    /// ask for a format: the bytes are the server's own (JPEG or PNG, usually JPEG).
+    /// The cover for colour sampling. `tag` is the album's or playlist's
+    /// `artwork_tag`, which for Subsonic is its cover art ID. Subsonic can't ask for a
+    /// format: the bytes are the server's own, usually JPEG, which the palette reads
+    /// at one eighth of its size, so it is asked for at eight times `size_px` (at most
+    /// 1024) to give the palette `size_px` back.
     pub async fn cover_png(
         &self,
         item_id: &str,
@@ -921,7 +923,8 @@ impl SubsonicClient {
             .filter(|t| !t.is_empty())
             .map(str::to_owned)
             .unwrap_or_else(|| self.cover_id(item_id));
-        self.image(&id, size_px.clamp(8, 1024)).await
+        self.image(&id, size_px.saturating_mul(8).clamp(8, 1024))
+            .await
     }
 
     /// The cover's bytes at `size_px`, for a downloaded album shown offline.

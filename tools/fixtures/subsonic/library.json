@@ -649,5 +649,39 @@
         }
       }
     }
+  },
+  {
+    "method": "GET",
+    "path": "/rest/getStarred2.view",
+    "query": {},
+    "body": {
+      "subsonic-response": {
+        "status": "ok",
+        "version": "1.16.1",
+        "type": "navidrome",
+        "serverVersion": "0.58.0 (fixture)",
+        "openSubsonic": true,
+        "starred2": {
+          "song": [
+            {
+              "id": "s1",
+              "title": "Low Lantern",
+              "starred": "2026-11-01T10:00:00Z"
+            },
+            {
+              "id": "s4",
+              "title": "Copper Leaves",
+              "starred": "2026-11-02T10:00:00Z"
+            }
+          ],
+          "album": [
+            {
+              "id": "al2",
+              "name": "The Quiet Room"
+            }
+          ]
+        }
+      }
+    }
   }
 ]

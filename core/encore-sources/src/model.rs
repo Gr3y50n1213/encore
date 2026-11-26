@@ -209,6 +209,11 @@ pub struct LibraryDelta {
     pub albums: Vec<Album>,
     pub tracks: Vec<Track>,
     pub playlists: Vec<Playlist>,
+    /// True when `playlists` is every playlist the server has for this user, so one
+    /// mirrored here and missing from it was deleted there, even in a delta that isn't
+    /// `full` (a Subsonic light sync).
+    #[serde(default)]
+    pub playlists_complete: bool,
     /// Source item IDs (of any type) that were removed on the server.
     pub removed_item_ids: Vec<String>,
     /// Every song this user has marked as a favourite on the server, when the source

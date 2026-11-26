@@ -229,6 +229,13 @@ pub(crate) struct PlaylistDto {
     pub(crate) entry: Vec<Child>,
 }
 
+/// `getStarred2`: the songs this user starred (artists and albums are not used).
+#[derive(Debug, Clone, Default, Deserialize)]
+pub(crate) struct Starred2Dto {
+    #[serde(default, deserialize_with = "many")]
+    pub(crate) song: Vec<Child>,
+}
+
 /// `getPlaylists`: `playlists.playlist[]`.
 #[derive(Debug, Clone, Default, Deserialize)]
 pub(crate) struct PlaylistsDto {

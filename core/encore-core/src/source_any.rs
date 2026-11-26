@@ -70,8 +70,9 @@ impl AnySource {
                     .image_tag
                     .map(|tag| (s.client.base_url().as_str().to_owned(), me.user_id, tag)))
             }
-            // The switcher's picture is Jellyfin's (address, user, tag); a Subsonic
-            // picture is a signed address, not kept in the registry. The initial shows.
+            // Subsonic users have no picture of their own: Navidrome's getAvatar is a
+            // placeholder or a Gravatar redirect keyed on the user's e-mail, which no
+            // device should send (ADR core-0021 point 13). The initials show.
             AnySource::Subsonic(_) => Ok(None),
         }
     }

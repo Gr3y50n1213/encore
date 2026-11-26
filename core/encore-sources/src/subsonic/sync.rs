@@ -10,31 +10,54 @@
 //! - favourites and play counts from the songs' own `starred`, `playCount` and
 //!   (OpenSubsonic) `played` fields, so they cost no extra request.
 //!
-//! The cursor holds `getIndexes`' `lastModified` from the start of the sync
-//! (`subsonic1:lm=<ms>`). The core runs a sync only when it moved or the user pulls
-//! to refresh: `library_changed` compares the two.
+//! The cursor holds `getIndexes`' `lastModified` from the start of the sync and when
+//! the last full sync ran (`subsonic1:lm=<ms>;full=<ms>`). When `lastModified` hasn't
+//! moved and the last full sync is less than a day old ([`FULL_SYNC_EVERY_MS`]), the
+//! sync is a light one: only the playlists and the favourites, which `lastModified`
+//! doesn't cover, instead of every album (one request each). Play counts from other
+//! apps come with the next full sync.
 
 use std::collections::HashSet;
 
 use super::client::SubsonicClient;
-use super::dto::{AlbumDto, AlbumListDto, ArtistsDto, Child};
+use super::dto::{AlbumDto, AlbumListDto, ArtistsDto, Child, Starred2Dto};
 use super::map;
 use crate::error::Result;
 use crate::jellyfin::SyncProgress;
-use crate::model::{Cursor, LibraryDelta};
+use crate::model::{Cursor, LibraryDelta, Playlist};
 
 /// `getAlbumList2`'s largest page (opensubsonic.github.io/docs/endpoints/getalbumlist2).
 pub const MAX_ALBUM_PAGE: u32 = 500;
 
 const CURSOR_PREFIX: &str = "subsonic1:lm=";
+const FULL_AT: &str = ";full=";
+
+/// How long an unchanged library goes without a full sync: anything `lastModified`
+/// misses (play counts from other apps, a server that doesn't move it) comes in at
+/// least this often.
+pub const FULL_SYNC_EVERY_MS: i64 = 24 * 60 * 60 * 1000;
 
 /// The `lastModified` a cursor holds, if it is a Subsonic cursor.
 pub fn cursor_last_modified(cursor: &Cursor) -> Option<i64> {
-    cursor.0.strip_prefix(CURSOR_PREFIX)?.parse().ok()
+    let rest = cursor.0.strip_prefix(CURSOR_PREFIX)?;
+    rest.split(';').next()?.parse().ok()
 }
 
-fn cursor_for(last_modified: i64) -> Cursor {
-    Cursor(format!("{CURSOR_PREFIX}{last_modified}"))
+/// When the full sync that made the cursor ran; None for older cursors.
+fn cursor_full_at(cursor: &Cursor) -> Option<i64> {
+    let rest = cursor.0.strip_prefix(CURSOR_PREFIX)?;
+    rest.split_once(FULL_AT)?.1.parse().ok()
+}
+
+fn cursor_for(last_modified: i64, full_at: i64) -> Cursor {
+    Cursor(format!("{CURSOR_PREFIX}{last_modified}{FULL_AT}{full_at}"))
+}
+
+fn now_ms() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0)
 }
 
 /// Whether the library changed since the sync that gave `since`: true when there is
@@ -48,8 +71,9 @@ pub async fn library_changed(client: &SubsonicClient, since: Option<&Cursor>) ->
     Ok(client.last_modified().await? != Some(before))
 }
 
-/// Run one full sync. `known_ids` is not needed (a full delta lists everything);
-/// `page_size` is `library.syncPageSize`.
+/// Run one sync: a light one when nothing changed (see the module notes), else a full
+/// one. `known_ids` is not needed (a full delta lists everything); `page_size` is
+/// `library.syncPageSize`.
 pub async fn sync_library(
     client: &SubsonicClient,
     since: Option<&Cursor>,
@@ -57,10 +81,28 @@ pub async fn sync_library(
     page_size: u32,
     progress: &(dyn Fn(SyncProgress) + Send + Sync),
 ) -> Result<LibraryDelta> {
-    let _ = (since, known_ids);
+    sync_library_at(client, since, known_ids, page_size, progress, now_ms()).await
+}
+
+/// [`sync_library`] at a given time, for the tests.
+pub(crate) async fn sync_library_at(
+    client: &SubsonicClient,
+    since: Option<&Cursor>,
+    known_ids: &HashSet<String>,
+    page_size: u32,
+    progress: &(dyn Fn(SyncProgress) + Send + Sync),
+    now: i64,
+) -> Result<LibraryDelta> {
+    let _ = known_ids;
     // Read first, so a change made while the sync runs moves it past this cursor.
     // A server that can't say gives no cursor: the next check says "changed".
     let last_modified = client.last_modified().await.ok().flatten();
+    if let (Some(since), Some(now_lm)) = (since, last_modified)
+        && cursor_last_modified(since) == Some(now_lm)
+        && cursor_full_at(since).is_some_and(|at| (0..FULL_SYNC_EVERY_MS).contains(&(now - at)))
+    {
+        return light_sync(client, since, progress).await;
+    }
     let user = client.user_name().to_owned();
     let mut done: u64 = 0;
     let mut total: u64 = 0;
@@ -159,20 +201,7 @@ pub async fn sync_library(
         report(done, total);
     }
 
-    let listed = client.playlists().await?;
-    total += listed.len() as u64;
-    let mut playlists = Vec::with_capacity(listed.len());
-    for p in &listed {
-        let Some(id) = p.id.as_deref() else { continue };
-        let full = client.playlist(id).await?;
-        let full = if full.id.is_some() { &full } else { p };
-        if let Some(pl) = map::to_playlist(full, &user) {
-            client.remember_cover(&pl.source_item_id, pl.artwork_tag.as_deref());
-            playlists.push(pl);
-        }
-        done += 1;
-        report(done, total);
-    }
+    let playlists = all_playlists(client, &user, &mut done, &mut total, &report).await?;
 
     Ok(LibraryDelta {
         full: true,
@@ -180,10 +209,74 @@ pub async fn sync_library(
         albums,
         tracks,
         playlists,
+        playlists_complete: true,
         removed_item_ids: Vec::new(),
         favorite_item_ids: Some(favorite_item_ids),
         play_counts: Some(play_counts),
-        cursor: last_modified.map(cursor_for),
+        cursor: last_modified.map(|lm| cursor_for(lm, now)),
+    })
+}
+
+/// Every playlist this user can see, with its songs.
+async fn all_playlists(
+    client: &SubsonicClient,
+    user: &str,
+    done: &mut u64,
+    total: &mut u64,
+    report: &(dyn Fn(u64, u64) + Send + Sync),
+) -> Result<Vec<Playlist>> {
+    let listed = client.playlists().await?;
+    *total += listed.len() as u64;
+    let mut playlists = Vec::with_capacity(listed.len());
+    for p in &listed {
+        let Some(id) = p.id.as_deref() else { continue };
+        let full = client.playlist(id).await?;
+        let full = if full.id.is_some() { &full } else { p };
+        if let Some(pl) = map::to_playlist(full, user) {
+            client.remember_cover(&pl.source_item_id, pl.artwork_tag.as_deref());
+            playlists.push(pl);
+        }
+        *done += 1;
+        report(*done, *total);
+    }
+    Ok(playlists)
+}
+
+/// The library hasn't changed: only what `lastModified` doesn't cover. The playlists
+/// come whole (`playlists_complete`, so one deleted elsewhere goes), the favourites
+/// from `getStarred2`, and the cursor stays as it was, so a full sync still comes a
+/// day after the last one.
+async fn light_sync(
+    client: &SubsonicClient,
+    since: &Cursor,
+    progress: &(dyn Fn(SyncProgress) + Send + Sync),
+) -> Result<LibraryDelta> {
+    let user = client.user_name().to_owned();
+    let (mut done, mut total) = (0u64, 0u64);
+    let report = |done: u64, total: u64| {
+        progress(SyncProgress {
+            done,
+            total: total.max(done),
+        })
+    };
+    let starred: Starred2Dto = client.fetch("getStarred2", &[], "starred2").await?;
+    let favorite_item_ids: Vec<String> = starred
+        .song
+        .iter()
+        .filter_map(|c| c.id.as_deref())
+        .map(str::trim)
+        .filter(|id| !id.is_empty())
+        .map(str::to_owned)
+        .collect();
+    let playlists = all_playlists(client, &user, &mut done, &mut total, &report).await?;
+    report(done, total);
+    Ok(LibraryDelta {
+        full: false,
+        playlists,
+        playlists_complete: true,
+        favorite_item_ids: Some(favorite_item_ids),
+        cursor: Some(since.clone()),
+        ..LibraryDelta::default()
     })
 }
 
@@ -217,9 +310,14 @@ mod tests {
 
     #[test]
     fn cursors_round_trip() {
-        let c = cursor_for(1_762_400_000_000);
-        assert_eq!(c.0, "subsonic1:lm=1762400000000");
+        let c = cursor_for(1_762_400_000_000, 1_762_500_000_000);
+        assert_eq!(c.0, "subsonic1:lm=1762400000000;full=1762500000000");
         assert_eq!(cursor_last_modified(&c), Some(1_762_400_000_000));
+        assert_eq!(cursor_full_at(&c), Some(1_762_500_000_000));
+        // Cursors from before the light sync: read, but no full sync time.
+        let old = Cursor("subsonic1:lm=1762400000000".into());
+        assert_eq!(cursor_last_modified(&old), Some(1_762_400_000_000));
+        assert_eq!(cursor_full_at(&old), None);
         assert_eq!(
             cursor_last_modified(&Cursor("2026-11-06T00:00:00Z".into())),
             None
