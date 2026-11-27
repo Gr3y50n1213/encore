@@ -1542,6 +1542,63 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
     func stopRemoteControl() throws 
     
     /**
+     * Add a folder the listener chose (`uri` is the platform's address for it, kept on
+     * this device only). The first one makes the profile's device music source. Then
+     * look through it: `local_known_files`, `local_add_file` for each file, and
+     * `local_finish_look`.
+     */
+    func addLocalFolder(uri: String, name: String) throws  -> LocalFolderInfo
+    
+    /**
+     * A profile with only the device's music, for someone with no server (mock-up 49,
+     * screen 5). It opens at once; add a folder next.
+     */
+    func createDeviceProfile(name: String) throws  -> SignedIn
+    
+    /**
+     * Read one file into the device's index. True when it is a song; false when it
+     * isn't music Encore reads. Call from a background thread: it reads the file.
+     */
+    func localAddFile(file: LocalFoundFile) throws  -> Bool
+    
+    /**
+     * The look through a folder is done: `seen` is every file address found in it this
+     * time (files not in it are gone). The library is brought up to date. Async.
+     */
+    func localFinishLook(folderId: UInt32, seen: [String]) async throws  -> UInt32
+    
+    /**
+     * The folders of the device's music in the open profile (mock-up 49, screen 2);
+     * empty when there are none.
+     */
+    func localFolders() throws  -> [LocalFolderInfo]
+    
+    /**
+     * The files already known in a folder, so the platform can hand over only new or
+     * changed ones (any it hands over unchanged are skipped anyway).
+     */
+    func localKnownFiles(folderId: UInt32) throws  -> [LocalKnownFile]
+    
+    /**
+     * Bring the library up to date during a long look, so songs appear as they are
+     * found (mock-up 49, screen 3). Nothing is forgotten until `local_finish_look`.
+     * Async.
+     */
+    func localRefresh() async throws  -> UInt32
+    
+    /**
+     * Stop using a folder: its songs leave the library, the files stay. With no folder
+     * left, the device music source goes too.
+     */
+    func removeLocalFolder(folderId: UInt32) async throws 
+    
+    /**
+     * Whether the platform can reach a folder now (an SD card taken out: "Not available
+     * right now"). Its songs stay listed.
+     */
+    func setLocalFolderAvailable(folderId: UInt32, available: Bool) throws 
+    
+    /**
      * The device's biometrics changed: every PIN is needed once before biometric
      * unlock works again (board 14, States).
      */
@@ -3809,6 +3866,153 @@ open func stopRemoteControl()throws   {try rustCallWithError(FfiConverterTypeEnc
 }
     
     /**
+     * Add a folder the listener chose (`uri` is the platform's address for it, kept on
+     * this device only). The first one makes the profile's device music source. Then
+     * look through it: `local_known_files`, `local_add_file` for each file, and
+     * `local_finish_look`.
+     */
+open func addLocalFolder(uri: String, name: String)throws  -> LocalFolderInfo  {
+    return try  FfiConverterTypeLocalFolderInfo_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_add_local_folder(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(uri),
+        FfiConverterString.lower(name),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * A profile with only the device's music, for someone with no server (mock-up 49,
+     * screen 5). It opens at once; add a folder next.
+     */
+open func createDeviceProfile(name: String)throws  -> SignedIn  {
+    return try  FfiConverterTypeSignedIn_lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_create_device_profile(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(name),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Read one file into the device's index. True when it is a song; false when it
+     * isn't music Encore reads. Call from a background thread: it reads the file.
+     */
+open func localAddFile(file: LocalFoundFile)throws  -> Bool  {
+    return try  FfiConverterBool.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_local_add_file(
+            self.uniffiCloneHandle(),
+        FfiConverterTypeLocalFoundFile_lower(file),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * The look through a folder is done: `seen` is every file address found in it this
+     * time (files not in it are gone). The library is brought up to date. Async.
+     */
+open func localFinishLook(folderId: UInt32, seen: [String])async throws  -> UInt32  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_local_finish_look(
+                        self.uniffiCloneHandle(),FfiConverterUInt32.lower(folderId),FfiConverterSequenceString.lower(seen)
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_u32,
+            completeFunc: ffi_encore_core_rust_future_complete_u32,
+            freeFunc: ffi_encore_core_rust_future_free_u32,
+            liftFunc: FfiConverterUInt32.lift,
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
+}
+    
+    /**
+     * The folders of the device's music in the open profile (mock-up 49, screen 2);
+     * empty when there are none.
+     */
+open func localFolders()throws  -> [LocalFolderInfo]  {
+    return try  FfiConverterSequenceTypeLocalFolderInfo.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_local_folders(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * The files already known in a folder, so the platform can hand over only new or
+     * changed ones (any it hands over unchanged are skipped anyway).
+     */
+open func localKnownFiles(folderId: UInt32)throws  -> [LocalKnownFile]  {
+    return try  FfiConverterSequenceTypeLocalKnownFile.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_local_known_files(
+            self.uniffiCloneHandle(),
+        FfiConverterUInt32.lower(folderId),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Bring the library up to date during a long look, so songs appear as they are
+     * found (mock-up 49, screen 3). Nothing is forgotten until `local_finish_look`.
+     * Async.
+     */
+open func localRefresh()async throws  -> UInt32  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_local_refresh(
+                        self.uniffiCloneHandle()
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_u32,
+            completeFunc: ffi_encore_core_rust_future_complete_u32,
+            freeFunc: ffi_encore_core_rust_future_free_u32,
+            liftFunc: FfiConverterUInt32.lift,
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
+}
+    
+    /**
+     * Stop using a folder: its songs leave the library, the files stay. With no folder
+     * left, the device music source goes too.
+     */
+open func removeLocalFolder(folderId: UInt32)async throws   {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_remove_local_folder(
+                        self.uniffiCloneHandle(),FfiConverterUInt32.lower(folderId)
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_void,
+            completeFunc: ffi_encore_core_rust_future_complete_void,
+            freeFunc: ffi_encore_core_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
+}
+    
+    /**
+     * Whether the platform can reach a folder now (an SD card taken out: "Not available
+     * right now"). Its songs stay listed.
+     */
+open func setLocalFolderAvailable(folderId: UInt32, available: Bool)throws   {try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_set_local_folder_available(
+            self.uniffiCloneHandle(),
+        FfiConverterUInt32.lower(folderId),
+        FfiConverterBool.lower(available),uniffiCallStatus
+    )
+}
+}
+    
+    /**
      * The device's biometrics changed: every PIN is needed once before biometric
      * unlock works again (board 14, States).
      */
@@ -4609,10 +4813,17 @@ public struct AlbumSummary: Equatable, Hashable {
     public var durationMs: Int64
     public var dateAddedUtcMs: Int64?
     public var hasArtwork: Bool
+    /**
+     * Only on this device, from its own music files (mock-up 49: the phone mark).
+     */
+    public var onDevice: Bool
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(id: Int64, title: String, artist: String, year: Int32?, songCount: UInt32, durationMs: Int64, dateAddedUtcMs: Int64?, hasArtwork: Bool) {
+    public init(id: Int64, title: String, artist: String, year: Int32?, songCount: UInt32, durationMs: Int64, dateAddedUtcMs: Int64?, hasArtwork: Bool, 
+        /**
+         * Only on this device, from its own music files (mock-up 49: the phone mark).
+         */onDevice: Bool) {
         self.id = id
         self.title = title
         self.artist = artist
@@ -4621,6 +4832,7 @@ public struct AlbumSummary: Equatable, Hashable {
         self.durationMs = durationMs
         self.dateAddedUtcMs = dateAddedUtcMs
         self.hasArtwork = hasArtwork
+        self.onDevice = onDevice
     }
 
     
@@ -4646,7 +4858,8 @@ public struct FfiConverterTypeAlbumSummary: FfiConverterRustBuffer {
                 songCount: FfiConverterUInt32.read(from: &buf), 
                 durationMs: FfiConverterInt64.read(from: &buf), 
                 dateAddedUtcMs: FfiConverterOptionInt64.read(from: &buf), 
-                hasArtwork: FfiConverterBool.read(from: &buf)
+                hasArtwork: FfiConverterBool.read(from: &buf), 
+                onDevice: FfiConverterBool.read(from: &buf)
         )
     }
 
@@ -4659,6 +4872,7 @@ public struct FfiConverterTypeAlbumSummary: FfiConverterRustBuffer {
         FfiConverterInt64.write(value.durationMs, into: &buf)
         FfiConverterOptionInt64.write(value.dateAddedUtcMs, into: &buf)
         FfiConverterBool.write(value.hasArtwork, into: &buf)
+        FfiConverterBool.write(value.onDevice, into: &buf)
     }
 }
 
@@ -6650,6 +6864,250 @@ public func FfiConverterTypeHttpHeader_lift(_ buf: RustBuffer) throws -> HttpHea
 #endif
 public func FfiConverterTypeHttpHeader_lower(_ value: HttpHeader) -> RustBuffer {
     return FfiConverterTypeHttpHeader.lower(value)
+}
+
+
+/**
+ * A folder of the device's music (ADR core-0024, mock-up 49 screen 2). `uri` is the
+ * platform's address for it and never leaves this device.
+ */
+public struct LocalFolderInfo: Equatable, Hashable {
+    public var folderId: UInt32
+    public var uri: String
+    public var name: String
+    public var songCount: UInt32
+    /**
+     * False while the platform can't reach it ("Not available right now").
+     */
+    public var available: Bool
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(folderId: UInt32, uri: String, name: String, songCount: UInt32, 
+        /**
+         * False while the platform can't reach it ("Not available right now").
+         */available: Bool) {
+        self.folderId = folderId
+        self.uri = uri
+        self.name = name
+        self.songCount = songCount
+        self.available = available
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension LocalFolderInfo: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeLocalFolderInfo: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> LocalFolderInfo {
+        return
+            try LocalFolderInfo(
+                folderId: FfiConverterUInt32.read(from: &buf), 
+                uri: FfiConverterString.read(from: &buf), 
+                name: FfiConverterString.read(from: &buf), 
+                songCount: FfiConverterUInt32.read(from: &buf), 
+                available: FfiConverterBool.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: LocalFolderInfo, into buf: inout [UInt8]) {
+        FfiConverterUInt32.write(value.folderId, into: &buf)
+        FfiConverterString.write(value.uri, into: &buf)
+        FfiConverterString.write(value.name, into: &buf)
+        FfiConverterUInt32.write(value.songCount, into: &buf)
+        FfiConverterBool.write(value.available, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLocalFolderInfo_lift(_ buf: RustBuffer) throws -> LocalFolderInfo {
+    return try FfiConverterTypeLocalFolderInfo.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLocalFolderInfo_lower(_ value: LocalFolderInfo) -> RustBuffer {
+    return FfiConverterTypeLocalFolderInfo.lower(value)
+}
+
+
+/**
+ * One file a look found, for `local_add_file`.
+ */
+public struct LocalFoundFile: Equatable, Hashable {
+    public var folderId: UInt32
+    /**
+     * The platform's address for the file (kept on this device only).
+     */
+    public var uri: String
+    public var fileName: String
+    public var size: UInt64
+    public var modifiedMs: Int64
+    /**
+     * A path the core can open for this call (Android: `/proc/self/fd/<n>` of a
+     * descriptor the app holds open until the call returns).
+     */
+    public var readPath: String
+    /**
+     * The text of a `.lrc` file with the same name beside it.
+     */
+    public var lrc: String?
+    /**
+     * A path to `cover.jpg` or `folder.jpg` beside it, opened the same way.
+     */
+    public var folderCoverPath: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(folderId: UInt32, 
+        /**
+         * The platform's address for the file (kept on this device only).
+         */uri: String, fileName: String, size: UInt64, modifiedMs: Int64, 
+        /**
+         * A path the core can open for this call (Android: `/proc/self/fd/<n>` of a
+         * descriptor the app holds open until the call returns).
+         */readPath: String, 
+        /**
+         * The text of a `.lrc` file with the same name beside it.
+         */lrc: String?, 
+        /**
+         * A path to `cover.jpg` or `folder.jpg` beside it, opened the same way.
+         */folderCoverPath: String?) {
+        self.folderId = folderId
+        self.uri = uri
+        self.fileName = fileName
+        self.size = size
+        self.modifiedMs = modifiedMs
+        self.readPath = readPath
+        self.lrc = lrc
+        self.folderCoverPath = folderCoverPath
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension LocalFoundFile: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeLocalFoundFile: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> LocalFoundFile {
+        return
+            try LocalFoundFile(
+                folderId: FfiConverterUInt32.read(from: &buf), 
+                uri: FfiConverterString.read(from: &buf), 
+                fileName: FfiConverterString.read(from: &buf), 
+                size: FfiConverterUInt64.read(from: &buf), 
+                modifiedMs: FfiConverterInt64.read(from: &buf), 
+                readPath: FfiConverterString.read(from: &buf), 
+                lrc: FfiConverterOptionString.read(from: &buf), 
+                folderCoverPath: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: LocalFoundFile, into buf: inout [UInt8]) {
+        FfiConverterUInt32.write(value.folderId, into: &buf)
+        FfiConverterString.write(value.uri, into: &buf)
+        FfiConverterString.write(value.fileName, into: &buf)
+        FfiConverterUInt64.write(value.size, into: &buf)
+        FfiConverterInt64.write(value.modifiedMs, into: &buf)
+        FfiConverterString.write(value.readPath, into: &buf)
+        FfiConverterOptionString.write(value.lrc, into: &buf)
+        FfiConverterOptionString.write(value.folderCoverPath, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLocalFoundFile_lift(_ buf: RustBuffer) throws -> LocalFoundFile {
+    return try FfiConverterTypeLocalFoundFile.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLocalFoundFile_lower(_ value: LocalFoundFile) -> RustBuffer {
+    return FfiConverterTypeLocalFoundFile.lower(value)
+}
+
+
+/**
+ * A file the device's index already knows, so a look can skip it when unchanged.
+ */
+public struct LocalKnownFile: Equatable, Hashable {
+    public var uri: String
+    public var size: UInt64
+    public var modifiedMs: Int64
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(uri: String, size: UInt64, modifiedMs: Int64) {
+        self.uri = uri
+        self.size = size
+        self.modifiedMs = modifiedMs
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension LocalKnownFile: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeLocalKnownFile: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> LocalKnownFile {
+        return
+            try LocalKnownFile(
+                uri: FfiConverterString.read(from: &buf), 
+                size: FfiConverterUInt64.read(from: &buf), 
+                modifiedMs: FfiConverterInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: LocalKnownFile, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.uri, into: &buf)
+        FfiConverterUInt64.write(value.size, into: &buf)
+        FfiConverterInt64.write(value.modifiedMs, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLocalKnownFile_lift(_ buf: RustBuffer) throws -> LocalKnownFile {
+    return try FfiConverterTypeLocalKnownFile.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLocalKnownFile_lower(_ value: LocalKnownFile) -> RustBuffer {
+    return FfiConverterTypeLocalKnownFile.lower(value)
 }
 
 
@@ -17185,6 +17643,56 @@ fileprivate struct FfiConverterSequenceTypeHttpHeader: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterSequenceTypeLocalFolderInfo: FfiConverterRustBuffer {
+    typealias SwiftType = [LocalFolderInfo]
+
+    public static func write(_ value: [LocalFolderInfo], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeLocalFolderInfo.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [LocalFolderInfo] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [LocalFolderInfo]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeLocalFolderInfo.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeLocalKnownFile: FfiConverterRustBuffer {
+    typealias SwiftType = [LocalKnownFile]
+
+    public static func write(_ value: [LocalKnownFile], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeLocalKnownFile.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [LocalKnownFile] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [LocalKnownFile]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeLocalKnownFile.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterSequenceTypeLyricBackground: FfiConverterRustBuffer {
     typealias SwiftType = [LyricBackground]
 
@@ -18333,6 +18841,33 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_stop_remote_control() != 15407) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_add_local_folder() != 40636) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_create_device_profile() != 50208) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_local_add_file() != 7795) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_local_finish_look() != 47093) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_local_folders() != 35395) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_local_known_files() != 60548) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_local_refresh() != 18568) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_remove_local_folder() != 3799) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_set_local_folder_available() != 45237) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_biometrics_changed() != 25368) {

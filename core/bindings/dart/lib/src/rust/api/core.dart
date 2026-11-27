@@ -602,15 +602,16 @@ final int songCount;
 final PlatformInt64 durationMs;
 final PlatformInt64? dateAddedUtcMs;
 final bool hasArtwork;
+final bool onDevice;
 
-                const AlbumSummary({required this.id ,required this.title ,required this.artist ,this.year ,required this.songCount ,required this.durationMs ,this.dateAddedUtcMs ,required this.hasArtwork ,});
+                const AlbumSummary({required this.id ,required this.title ,required this.artist ,this.year ,required this.songCount ,required this.durationMs ,this.dateAddedUtcMs ,required this.hasArtwork ,required this.onDevice ,});
 
 
 
 
 
         @override
-        int get hashCode => id.hashCode^title.hashCode^artist.hashCode^year.hashCode^songCount.hashCode^durationMs.hashCode^dateAddedUtcMs.hashCode^hasArtwork.hashCode;
+        int get hashCode => id.hashCode^title.hashCode^artist.hashCode^year.hashCode^songCount.hashCode^durationMs.hashCode^dateAddedUtcMs.hashCode^hasArtwork.hashCode^onDevice.hashCode;
 
 
 
@@ -619,7 +620,7 @@ final bool hasArtwork;
             identical(this, other) ||
             other is AlbumSummary &&
                 runtimeType == other.runtimeType
-                && id == other.id&& title == other.title&& artist == other.artist&& year == other.year&& songCount == other.songCount&& durationMs == other.durationMs&& dateAddedUtcMs == other.dateAddedUtcMs&& hasArtwork == other.hasArtwork;
+                && id == other.id&& title == other.title&& artist == other.artist&& year == other.year&& songCount == other.songCount&& durationMs == other.durationMs&& dateAddedUtcMs == other.dateAddedUtcMs&& hasArtwork == other.hasArtwork&& onDevice == other.onDevice;
 
             }
 

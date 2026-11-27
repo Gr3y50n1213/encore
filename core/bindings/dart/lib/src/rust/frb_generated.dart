@@ -5128,7 +5128,7 @@ return AlbumSort.values[raw as int]; }
 
 @protected AlbumSummary dco_decode_album_summary(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
 final arr = raw as List<dynamic>;
-                if (arr.length != 8) throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+                if (arr.length != 9) throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
                 return AlbumSummary(id: dco_decode_i_64(arr[0]),
 title: dco_decode_String(arr[1]),
 artist: dco_decode_String(arr[2]),
@@ -5136,7 +5136,8 @@ year: dco_decode_opt_box_autoadd_i_32(arr[3]),
 songCount: dco_decode_u_32(arr[4]),
 durationMs: dco_decode_i_64(arr[5]),
 dateAddedUtcMs: dco_decode_opt_box_autoadd_i_64(arr[6]),
-hasArtwork: dco_decode_bool(arr[7]),); }
+hasArtwork: dco_decode_bool(arr[7]),
+onDevice: dco_decode_bool(arr[8]),); }
 
 @protected ApiError dco_decode_api_error(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
 final arr = raw as List<dynamic>;
@@ -6450,7 +6451,8 @@ var var_songCount = sse_decode_u_32(deserializer);
 var var_durationMs = sse_decode_i_64(deserializer);
 var var_dateAddedUtcMs = sse_decode_opt_box_autoadd_i_64(deserializer);
 var var_hasArtwork = sse_decode_bool(deserializer);
-return AlbumSummary(id: var_id, title: var_title, artist: var_artist, year: var_year, songCount: var_songCount, durationMs: var_durationMs, dateAddedUtcMs: var_dateAddedUtcMs, hasArtwork: var_hasArtwork); }
+var var_onDevice = sse_decode_bool(deserializer);
+return AlbumSummary(id: var_id, title: var_title, artist: var_artist, year: var_year, songCount: var_songCount, durationMs: var_durationMs, dateAddedUtcMs: var_dateAddedUtcMs, hasArtwork: var_hasArtwork, onDevice: var_onDevice); }
 
 @protected ApiError sse_decode_api_error(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
 var var_kind = sse_decode_error_kind(deserializer);
@@ -8120,6 +8122,7 @@ sse_encode_u_32(self.songCount, serializer);
 sse_encode_i_64(self.durationMs, serializer);
 sse_encode_opt_box_autoadd_i_64(self.dateAddedUtcMs, serializer);
 sse_encode_bool(self.hasArtwork, serializer);
+sse_encode_bool(self.onDevice, serializer);
  }
 
 @protected void sse_encode_api_error(ApiError self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs

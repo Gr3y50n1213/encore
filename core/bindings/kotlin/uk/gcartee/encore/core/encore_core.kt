@@ -974,6 +974,24 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_stop_remote_control(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_add_local_folder(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_create_device_profile(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_local_add_file(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_local_finish_look(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_local_folders(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_local_known_files(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_local_refresh(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_remove_local_folder(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_set_local_folder_available(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_biometrics_changed(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_end_guest(
@@ -1362,6 +1380,24 @@ internal object UniffiLib {
     external fun uniffi_encore_core_fn_method_encorecore_set_volume_level(`ptr`: Long,`level`: Double,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_encore_core_fn_method_encorecore_stop_remote_control(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_add_local_folder(`ptr`: Long,`uri`: RustBuffer.ByValue,`name`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_create_device_profile(`ptr`: Long,`name`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_local_add_file(`ptr`: Long,`file`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Byte
+    external fun uniffi_encore_core_fn_method_encorecore_local_finish_look(`ptr`: Long,`folderId`: Int,`seen`: RustBuffer.ByValue,
+    ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_local_folders(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_local_known_files(`ptr`: Long,`folderId`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_local_refresh(`ptr`: Long,
+    ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_remove_local_folder(`ptr`: Long,`folderId`: Int,
+    ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_set_local_folder_available(`ptr`: Long,`folderId`: Int,`available`: Byte,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_encore_core_fn_method_encorecore_biometrics_changed(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
@@ -1993,6 +2029,33 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_stop_remote_control() and 0xFFFF) != 15407) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_add_local_folder() and 0xFFFF) != 40636) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_create_device_profile() and 0xFFFF) != 50208) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_local_add_file() and 0xFFFF) != 7795) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_local_finish_look() and 0xFFFF) != 47093) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_local_folders() and 0xFFFF) != 35395) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_local_known_files() and 0xFFFF) != 60548) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_local_refresh() and 0xFFFF) != 18568) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_remove_local_folder() and 0xFFFF) != 3799) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_set_local_folder_available() and 0xFFFF) != 45237) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_biometrics_changed() and 0xFFFF) != 25368) {
@@ -3704,6 +3767,63 @@ public interface EncoreCoreInterface {
     fun `setVolumeLevel`(`level`: kotlin.Double)
     
     fun `stopRemoteControl`()
+    
+    /**
+     * Add a folder the listener chose (`uri` is the platform's address for it, kept on
+     * this device only). The first one makes the profile's device music source. Then
+     * look through it: `local_known_files`, `local_add_file` for each file, and
+     * `local_finish_look`.
+     */
+    fun `addLocalFolder`(`uri`: kotlin.String, `name`: kotlin.String): LocalFolderInfo
+    
+    /**
+     * A profile with only the device's music, for someone with no server (mock-up 49,
+     * screen 5). It opens at once; add a folder next.
+     */
+    fun `createDeviceProfile`(`name`: kotlin.String): SignedIn
+    
+    /**
+     * Read one file into the device's index. True when it is a song; false when it
+     * isn't music Encore reads. Call from a background thread: it reads the file.
+     */
+    fun `localAddFile`(`file`: LocalFoundFile): kotlin.Boolean
+    
+    /**
+     * The look through a folder is done: `seen` is every file address found in it this
+     * time (files not in it are gone). The library is brought up to date. Async.
+     */
+    suspend fun `localFinishLook`(`folderId`: kotlin.UInt, `seen`: List<kotlin.String>): kotlin.UInt
+    
+    /**
+     * The folders of the device's music in the open profile (mock-up 49, screen 2);
+     * empty when there are none.
+     */
+    fun `localFolders`(): List<LocalFolderInfo>
+    
+    /**
+     * The files already known in a folder, so the platform can hand over only new or
+     * changed ones (any it hands over unchanged are skipped anyway).
+     */
+    fun `localKnownFiles`(`folderId`: kotlin.UInt): List<LocalKnownFile>
+    
+    /**
+     * Bring the library up to date during a long look, so songs appear as they are
+     * found (mock-up 49, screen 3). Nothing is forgotten until `local_finish_look`.
+     * Async.
+     */
+    suspend fun `localRefresh`(): kotlin.UInt
+    
+    /**
+     * Stop using a folder: its songs leave the library, the files stay. With no folder
+     * left, the device music source goes too.
+     */
+    suspend fun `removeLocalFolder`(`folderId`: kotlin.UInt)
+    
+    /**
+     * Whether the platform can reach a folder now (an SD card taken out: "Not available
+     * right now"). Its songs stay listed.
+     */
+    fun `setLocalFolderAvailable`(`folderId`: kotlin.UInt, `available`: kotlin.Boolean)
     
     /**
      * The device's biometrics changed: every PIN is needed once before biometric
@@ -6711,6 +6831,202 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
 
     
     /**
+     * Add a folder the listener chose (`uri` is the platform's address for it, kept on
+     * this device only). The first one makes the profile's device music source. Then
+     * look through it: `local_known_files`, `local_add_file` for each file, and
+     * `local_finish_look`.
+     */
+    @Throws(EncoreException::class)override fun `addLocalFolder`(`uri`: kotlin.String, `name`: kotlin.String): LocalFolderInfo {
+            return FfiConverterTypeLocalFolderInfo.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_add_local_folder(
+        it,
+        
+        FfiConverterString.lower(`uri`),
+        FfiConverterString.lower(`name`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * A profile with only the device's music, for someone with no server (mock-up 49,
+     * screen 5). It opens at once; add a folder next.
+     */
+    @Throws(EncoreException::class)override fun `createDeviceProfile`(`name`: kotlin.String): SignedIn {
+            return FfiConverterTypeSignedIn.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_create_device_profile(
+        it,
+        
+        FfiConverterString.lower(`name`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Read one file into the device's index. True when it is a song; false when it
+     * isn't music Encore reads. Call from a background thread: it reads the file.
+     */
+    @Throws(EncoreException::class)override fun `localAddFile`(`file`: LocalFoundFile): kotlin.Boolean {
+            return FfiConverterBoolean.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_local_add_file(
+        it,
+        
+        FfiConverterTypeLocalFoundFile.lower(`file`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * The look through a folder is done: `seen` is every file address found in it this
+     * time (files not in it are gone). The library is brought up to date. Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `localFinishLook`(`folderId`: kotlin.UInt, `seen`: List<kotlin.String>) : kotlin.UInt {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_local_finish_look(
+                uniffiHandle,
+                
+        FfiConverterUInt.lower(`folderId`),
+        FfiConverterSequenceString.lower(`seen`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_u32(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_u32(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_u32(future) },
+        // lift function
+        { FfiConverterUInt.lift(it) },
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * The folders of the device's music in the open profile (mock-up 49, screen 2);
+     * empty when there are none.
+     */
+    @Throws(EncoreException::class)override fun `localFolders`(): List<LocalFolderInfo> {
+            return FfiConverterSequenceTypeLocalFolderInfo.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_local_folders(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * The files already known in a folder, so the platform can hand over only new or
+     * changed ones (any it hands over unchanged are skipped anyway).
+     */
+    @Throws(EncoreException::class)override fun `localKnownFiles`(`folderId`: kotlin.UInt): List<LocalKnownFile> {
+            return FfiConverterSequenceTypeLocalKnownFile.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_local_known_files(
+        it,
+        
+        FfiConverterUInt.lower(`folderId`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Bring the library up to date during a long look, so songs appear as they are
+     * found (mock-up 49, screen 3). Nothing is forgotten until `local_finish_look`.
+     * Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `localRefresh`() : kotlin.UInt {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_local_refresh(
+                uniffiHandle,
+                
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_u32(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_u32(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_u32(future) },
+        // lift function
+        { FfiConverterUInt.lift(it) },
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * Stop using a folder: its songs leave the library, the files stay. With no folder
+     * left, the device music source goes too.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `removeLocalFolder`(`folderId`: kotlin.UInt) {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_remove_local_folder(
+                uniffiHandle,
+                
+        FfiConverterUInt.lower(`folderId`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_void(future) },
+        // lift function
+        { },
+        
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * Whether the platform can reach a folder now (an SD card taken out: "Not available
+     * right now"). Its songs stay listed.
+     */
+    @Throws(EncoreException::class)override fun `setLocalFolderAvailable`(`folderId`: kotlin.UInt, `available`: kotlin.Boolean)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_set_local_folder_available(
+        it,
+        
+        FfiConverterUInt.lower(`folderId`),
+        FfiConverterBoolean.lower(`available`),_status)
+}
+    }
+    
+    
+
+    
+    /**
      * The device's biometrics changed: every PIN is needed once before biometric
      * unlock works again (board 14, States).
      */
@@ -7728,6 +8044,11 @@ data class AlbumSummary (
     var `dateAddedUtcMs`: kotlin.Long?
     , 
     var `hasArtwork`: kotlin.Boolean
+    , 
+    /**
+     * Only on this device, from its own music files (mock-up 49: the phone mark).
+     */
+    var `onDevice`: kotlin.Boolean
     
 ){
     
@@ -7752,6 +8073,7 @@ public object FfiConverterTypeAlbumSummary: FfiConverterRustBuffer<AlbumSummary>
             FfiConverterLong.read(buf),
             FfiConverterOptionalLong.read(buf),
             FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
         )
     }
 
@@ -7763,7 +8085,8 @@ public object FfiConverterTypeAlbumSummary: FfiConverterRustBuffer<AlbumSummary>
             FfiConverterUInt.allocationSize(value.`songCount`) +
             FfiConverterLong.allocationSize(value.`durationMs`) +
             FfiConverterOptionalLong.allocationSize(value.`dateAddedUtcMs`) +
-            FfiConverterBoolean.allocationSize(value.`hasArtwork`)
+            FfiConverterBoolean.allocationSize(value.`hasArtwork`) +
+            FfiConverterBoolean.allocationSize(value.`onDevice`)
     )
 
     override fun write(value: AlbumSummary, buf: ByteBuffer) {
@@ -7775,6 +8098,7 @@ public object FfiConverterTypeAlbumSummary: FfiConverterRustBuffer<AlbumSummary>
             FfiConverterLong.write(value.`durationMs`, buf)
             FfiConverterOptionalLong.write(value.`dateAddedUtcMs`, buf)
             FfiConverterBoolean.write(value.`hasArtwork`, buf)
+            FfiConverterBoolean.write(value.`onDevice`, buf)
     }
 }
 
@@ -9310,6 +9634,196 @@ public object FfiConverterTypeHttpHeader: FfiConverterRustBuffer<HttpHeader> {
     override fun write(value: HttpHeader, buf: ByteBuffer) {
             FfiConverterString.write(value.`name`, buf)
             FfiConverterString.write(value.`value`, buf)
+    }
+}
+
+
+
+/**
+ * A folder of the device's music (ADR core-0024, mock-up 49 screen 2). `uri` is the
+ * platform's address for it and never leaves this device.
+ */
+data class LocalFolderInfo (
+    var `folderId`: kotlin.UInt
+    , 
+    var `uri`: kotlin.String
+    , 
+    var `name`: kotlin.String
+    , 
+    var `songCount`: kotlin.UInt
+    , 
+    /**
+     * False while the platform can't reach it ("Not available right now").
+     */
+    var `available`: kotlin.Boolean
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeLocalFolderInfo: FfiConverterRustBuffer<LocalFolderInfo> {
+    override fun read(buf: ByteBuffer): LocalFolderInfo {
+        return LocalFolderInfo(
+            FfiConverterUInt.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: LocalFolderInfo) = (
+            FfiConverterUInt.allocationSize(value.`folderId`) +
+            FfiConverterString.allocationSize(value.`uri`) +
+            FfiConverterString.allocationSize(value.`name`) +
+            FfiConverterUInt.allocationSize(value.`songCount`) +
+            FfiConverterBoolean.allocationSize(value.`available`)
+    )
+
+    override fun write(value: LocalFolderInfo, buf: ByteBuffer) {
+            FfiConverterUInt.write(value.`folderId`, buf)
+            FfiConverterString.write(value.`uri`, buf)
+            FfiConverterString.write(value.`name`, buf)
+            FfiConverterUInt.write(value.`songCount`, buf)
+            FfiConverterBoolean.write(value.`available`, buf)
+    }
+}
+
+
+
+/**
+ * One file a look found, for `local_add_file`.
+ */
+data class LocalFoundFile (
+    var `folderId`: kotlin.UInt
+    , 
+    /**
+     * The platform's address for the file (kept on this device only).
+     */
+    var `uri`: kotlin.String
+    , 
+    var `fileName`: kotlin.String
+    , 
+    var `size`: kotlin.ULong
+    , 
+    var `modifiedMs`: kotlin.Long
+    , 
+    /**
+     * A path the core can open for this call (Android: `/proc/self/fd/<n>` of a
+     * descriptor the app holds open until the call returns).
+     */
+    var `readPath`: kotlin.String
+    , 
+    /**
+     * The text of a `.lrc` file with the same name beside it.
+     */
+    var `lrc`: kotlin.String?
+    , 
+    /**
+     * A path to `cover.jpg` or `folder.jpg` beside it, opened the same way.
+     */
+    var `folderCoverPath`: kotlin.String?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeLocalFoundFile: FfiConverterRustBuffer<LocalFoundFile> {
+    override fun read(buf: ByteBuffer): LocalFoundFile {
+        return LocalFoundFile(
+            FfiConverterUInt.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: LocalFoundFile) = (
+            FfiConverterUInt.allocationSize(value.`folderId`) +
+            FfiConverterString.allocationSize(value.`uri`) +
+            FfiConverterString.allocationSize(value.`fileName`) +
+            FfiConverterULong.allocationSize(value.`size`) +
+            FfiConverterLong.allocationSize(value.`modifiedMs`) +
+            FfiConverterString.allocationSize(value.`readPath`) +
+            FfiConverterOptionalString.allocationSize(value.`lrc`) +
+            FfiConverterOptionalString.allocationSize(value.`folderCoverPath`)
+    )
+
+    override fun write(value: LocalFoundFile, buf: ByteBuffer) {
+            FfiConverterUInt.write(value.`folderId`, buf)
+            FfiConverterString.write(value.`uri`, buf)
+            FfiConverterString.write(value.`fileName`, buf)
+            FfiConverterULong.write(value.`size`, buf)
+            FfiConverterLong.write(value.`modifiedMs`, buf)
+            FfiConverterString.write(value.`readPath`, buf)
+            FfiConverterOptionalString.write(value.`lrc`, buf)
+            FfiConverterOptionalString.write(value.`folderCoverPath`, buf)
+    }
+}
+
+
+
+/**
+ * A file the device's index already knows, so a look can skip it when unchanged.
+ */
+data class LocalKnownFile (
+    var `uri`: kotlin.String
+    , 
+    var `size`: kotlin.ULong
+    , 
+    var `modifiedMs`: kotlin.Long
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeLocalKnownFile: FfiConverterRustBuffer<LocalKnownFile> {
+    override fun read(buf: ByteBuffer): LocalKnownFile {
+        return LocalKnownFile(
+            FfiConverterString.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterLong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: LocalKnownFile) = (
+            FfiConverterString.allocationSize(value.`uri`) +
+            FfiConverterULong.allocationSize(value.`size`) +
+            FfiConverterLong.allocationSize(value.`modifiedMs`)
+    )
+
+    override fun write(value: LocalKnownFile, buf: ByteBuffer) {
+            FfiConverterString.write(value.`uri`, buf)
+            FfiConverterULong.write(value.`size`, buf)
+            FfiConverterLong.write(value.`modifiedMs`, buf)
     }
 }
 
@@ -16921,6 +17435,62 @@ public object FfiConverterSequenceTypeHttpHeader: FfiConverterRustBuffer<List<Ht
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeHttpHeader.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeLocalFolderInfo: FfiConverterRustBuffer<List<LocalFolderInfo>> {
+    override fun read(buf: ByteBuffer): List<LocalFolderInfo> {
+        val len = buf.getInt()
+        return List<LocalFolderInfo>(len) {
+            FfiConverterTypeLocalFolderInfo.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<LocalFolderInfo>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeLocalFolderInfo.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<LocalFolderInfo>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeLocalFolderInfo.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeLocalKnownFile: FfiConverterRustBuffer<List<LocalKnownFile>> {
+    override fun read(buf: ByteBuffer): List<LocalKnownFile> {
+        val len = buf.getInt()
+        return List<LocalKnownFile>(len) {
+            FfiConverterTypeLocalKnownFile.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<LocalKnownFile>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeLocalKnownFile.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<LocalKnownFile>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeLocalKnownFile.write(it, buf)
         }
     }
 }
