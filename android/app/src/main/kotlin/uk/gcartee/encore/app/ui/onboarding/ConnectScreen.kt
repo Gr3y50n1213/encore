@@ -109,6 +109,7 @@ private data class QuickConnect(val code: String, val expiresAtMs: Long)
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onSignedIn: (SignedIn) -> Unit, offerDeviceMusic: Boolean = false) {
+    val device = uk.gcartee.encore.app.ui.settings.deviceNoun()
     // Mock-up 49, screen 5: someone with no server plays the music on this phone. The
     // profile is made only once a folder is chosen.
     val pickDeviceFolder = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -603,7 +604,7 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
             title = { Text("Trust this certificate?") },
             text = {
                 Column {
-                    Text("The server uses a certificate this phone does not trust, such as a self-signed one. Only trust it if this fingerprint matches the one your server shows.", style = type.body)
+                    Text("The server uses a certificate this $device does not trust, such as a self-signed one. Only trust it if this fingerprint matches the one your server shows.", style = type.body)
                     Spacer(Modifier.height(Grid.base.dp))
                     Text(u.sha256.chunked(2).joinToString(":").uppercase(), style = type.caption)
                 }
