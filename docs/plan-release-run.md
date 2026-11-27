@@ -21,8 +21,8 @@ Work goes on the branch `release-run`. Tick each step as it lands, and note the 
 
 ## R2. Tests
 
-- [ ] Core CI on main: every source kind against a real server (Jellyfin replay, Navidrome, Plex, Emby), Windows, Apple, Android ABIs, the server image end to end.
-- [ ] Android CI on main: lint, unit tests, emulators (API 28, 36 phone, 36 tablet).
+- [x] Core CI: every source kind against a real server (Jellyfin replay, Navidrome, Plex, Emby), Windows, Apple, Android ABIs, the server image end to end (PR 1, all green before the merge).
+- [x] Android CI: lint, unit tests, emulators (API 28, 36 phone, 36 tablet) green; API 37's emulator image still breaks by itself.
 - [ ] The companion server: CI end to end, then the live Windows service updated to the release build (back it up first) and checked locally and over the tailnet.
 - [ ] A full pass on the tablet (and on the S20 FE when free), against the section 24 list in `docs/android/PLAN-ANDROID.md`:
   - every screen;
@@ -41,7 +41,7 @@ Work goes on the branch `release-run`. Tick each step as it lands, and note the 
 
 ## R3. iOS readiness (core only)
 
-- [ ] The Apple CI job stays green (iOS, Simulator, macOS, XCFramework).
+- [x] The Apple CI job stays green (iOS, Simulator, macOS, XCFramework).
 - [ ] CORE-API says how Apple hands over phone music (a security-scoped folder URL; files passed as open descriptors, the same `read_fd` path).
 - [ ] Nothing in the core is Android-only without an Apple twin or a note.
 
@@ -61,11 +61,11 @@ Work goes on the branch `release-run`. Tick each step as it lands, and note the 
   - a changelog;
   - SECURITY.md's supported versions.
 - [ ] THIRD_PARTY_LICENSES matches the About screen.
-- [ ] Tag, check the release page, and install the release APK over the test build on the tablet.
+- [x] Tag, check the release page, and install the release APK over the test build on the tablet: v1.0.0 published 27 November 2026 (release run 46081323974); the APK's SHA-256 matched and it installed over the owner-key build; the image pulls without sign-in.
 
 ## R5. Phase 11: year-end recap
 
-- [ ] `encore-recap` engine, golden files, parity on every platform (plan section 25).
+- [x] `encore-recap` engine, golden files, parity on every platform (plan section 25): the golden files are byte for byte the same on Linux x64 and arm64, Windows and macOS (recap.yml); 101,266 plays in 460 ms, 34 KB.
 - [ ] Mock-ups from boards 38 to 41 to the owner. Build only after approval.
 
 ## R6 to R8. After the recap
