@@ -742,15 +742,6 @@ impl Db {
             .optional()
     }
 
-    pub(crate) fn put_mix_set(&self, profile_id: i64, json: &str) -> Result<()> {
-        self.conn().execute(
-            "INSERT INTO mix_sets (profile_id, set_json) VALUES (?1, ?2)
-             ON CONFLICT (profile_id) DO UPDATE SET set_json = excluded.set_json",
-            params![profile_id, json],
-        )?;
-        Ok(())
-    }
-
     /// The media server a profile belongs to (what shared sound rows are scoped to).
     pub(crate) fn media_server_of(&self, profile_id: i64) -> Result<Option<String>> {
         self.conn()
@@ -867,13 +858,76 @@ impl Db {
             .optional()
     }
 
-    pub(crate) fn put_profile_value(&self, profile_id: i64, key: &str, value: &str) -> Result<()> {
-        self.conn().execute(
-            "INSERT INTO profile_state (profile_id, key, value) VALUES (?1, ?2, ?3)
-             ON CONFLICT (profile_id, key) DO UPDATE SET value = excluded.value",
-            params![profile_id, key, value],
-        )?;
-        Ok(())
+    /// When the profile's listening history was last cleared, as stored. A job that
+    /// learns from the history reads it first and writes its result only if it is
+    /// unchanged ([`Db::put_unless_cleared`]).
+    pub(crate) fn cleared_mark(&self, profile_id: i64) -> Result<Option<String>> {
+        Ok(self
+            .conn()
+            .query_row(
+                "SELECT value FROM profile_state WHERE profile_id = ?1 AND key = ?2",
+                params![profile_id, CLEARED_KEY],
+                |r| r.get::<_, String>(0),
+            )
+            .optional()?)
+    }
+
+    /// Store a mix set (`key` None) or a profile value built from the history, unless
+    /// the history was cleared after `mark` was read: what was learned from cleared plays
+    /// must not come back (security review, 27 November 2026). True when stored.
+    pub(crate) fn put_unless_cleared(
+        &self,
+        profile_id: i64,
+        key: Option<&str>,
+        value: &str,
+        mark: &Option<String>,
+    ) -> Result<bool> {
+        let c = self.conn();
+        let now: Option<String> = c
+            .query_row(
+                "SELECT value FROM profile_state WHERE profile_id = ?1 AND key = ?2",
+                params![profile_id, CLEARED_KEY],
+                |r| r.get(0),
+            )
+            .optional()?;
+        if &now != mark {
+            return Ok(false);
+        }
+        match key {
+            None => c.execute(
+                "INSERT INTO mix_sets (profile_id, set_json) VALUES (?1, ?2)
+                 ON CONFLICT (profile_id) DO UPDATE SET set_json = excluded.set_json",
+                params![profile_id, value],
+            )?,
+            Some(key) => c.execute(
+                "INSERT INTO profile_state (profile_id, key, value) VALUES (?1, ?2, ?3)
+                 ON CONFLICT (profile_id, key) DO UPDATE SET value = excluded.value",
+                params![profile_id, key, value],
+            )?,
+        };
+        Ok(true)
+    }
+
+    /// Whether this app install is one of the profile's devices already.
+    pub(crate) fn has_device(&self, profile_id: i64, client_device_id: &str) -> Result<bool> {
+        Ok(self
+            .conn()
+            .query_row(
+                "SELECT 1 FROM devices WHERE profile_id = ?1 AND client_device_id = ?2",
+                params![profile_id, client_device_id],
+                |_| Ok(()),
+            )
+            .optional()?
+            .is_some())
+    }
+
+    /// Devices signed in to a profile now (not signed out).
+    pub(crate) fn active_devices(&self, profile_id: i64) -> Result<i64> {
+        Ok(self.conn().query_row(
+            "SELECT count(*) FROM devices WHERE profile_id = ?1 AND revoked_utc_ms IS NULL",
+            [profile_id],
+            |r| r.get(0),
+        )?)
     }
 
     pub(crate) fn status(&self) -> Result<Status> {

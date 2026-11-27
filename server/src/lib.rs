@@ -55,10 +55,16 @@ pub struct AppState {
     db: db::Db,
     check: Arc<dyn MediaCheck>,
     limiter: limit::RateLimiter,
+    /// Every sign-in attempt, from all clients together.
+    sign_ins: limit::RateLimiter,
+    /// Token refreshes, per client.
+    refreshes: limit::RateLimiter,
     /// One waiter per profile, woken when one of its devices pushes.
     waiters: Mutex<HashMap<i64, Arc<Notify>>>,
     /// Open live links (Phase 7).
     live: live::Hub,
+    /// Heavy jobs running now, one of each kind per profile.
+    jobs: Mutex<std::collections::HashSet<(i64, &'static str)>>,
     config: Config,
     started: Instant,
 }
@@ -78,8 +84,11 @@ impl AppState {
             db,
             check,
             limiter: limit::RateLimiter::new(10, Duration::from_secs(60)),
+            sign_ins: limit::RateLimiter::new(60, Duration::from_secs(60)),
+            refreshes: limit::RateLimiter::new(120, Duration::from_secs(60)),
             waiters: Mutex::new(HashMap::new()),
             live: live::Hub::default(),
+            jobs: Mutex::new(std::collections::HashSet::new()),
             config,
             started: Instant::now(),
         }
@@ -101,6 +110,21 @@ impl AppState {
             .clone()
     }
 
+    /// Start a heavy job (`kind`: mixes or training) for a profile, unless one is still
+    /// running: work past its time limit keeps going in the background, so asking again
+    /// must not pile up more (security review, 27 November 2026). The guard ends it.
+    pub(crate) fn start_job(
+        self: &Arc<Self>,
+        profile_id: i64,
+        kind: &'static str,
+    ) -> Option<JobGuard> {
+        let mut jobs = self.jobs.lock().unwrap_or_else(|p| p.into_inner());
+        jobs.insert((profile_id, kind)).then(|| JobGuard {
+            state: self.clone(),
+            key: (profile_id, kind),
+        })
+    }
+
     fn wake(&self, profile_id: i64) {
         self.waiter(profile_id).notify_waiters();
     }
@@ -108,6 +132,23 @@ impl AppState {
     /// A consistent copy of the database while the server runs.
     pub fn backup_to(&self, dest: &Path) -> Result<(), String> {
         self.db.backup_to(dest).map_err(|e| e.to_string())
+    }
+}
+
+/// A running heavy job; dropping it (when the work ends) lets the next one start.
+#[derive(Debug)]
+pub(crate) struct JobGuard {
+    state: Arc<AppState>,
+    key: (i64, &'static str),
+}
+
+impl Drop for JobGuard {
+    fn drop(&mut self) {
+        self.state
+            .jobs
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .remove(&self.key);
     }
 }
 
@@ -135,8 +176,15 @@ pub struct Health {
 pub fn app(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/health", get(health))
-        .route("/auth/exchange", post(auth::exchange))
-        .route("/auth/refresh", post(auth::refresh))
+        // Sign-in bodies are small, and are read only after the rate limit.
+        .route(
+            "/auth/exchange",
+            post(auth::exchange).layer(DefaultBodyLimit::max(16 * 1024)),
+        )
+        .route(
+            "/auth/refresh",
+            post(auth::refresh).layer(DefaultBodyLimit::max(16 * 1024)),
+        )
         .route("/devices", get(auth::devices))
         .route("/devices/{id}", delete(auth::revoke).patch(auth::rename))
         .route("/ws", get(live::ws))
@@ -156,7 +204,24 @@ pub fn app(state: Arc<AppState>) -> Router {
             "/catalog",
             axum::routing::put(recs::put_catalog).layer(DefaultBodyLimit::max(64 * 1024 * 1024)),
         )
+        .layer(axum::middleware::from_fn(time_limit))
         .with_state(state)
+}
+
+/// No request may take longer than this, so a slow client can't hold one open for
+/// ever (security review, 27 November 2026). The long poll waits at most 25 s, a big
+/// song list uploads well within it, and a WebSocket's upgrade answers at once.
+const REQUEST_LIMIT: Duration = Duration::from_secs(120);
+
+async fn time_limit(
+    req: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    use axum::response::IntoResponse;
+    match tokio::time::timeout(REQUEST_LIMIT, next.run(req)).await {
+        Ok(r) => r,
+        Err(_) => ApiError::Unavailable("The request took too long.".into()).into_response(),
+    }
 }
 
 async fn health() -> Json<Health> {
@@ -197,12 +262,27 @@ struct AdminStatus {
     counts: Status,
 }
 
-/// `GET /admin/status`: counts only, and only from the home network.
+/// Headers a reverse proxy or tunnel adds. A request carrying one came through a
+/// proxy, whose own address (often this machine's) says nothing about where the
+/// request started, so it is not taken as from the home network.
+const PROXY_HEADERS: [&str; 6] = [
+    "forwarded",
+    "x-forwarded-for",
+    "x-real-ip",
+    "cf-connecting-ip",
+    "true-client-ip",
+    "tailscale-user-login",
+];
+
+/// `GET /admin/status`: counts only, and only from the home network, never through a
+/// proxy or tunnel (security review, 27 November 2026).
 async fn admin_status(
     State(state): State<Arc<AppState>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    headers: axum::http::HeaderMap,
 ) -> Result<Json<AdminStatus>, ApiError> {
-    if !is_local(addr.ip()) {
+    let proxied = PROXY_HEADERS.iter().any(|h| headers.contains_key(*h));
+    if proxied || !is_local(addr.ip()) {
         return Err(ApiError::Forbidden(
             "The status page answers only on the home network.".into(),
         ));

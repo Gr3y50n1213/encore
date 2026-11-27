@@ -67,6 +67,8 @@ pub struct JellyfinCheck {
     /// Emby names a token's user through this server's own session there, one per
     /// device name, so two Emby checks never run at once (ADR core-0022).
     emby_turn: tokio::sync::Mutex<()>,
+    /// Tests only: the device ID a recorded Emby session list was made with.
+    check_device_id: Option<String>,
 }
 
 impl JellyfinCheck {
@@ -76,17 +78,35 @@ impl JellyfinCheck {
             transport,
             known: Mutex::new(HashMap::new()),
             emby_turn: tokio::sync::Mutex::new(()),
+            check_device_id: None,
         }
     }
 
+    /// Recorded fixtures name one device: checks use it instead of a fresh one.
+    #[cfg(test)]
+    pub(crate) fn with_device_id(mut self, id: &str) -> JellyfinCheck {
+        self.check_device_id = Some(id.to_owned());
+        self
+    }
+
     fn client(&self, url: &Url) -> JellyfinClient {
+        // A fresh device ID for every check. Emby names a token's user through the
+        // session this request makes under that ID; with one fixed ID, a token Emby ties
+        // to no user (an API key) would find the session another person's sign-in left
+        // there and be taken for them (security review, 27 November 2026).
+        let mut nonce = [0u8; 12];
+        getrandom::fill(&mut nonce).expect("the operating system's random source");
+        let nonce: String = nonce.iter().map(|b| format!("{b:02x}")).collect();
         JellyfinClient::new(
             self.transport.clone(),
             url.clone(),
             DeviceInfo {
                 client: "Encore companion".into(),
                 device_name: "encore-server".into(),
-                device_id: "encore-server".into(),
+                device_id: self
+                    .check_device_id
+                    .clone()
+                    .unwrap_or_else(|| format!("encore-check-{nonce}")),
                 version: env!("CARGO_PKG_VERSION").into(),
             },
             Duration::from_secs(10),
@@ -140,11 +160,19 @@ impl JellyfinCheck {
                 Duration::from_secs(10),
             )
             .signed_in(creds.clone());
-            match client.me().await {
-                Ok(me) => {
+            // A salted token signs in as its user name, so that name is checked by the
+            // sign-in itself. An API key carries a name only beside it, which a device
+            // could set to anyone's: the server's tokenInfo names the key's owner.
+            let named = if creds.uses_api_key() {
+                client.key_owner().await
+            } else {
+                client.me().await.map(|me| me.user_name)
+            };
+            match named {
+                Ok(user_name) => {
                     return Ok(CheckedUser {
-                        user_id: format!("subsonic:{}:{}", server_id_for(url), me.user_name),
-                        user_name: me.user_name,
+                        user_id: format!("subsonic:{}:{}", server_id_for(url), user_name),
+                        user_name,
                     });
                 }
                 Err(SourceError::SessionExpired | SourceError::WrongCredentials) => rejected = true,
@@ -397,20 +425,38 @@ fn field(name: &str, value: &str, max: usize) -> Result<(), ApiError> {
     Ok(())
 }
 
+/// Sign-in attempts: per client, and all clients together, so changing address (or
+/// many clients behind one proxy) can't make the checks against the media server
+/// unlimited.
 fn limited(state: &AppState, addr: SocketAddr) -> Result<(), ApiError> {
+    let now = Instant::now();
     state
         .limiter
-        .take(addr.ip(), Instant::now())
+        .take(addr.ip(), now)
+        .and_then(|()| state.sign_ins.take(ALL_CLIENTS, now))
         .map_err(|retry_after_s| ApiError::TooManyRequests { retry_after_s })
+}
+
+/// The most devices one profile may have signed in at once.
+pub(crate) const MAX_DEVICES: i64 = 100;
+
+/// The one bucket every sign-in attempt also takes from.
+const ALL_CLIENTS: std::net::IpAddr = std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED);
+
+/// A sign-in body, read only after the rate limit let the request through.
+fn body_of<T: serde::de::DeserializeOwned>(bytes: &[u8]) -> Result<T, ApiError> {
+    serde_json::from_slice(bytes)
+        .map_err(|_| ApiError::BadRequest("The request isn't valid JSON for this call.".into()))
 }
 
 /// `POST /auth/exchange`.
 pub(crate) async fn exchange(
     State(state): State<Arc<AppState>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    Json(body): Json<ExchangeBody>,
+    bytes: axum::body::Bytes,
 ) -> Result<Json<TokenReply>, ApiError> {
     limited(&state, addr)?;
+    let body: ExchangeBody = body_of(&bytes)?;
     field("server_id", &body.server_id, 128)?;
     field("media_token", &body.media_token, 1024)?;
     field("device_id", &body.device_id, 128)?;
@@ -438,9 +484,26 @@ pub(crate) async fn exchange(
             ),
         })?;
     let now = now_ms();
+    // A Subsonic server has no ID of its own: the check names it by the trusted address
+    // that accepted the sign-in (`subsonic:<server>:<user>`), never by what the device
+    // sent, which decides whose shared sound analysis the profile reaches.
+    let media_server_id = user
+        .user_id
+        .strip_prefix("subsonic:")
+        .and_then(|rest| rest.split_once(':'))
+        .map_or(body.server_id.as_str(), |(server, _)| server);
     let profile = state
         .db
-        .upsert_profile(&body.server_id, &user.user_id, &user.user_name, now)?;
+        .upsert_profile(media_server_id, &user.user_id, &user.user_name, now)?;
+    // Each sign-in from a new install adds a device, and every device gets live-link
+    // messages: a cap keeps one account from piling them up.
+    if !state.db.has_device(profile, &body.device_id)?
+        && state.db.active_devices(profile)? >= MAX_DEVICES
+    {
+        return Err(ApiError::Forbidden(format!(
+            "This profile already has {MAX_DEVICES} devices. Sign one out in Settings, then try again."
+        )));
+    }
     let (device_id, t) = state.db.sign_in_device(
         profile,
         &body.device_id,
@@ -467,9 +530,16 @@ pub(crate) struct RefreshBody {
 pub(crate) async fn refresh(
     State(state): State<Arc<AppState>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    Json(body): Json<RefreshBody>,
+    bytes: axum::body::Bytes,
 ) -> Result<Json<TokenReply>, ApiError> {
-    limited(&state, addr)?;
+    // Its own, larger bucket: a flood of made-up refresh tokens (which can't be
+    // guessed) must not use up the sign-in attempts every device behind one proxy
+    // shares, or stop real devices refreshing.
+    state
+        .refreshes
+        .take(addr.ip(), Instant::now())
+        .map_err(|retry_after_s| ApiError::TooManyRequests { retry_after_s })?;
+    let body: RefreshBody = body_of(&bytes)?;
     match state.db.refresh(&body.refresh_token, now_ms(), state.ttl())? {
         Refreshed::Ok { tokens, authed } => Ok(Json(TokenReply {
             device_id: authed.device_id,

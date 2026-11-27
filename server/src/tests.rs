@@ -512,6 +512,21 @@ async fn the_status_page_answers_only_on_the_home_network() {
             "{public}"
         );
     }
+    // Through a proxy or tunnel on this machine, the address is local but the request
+    // may come from anywhere.
+    for header in ["X-Forwarded-For", "Forwarded", "CF-Connecting-IP"] {
+        let req = Request::builder()
+            .method("GET")
+            .uri("/admin/status")
+            .header(header, "203.0.113.9")
+            .body(Body::empty())
+            .unwrap();
+        let resp = router_from(&state, "127.0.0.1:1")
+            .oneshot(req)
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::FORBIDDEN, "{header}");
+    }
 }
 
 /// The real check against Jellyfin's replies (stand-ins until the recording).
@@ -883,6 +898,16 @@ async fn devices_share_sound_analysis_and_never_work_on_the_same_song() {
     )
     .await;
     assert_eq!(r["stored"], 0);
+    // A version no analysis has is refused: it could never be replaced.
+    let (s, _) = call(
+        &app,
+        "PUT",
+        "/sound",
+        Some(&phone),
+        Some(json!({ "sounds": [row("a", u32::MAX)] })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
 
     let (_, r) = call(
         &app,
@@ -1381,6 +1406,14 @@ async fn a_subsonic_sign_in_is_checked_on_the_trusted_address_and_named_by_it() 
             encore_sources::subsonic::server_id_for(&url)
         )
     );
+
+    // An API key is named by the server's tokenInfo, never by the name saved beside it
+    // (security review, 27 November 2026).
+    let user = check
+        .check("x", "subsonic1:u=someone-else&k=fixture-api-key-0001")
+        .await
+        .unwrap();
+    assert_eq!(user.user_name, "listener");
 }
 
 /// ADR core-0022: an Emby sign-in. The trusted address says it is Emby; Emby has no
@@ -1396,7 +1429,7 @@ async fn an_emby_sign_in_is_checked_with_the_trusted_emby() {
     .unwrap();
     let transport = Arc::new(encore_sources::FixtureTransport::from_json(&fixtures).unwrap());
     let urls = jellyfin_urls("http://emby.local:8096").unwrap();
-    let check = JellyfinCheck::new(urls.clone(), transport.clone());
+    let check = JellyfinCheck::new(urls.clone(), transport.clone()).with_device_id("encore-server");
     let server = "0b1c2d3e4f5a46b7a8c9d0e1f2a3b4c5";
     assert_eq!(
         check.check(server, "invented-emby-token").await,
@@ -1448,7 +1481,7 @@ async fn an_emby_sign_in_is_checked_with_the_trusted_emby() {
         ex("/System/Info/Public", 200, info.clone()),
         ex("/emby/Sessions", 401, json!({})),
     ]);
-    let check = JellyfinCheck::new(urls.clone(), Arc::new(refused));
+    let check = JellyfinCheck::new(urls.clone(), Arc::new(refused)).with_device_id("encore-server");
     assert_eq!(check.check(server, "t").await, Err(CheckError::Rejected));
 
     // A user record from another server than the one claimed is refused.
@@ -1465,8 +1498,37 @@ async fn an_emby_sign_in_is_checked_with_the_trusted_emby() {
             json!({"Id": "u1", "Name": "Sam", "ServerId": "another-server"}),
         ),
     ]);
-    let check = JellyfinCheck::new(urls, Arc::new(other));
+    let check = JellyfinCheck::new(urls, Arc::new(other)).with_device_id("encore-server");
     assert_eq!(check.check(server, "t").await, Err(CheckError::Rejected));
+
+    // Security review, 27 November 2026: a token Emby ties to no user (an API key) makes
+    // a session with no user. A real check uses a fresh device ID, so the session another
+    // sign-in left under the old fixed ID is never taken for this token's owner.
+    let leftover = encore_sources::FixtureTransport::new(vec![
+        ex(
+            "/System/Info/Public",
+            200,
+            json!({"ServerName": "Den", "Version": "4.10.2.0", "Id": server}),
+        ),
+        ex(
+            "/emby/Sessions",
+            200,
+            json!([
+                {"UserId": "u1", "DeviceId": "encore-server", "Client": "Encore companion"},
+                {"DeviceId": "encore-check-unbound", "Client": "Encore companion"}
+            ]),
+        ),
+        ex(
+            "/emby/Users/u1",
+            200,
+            json!({"Id": "u1", "Name": "Sam", "ServerId": server}),
+        ),
+    ]);
+    let check = JellyfinCheck::new(
+        jellyfin_urls("http://emby.local:8096").unwrap(),
+        Arc::new(leftover),
+    );
+    assert!(check.check(server, "an-api-key").await.is_err());
 }
 
 /// ADR core-0022 on a real Emby (CI's `emby` job): the check names each token's own user,

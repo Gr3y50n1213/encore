@@ -25,6 +25,10 @@ use crate::{AppState, now_ms};
 const MAX_LOOKUP: usize = 200;
 const MAX_CLAIM: usize = 50;
 const MAX_PUT: usize = 200;
+/// The highest analysis version accepted. The core's analysis is at a low single digit;
+/// this leaves room for many years of new versions.
+pub(crate) const MAX_VERSION: u32 = 1000;
+
 /// How long a claim keeps other devices off a song.
 pub(crate) const CLAIM_MS: i64 = 60 * 60_000;
 
@@ -55,6 +59,11 @@ impl SharedSound {
         };
         if self.song_key.is_empty() || self.song_key.len() > 128 {
             return Err("a song key is 1 to 128 characters".into());
+        }
+        // A row of a version no analysis has could never be replaced, and would stand
+        // for every listener of the media server (security review, 27 November 2026).
+        if self.version == 0 || self.version > MAX_VERSION {
+            return Err(format!("`version` is 1 to {MAX_VERSION}"));
         }
         if self.state != "ok" && self.state != "unavailable" {
             return Err("`state` is ok or unavailable".into());

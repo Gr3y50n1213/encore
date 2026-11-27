@@ -286,6 +286,8 @@ pub(crate) async fn home(
             "No song list yet: a device sends one after its next library sync.".into(),
         ));
     };
+    // Read before the history, so a clear that lands meanwhile is seen at the end.
+    let mark = state.db.cleared_mark(d.profile_id)?;
     let events = state.db.all_events(d.profile_id)?;
     let old: Option<recs::MixSet> = state
         .db
@@ -294,9 +296,26 @@ pub(crate) async fn home(
     let trained = trained_of(&state, d.profile_id)?;
     let now = now_ms();
     let profile = d.profile_id;
+    let Some(job) = state.start_job(profile, "mixes") else {
+        // A build for this profile is still running: the last good set, if any.
+        return match state
+            .db
+            .mix_set(profile)?
+            .and_then(|j| serde_json::from_str(&j).ok())
+        {
+            Some(set) => Ok(Json(HomeReply {
+                set,
+                built_now: false,
+            })),
+            None => Err(ApiError::Unavailable(
+                "The mixes are still being built. Try again in a moment.".into(),
+            )),
+        };
+    };
     let built = tokio::time::timeout(
         BUILD_LIMIT,
         tokio::task::spawn_blocking(move || -> Result<(recs::MixSet, bool), String> {
+            let _job = job;
             let songs: Vec<recs::Song> = serde_json::from_str(&songs).map_err(|e| e.to_string())?;
             let catalog = recs::Catalog::new(songs);
             let history = history_from(&events, &catalog);
@@ -355,7 +374,11 @@ pub(crate) async fn home(
     };
     if built_now {
         let json = serde_json::to_string(&set).map_err(|e| ApiError::Internal(e.to_string()))?;
-        state.db.put_mix_set(profile, &json)?;
+        if !state.db.put_unless_cleared(profile, None, &json, &mark)? {
+            return Err(ApiError::Unavailable(
+                "The listening history was just cleared. Try again in a moment.".into(),
+            ));
+        }
     }
     Ok(Json(HomeReply { set, built_now }))
 }
@@ -387,12 +410,21 @@ pub(crate) async fn model(
         ));
     };
     let last = trained_of(&state, d.profile_id)?;
+    let mark = state.db.cleared_mark(d.profile_id)?;
     let events = state.db.all_events(d.profile_id)?;
     let now = now_ms();
     let profile = d.profile_id;
+    let Some(guard) = state.start_job(profile, "training") else {
+        // Training for this profile is still running: the last one.
+        return Ok(Json(ModelReply {
+            trained: last,
+            trained_now: false,
+        }));
+    };
     let (held, worker) = (last.clone(), state.clone());
     let job =
         tokio::task::spawn_blocking(move || -> Result<Option<recs::learn::Trained>, String> {
+            let _job = guard;
             let songs: Vec<recs::Song> = serde_json::from_str(&songs).map_err(|e| e.to_string())?;
             let catalog = recs::Catalog::new(songs);
             let history = history_from(&events, &catalog);
@@ -402,19 +434,21 @@ pub(crate) async fn model(
             let p = recs::Params::default();
             let t = recs::learn::retrain(&history, &catalog, &p, now, body.utc_offset_minutes);
             let json = serde_json::to_string(&t).map_err(|e| e.to_string())?;
-            worker
+            // Kept only if the history wasn't cleared while it trained.
+            let kept = worker
                 .db
-                .put_profile_value(profile, crate::db::RANKER_KEY, &json)
+                .put_unless_cleared(profile, Some(crate::db::RANKER_KEY), &json, &mark)
                 .map_err(|e| e.to_string())?;
-            Ok(Some(t))
+            Ok(kept.then_some(t))
         });
     match tokio::time::timeout(TRAIN_LIMIT, job).await {
         Ok(Ok(Ok(Some(t)))) => Ok(Json(ModelReply {
             trained: Some(t),
             trained_now: true,
         })),
+        // Not trained now: what is stored now (a clear meanwhile took the old one).
         Ok(Ok(Ok(None))) | Err(_) => Ok(Json(ModelReply {
-            trained: last,
+            trained: trained_of(&state, profile)?,
             trained_now: false,
         })),
         Ok(Ok(Err(e))) => Err(ApiError::Internal(format!("training: {e}"))),

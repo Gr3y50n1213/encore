@@ -6,7 +6,7 @@ resolver = "3"
 [package]
 name = "encore-server"
 description = "The Encore companion server: profiles, sync, handoff, heavy jobs. Never stores music."
-version = "0.1.0"
+version = "1.0.0"
 edition = "2024"
 rust-version = "1.89"
 publish = false

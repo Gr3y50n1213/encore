@@ -303,7 +303,7 @@ dependencies = [
 
 [[package]]
 name = "encore-analysis"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "ebur128",
  "realfft",
@@ -312,7 +312,7 @@ dependencies = [
 
 [[package]]
 name = "encore-core"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "encore-analysis",
  "encore-lyrics",
@@ -333,7 +333,7 @@ dependencies = [
 
 [[package]]
 name = "encore-lyrics"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "quick-xml",
  "serde",
@@ -343,14 +343,14 @@ dependencies = [
 
 [[package]]
 name = "encore-recs"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "encore-server"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "axum",
  "encore-core",
@@ -372,7 +372,7 @@ dependencies = [
 
 [[package]]
 name = "encore-sources"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "futures-util",
  "jni",
@@ -393,7 +393,7 @@ dependencies = [
 
 [[package]]
 name = "encore-store"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "encore-sources",
  "rusqlite",
@@ -404,7 +404,7 @@ dependencies = [
 
 [[package]]
 name = "encore-sync"
-version = "0.1.0"
+version = "1.0.0"
 
 [[package]]
 name = "errno"
