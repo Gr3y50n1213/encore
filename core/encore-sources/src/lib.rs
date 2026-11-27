@@ -13,6 +13,7 @@ pub mod error;
 pub mod http;
 pub mod jellyfin;
 pub mod model;
+pub mod plex;
 pub mod ranged;
 pub mod song_key;
 pub mod source;
@@ -22,5 +23,5 @@ pub mod ws;
 
 pub use error::{Result, SourceError, Unreachable};
 pub use model::*;
-pub use source::{JellyfinSource, MediaSource, SubsonicSource};
+pub use source::{JellyfinSource, MediaSource, PlexSource, SubsonicSource};
 pub use transport::{FixtureExchange, FixtureTransport, Transport};

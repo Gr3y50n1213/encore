@@ -294,6 +294,740 @@ fn navidrome_flow_over_http() {
     );
 }
 
+/// Phase 12, stage 3 (ADR core-0022): the production path against a real Emby, which CI
+/// starts in Docker on the same made-up tone files (core.yml, "emby"), signed in as a user
+/// who is not an administrator. Recognise it, sign in, sync, read lyrics and cover colours,
+/// stream, like and unlike, read play counts, and edit a playlist end to end, moves too.
+#[test]
+#[ignore = "needs an Emby: EMBY_URL, EMBY_USER, EMBY_PASSWORD, EMBY_SONGS, EMBY_PLAYED"]
+fn emby_flow_over_http() {
+    let env = |k: &str| std::env::var(k).unwrap_or_else(|_| panic!("set {k}"));
+    let songs: usize = env("EMBY_SONGS").parse().unwrap();
+    let dir = temp_dir("emby");
+    let core = EncoreCore::new(CoreConfig {
+        data_dir: dir.0.to_string_lossy().into_owned(),
+        device_id: "device-emby".into(),
+        device_name: "Test Phone".into(),
+        platform: "test".into(),
+    })
+    .unwrap();
+
+    // 1. Found as Emby, not Jellyfin or Subsonic; no Quick Connect.
+    let check = block(core.check_address(env("EMBY_URL"))).unwrap();
+    println!("check: {check:?}");
+    assert_eq!(check.kind, ServerKind::Emby);
+    assert!(!check.server_id.is_empty());
+    assert!(matches!(
+        block(core.quick_connect_start(check.base_url.clone())),
+        Err(EncoreError::QuickConnectDisabled { .. })
+    ));
+
+    // 2. A wrong password is refused as one; the right one signs in.
+    assert!(matches!(
+        block(core.sign_in(
+            check.base_url.clone(),
+            env("EMBY_USER"),
+            "not the password".into()
+        )),
+        Err(EncoreError::WrongCredentials { .. })
+    ));
+    let signed = block(core.sign_in(
+        check.base_url.clone(),
+        env("EMBY_USER"),
+        env("EMBY_PASSWORD"),
+    ))
+    .unwrap();
+    assert!(!signed.token.contains(&env("EMBY_PASSWORD")));
+    assert!(!format!("{signed:?}").contains(&signed.token));
+    let servers = core.servers().unwrap();
+    assert_eq!(servers[0].kind, "emby", "{servers:?}");
+
+    // 3. A full sync: every song, album and artist.
+    let synced = block(core.sync_library()).unwrap();
+    println!("first sync: {synced:?}");
+    assert_eq!(synced[0].songs as usize, songs, "{synced:?}");
+    assert_eq!((synced[0].albums, synced[0].artists), (2, 2), "{synced:?}");
+    let all = core.songs(SongSort::Title, 0, 1000).unwrap();
+    assert_eq!(all.len(), songs);
+    assert_eq!(core.albums(AlbumSort::Title, 0, 100).unwrap().len(), 2);
+    assert_eq!(core.artists(0, 100).unwrap().len(), 2);
+    let by_title = |t: &str| all.iter().find(|s| s.title == t).unwrap().id;
+
+    // 4. A second sync is a delta (what was saved since the first, by Emby's clock),
+    // and the library stays whole.
+    let again = block(core.sync_library()).unwrap();
+    println!("second sync: {again:?}");
+    assert_eq!(again[0].removed, 0);
+    assert_eq!(core.songs(SongSort::Title, 0, 1000).unwrap().len(), songs);
+
+    // 5. The song with a sidecar .lrc has timed lyrics, from Emby's lyrics stream.
+    let lyrics = block(core.lyrics(by_title("Opening")))
+        .unwrap()
+        .expect("Opening has lyrics");
+    println!("lyrics: {lyrics:?}");
+    assert_eq!(lyrics.sync_level, LyricsSync::Line);
+    assert_eq!(lyrics.lines.len(), 2);
+    assert_eq!(lyrics.lines[0].text, "A line to sing");
+    assert_eq!(block(core.lyrics(by_title("Middle"))).unwrap(), None);
+
+    // 6. The album with the cover (flat teal, 1E6E8C) gets its colours from Emby's PNG.
+    let covered = core
+        .albums(AlbumSort::Title, 0, 100)
+        .unwrap()
+        .into_iter()
+        .find(|a| a.has_artwork)
+        .expect("the album with a cover");
+    let palette = block(core.album_palette(covered.id))
+        .unwrap()
+        .expect("a palette");
+    println!("palette of an Emby cover: {palette:?}");
+    let lead = u32::from_str_radix(&palette.sampled[0].colour, 16).unwrap();
+    let [r, g, b] = [lead >> 16, (lead >> 8) & 0xFF, lead & 0xFF].map(|c| c as i32);
+    assert!(
+        (r - 0x1E).abs() < 16 && (g - 0x6E).abs() < 16 && (b - 0x8C).abs() < 16,
+        "{palette:?}"
+    );
+
+    // 7. The stream address really streams: with the headers, and with the key in it.
+    let http = encore_sources::http::HttpTransport::new(None, Duration::from_secs(10)).unwrap();
+    for network in [Network::Wifi, Network::Cellular] {
+        let s = core.stream_for(by_title("Hum"), network).unwrap();
+        for (url, headers) in [
+            (s.url.clone(), s.headers.clone()),
+            (s.url_with_api_key.clone(), vec![]),
+        ] {
+            let got = block(http.send(encore_sources::transport::Request {
+                method: encore_sources::transport::Method::Get,
+                url: url::Url::parse(&url).unwrap(),
+                headers: headers.into_iter().map(|h| (h.name, h.value)).collect(),
+                body: None,
+                timeout: Duration::from_secs(60),
+            }))
+            .unwrap();
+            println!(
+                "{network:?} stream (may transcode: {}): status {}, {} bytes",
+                s.may_transcode,
+                got.status,
+                got.body.len()
+            );
+            assert_eq!(got.status, 200);
+            assert!(got.body.len() > 10_000, "{} bytes", got.body.len());
+        }
+    }
+
+    // 8. Like and unlike: a favourite on the server, and back from it.
+    let liked = by_title("Middle");
+    core.like(vec![liked]).unwrap();
+    block(core.send_edits()).unwrap();
+    block(core.sync_library()).unwrap();
+    assert!(
+        core.liked_songs(0, 10)
+            .unwrap()
+            .iter()
+            .any(|s| s.id == liked)
+    );
+    core.unlike(vec![liked]).unwrap();
+    block(core.send_edits()).unwrap();
+    block(core.sync_library()).unwrap();
+    assert!(
+        core.liked_songs(0, 10)
+            .unwrap()
+            .iter()
+            .all(|s| s.id != liked)
+    );
+
+    // 9. Play counts from other apps: CI marked one song played for this user.
+    let played = env("EMBY_PLAYED");
+    let rows = core
+        .inner
+        .profile()
+        .unwrap()
+        .store
+        .lock()
+        .unwrap()
+        .recs_songs()
+        .unwrap();
+    let row = rows.iter().find(|r| r.title == played).unwrap();
+    println!("{played}: played {} times elsewhere", row.server_play_count);
+    assert!(row.server_play_count >= 1);
+    assert!(
+        rows.iter()
+            .filter(|r| r.title != played)
+            .all(|r| r.server_play_count == 0)
+    );
+
+    // 10. A playlist made here reaches Emby, then a rename.
+    let titles = |id: i64| -> Vec<String> {
+        core.playlist(id)
+            .unwrap()
+            .entries
+            .iter()
+            .map(|e| e.song.as_ref().map(|s| s.title.clone()).unwrap_or_default())
+            .collect()
+    };
+    let find_list = |name: &str| {
+        core.playlists(0, 50)
+            .unwrap()
+            .into_iter()
+            .find(|p| p.name == name)
+    };
+    let made = core
+        .add_to(
+            DropTarget {
+                kind: DropTargetKind::NewPlaylist,
+                id: None,
+            },
+            vec![by_title("Opening"), by_title("Middle"), by_title("Closing")],
+            None,
+            false,
+        )
+        .unwrap();
+    core.rename_playlist(made.playlist_id.unwrap(), "From CI".into())
+        .unwrap();
+    let sent = block(core.send_edits()).unwrap();
+    assert_eq!((sent.refused, sent.waiting), (0, 0), "{sent:?}");
+    block(core.sync_library()).unwrap();
+    let list = find_list("From CI")
+        .expect("the playlist came back from Emby")
+        .id;
+    assert_eq!(titles(list), ["Opening", "Middle", "Closing"]);
+
+    // 11. A move and, at once, a removal: Emby may renumber its entry IDs after a move
+    // and list the old ones for a moment, so both are done on the songs, not the IDs.
+    core.move_in_playlist(list, 2, 0).unwrap();
+    core.remove_from_playlist(list, vec![1]).unwrap();
+    assert_eq!(titles(list), ["Closing", "Middle"]);
+    let sent = block(core.send_edits()).unwrap();
+    assert_eq!((sent.refused, sent.waiting), (0, 0), "{sent:?}");
+    block(core.sync_library()).unwrap();
+    println!("after a move and a removal: {:?}", titles(list));
+    assert_eq!(titles(list), ["Closing", "Middle"]);
+
+    // 12. An insert in the middle (Emby adds at the end only).
+    core.add_to(
+        DropTarget {
+            kind: DropTargetKind::Playlist,
+            id: Some(list),
+        },
+        vec![by_title("Hum")],
+        Some(1),
+        false,
+    )
+    .unwrap();
+    let sent = block(core.send_edits()).unwrap();
+    assert_eq!((sent.refused, sent.waiting), (0, 0), "{sent:?}");
+    block(core.sync_library()).unwrap();
+    println!("after an insert at 1: {:?}", titles(list));
+    assert_eq!(titles(list), ["Closing", "Hum", "Middle"]);
+
+    // 13. A removal right after the insert, then the delete.
+    core.remove_from_playlist(list, vec![2]).unwrap();
+    let sent = block(core.send_edits()).unwrap();
+    assert_eq!((sent.refused, sent.waiting), (0, 0), "{sent:?}");
+    block(core.sync_library()).unwrap();
+    assert_eq!(titles(list), ["Closing", "Hum"]);
+    core.delete_playlist(list).unwrap();
+    let sent = block(core.send_edits()).unwrap();
+    assert_eq!((sent.refused, sent.waiting), (0, 0), "{sent:?}");
+    block(core.sync_library()).unwrap();
+    assert!(find_list("From CI").is_none());
+}
+
+/// ADR core-0022 on the invented Emby replies (tools/fixtures/emby/): found as Emby,
+/// signed in as kind "emby", synced and read under `/emby`, and opened again from the
+/// stored kind after a restart, still as Emby.
+#[test]
+fn an_emby_server_is_found_signed_in_and_restored_by_its_kind() {
+    let fixtures = || -> Arc<FixtureTransport> {
+        let mut all: Vec<serde_json::Value> = Vec::new();
+        for f in [
+            include_str!("../../../../../tools/fixtures/emby/server.json"),
+            include_str!("../../../../../tools/fixtures/emby/library.json"),
+            include_str!("../../../../../tools/fixtures/emby/lyrics.json"),
+        ] {
+            all.extend(serde_json::from_str::<Vec<serde_json::Value>>(f).unwrap());
+        }
+        Arc::new(FixtureTransport::from_json(&serde_json::to_string(&all).unwrap()).unwrap())
+    };
+    let dir = temp_dir("emby-unit");
+    let config = CoreConfig {
+        data_dir: dir.0.to_string_lossy().into_owned(),
+        device_id: "dev-1".into(),
+        device_name: "Test Phone".into(),
+        platform: "test".into(),
+    };
+    let t = fixtures();
+    let core = EncoreCore::build(
+        config.clone(),
+        Duration::ZERO,
+        50,
+        Some(t.clone() as Arc<dyn Transport>),
+    )
+    .unwrap();
+    let check = block(core.check_address("http://192.168.1.20:8096".into())).unwrap();
+    assert_eq!(check.kind, ServerKind::Emby);
+    assert_eq!(check.name, "Den Server");
+    let signed = block(core.sign_in(
+        check.base_url.clone(),
+        "listener".into(),
+        "made-up password".into(),
+    ))
+    .unwrap();
+    assert_eq!(signed.token, "invented-emby-token");
+    assert_eq!(core.servers().unwrap()[0].kind, "emby");
+    let synced = block(core.sync_library()).unwrap();
+    assert_eq!((synced[0].songs, synced[0].albums), (2, 2));
+    let tide = core
+        .songs(SongSort::Title, 0, 10)
+        .unwrap()
+        .into_iter()
+        .find(|s| s.title == "Slow Tide")
+        .unwrap();
+    let lyrics = block(core.lyrics(tide.id)).unwrap().unwrap();
+    assert_eq!(lyrics.sync_level, LyricsSync::Line);
+    assert_eq!(lyrics.lines[1].text, "The tide comes slow");
+    // Every request but the public check (asked at the root, where both servers answer)
+    // went under /emby, with Emby's header; none to /Users/Me.
+    let sent: Vec<_> = t
+        .sent()
+        .into_iter()
+        .filter(|r| r.url.path() != "/System/Info/Public")
+        .collect();
+    assert!(
+        sent.iter().all(|r| r.url.path().starts_with("/emby/")
+            && r.headers.iter().any(|(k, _)| k == "X-Emby-Authorization")),
+        "{:?}",
+        sent.iter()
+            .map(|r| r.url.path().to_owned())
+            .collect::<Vec<_>>()
+    );
+    assert!(sent.iter().all(|r| !r.url.path().ends_with("/Users/Me")));
+    drop(core);
+
+    // The app starts again: the stored kind brings the Emby client back.
+    let t = fixtures();
+    let core = EncoreCore::build(
+        config,
+        Duration::ZERO,
+        50,
+        Some(t.clone() as Arc<dyn Transport>),
+    )
+    .unwrap();
+    core.open_profile(
+        signed.profile_id.clone(),
+        vec![SourceToken {
+            source_id: signed.source_id,
+            token: signed.token.clone(),
+        }],
+    )
+    .unwrap();
+    block(core.sync_library()).unwrap();
+    assert!(!t.sent().is_empty());
+    assert!(t.sent().iter().all(|r| r.url.path().starts_with("/emby/")));
+}
+
+/// Phase 12, stage 2 (ADR core-0023): the production path against a real Plex Media Server,
+/// which CI starts in Docker, unclaimed and with no way out to the internet, on the same
+/// made-up tone files (core.yml, "plex"). plex.tv can't vouch for an unclaimed server, so
+/// the sign-in starts from the server's address and the token it takes (any, from CI's
+/// allowed network); everything after it is the app's own path.
+#[test]
+#[ignore = "needs a Plex Media Server: PLEX_URL, PLEX_SONGS"]
+fn plex_flow_over_http() {
+    let env = |k: &str| std::env::var(k).unwrap_or_else(|_| panic!("set {k}"));
+    let songs: usize = env("PLEX_SONGS").parse().unwrap();
+    let dir = temp_dir("plex");
+    let core = EncoreCore::new(CoreConfig {
+        data_dir: dir.0.to_string_lossy().into_owned(),
+        device_id: "device-plex".into(),
+        device_name: "Test".into(),
+        platform: "test".into(),
+    })
+    .unwrap();
+
+    // Found by its address, and by its host alone (Plex's own port is tried last).
+    let check = block(core.check_address(env("PLEX_URL"))).unwrap();
+    println!("found: {check:?}");
+    assert_eq!(check.kind, ServerKind::Plex);
+    assert!(!check.server_id.is_empty());
+    assert!(check.plain_http_on_local_network);
+    let host = url::Url::parse(&env("PLEX_URL"))
+        .unwrap()
+        .host_str()
+        .unwrap()
+        .to_owned();
+    let by_host = block(core.check_address(host)).unwrap();
+    assert_eq!(by_host.kind, ServerKind::Plex);
+    assert_eq!(by_host.server_id, check.server_id);
+
+    let signed = block(
+        core.inner
+            .plex_sign_in_direct(&check.base_url, "ci-unclaimed-server"),
+    )
+    .unwrap();
+    assert!(signed.token.starts_with("plex1:"));
+    let source_id = signed.source_id;
+    let plex = || -> Arc<crate::source_any::AnySource> {
+        let p = core.inner.profile().unwrap();
+        lock(&p.sources).unwrap().get(&source_id).cloned().unwrap()
+    };
+    let client = |src: &crate::source_any::AnySource| match src {
+        crate::source_any::AnySource::Plex(s) => s.client.credentials().is_some(),
+        _ => false,
+    };
+    assert!(client(&plex()));
+
+    let synced = block(core.sync_library()).unwrap();
+    println!("first sync: {synced:?}");
+    assert_eq!(synced[0].songs as usize, songs, "{synced:?}");
+    assert_eq!((synced[0].artists, synced[0].albums), (2, 2), "{synced:?}");
+    let all = core.songs(SongSort::Title, 0, 1000).unwrap();
+    assert_eq!(all.len(), songs);
+
+    // Nothing changed on the server: the next sync is a light one (playlists and likes).
+    let again = block(core.sync_library()).unwrap();
+    assert_eq!(again[0].songs, 0, "{again:?}");
+    assert_eq!(core.songs(SongSort::Title, 0, 1000).unwrap().len(), songs);
+
+    // The song with a sidecar .lrc has timed lyrics, from its lyric stream.
+    let lyrics = all
+        .iter()
+        .find_map(|s| match block(core.lyrics(s.id)) {
+            Ok(Some(l)) => Some(l),
+            other => {
+                let raw = block(core.lyrics_raw(s.id));
+                println!("lyrics of {}: {other:?}; raw {raw:?}", s.title);
+                None
+            }
+        })
+        .expect("a song with lyrics");
+    assert_eq!(lyrics.sync_level, LyricsSync::Line);
+    assert_eq!(lyrics.lines[0].text, "A line to sing");
+
+    // The album with cover.jpg (flat teal, 1E6E8C) gets its colours from the photo
+    // transcoder's PNG.
+    let covered = core
+        .albums(AlbumSort::Title, 0, 100)
+        .unwrap()
+        .into_iter()
+        .find(|a| a.has_artwork)
+        .expect("the album with cover.jpg");
+    let palette = block(core.album_palette(covered.id))
+        .unwrap()
+        .expect("a palette from the cover");
+    println!("palette of a Plex cover: {palette:?}");
+    let lead = u32::from_str_radix(&palette.sampled[0].colour, 16).unwrap();
+    let [r, g, b] = [lead >> 16, (lead >> 8) & 0xFF, lead & 0xFF].map(|c| c as i32);
+    assert!(
+        (r - 0x1E).abs() < 16 && (g - 0x6E).abs() < 16 && (b - 0x8C).abs() < 16,
+        "{palette:?}"
+    );
+
+    // The stream really plays: the original file, with the headers and with the token in
+    // the address, and a ranged read for sound analysis.
+    core.set_stream_quality(Network::Wifi, StreamQuality::Original)
+        .unwrap();
+    let original = core.stream_for(all[0].id, Network::Wifi).unwrap();
+    assert!(!original.may_transcode);
+    let headers: Vec<(&str, &str)> = original
+        .headers
+        .iter()
+        .map(|h| (h.name.as_str(), h.value.as_str()))
+        .collect();
+    let with_headers = block(get(&original.url, &headers));
+    assert_eq!(with_headers.status, 200);
+    assert!(
+        with_headers.body.starts_with(b"ID3") || with_headers.body.first() == Some(&0xFF),
+        "an MP3"
+    );
+    let keyed = block(get(&original.url_with_api_key, &[]));
+    assert_eq!(
+        (keyed.status, keyed.body.len()),
+        (200, with_headers.body.len())
+    );
+    let mut ranged = headers.clone();
+    ranged.push(("Range", "bytes=0-99"));
+    let part = block(get(&original.url, &ranged));
+    assert_eq!((part.status, part.body.len()), (206, 100));
+    // The bitrate cap goes to the transcoder with a profile it accepts (the transcode
+    // itself needs codecs the server downloads from plex.tv, which CI never reaches).
+    core.set_stream_quality(Network::Cellular, StreamQuality::DataSaver)
+        .unwrap();
+    let capped = core.stream_for(all[0].id, Network::Cellular).unwrap();
+    assert!(capped.may_transcode);
+    let decision = capped.url_with_api_key.replace(
+        "/transcode/universal/start.mp3",
+        "/transcode/universal/decision",
+    );
+    let answer = block(get(&decision, &[("Accept", "application/json")])).text();
+    println!("transcode decision: {}", &answer[..answer.len().min(400)]);
+    assert!(answer.contains("\"generalDecisionCode\":1001"), "{answer}");
+
+    // Playlists: create with three songs, rename, move, remove, add at a position, delete.
+    let made = core
+        .add_to(
+            DropTarget {
+                kind: DropTargetKind::NewPlaylist,
+                id: None,
+            },
+            vec![all[0].id, all[1].id, all[2].id],
+            None,
+            false,
+        )
+        .unwrap();
+    let list = made.playlist_id.unwrap();
+    core.rename_playlist(list, "From CI".into()).unwrap();
+    let sent = block(core.send_edits()).unwrap();
+    assert_eq!((sent.refused, sent.waiting), (0, 0), "{sent:?}");
+    block(core.sync_library()).unwrap();
+    let on_server = core
+        .playlists(0, 50)
+        .unwrap()
+        .into_iter()
+        .find(|p| p.name == "From CI")
+        .expect("the playlist came back from the server");
+    assert_eq!(on_server.song_count, 3);
+    let titles = |id: i64| -> Vec<String> {
+        core.playlist(id)
+            .unwrap()
+            .entries
+            .iter()
+            .map(|e| e.song.as_ref().map(|s| s.title.clone()).unwrap_or_default())
+            .collect()
+    };
+    let before = titles(on_server.id);
+    println!("made: {before:?}");
+    core.move_in_playlist(on_server.id, 0, 2).unwrap();
+    block(core.send_edits()).unwrap();
+    block(core.sync_library()).unwrap();
+    let moved = titles(on_server.id);
+    println!("moved the first to the end: {moved:?}");
+    assert_eq!(
+        moved,
+        [before[1].clone(), before[2].clone(), before[0].clone()]
+    );
+    core.remove_from_playlist(on_server.id, vec![1]).unwrap();
+    block(core.send_edits()).unwrap();
+    block(core.sync_library()).unwrap();
+    let removed = titles(on_server.id);
+    println!("removed the middle one: {removed:?}");
+    assert_eq!(removed, [moved[0].clone(), moved[2].clone()]);
+    core.add_to(
+        DropTarget {
+            kind: DropTargetKind::Playlist,
+            id: Some(on_server.id),
+        },
+        vec![all[3].id],
+        Some(1),
+        false,
+    )
+    .unwrap();
+    block(core.send_edits()).unwrap();
+    block(core.sync_library()).unwrap();
+    let added = titles(on_server.id);
+    println!("added at position 1: {added:?}");
+    assert_eq!(added.len(), 3);
+    assert_eq!(added[1], all[3].title);
+    core.delete_playlist(on_server.id).unwrap();
+    block(core.send_edits()).unwrap();
+    block(core.sync_library()).unwrap();
+    assert!(
+        core.playlists(0, 50)
+            .unwrap()
+            .iter()
+            .all(|p| p.name != "From CI")
+    );
+
+    // A like is five stars on the server, and comes back from it (light sync); an unlike
+    // clears it.
+    core.like(vec![all[0].id]).unwrap();
+    block(core.send_edits()).unwrap();
+    block(core.sync_library()).unwrap();
+    assert!(
+        core.liked_songs(0, 10)
+            .unwrap()
+            .iter()
+            .any(|s| s.id == all[0].id)
+    );
+    core.unlike(vec![all[0].id]).unwrap();
+    block(core.send_edits()).unwrap();
+    block(core.sync_library()).unwrap();
+    assert!(core.liked_songs(0, 10).unwrap().is_empty());
+
+    // Plays counted by another Plex app come in with the next full sync.
+    let item = {
+        let p = core.inner.profile().unwrap();
+        lock(&p.store)
+            .unwrap()
+            .track(all[1].id)
+            .unwrap()
+            .source_item_id
+    };
+    if let crate::source_any::AnySource::Plex(s) = &*plex() {
+        block(s.client.scrobble(&item)).unwrap();
+        block(s.client.scrobble(&item)).unwrap();
+    }
+    {
+        let p = core.inner.profile().unwrap();
+        lock(&p.store)
+            .unwrap()
+            .set_sync_state(source_id, None, now_ms())
+            .unwrap();
+    }
+    block(core.sync_library()).unwrap();
+    let plays = {
+        let p = core.inner.profile().unwrap();
+        lock(&p.store)
+            .unwrap()
+            .recs_songs()
+            .unwrap()
+            .into_iter()
+            .find(|r| r.track_id == all[1].id)
+            .unwrap()
+    };
+    println!(
+        "plays from the server: {} (last {:?})",
+        plays.server_play_count, plays.server_last_played_utc_ms
+    );
+    assert_eq!(plays.server_play_count, 2);
+    assert!(plays.server_last_played_utc_ms.is_some());
+
+    // The saved sign-in opens the profile again on another start.
+    let profile = signed.profile_id.clone();
+    core.close_profile().unwrap();
+    core.open_profile(
+        profile,
+        vec![SourceToken {
+            source_id,
+            token: signed.token.clone(),
+        }],
+    )
+    .unwrap();
+    let restored = block(core.sync_library()).unwrap();
+    assert_eq!(restored.len(), 1, "{restored:?}");
+    assert_eq!(core.songs(SongSort::Title, 0, 1000).unwrap().len(), songs);
+}
+
+/// GET a URL with the real transport, for the Plex flow's checks.
+async fn get(url: &str, headers: &[(&str, &str)]) -> encore_sources::transport::Response {
+    let t = encore_sources::http::HttpTransport::new(None, Duration::from_secs(20)).unwrap();
+    t.send(encore_sources::transport::Request {
+        method: encore_sources::transport::Method::Get,
+        url: url::Url::parse(url).unwrap(),
+        headers: headers
+            .iter()
+            .map(|(k, v)| ((*k).to_owned(), (*v).to_owned()))
+            .collect(),
+        body: None,
+        timeout: Duration::from_secs(20),
+    })
+    .await
+    .unwrap()
+}
+
+/// ADR core-0023: the plex.tv link end to end on fixtures (no plex.tv, no server): the
+/// address is recognised, the code is approved, the account's servers are listed, the
+/// first address that answers is kept, and only that server's token is handed to the app.
+#[test]
+fn signing_in_with_plex_keeps_only_the_server_token() {
+    let mut exchanges: Vec<encore_sources::FixtureExchange> = serde_json::from_str(include_str!(
+        "../../../../../tools/fixtures/plex/plex-tv.json"
+    ))
+    .unwrap();
+    // The https address on the local network doesn't answer; the plain http one does.
+    exchanges.push(
+        serde_json::from_value(serde_json::json!({
+            "origin": "https://192-168-7-20.fixturehash.plex.direct:32400",
+            "method": "GET", "path": "/identity", "error": "refused"
+        }))
+        .unwrap(),
+    );
+    exchanges.extend(
+        serde_json::from_str::<Vec<encore_sources::FixtureExchange>>(include_str!(
+            "../../../../../tools/fixtures/plex/server.json"
+        ))
+        .unwrap(),
+    );
+    let t = Arc::new(FixtureTransport::new(exchanges));
+    let dir = temp_dir("plex-link");
+    let core = EncoreCore::build(
+        CoreConfig {
+            data_dir: dir.0.to_string_lossy().into_owned(),
+            device_id: "device-test".into(),
+            device_name: "Sam's phone".into(),
+            platform: "test".into(),
+        },
+        Duration::ZERO,
+        50,
+        Some(t.clone()),
+    )
+    .unwrap();
+
+    let check = block(core.check_address("http://192.168.7.20:32400".into())).unwrap();
+    assert_eq!(check.kind, ServerKind::Plex);
+    assert_eq!(check.server_id, "fixture-machine-0001");
+
+    let start = block(core.plex_link_start()).unwrap();
+    assert_eq!(start.code, "K7QZ");
+    assert_eq!(start.link_url, "https://plex.tv/link");
+    assert!(start.auth_url.contains("code=K7QZ"));
+    let servers = block(core.plex_link_wait()).unwrap();
+    assert_eq!(servers.len(), 2);
+    assert_eq!(
+        servers[0].server_id, check.server_id,
+        "the typed server can be picked"
+    );
+    assert!(servers[0].owned && !servers[1].owned);
+
+    let signed = block(core.plex_sign_in(check.server_id.clone())).unwrap();
+    assert!(signed.token.starts_with("plex1:t=fixture-server-token"));
+    assert!(!signed.token.contains("fixture-account-token"));
+    assert_eq!(signed.user_name, "tone_listener");
+    let rows = core.servers().unwrap();
+    assert_eq!(rows[0].kind, "plex");
+    assert_eq!(rows[0].name, "Attic Server");
+    assert_eq!(rows[0].base_url, "http://192.168.7.20:32400/");
+
+    // The account token went with the sign-in.
+    assert!(matches!(
+        block(core.plex_sign_in(check.server_id.clone())),
+        Err(EncoreError::QuickConnectExpired { .. })
+    ));
+    // Nothing on disk holds a token.
+    let db = std::fs::read(
+        dir.0
+            .join("profiles")
+            .join(&signed.profile_id)
+            .join("library.sqlite"),
+    )
+    .unwrap();
+    for secret in [&b"fixture-server-token"[..], b"fixture-account-token"] {
+        assert!(!db.windows(secret.len()).any(|w| w == secret));
+    }
+    // Neither plex.tv nor the Plex server was told the device's name (the Jellyfin
+    // probe before them names the device, as Jellyfin's Devices page shows it).
+    let plex_requests: Vec<_> = t
+        .sent()
+        .into_iter()
+        .filter(|r| r.headers.iter().any(|(k, _)| k == "X-Plex-Product"))
+        .collect();
+    assert!(plex_requests.len() > 5);
+    for r in plex_requests {
+        assert!(r.headers.iter().all(|(_, v)| !v.contains("Sam")), "{r:?}");
+    }
+
+    let synced = block(core.sync_library()).unwrap();
+    assert_eq!(
+        (synced[0].artists, synced[0].albums, synced[0].songs),
+        (2, 2, 3)
+    );
+
+    // Cancelling a link forgets an approved account.
+    block(core.plex_link_start()).unwrap();
+    core.plex_link_cancel();
+    assert!(block(core.plex_link_wait()).is_err());
+}
+
 /// Dart can release the last reference on another runtime's worker; dropping a
 /// tokio runtime there panics unless it is shut down in the background.
 #[test]
@@ -1397,6 +2131,47 @@ fn guest_saves_nothing_and_gives_the_queue_back() {
         core.queue().unwrap().current.map(|c| c.song.id),
         Some(songs[0].id)
     );
+}
+
+/// Owner, 26 November 2026: the app came back on an old song after being swiped away.
+/// The queue is kept after every change, so a core that is never closed (the process
+/// ended) still opens on the song that was playing.
+#[test]
+fn the_queue_is_kept_without_a_close() {
+    let dir = temp_dir("kept-queue");
+    let (core, _) = core_on_recording(&dir);
+    let s = signed_in(&core);
+    block(core.sync_library()).unwrap();
+    let songs = core.songs(SongSort::Title, 0, 10).unwrap();
+    core.play(
+        vec![songs[0].id, songs[1].id, songs[2].id],
+        0,
+        StartedFrom::Songs,
+        None,
+    )
+    .unwrap();
+    let q = core.skip_next(SkipOrigin::Button).unwrap();
+    assert_eq!(q.current.map(|c| c.song.id), Some(songs[1].id));
+    // The process ends: no close_profile.
+    drop(core);
+
+    let (again, _) = core_on_recording(&dir);
+    again
+        .open_profile(
+            s.profile_id,
+            vec![SourceToken {
+                source_id: s.source_id,
+                token: s.token,
+            }],
+        )
+        .unwrap();
+    let q = again.queue().unwrap();
+    assert_eq!(
+        q.current.map(|c| c.song.id),
+        Some(songs[1].id),
+        "opens on the song that was playing"
+    );
+    assert_eq!(q.up_next.first().map(|e| e.song.id), Some(songs[2].id));
 }
 
 /// Play `n` songs to the end (ids round robin), as the player would report them.

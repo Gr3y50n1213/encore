@@ -1,6 +1,13 @@
 //! Jellyfin's HTTP API, as far as Encore uses it. Endpoint names are checked
 //! against the 12.0.0 OpenAPI document; `/Artists` and `/MusicGenres` are not used
 //! (deprecated and removed in 12.0), artists come from `/Items`.
+//!
+//! Emby speaks the same API, which Jellyfin was forked from, with a few differences
+//! the client switches on with its `Flavor` (ADR core-0022, each checked against a real
+//! Emby 4.10.2.0 in CI): the `/emby` path prefix, the `X-Emby-Authorization` header and
+//! `api_key` parameter, no Quick Connect and no `/Users/Me`, lyrics as text-subtitle
+//! streams on the song, playlists made from query parameters, a rename through the
+//! item itself, and favourites under the user.
 
 use std::fmt;
 use std::sync::Arc;
@@ -21,8 +28,52 @@ use crate::transport::{Method, Request, Response, Transport};
 /// The oldest Jellyfin this adapter supports (lyrics endpoint, `MediaBrowser` auth).
 pub const MIN_VERSION: (u32, u32, u32) = (10, 10, 0);
 
+/// The oldest Emby this adapter supports: 4.8 reads `.lrc` lyrics as the song's
+/// subtitle streams (ADR core-0022). CI runs 4.10.2.0.
+pub const EMBY_MIN_VERSION: (u32, u32, u32) = (4, 8, 0);
+
+/// Which of the two related servers a client talks to (ADR core-0022).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Flavor {
+    #[default]
+    Jellyfin,
+    Emby,
+}
+
+impl Flavor {
+    /// Tell the two apart from `/System/Info/Public`: Jellyfin names itself in
+    /// `ProductName` ("Jellyfin Server"); Emby 4.10 leaves the field out (older Emby
+    /// sent "Emby Server"). Anything else is neither.
+    pub fn from_product(product: Option<&str>) -> Option<Flavor> {
+        let p = product.unwrap_or("").trim().to_ascii_lowercase();
+        if p.contains("jellyfin") {
+            Some(Flavor::Jellyfin)
+        } else if p.is_empty() || p.contains("emby") {
+            Some(Flavor::Emby)
+        } else {
+            None
+        }
+    }
+
+    pub fn min_version(self) -> (u32, u32, u32) {
+        match self {
+            Flavor::Jellyfin => MIN_VERSION,
+            Flavor::Emby => EMBY_MIN_VERSION,
+        }
+    }
+
+    pub fn product(self) -> &'static str {
+        match self {
+            Flavor::Jellyfin => "Jellyfin",
+            Flavor::Emby => "Emby",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ServerInfo {
+    /// Jellyfin or Emby: use the client `with_flavor` this from then on.
+    pub flavor: Flavor,
     pub base_url: Url,
     pub name: String,
     pub version: String,
@@ -142,11 +193,13 @@ pub struct JellyfinClient {
     device: DeviceInfo,
     timeout: Duration,
     session: Option<(String, String)>,
+    flavor: Flavor,
 }
 
 impl fmt::Debug for JellyfinClient {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("JellyfinClient")
+            .field("flavor", &self.flavor)
             .field("signed_in", &self.session.is_some())
             .finish_non_exhaustive()
     }
@@ -165,7 +218,22 @@ impl JellyfinClient {
             device,
             timeout,
             session: None,
+            flavor: Flavor::Jellyfin,
         }
+    }
+
+    /// The same client for an Emby server, or back for Jellyfin (ADR core-0022).
+    pub fn with_flavor(mut self, flavor: Flavor) -> JellyfinClient {
+        self.flavor = flavor;
+        self
+    }
+
+    pub fn flavor(&self) -> Flavor {
+        self.flavor
+    }
+
+    pub(crate) fn emby(&self) -> bool {
+        self.flavor == Flavor::Emby
     }
 
     /// A client that sends `token` and acts as `user_id`.
@@ -189,6 +257,10 @@ impl JellyfinClient {
         self.session.as_ref().map(|(t, _)| t.as_str())
     }
 
+    pub(super) fn device(&self) -> &DeviceInfo {
+        &self.device
+    }
+
     pub(crate) fn user_id(&self) -> Result<&str> {
         self.session
             .as_ref()
@@ -197,11 +269,16 @@ impl JellyfinClient {
     }
 
     pub(crate) fn url(&self, path: &str, query: &[(&str, &str)]) -> Result<Url> {
-        let mut u = Url::parse(&format!(
-            "{}{path}",
-            self.base.as_str().trim_end_matches('/')
-        ))
-        .map_err(|e| SourceError::InvalidAddress(e.to_string()))?;
+        let base = self.base.as_str().trim_end_matches('/');
+        // Emby serves its API under `/emby` (and at the root too, but a reverse proxy in
+        // front of it may pass `/emby` only), unless the address already ends there.
+        let prefix = if self.emby() && !base.to_ascii_lowercase().ends_with("/emby") {
+            "/emby"
+        } else {
+            ""
+        };
+        let mut u = Url::parse(&format!("{base}{prefix}{path}"))
+            .map_err(|e| SourceError::InvalidAddress(e.to_string()))?;
         if !query.is_empty() {
             let mut q = u.query_pairs_mut();
             for (k, v) in query {
@@ -213,12 +290,24 @@ impl JellyfinClient {
 
     fn auth_header(&self) -> (String, String) {
         (
-            "Authorization".to_owned(),
+            // Emby reads `Authorization` too, but documents its own header.
+            if self.emby() {
+                "X-Emby-Authorization"
+            } else {
+                "Authorization"
+            }
+            .to_owned(),
             authorization_header(&self.device, self.token()),
         )
     }
 
-    async fn send(
+    /// The query parameter that carries the token on a player's URL: Jellyfin 12
+    /// takes only `ApiKey`, Emby only `api_key` (checked in CI, 26 November 2026).
+    fn api_key_param(&self) -> &'static str {
+        if self.emby() { "api_key" } else { "ApiKey" }
+    }
+
+    pub(super) async fn send(
         &self,
         method: Method,
         url: Url,
@@ -241,7 +330,7 @@ impl JellyfinClient {
 
     /// Turn an error status into a plain reason. `unauthorized` is what a 401 means
     /// for this call.
-    fn check(resp: Response, unauthorized: SourceError) -> Result<Response> {
+    pub(super) fn check(resp: Response, unauthorized: SourceError) -> Result<Response> {
         match resp.status {
             200..=299 => Ok(resp),
             401 | 403 => Err(unauthorized),
@@ -262,33 +351,50 @@ impl JellyfinClient {
         Self::check(resp, SourceError::SessionExpired)?.json()
     }
 
-    /// `GET /System/Info/Public`: is this Jellyfin, and a version we support?
+    /// `GET /System/Info/Public`: is this Jellyfin or Emby, and a version we
+    /// support? The reply says which (`Flavor::from_product`); use the client
+    /// `with_flavor(info.flavor)` from then on. Asked at the address's root, where
+    /// both answer.
     pub async fn public_info(&self) -> Result<ServerInfo> {
+        let root = JellyfinClient {
+            transport: self.transport.clone(),
+            base: self.base.clone(),
+            device: self.device.clone(),
+            timeout: self.timeout,
+            session: None,
+            flavor: Flavor::Jellyfin,
+        };
         let info: PublicSystemInfo =
-            self.get_json("/System/Info/Public", &[])
+            root.get_json("/System/Info/Public", &[])
                 .await
                 .map_err(|e| match e {
                     SourceError::Protocol(_) | SourceError::NotFound => SourceError::NotJellyfin,
                     other => other,
                 })?;
-        let product = info.product_name.unwrap_or_default();
         let id = info.id.unwrap_or_default();
-        if !product.to_ascii_lowercase().contains("jellyfin") || id.is_empty() {
+        let flavor =
+            Flavor::from_product(info.product_name.as_deref()).ok_or(SourceError::NotJellyfin)?;
+        // Emby names no product: an ID and a server name are the least it sends.
+        if id.is_empty() || (flavor == Flavor::Emby && info.server_name.is_none()) {
             return Err(SourceError::NotJellyfin);
         }
         let version = info.version.unwrap_or_default();
         let parsed = parse_version(&version).ok_or(SourceError::NotJellyfin)?;
-        if parsed < MIN_VERSION {
-            let (a, b, c) = MIN_VERSION;
+        let minimum = flavor.min_version();
+        if parsed < minimum {
+            let (a, b, c) = minimum;
             return Err(SourceError::UnsupportedVersion {
                 found: version,
                 minimum: format!("{a}.{b}.{c}"),
             });
         }
         Ok(ServerInfo {
+            flavor,
             warning: check_security(&self.base)?,
             base_url: self.base.clone(),
-            name: info.server_name.unwrap_or_else(|| "Jellyfin".to_owned()),
+            name: info
+                .server_name
+                .unwrap_or_else(|| flavor.product().to_owned()),
             version,
             server_id: id,
         })
@@ -325,6 +431,10 @@ impl JellyfinClient {
 
     /// `GET /QuickConnect/Enabled`.
     pub async fn quick_connect_enabled(&self) -> Result<bool> {
+        // Emby has no Quick Connect (`/QuickConnect/Enabled` is a 404 there).
+        if self.emby() {
+            return Ok(false);
+        }
         self.get_json("/QuickConnect/Enabled", &[]).await
     }
 
@@ -419,6 +529,9 @@ impl JellyfinClient {
 
     /// `GET /Audio/{id}/Lyrics`. None when the song has no lyrics.
     pub async fn lyrics(&self, item_id: &str) -> Result<Option<RawLyrics>> {
+        if self.emby() {
+            return self.emby_lyrics(item_id).await;
+        }
         let resp = self
             .send(
                 Method::Get,
@@ -488,7 +601,9 @@ impl JellyfinClient {
             }
         };
         let mut keyed = url.clone();
-        keyed.query_pairs_mut().append_pair("ApiKey", &token);
+        keyed
+            .query_pairs_mut()
+            .append_pair(self.api_key_param(), &token);
         Ok(StreamInfo {
             url: url.to_string(),
             url_with_api_key: keyed.to_string(),
@@ -557,6 +672,9 @@ impl JellyfinClient {
     /// `POST /Playlists/{id}/Items/{entryId}/Move/{index}`, `POST /Playlists/{id}`
     /// (rename), `DELETE /Items/{id}`, `POST`/`DELETE /UserFavoriteItems/{id}`.
     pub async fn edit(&self, edit: &ServerEdit) -> Result<EditOutcome> {
+        if self.emby() {
+            return self.emby_edit(edit).await;
+        }
         let user = self.user_id()?.to_owned();
         let (method, url, body) = match edit {
             ServerEdit::CreatePlaylist { name, item_ids } => (
@@ -733,11 +851,15 @@ impl JellyfinClient {
                     .last_played_date
                     .as_deref()
                     .and_then(super::time::parse_utc_ms);
-                out.push((
-                    id,
-                    u.play_count.unwrap_or(u32::from(u.played.unwrap_or(false))),
-                    last,
-                ));
+                let played = u32::from(u.played.unwrap_or(false));
+                let count = if self.emby() {
+                    // Emby's lists say `PlayCount: 0` beside `Played: true` (4.10.2.0; the
+                    // item itself has the real count), so a played song counts once at least.
+                    u.play_count.unwrap_or(0).max(played)
+                } else {
+                    u.play_count.unwrap_or(played)
+                };
+                out.push((id, count, last));
             }
             start += n;
             if n == 0 || start >= page.total_record_count.unwrap_or(0).max(0) as u64 {
@@ -832,8 +954,26 @@ impl JellyfinClient {
     /// The primary image at exactly `size_px` square (plan section 4).
     /// `GET /Users/Me`: who this client's token belongs to. A 401 means the token
     /// is not (or no longer) valid: `SessionExpired`.
+    ///
+    /// Emby has no `/Users/Me` (a 500 there): its user is `/Users/{id}`, with the ID
+    /// from the sign-in, or, when this client was given only a token (the companion),
+    /// the one Emby itself records for this device's session (`emby_token_owner`).
     pub async fn me(&self) -> Result<Me> {
-        let user: UserDto = self.get_json("/Users/Me", &[]).await?;
+        let path = if self.emby() {
+            let known = self
+                .user_id()
+                .ok()
+                .filter(|u| !u.is_empty())
+                .map(str::to_owned);
+            let id = match known {
+                Some(id) => id,
+                None => self.emby_token_owner().await?,
+            };
+            format!("/Users/{id}")
+        } else {
+            "/Users/Me".to_owned()
+        };
+        let user: UserDto = self.get_json(&path, &[]).await?;
         Ok(Me {
             user_id: user
                 .id

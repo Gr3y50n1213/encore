@@ -1,0 +1,45 @@
+[
+  {
+    "method": "GET",
+    "path": "/System/Info/Public",
+    "body": {"LocalAddresses": [], "RemoteAddresses": [], "ServerName": "Den Server",
+             "Version": "4.10.2.0", "Id": "0b1c2d3e4f5a46b7a8c9d0e1f2a3b4c5"}
+  },
+  {
+    "method": "POST",
+    "path": "/emby/Users/AuthenticateByName",
+    "body": {
+      "User": {"Name": "listener", "ServerId": "0b1c2d3e4f5a46b7a8c9d0e1f2a3b4c5",
+               "Id": "5e6f7a8b9c0d41e2b3c4d5e6f7a8b9c0", "HasPassword": true,
+               "Policy": {"IsAdministrator": false, "EnableAllFolders": true}},
+      "SessionInfo": {"UserId": "5e6f7a8b9c0d41e2b3c4d5e6f7a8b9c0", "UserName": "listener",
+                      "Client": "Encore", "DeviceName": "Test Phone", "DeviceId": "dev-1"},
+      "AccessToken": "invented-emby-token",
+      "ServerId": "0b1c2d3e4f5a46b7a8c9d0e1f2a3b4c5"
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/emby/Users/5e6f7a8b9c0d41e2b3c4d5e6f7a8b9c0",
+    "body": {"Name": "listener", "ServerId": "0b1c2d3e4f5a46b7a8c9d0e1f2a3b4c5",
+             "Id": "5e6f7a8b9c0d41e2b3c4d5e6f7a8b9c0", "PrimaryImageTag": "a1b2c3",
+             "HasPassword": true, "Policy": {"IsAdministrator": false}}
+  },
+  {
+    "method": "GET",
+    "path": "/emby/Sessions",
+    "body": [
+      {"UserId": "9f8e7d6c5b4a43c2b1a0f9e8d7c6b5a4", "UserName": "admin", "Client": "Emby Web",
+       "DeviceName": "Firefox", "DeviceId": "web-1"},
+      {"UserId": "5e6f7a8b9c0d41e2b3c4d5e6f7a8b9c0", "UserName": "listener",
+       "Client": "Encore companion", "DeviceName": "encore-server", "DeviceId": "encore-server"},
+      {"UserId": "5e6f7a8b9c0d41e2b3c4d5e6f7a8b9c0", "UserName": "listener", "Client": "Encore",
+       "DeviceName": "Test Phone", "DeviceId": "dev-1"}
+    ]
+  },
+  {
+    "method": "POST",
+    "path": "/emby/Sessions/Logout",
+    "status": 204
+  }
+]

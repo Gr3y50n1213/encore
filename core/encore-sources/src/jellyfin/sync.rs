@@ -30,6 +30,9 @@ pub struct SyncProgress {
 }
 
 const FIELDS: &str = "SortName,Genres,ProviderIds,DateCreated";
+/// Emby's songs also say where their lyrics are (ADR core-0022): it has no
+/// `HasLyrics`.
+const EMBY_SONG_FIELDS: &str = "SortName,Genres,ProviderIds,DateCreated,MediaStreams";
 
 struct Pager<'a> {
     client: &'a JellyfinClient,
@@ -52,12 +55,17 @@ impl Pager<'_> {
         let mut start: u64 = 0;
         let limit = self.page_size.to_string();
         let mut counted = false;
+        let fields = if self.client.emby() && kind == "Audio" {
+            EMBY_SONG_FIELDS
+        } else {
+            FIELDS
+        };
         loop {
             let start_s = start.to_string();
             let mut q: Vec<(&str, &str)> = vec![
                 ("includeItemTypes", kind),
                 ("recursive", "true"),
-                ("fields", FIELDS),
+                ("fields", fields),
                 ("enableImageTypes", "Primary"),
                 ("imageTypeLimit", "1"),
                 ("enableUserData", "false"),
@@ -153,10 +161,13 @@ pub async fn sync_library(
     for p in &playlist_items {
         let Some(id) = p.id.as_deref() else { continue };
         let entries = client.playlist_items(id).await?.items.unwrap_or_default();
-        if let Some(pl) = map::to_playlist(
-            p,
-            entries.iter().filter_map(map::to_playlist_entry).collect(),
-        ) {
+        let entries = if client.emby() {
+            // Emby's entry IDs are slots that move (the `emby` module).
+            super::emby::entries_of(&entries)
+        } else {
+            entries.iter().filter_map(map::to_playlist_entry).collect()
+        };
+        if let Some(pl) = map::to_playlist(p, entries) {
             playlists.push(pl);
         }
     }
@@ -186,7 +197,11 @@ pub async fn sync_library(
         playlists_complete: false,
         artists: artists.iter().filter_map(map::to_artist).collect(),
         albums: albums.iter().filter_map(map::to_album).collect(),
-        tracks: tracks.iter().filter_map(map::to_track).collect(),
+        tracks: if client.emby() {
+            tracks.iter().filter_map(super::emby::to_track).collect()
+        } else {
+            tracks.iter().filter_map(map::to_track).collect()
+        },
         playlists,
         removed_item_ids,
         favorite_item_ids,

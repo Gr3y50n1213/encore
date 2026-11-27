@@ -1,0 +1,268 @@
+[
+  {
+    "method": "GET",
+    "path": "/identity",
+    "body": {
+      "MediaContainer": {
+        "size": 0,
+        "apiVersion": "1.2.3",
+        "claimed": true,
+        "machineIdentifier": "fixture-machine-0001",
+        "version": "1.43.5.11079-fixture"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/library/sections",
+    "body": {
+      "MediaContainer": {
+        "size": 2,
+        "title1": "Plex Library",
+        "Directory": [
+          { "key": "1", "type": "movie", "title": "Home Videos", "contentChangedAt": 4 },
+          {
+            "key": "3", "type": "artist", "title": "Music", "agent": "tv.plex.agents.music",
+            "scanner": "Plex Music", "updatedAt": 1795700000, "scannedAt": 1795700100,
+            "contentChangedAt": 27, "Location": [{ "id": 1, "path": "/music" }]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/library/sections/3/all",
+    "query": { "type": "8" },
+    "body": {
+      "MediaContainer": {
+        "size": 2, "totalSize": 2, "offset": 0,
+        "Metadata": [
+          { "ratingKey": "100", "type": "artist", "title": "Paper Harbour", "titleSort": "Paper Harbour", "addedAt": 1795700000 },
+          { "ratingKey": "200", "type": "artist", "title": "The Low Lanterns", "titleSort": "Low Lanterns", "addedAt": 1795700001,
+            "Guid": [{ "id": "mbid://4f1c2d3e-0000-4000-8000-00000000a200" }] }
+        ]
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/library/sections/3/all",
+    "query": { "type": "9" },
+    "body": {
+      "MediaContainer": {
+        "size": 2, "totalSize": 2, "offset": 0,
+        "Metadata": [
+          { "ratingKey": "110", "type": "album", "title": "Quiet Rooms", "parentRatingKey": "100", "parentTitle": "Paper Harbour",
+            "year": 2021, "addedAt": 1795700010, "thumb": "/library/metadata/110/thumb/1795700011",
+            "Genre": [{ "tag": "Ambient" }] },
+          { "ratingKey": "210", "type": "album", "title": "Night Ferries", "parentRatingKey": "200", "parentTitle": "The Low Lanterns",
+            "year": 2019, "addedAt": 1795700020 }
+        ]
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/library/sections/3/all",
+    "query": { "type": "10", "X-Plex-Container-Start": "0" },
+    "body": {
+      "MediaContainer": {
+        "size": 2, "totalSize": 3, "offset": 0,
+        "Metadata": [
+          { "ratingKey": "111", "type": "track", "title": "Low Lantern", "parentRatingKey": "110", "parentTitle": "Quiet Rooms",
+            "grandparentRatingKey": "100", "grandparentTitle": "Paper Harbour", "index": 1, "parentIndex": 1, "parentYear": 2021,
+            "duration": 201000, "addedAt": 1795700012, "userRating": 10, "viewCount": 3, "lastViewedAt": 1795710000,
+            "Media": [{ "id": 1, "duration": 201000, "bitrate": 320, "audioCodec": "mp3", "container": "mp3",
+              "Part": [{ "id": 501, "key": "/library/parts/501/1795700012/file.mp3", "container": "mp3" }] }] },
+          { "ratingKey": "112", "type": "track", "title": "Open Window", "parentRatingKey": "110", "parentTitle": "Quiet Rooms",
+            "grandparentRatingKey": "100", "grandparentTitle": "Paper Harbour", "originalTitle": "Paper Harbour feat. Wren",
+            "index": 2, "parentIndex": 1, "duration": 187000, "addedAt": 1795700013, "userRating": 8,
+            "Media": [{ "id": 2, "duration": 187000, "bitrate": 900, "container": "flac",
+              "Part": [{ "id": 502, "key": "/library/parts/502/1795700013/file.flac", "container": "flac" }] }] }
+        ]
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/library/sections/3/all",
+    "query": { "type": "10", "X-Plex-Container-Start": "2" },
+    "body": {
+      "MediaContainer": {
+        "size": 1, "totalSize": 3, "offset": 2,
+        "Metadata": [
+          { "ratingKey": "211", "type": "track", "title": "Harbour Lights", "parentRatingKey": "210", "parentTitle": "Night Ferries",
+            "grandparentRatingKey": "200", "grandparentTitle": "The Low Lanterns", "index": 1, "parentIndex": 1, "parentYear": 2019,
+            "duration": 240000, "addedAt": 1795700021,
+            "Media": [{ "id": 3, "duration": 240000, "bitrate": 256, "container": "m4a",
+              "Part": [{ "id": 601, "key": "/library/parts/601/1795700021/file.m4a", "container": "m4a" }] }] }
+        ]
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/library/sections/3/all",
+    "query": { "type": "10", "userRating>>": "8" },
+    "body": {
+      "MediaContainer": {
+        "size": 1,
+        "Metadata": [
+          { "ratingKey": "111", "type": "track", "title": "Low Lantern", "userRating": 10,
+            "Media": [{ "Part": [{ "id": 501, "key": "/library/parts/501/1795700012/file.mp3" }] }] }
+        ]
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/playlists",
+    "query": { "playlistType": "audio" },
+    "body": {
+      "MediaContainer": {
+        "size": 2,
+        "Metadata": [
+          { "ratingKey": "900", "type": "playlist", "title": "Night drive", "smart": false, "playlistType": "audio",
+            "composite": "/playlists/900/composite/1795700500", "leafCount": 2, "addedAt": 1795700500 },
+          { "ratingKey": "901", "type": "playlist", "title": "All Music", "smart": true, "playlistType": "audio",
+            "leafCount": 1, "addedAt": 1795700600 }
+        ]
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/playlists/900/items",
+    "body": {
+      "MediaContainer": {
+        "size": 2, "totalSize": 2, "ratingKey": "900", "smart": false, "title": "Night drive",
+        "Metadata": [
+          { "ratingKey": "211", "type": "track", "title": "Harbour Lights", "playlistItemID": 7001,
+            "Media": [{ "Part": [{ "id": 601, "key": "/library/parts/601/1795700021/file.m4a" }] }] },
+          { "ratingKey": "111", "type": "track", "title": "Low Lantern", "playlistItemID": 7002,
+            "Media": [{ "Part": [{ "id": 501, "key": "/library/parts/501/1795700012/file.mp3" }] }] }
+        ]
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/playlists/901/items",
+    "body": {
+      "MediaContainer": {
+        "size": 1,
+        "Metadata": [
+          { "ratingKey": "112", "type": "track", "title": "Open Window", "playlistItemID": 7101,
+            "Media": [{ "Part": [{ "id": 502, "key": "/library/parts/502/1795700013/file.flac" }] }] }
+        ]
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/library/metadata/111",
+    "body": {
+      "MediaContainer": {
+        "size": 1,
+        "Metadata": [
+          { "ratingKey": "111", "type": "track", "title": "Low Lantern",
+            "Media": [{ "Part": [{ "id": 501, "key": "/library/parts/501/1795700012/file.mp3",
+              "Stream": [
+                { "id": 9001, "streamType": 2, "codec": "mp3", "gain": -6.5, "albumGain": -7.25 },
+                { "id": 9002, "streamType": 4, "codec": "txt", "key": "/library/streams/9002" },
+                { "id": 9003, "streamType": 4, "codec": "lrc", "format": "lrc", "key": "/library/streams/9003" }
+              ] }] }] }
+        ]
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/library/streams/9003",
+    "bodyText": "[00:01.00]First light on the water\n[00:05.50]A second line\n"
+  },
+  {
+    "method": "GET",
+    "path": "/library/metadata/112",
+    "body": {
+      "MediaContainer": {
+        "size": 1,
+        "Metadata": [
+          { "ratingKey": "112", "type": "track", "title": "Open Window",
+            "Media": [{ "Part": [{ "id": 502, "Stream": [{ "id": 9101, "streamType": 2, "codec": "flac" }] }] }] }
+        ]
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/photo/:/transcode",
+    "query": { "url": "/library/metadata/110/thumb/1795700011", "format": "png" },
+    "bodyHex": "89504e470d0a1a0a0000000d49484452"
+  },
+  {
+    "method": "GET",
+    "path": "/photo/:/transcode",
+    "query": { "url": "/library/metadata/210/thumb" },
+    "status": 404,
+    "bodyText": "<html><head><title>Not Found</title></head><body><h1>404 Not Found</h1></body></html>"
+  },
+  {
+    "method": "POST",
+    "path": "/playlists",
+    "query": { "type": "audio", "smart": "0" },
+    "body": {
+      "MediaContainer": {
+        "size": 1,
+        "Metadata": [
+          { "ratingKey": "950", "key": "/playlists/950/items", "type": "playlist", "title": "Made here", "smart": false,
+            "playlistType": "audio", "leafCount": 2, "addedAt": 1795710000 }
+        ]
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/playlists/900/items",
+    "body": { "MediaContainer": { "size": 1, "leafCountAdded": 1, "leafCountRequested": 1 } }
+  },
+  {
+    "method": "PUT",
+    "path": "/playlists/900/items/7002/move",
+    "body": { "MediaContainer": { "size": 1 } }
+  },
+  {
+    "method": "DELETE",
+    "path": "/playlists/900/items/7001",
+    "body": { "MediaContainer": { "size": 1 } }
+  },
+  {
+    "method": "DELETE",
+    "path": "/playlists/900/items/7999",
+    "status": 404
+  },
+  {
+    "method": "PUT",
+    "path": "/playlists/900",
+    "query": { "title": "Late drive" },
+    "status": 200
+  },
+  {
+    "method": "DELETE",
+    "path": "/playlists/900",
+    "status": 204
+  },
+  {
+    "method": "PUT",
+    "path": "/:/rate",
+    "query": { "identifier": "com.plexapp.plugins.library" },
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/:/scrobble",
+    "query": { "identifier": "com.plexapp.plugins.library" },
+    "status": 200
+  }
+]

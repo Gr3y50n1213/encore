@@ -29,7 +29,7 @@ impl fmt::Debug for DeviceInfo {
 
 /// Percent-encode everything but unreserved characters (RFC 3986), so the
 /// server's URL decoding gives back exactly the original text.
-fn encode(s: &str) -> String {
+pub(crate) fn encode(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for b in s.bytes() {
         if b.is_ascii_alphanumeric() || matches!(b, b'-' | b'.' | b'_' | b'~') {

@@ -2481,6 +2481,8 @@ final bool plainHttpOnLocalNetwork;
 enum ServerKind {
                     jellyfin,
 subsonic,
+emby,
+plex,
                     ;
                     
                 }

@@ -1,0 +1,100 @@
+[
+  {
+    "method": "GET",
+    "path": "/emby/Items",
+    "query": {"includeItemTypes": "MusicArtist"},
+    "date": "Thu, 26 Nov 2026 10:00:00 GMT",
+    "body": {"Items": [
+      {"Name": "Ember Cove", "ServerId": "0b1c2d3e4f5a46b7a8c9d0e1f2a3b4c5", "Id": "21", "SortName": "Ember Cove",
+       "DateCreated": "2026-11-20T09:00:00.0000000Z", "ProviderIds": {}, "IsFolder": true, "Type": "MusicArtist",
+       "ImageTags": {}, "BackdropImageTags": []},
+      {"Name": "Salt & Lantern", "ServerId": "0b1c2d3e4f5a46b7a8c9d0e1f2a3b4c5", "Id": "23", "SortName": "Salt & Lantern",
+       "DateCreated": "2026-11-20T09:00:00.0000000Z", "ProviderIds": {}, "IsFolder": true, "Type": "MusicArtist",
+       "ImageTags": {}, "BackdropImageTags": []}
+    ], "TotalRecordCount": 2}
+  },
+  {
+    "method": "GET",
+    "path": "/emby/Items",
+    "query": {"includeItemTypes": "MusicAlbum"},
+    "body": {"Items": [
+      {"Name": "Golden Hour Static", "Id": "22", "DateCreated": "2026-11-20T09:00:00.0000000Z", "SortName": "Golden Hour Static",
+       "Genres": ["Ambient"], "ProviderIds": {}, "IsFolder": true, "Type": "MusicAlbum", "ProductionYear": 2024,
+       "Artists": ["Ember Cove"], "ArtistItems": [{"Name": "Ember Cove", "Id": "21"}],
+       "AlbumArtist": "Ember Cove", "AlbumArtists": [{"Name": "Ember Cove", "Id": "21"}],
+       "ImageTags": {"Primary": "6c89516ba06e33c6fe1352d83e9e3c5d_639313109620955319"}, "BackdropImageTags": []},
+      {"Name": "Tidewater", "Id": "24", "DateCreated": "2026-11-20T09:00:00.0000000Z", "SortName": "Tidewater",
+       "Genres": [], "ProviderIds": {}, "IsFolder": true, "Type": "MusicAlbum",
+       "AlbumArtist": "Salt & Lantern", "AlbumArtists": [{"Name": "Salt & Lantern", "Id": "23"}],
+       "ImageTags": {}, "BackdropImageTags": []}
+    ], "TotalRecordCount": 2}
+  },
+  {
+    "method": "GET",
+    "path": "/emby/Items",
+    "query": {"includeItemTypes": "Audio", "fields": "SortName,Genres,ProviderIds,DateCreated,MediaStreams"},
+    "body": {"Items": [
+      {"Name": "Low Lantern", "Id": "32", "DateCreated": "2026-11-20T09:00:00.0000000Z", "Container": "flac",
+       "SortName": "Low Lantern", "Genres": [], "RunTimeTicks": 2004000000, "IndexNumber": 1, "ParentIndexNumber": 1,
+       "ProviderIds": {}, "IsFolder": false, "Type": "Audio",
+       "Artists": ["Salt & Lantern"], "ArtistItems": [{"Name": "Salt & Lantern", "Id": "23"}],
+       "Album": "Tidewater", "AlbumId": "24", "AlbumArtist": "Salt & Lantern",
+       "AlbumArtists": [{"Name": "Salt & Lantern", "Id": "23"}],
+       "MediaStreams": [{"Codec": "flac", "Type": "Audio", "Index": 0, "IsExternal": false, "IsTextSubtitleStream": false}],
+       "ImageTags": {}, "MediaType": "Audio"},
+      {"Name": "Slow Tide", "Id": "31", "DateCreated": "2026-11-20T09:00:00.0000000Z", "Container": "flac",
+       "SortName": "Slow Tide", "Genres": ["Ambient"], "RunTimeTicks": 2224000000, "IndexNumber": 3, "ParentIndexNumber": 1,
+       "ProductionYear": 2024, "ProviderIds": {"MusicBrainzTrack": "5b11f4ce-a62d-471e-81fc-a69a8278c7da"},
+       "IsFolder": false, "Type": "Audio",
+       "Artists": ["Ember Cove"], "ArtistItems": [{"Name": "Ember Cove", "Id": "21"}],
+       "Album": "Golden Hour Static", "AlbumId": "22", "AlbumArtist": "Ember Cove",
+       "AlbumArtists": [{"Name": "Ember Cove", "Id": "21"}],
+       "MediaStreams": [
+         {"Codec": "flac", "Type": "Audio", "Index": 0, "IsExternal": false, "IsTextSubtitleStream": false},
+         {"Codec": "lrc", "Type": "Subtitle", "Index": 1, "IsExternal": true, "IsTextSubtitleStream": true}],
+       "ImageTags": {}, "MediaType": "Audio"}
+    ], "TotalRecordCount": 2}
+  },
+  {
+    "method": "GET",
+    "path": "/emby/Items",
+    "query": {"includeItemTypes": "Playlist"},
+    "body": {"Items": [
+      {"Name": "Evening Drive", "Id": "40", "DateCreated": "2026-11-21T18:00:00.0000000Z", "SortName": "Evening Drive",
+       "IsFolder": true, "Type": "Playlist", "ImageTags": {}, "BackdropImageTags": []}
+    ], "TotalRecordCount": 1}
+  },
+  {
+    "method": "GET",
+    "path": "/emby/Playlists/40/Items",
+    "body": {"Items": [
+      {"Name": "Slow Tide", "Id": "31", "PlaylistItemId": "7", "Type": "Audio"},
+      {"Name": "Low Lantern", "Id": "32", "PlaylistItemId": "8", "Type": "Audio"},
+      {"Name": "Slow Tide", "Id": "31", "PlaylistItemId": "9", "Type": "Audio"}
+    ], "TotalRecordCount": 3}
+  },
+  {
+    "method": "GET",
+    "path": "/emby/Items",
+    "query": {"filters": "IsFavorite"},
+    "body": {"Items": [{"Name": "Slow Tide", "Id": "31", "Type": "Audio",
+      "UserData": {"PlaybackPositionTicks": 0, "PlayCount": 0, "IsFavorite": true, "Played": false}}],
+      "TotalRecordCount": 1}
+  },
+  {
+    "method": "GET",
+    "path": "/emby/Items",
+    "query": {"filters": "IsPlayed"},
+    "body": {"Items": [{"Name": "Low Lantern", "Id": "32", "Type": "Audio",
+      "UserData": {"PlaybackPositionTicks": 0, "PlayCount": 0, "IsFavorite": false, "Played": true}}],
+      "TotalRecordCount": 1}
+  }
+  ,
+  {
+    "method": "GET",
+    "path": "/emby/Items",
+    "query": {"includeItemTypes": "Audio,MusicAlbum,MusicArtist,Playlist"},
+    "body": {"Items": [{"Id": "21"}, {"Id": "22"}, {"Id": "23"}, {"Id": "24"}, {"Id": "31"},
+                       {"Id": "32"}, {"Id": "40"}], "TotalRecordCount": 7}
+  }
+]

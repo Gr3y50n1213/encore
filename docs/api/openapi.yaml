@@ -109,8 +109,13 @@ paths:
       summary: Sign a device in with its media-server token.
       description: |
         The server finds the media server named by `server_id` among its trusted ones
-        (ENCORE_JELLYFIN_URLS), asks it `GET /Users/Me` with `media_token`, and issues
-        its own tokens. The media token is not stored. Rate-limited per address.
+        (ENCORE_MEDIA_URLS, formerly ENCORE_JELLYFIN_URLS), checks `media_token` with it,
+        and issues its own tokens. The media token is not stored. Rate-limited per
+        address. `media_token` is a Jellyfin token (checked with `GET /Users/Me`), a
+        Subsonic sign-in `subsonic1:...` (ADR core-0021, `ping` and `getUser`), or a Plex
+        server token `plex1:t=...&m=<machineIdentifier>` (ADR core-0023: the trusted Plex
+        server with that ID must refuse a made-up token and take this one; 403 when it
+        lets anyone in).
       requestBody:
         required: true
         content:

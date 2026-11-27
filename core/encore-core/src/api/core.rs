@@ -13,8 +13,14 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use encore_sources::http::HttpTransport;
 use encore_sources::jellyfin::{self, DeviceInfo, JellyfinClient, ServerInfo, Session};
+use encore_sources::plex::{
+    AccountToken, PlexAccount, PlexClient, PlexCredentials, PlexIdentity, PlexPin,
+    PlexServerResource, PlexTv,
+};
 use encore_sources::subsonic::{SubsonicClient, SubsonicCredentials};
-use encore_sources::{JellyfinSource, MediaSource, SourceKind, SubsonicSource, Transport};
+use encore_sources::{
+    JellyfinSource, MediaSource, PlexSource, SourceError, SourceKind, SubsonicSource, Transport,
+};
 
 /// What a new sign-in stores about its server, whatever its kind.
 struct NewAccount<'a> {
@@ -43,6 +49,8 @@ use encore_sync::{Hlc, HlcClock};
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(20);
 const QUICK_CONNECT_POLL: Duration = Duration::from_secs(3);
+/// Plex Media Server's own port, tried when the typed address has none (ADR core-0023).
+const PLEX_PORT: u16 = 32400;
 const DEFAULT_CONTAINERS: &[&str] = &["flac", "mp3", "m4a", "aac", "alac", "ogg", "opus", "wav"];
 
 fn now_ms() -> i64 {
@@ -102,6 +110,16 @@ struct PendingQuickConnect {
     info: ServerInfo,
     secret: String,
     started: Instant,
+}
+
+/// A plex.tv link in progress (ADR core-0023). The account token lives only here, in
+/// memory, from the moment the code is approved until a server is chosen or the link is
+/// cancelled or expires.
+struct PendingPlexLink {
+    tv: PlexTv,
+    pin: PlexPin,
+    started: Instant,
+    approved: Option<(AccountToken, PlexAccount, Vec<PlexServerResource>)>,
 }
 
 struct Playback {
@@ -164,6 +182,9 @@ struct Inner {
     pins: Mutex<HashMap<String, String>>,
     quick: tokio::sync::Mutex<Option<PendingQuickConnect>>,
     cancel_quick: AtomicBool,
+    /// The plex.tv link in progress, if any (ADR core-0023).
+    plex: tokio::sync::Mutex<Option<PendingPlexLink>>,
+    cancel_plex: AtomicBool,
     poll_every: Duration,
     sync_page_size: u32,
     /// Tests replay a recording instead of the network.
@@ -285,17 +306,239 @@ impl Inner {
                         });
                     }
                 }
-                return Err(jellyfin_error.into());
+                // Neither: maybe a Plex Media Server (core-0023), on the typed port or
+                // Plex's own.
+                return match self.find_plex(&address, &plan, transport).await {
+                    Ok(Some(found)) => Ok(found),
+                    Ok(None) => Err(jellyfin_error.into()),
+                    Err(e) => Err(e),
+                };
             }
         };
         Ok(ServerCheck {
-            kind: ServerKind::Jellyfin,
+            // The same reply tells Jellyfin from Emby (ADR core-0022).
+            kind: match info.flavor {
+                jellyfin::Flavor::Jellyfin => ServerKind::Jellyfin,
+                jellyfin::Flavor::Emby => ServerKind::Emby,
+            },
             base_url: info.base_url.to_string(),
             name: info.name,
             version: info.version,
             server_id: info.server_id,
             plain_http_on_local_network: info.warning.is_some(),
         })
+    }
+
+    /// What Encore tells Plex about itself: the product, the platform and a client ID
+    /// made from (not equal to) the install's device ID. Never the device's name.
+    fn plex_identity(&self) -> PlexIdentity {
+        PlexIdentity {
+            product: APP_NAME.to_owned(),
+            version: env!("CARGO_PKG_VERSION").to_owned(),
+            platform: self.config.platform.clone(),
+            client_id: encore_sources::plex::client_identifier(&self.config.device_id),
+        }
+    }
+
+    /// `/identity` on each address of the plan, then on Plex's port where no port was
+    /// typed. None when no Plex answered; an untrusted certificate on a Plex address is
+    /// said, so the user can trust it.
+    async fn find_plex(
+        &self,
+        address: &str,
+        plan: &jellyfin::AddressPlan,
+        transport: Arc<dyn Transport>,
+    ) -> Result<Option<ServerCheck>, EncoreError> {
+        let mut candidates = plan.candidates.clone();
+        if let Ok(own) = jellyfin::plan_address(address, &[PLEX_PORT], PLEX_PORT) {
+            for c in own.candidates {
+                if !candidates.contains(&c) {
+                    candidates.push(c);
+                }
+            }
+        }
+        let timeout = Duration::from_secs(tokens().probe_timeout_seconds);
+        let mut untrusted = None;
+        for url in candidates {
+            let client = PlexClient::new(transport.clone(), url, self.plex_identity(), timeout);
+            match client.server_info().await {
+                Ok(p) => {
+                    return Ok(Some(ServerCheck {
+                        kind: ServerKind::Plex,
+                        base_url: p.base_url.to_string(),
+                        name: "Plex Media Server".to_owned(),
+                        version: p.version,
+                        server_id: p.server_id,
+                        plain_http_on_local_network: p.warning.is_some(),
+                    }));
+                }
+                Err(e @ SourceError::CertificateUntrusted { .. }) => {
+                    untrusted.get_or_insert(e);
+                }
+                Err(_) => {}
+            }
+        }
+        match untrusted {
+            Some(e) => Err(e.into()),
+            None => Ok(None),
+        }
+    }
+
+    /// Sign in to one of the linked account's servers: its addresses in order (local
+    /// first, https first); the first that is this server and takes the token wins. Only
+    /// that server's token is kept.
+    async fn complete_plex_sign_in(
+        &self,
+        account: &PlexAccount,
+        server: &PlexServerResource,
+    ) -> Result<SignedIn, EncoreError> {
+        let uris: Vec<url::Url> = server.connections.iter().map(|c| c.uri.clone()).collect();
+        if uris.is_empty() {
+            return Err(EncoreError::Unreachable {
+                reason: "plex.tv lists no address for this server".into(),
+            });
+        }
+        let timeout = Duration::from_secs(tokens().probe_timeout_seconds);
+        let mut best: Option<EncoreError> = None;
+        for uri in &uris {
+            let transport = self.transport_for(self.pin_for(uri.as_str()).as_deref())?;
+            let mut order = vec![uri.clone()];
+            order.extend(uris.iter().filter(|u| *u != uri).cloned());
+            let creds = PlexCredentials::new(
+                server.access_token.clone(),
+                server.machine_id.clone(),
+                order,
+            );
+            let probe = PlexClient::new(
+                transport.clone(),
+                uri.clone(),
+                self.plex_identity(),
+                timeout,
+            )
+            // This address alone: no falling back to another while checking this one.
+            .signed_in(PlexCredentials::new(
+                server.access_token.clone(),
+                server.machine_id.clone(),
+                vec![uri.clone()],
+            ));
+            match probe.check_sign_in().await {
+                Ok(info) => {
+                    let version = if server.version.is_empty() {
+                        info.version
+                    } else {
+                        server.version.clone()
+                    };
+                    return self.finish_plex_sign_in(
+                        transport,
+                        uri,
+                        creds,
+                        &server.name,
+                        &version,
+                        &account.id,
+                        &account.user_name,
+                    );
+                }
+                Err(e) => {
+                    let e: EncoreError = e.into();
+                    let rank = |e: &EncoreError| match e {
+                        EncoreError::CertificateUntrusted { .. } => 0,
+                        EncoreError::WrongCredentials { .. } => 1,
+                        _ => 2,
+                    };
+                    if best.as_ref().is_none_or(|b| rank(&e) < rank(b)) {
+                        best = Some(e);
+                    }
+                }
+            }
+        }
+        Err(match best {
+            Some(EncoreError::WrongCredentials { .. }) => EncoreError::WrongCredentials {
+                reason: "This Plex server didn't accept the sign-in. Link again".into(),
+            },
+            Some(e @ EncoreError::CertificateUntrusted { .. }) => e,
+            _ => EncoreError::Unreachable {
+                reason: "None of this Plex server's addresses answered. Is it on?".into(),
+            },
+        })
+    }
+
+    /// Store a checked Plex sign-in and open its profile.
+    #[allow(clippy::too_many_arguments)]
+    fn finish_plex_sign_in(
+        &self,
+        transport: Arc<dyn Transport>,
+        uri: &url::Url,
+        creds: PlexCredentials,
+        name: &str,
+        version: &str,
+        user_id: &str,
+        user_name: &str,
+    ) -> Result<SignedIn, EncoreError> {
+        let token = creds.to_token_string();
+        let server_id = creds.machine_id.clone();
+        let client = PlexClient::new(
+            transport,
+            uri.clone(),
+            self.plex_identity(),
+            REQUEST_TIMEOUT,
+        )
+        .signed_in(creds)
+        .with_address_lookup(true);
+        self.finish_sign_in(
+            NewAccount {
+                kind: SourceKind::Plex.as_str(),
+                name,
+                base_url: uri.as_str(),
+                server_id: &server_id,
+                version,
+                user_id,
+                user_name,
+            },
+            token,
+            crate::source_any::AnySource::Plex(PlexSource { client }),
+        )
+    }
+
+    /// For the CI test against an unclaimed Plex Media Server only (core.yml, job
+    /// `plex`), which plex.tv can't vouch for: sign in to `base_url` directly with
+    /// whatever token that server takes. The app's only way in stays the plex.tv link.
+    #[cfg(test)]
+    async fn plex_sign_in_direct(
+        &self,
+        base_url: &str,
+        token: &str,
+    ) -> Result<SignedIn, EncoreError> {
+        let url = url::Url::parse(base_url).map_err(|e| EncoreError::InvalidAddress {
+            reason: e.to_string(),
+        })?;
+        let transport = self.transport_for(None)?;
+        let probe = PlexClient::new(
+            transport.clone(),
+            url.clone(),
+            self.plex_identity(),
+            REQUEST_TIMEOUT,
+        );
+        let info = probe.server_info().await?;
+        let creds =
+            PlexCredentials::new(token.to_owned(), info.server_id.clone(), vec![url.clone()]);
+        let checked = PlexClient::new(
+            transport.clone(),
+            url.clone(),
+            self.plex_identity(),
+            REQUEST_TIMEOUT,
+        )
+        .signed_in(creds.clone())
+        .check_sign_in()
+        .await?;
+        self.finish_plex_sign_in(
+            transport,
+            &url,
+            creds,
+            "Plex Media Server",
+            &checked.version,
+            "ci",
+            "Plex",
+        )
     }
 
     async fn client_for(
@@ -308,7 +551,8 @@ impl Inner {
         let transport = self.transport_for(self.pin_for(base_url).as_deref())?;
         let client = JellyfinClient::new(transport, url, self.device(), REQUEST_TIMEOUT);
         let info = client.public_info().await?;
-        Ok((client, info))
+        // Jellyfin or Emby: the client speaks to it the way it answered (core-0022).
+        Ok((client.with_flavor(info.flavor), info))
     }
 
     /// A Subsonic client for an address the user typed (core-0021).
@@ -360,14 +604,19 @@ impl Inner {
         info: ServerInfo,
         session: Session,
     ) -> Result<SignedIn, EncoreError> {
-        // The client used to sign in already holds the session.
+        // The client used to sign in already holds the session. Emby comes this way too
+        // (ADR core-0022), with its own kind.
+        let kind = match client.flavor() {
+            jellyfin::Flavor::Jellyfin => SourceKind::Jellyfin,
+            jellyfin::Flavor::Emby => SourceKind::Emby,
+        };
         let source = crate::source_any::AnySource::Jellyfin(JellyfinSource {
             client: client.signed_in(session.token.clone(), session.user_id.clone()),
-            quick_connect: true,
+            quick_connect: kind == SourceKind::Jellyfin,
         });
         self.finish_sign_in(
             NewAccount {
-                kind: "jellyfin",
+                kind: kind.as_str(),
                 name: &info.name,
                 base_url: info.base_url.as_str(),
                 server_id: &info.server_id,
@@ -439,6 +688,23 @@ impl Inner {
             reason: e.to_string(),
         })?;
         let transport = self.transport_for(record.pinned_cert_sha256.as_deref())?;
+        if record.kind == SourceKind::Plex.as_str() {
+            let mut creds = PlexCredentials::from_token_string(token).ok_or_else(|| {
+                EncoreError::SessionExpired {
+                    reason: "Sign in to this server again".into(),
+                }
+            })?;
+            if creds.machine_id.is_empty() {
+                creds.machine_id = record.server_id.clone();
+            }
+            if creds.connections.is_empty() {
+                creds.connections.push(url.clone());
+            }
+            let client = PlexClient::new(transport, url, self.plex_identity(), REQUEST_TIMEOUT)
+                .signed_in(creds)
+                .with_address_lookup(true);
+            return Ok(crate::source_any::AnySource::Plex(PlexSource { client }));
+        }
         if record.kind == SourceKind::Subsonic.as_str() {
             let creds = SubsonicCredentials::from_token_string(token).ok_or_else(|| {
                 EncoreError::SessionExpired {
@@ -451,11 +717,17 @@ impl Inner {
                 client,
             }));
         }
+        let flavor = if record.kind == SourceKind::Emby.as_str() {
+            jellyfin::Flavor::Emby
+        } else {
+            jellyfin::Flavor::Jellyfin
+        };
         let client = JellyfinClient::new(transport, url, self.device(), REQUEST_TIMEOUT)
+            .with_flavor(flavor)
             .signed_in(token.to_owned(), record.user_id.clone());
         Ok(crate::source_any::AnySource::Jellyfin(JellyfinSource {
             client,
-            quick_connect: true,
+            quick_connect: flavor == jellyfin::Flavor::Jellyfin,
         }))
     }
 
@@ -612,6 +884,7 @@ impl Inner {
         }
         // Phase 9, WP1: a song or album timer's stop point moves with the queue.
         self.sleep_queue_changed();
+        self.keep_queue();
         Ok((r, state))
     }
 
@@ -661,6 +934,19 @@ impl Inner {
 
 /// The songs for these IDs, in order; IDs no longer in the library are left out
 /// (unavailable songs are never added).
+/// The servers of a linked Plex account, as the UI lists them.
+fn choices(servers: &[PlexServerResource]) -> Vec<PlexServerChoice> {
+    servers
+        .iter()
+        .map(|s| PlexServerChoice {
+            server_id: s.machine_id.clone(),
+            name: s.name.clone(),
+            version: s.version.clone(),
+            owned: s.owned,
+        })
+        .collect()
+}
+
 fn songs_of(store: &Store, ids: &[i64]) -> Result<Vec<encore_store::TrackRow>, EncoreError> {
     let mut out = Vec::with_capacity(ids.len());
     for id in ids {
@@ -1027,6 +1313,8 @@ impl EncoreCore {
                 pins: Mutex::new(HashMap::new()),
                 quick: tokio::sync::Mutex::new(None),
                 cancel_quick: AtomicBool::new(false),
+                plex: tokio::sync::Mutex::new(None),
+                cancel_plex: AtomicBool::new(false),
                 poll_every,
                 sync_page_size,
                 transport_override,
@@ -1088,7 +1376,8 @@ impl EncoreCore {
     ) -> Result<SignedIn, EncoreError> {
         let inner = self.inner.clone();
         self.spawn(async move {
-            // Jellyfin, or else an OpenSubsonic server at the same address (core-0021).
+            // Jellyfin or Emby (core-0022), or else an OpenSubsonic server at the same
+            // address (core-0021).
             match inner.client_for(&base_url).await {
                 Ok((client, info)) => {
                     let session = client.sign_in(&username, &password).await?;
@@ -1182,6 +1471,136 @@ impl EncoreCore {
     /// Stop waiting for a Quick Connect approval (Cancel on board 21).
     pub fn quick_connect_cancel(&self) {
         self.inner.cancel_quick.store(true, Ordering::SeqCst);
+    }
+
+    /// Start signing in with Plex (ADR core-0023): a short code from plex.tv to show with
+    /// plex.tv/link, and Plex's sign-in page with the code filled in. Then call
+    /// `plex_link_wait`. Only the link calls reach plex.tv. Async.
+    pub async fn plex_link_start(&self) -> Result<PlexLinkStart, EncoreError> {
+        let inner = self.inner.clone();
+        self.spawn(async move {
+            let tv = PlexTv::new(
+                inner.transport_for(None)?,
+                inner.plex_identity(),
+                REQUEST_TIMEOUT,
+            );
+            let pin = tv.start_pin().await?;
+            inner.cancel_plex.store(false, Ordering::SeqCst);
+            let start = PlexLinkStart {
+                code: pin.code.clone(),
+                link_url: encore_sources::plex::tv::LINK_PAGE.to_owned(),
+                auth_url: pin.auth_url.clone(),
+                expires_in_seconds: pin.expires_in_seconds,
+            };
+            *inner.plex.lock().await = Some(PendingPlexLink {
+                tv,
+                pin,
+                started: Instant::now(),
+                approved: None,
+            });
+            Ok(start)
+        })
+        .await
+    }
+
+    /// Wait until the code is approved on plex.tv, then list the account's Plex Media
+    /// Servers to choose from (pass one's `server_id` to `plex_sign_in`). Fails with
+    /// QuickConnectExpired when the code expires, QuickConnectCancelled after
+    /// `plex_link_cancel`, NotFound when the account has no server. Async.
+    pub async fn plex_link_wait(&self) -> Result<Vec<PlexServerChoice>, EncoreError> {
+        let inner = self.inner.clone();
+        self.spawn(async move {
+            let expired = || EncoreError::QuickConnectExpired {
+                reason: "The code expired. Start again for a new one".into(),
+            };
+            loop {
+                if inner.cancel_plex.load(Ordering::SeqCst) {
+                    *inner.plex.lock().await = None;
+                    return Err(EncoreError::QuickConnectCancelled {
+                        reason: "Signing in with Plex was cancelled".into(),
+                    });
+                }
+                {
+                    let mut guard = inner.plex.lock().await;
+                    let Some(pending) = guard.as_mut() else {
+                        return Err(EncoreError::QuickConnectExpired {
+                            reason: "Start signing in with Plex again".into(),
+                        });
+                    };
+                    if let Some((_, _, servers)) = &pending.approved {
+                        return Ok(choices(servers));
+                    }
+                    let expiry = Duration::from_secs(u64::from(pending.pin.expires_in_seconds));
+                    if pending.started.elapsed() > expiry {
+                        *guard = None;
+                        return Err(expired());
+                    }
+                    let token = match pending.tv.poll_pin(&pending.pin).await {
+                        Err(SourceError::QuickConnectExpired) => {
+                            *guard = None;
+                            return Err(expired());
+                        }
+                        other => other?,
+                    };
+                    if let Some(token) = token {
+                        let account = pending.tv.account(&token).await?;
+                        let servers = pending.tv.servers(&token).await?;
+                        if servers.is_empty() {
+                            *guard = None;
+                            return Err(EncoreError::NotFound {
+                                reason: "This Plex account has no Plex Media Server to play from"
+                                    .into(),
+                            });
+                        }
+                        let list = choices(&servers);
+                        pending.approved = Some((token, account, servers));
+                        return Ok(list);
+                    }
+                }
+                tokio::time::sleep(inner.poll_every).await;
+            }
+        })
+        .await
+    }
+
+    /// Sign in to the chosen Plex server (`PlexServerChoice.server_id`): its addresses
+    /// are tried in order and the one that answers is kept, with the others to fall
+    /// back on. Opens the account's profile, as `sign_in` does, and the account token is
+    /// forgotten. Async.
+    pub async fn plex_sign_in(&self, server_id: String) -> Result<SignedIn, EncoreError> {
+        let inner = self.inner.clone();
+        self.spawn(async move {
+            let (account, server) = {
+                let guard = inner.plex.lock().await;
+                let Some((_, account, servers)) = guard.as_ref().and_then(|p| p.approved.as_ref())
+                else {
+                    return Err(EncoreError::QuickConnectExpired {
+                        reason: "Start signing in with Plex again".into(),
+                    });
+                };
+                let server = servers
+                    .iter()
+                    .find(|s| s.machine_id == server_id)
+                    .cloned()
+                    .ok_or_else(|| EncoreError::NotFound {
+                        reason: "That Plex server isn't on this account".into(),
+                    })?;
+                (account.clone(), server)
+            };
+            let signed = inner.complete_plex_sign_in(&account, &server).await?;
+            *inner.plex.lock().await = None;
+            Ok(signed)
+        })
+        .await
+    }
+
+    /// Stop signing in with Plex (Cancel): the wait ends, and the account token, if the
+    /// code was already approved, is forgotten.
+    pub fn plex_link_cancel(&self) {
+        self.inner.cancel_plex.store(true, Ordering::SeqCst);
+        if let Ok(mut pending) = self.inner.plex.try_lock() {
+            *pending = None;
+        }
     }
 
     // ------------------------------------------------------------ profiles

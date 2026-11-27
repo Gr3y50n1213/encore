@@ -644,6 +644,7 @@ impl Inner {
         self.emit(e);
         // Phase 9, WP1: a song or album timer here follows the queue that arrived.
         self.sleep_queue_changed();
+        self.keep_queue();
         let mut info = self.handoff_info(transfer_id, from, name);
         info.entry = Some(entry);
         info.position_ms = position;

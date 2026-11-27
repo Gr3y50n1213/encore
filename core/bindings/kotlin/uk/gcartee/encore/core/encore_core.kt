@@ -810,6 +810,14 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_playlists(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_plex_link_cancel(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_plex_link_start(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_plex_link_wait(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_plex_sign_in(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_previous(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_previous_target(
@@ -1191,6 +1199,14 @@ internal object UniffiLib {
     ): Long
     external fun uniffi_encore_core_fn_method_encorecore_playlists(`ptr`: Long,`offset`: Int,`limit`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_encore_core_fn_method_encorecore_plex_link_cancel(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_plex_link_start(`ptr`: Long,
+    ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_plex_link_wait(`ptr`: Long,
+    ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_plex_sign_in(`ptr`: Long,`serverId`: RustBuffer.ByValue,
+    ): Long
     external fun uniffi_encore_core_fn_method_encorecore_previous(`ptr`: Long,`positionMs`: Long,`fromSwipe`: Byte,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_previous_target(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -1731,6 +1747,18 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_playlists() and 0xFFFF) != 30414) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_plex_link_cancel() and 0xFFFF) != 40807) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_plex_link_start() and 0xFFFF) != 27977) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_plex_link_wait() and 0xFFFF) != 42717) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_plex_sign_in() and 0xFFFF) != 45817) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_previous() and 0xFFFF) != 37808) {
@@ -3244,6 +3272,35 @@ public interface EncoreCoreInterface {
     suspend fun `playlistPalette`(`playlistId`: kotlin.Long): ArtworkPalette?
     
     fun `playlists`(`offset`: kotlin.UInt, `limit`: kotlin.UInt): List<PlaylistSummary>
+    
+    /**
+     * Stop signing in with Plex (Cancel): the wait ends, and the account token, if the
+     * code was already approved, is forgotten.
+     */
+    fun `plexLinkCancel`()
+    
+    /**
+     * Start signing in with Plex (ADR core-0023): a short code from plex.tv to show with
+     * plex.tv/link, and Plex's sign-in page with the code filled in. Then call
+     * `plex_link_wait`. Only the link calls reach plex.tv. Async.
+     */
+    suspend fun `plexLinkStart`(): PlexLinkStart
+    
+    /**
+     * Wait until the code is approved on plex.tv, then list the account's Plex Media
+     * Servers to choose from (pass one's `server_id` to `plex_sign_in`). Fails with
+     * QuickConnectExpired when the code expires, QuickConnectCancelled after
+     * `plex_link_cancel`, NotFound when the account has no server. Async.
+     */
+    suspend fun `plexLinkWait`(): List<PlexServerChoice>
+    
+    /**
+     * Sign in to the chosen Plex server (`PlexServerChoice.server_id`): its addresses
+     * are tried in order and the one that answers is kept, with the others to fall
+     * back on. Opens the account's profile, as `sign_in` does, and the account token is
+     * forgotten. Async.
+     */
+    suspend fun `plexSignIn`(`serverId`: kotlin.String): SignedIn
     
     /**
      * Previous from the button (`from_swipe` false) or a swipe (true). The same
@@ -5061,6 +5118,103 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
     )
     }
     
+
+    
+    /**
+     * Stop signing in with Plex (Cancel): the wait ends, and the account token, if the
+     * code was already approved, is forgotten.
+     */override fun `plexLinkCancel`()
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_plex_link_cancel(
+        it,
+        _status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Start signing in with Plex (ADR core-0023): a short code from plex.tv to show with
+     * plex.tv/link, and Plex's sign-in page with the code filled in. Then call
+     * `plex_link_wait`. Only the link calls reach plex.tv. Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `plexLinkStart`() : PlexLinkStart {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_plex_link_start(
+                uniffiHandle,
+                
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypePlexLinkStart.lift(it) },
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * Wait until the code is approved on plex.tv, then list the account's Plex Media
+     * Servers to choose from (pass one's `server_id` to `plex_sign_in`). Fails with
+     * QuickConnectExpired when the code expires, QuickConnectCancelled after
+     * `plex_link_cancel`, NotFound when the account has no server. Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `plexLinkWait`() : List<PlexServerChoice> {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_plex_link_wait(
+                uniffiHandle,
+                
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterSequenceTypePlexServerChoice.lift(it) },
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * Sign in to the chosen Plex server (`PlexServerChoice.server_id`): its addresses
+     * are tried in order and the one that answers is kept, with the others to fall
+     * back on. Opens the account's profile, as `sign_in` does, and the account token is
+     * forgotten. Async.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `plexSignIn`(`serverId`: kotlin.String) : SignedIn {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_plex_sign_in(
+                uniffiHandle,
+                
+        FfiConverterString.lower(`serverId`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeSignedIn.lift(it) },
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
 
     
     /**
@@ -10236,6 +10390,125 @@ public object FfiConverterTypePlaylistSummary: FfiConverterRustBuffer<PlaylistSu
 
 
 /**
+ * A plex.tv link code to show (ADR core-0023): "Go to plex.tv/link and enter `code`",
+ * or a button that opens `auth_url`. Then call `plex_link_wait`.
+ */
+data class PlexLinkStart (
+    /**
+     * Four characters to type at `link_url`.
+     */
+    var `code`: kotlin.String
+    , 
+    /**
+     * "https://plex.tv/link".
+     */
+    var `linkUrl`: kotlin.String
+    , 
+    /**
+     * Plex's sign-in page with the code filled in, for an "Open in browser" button.
+     */
+    var `authUrl`: kotlin.String
+    , 
+    var `expiresInSeconds`: kotlin.UInt
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypePlexLinkStart: FfiConverterRustBuffer<PlexLinkStart> {
+    override fun read(buf: ByteBuffer): PlexLinkStart {
+        return PlexLinkStart(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterUInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: PlexLinkStart) = (
+            FfiConverterString.allocationSize(value.`code`) +
+            FfiConverterString.allocationSize(value.`linkUrl`) +
+            FfiConverterString.allocationSize(value.`authUrl`) +
+            FfiConverterUInt.allocationSize(value.`expiresInSeconds`)
+    )
+
+    override fun write(value: PlexLinkStart, buf: ByteBuffer) {
+            FfiConverterString.write(value.`code`, buf)
+            FfiConverterString.write(value.`linkUrl`, buf)
+            FfiConverterString.write(value.`authUrl`, buf)
+            FfiConverterUInt.write(value.`expiresInSeconds`, buf)
+    }
+}
+
+
+
+/**
+ * A Plex Media Server the signed-in Plex account may use (`plex_link_wait`).
+ */
+data class PlexServerChoice (
+    /**
+     * The server's `machineIdentifier`; the same as `ServerCheck.server_id` when the
+     * user typed this server's address, so the UI can pick it for them.
+     */
+    var `serverId`: kotlin.String
+    , 
+    var `name`: kotlin.String
+    , 
+    var `version`: kotlin.String
+    , 
+    /**
+     * The account owns it (else a friend shared it).
+     */
+    var `owned`: kotlin.Boolean
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypePlexServerChoice: FfiConverterRustBuffer<PlexServerChoice> {
+    override fun read(buf: ByteBuffer): PlexServerChoice {
+        return PlexServerChoice(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: PlexServerChoice) = (
+            FfiConverterString.allocationSize(value.`serverId`) +
+            FfiConverterString.allocationSize(value.`name`) +
+            FfiConverterString.allocationSize(value.`version`) +
+            FfiConverterBoolean.allocationSize(value.`owned`)
+    )
+
+    override fun write(value: PlexServerChoice, buf: ByteBuffer) {
+            FfiConverterString.write(value.`serverId`, buf)
+            FfiConverterString.write(value.`name`, buf)
+            FfiConverterString.write(value.`version`, buf)
+            FfiConverterBoolean.write(value.`owned`, buf)
+    }
+}
+
+
+
+/**
  * What the platform knows about power, handed to `run_sound_analysis` each time it starts the job.
  */
 data class PowerState (
@@ -10946,7 +11219,8 @@ public object FfiConverterTypeSentEdits: FfiConverterRustBuffer<SentEdits> {
 
 data class ServerCheck (
     /**
-     * Jellyfin, or Navidrome and other OpenSubsonic servers (ADR core-0021).
+     * Jellyfin, Emby (ADR core-0022), Navidrome and other OpenSubsonic servers
+     * (ADR core-0021), or Plex (ADR core-0023).
      */
     var `kind`: ServerKind
     , 
@@ -14590,13 +14864,20 @@ public object FfiConverterTypeResultKind: FfiConverterRustBuffer<ResultKind> {
 
 
 /**
- * The kind of media server at an address. Quick Connect is Jellyfin's only.
+ * The kind of media server at an address. Quick Connect is Jellyfin's only; a Plex
+ * server is signed in to through plex.tv (`plex_link_start`, ADR core-0023).
  */
 
 enum class ServerKind {
     
     JELLYFIN,
-    SUBSONIC;
+    SUBSONIC,
+    /**
+     * Emby: signs in with a user name and password like Jellyfin, no Quick Connect
+     * (ADR core-0022).
+     */
+    EMBY,
+    PLEX;
 
     
 
@@ -17032,6 +17313,34 @@ public object FfiConverterSequenceTypePlaylistSummary: FfiConverterRustBuffer<Li
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypePlaylistSummary.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypePlexServerChoice: FfiConverterRustBuffer<List<PlexServerChoice>> {
+    override fun read(buf: ByteBuffer): List<PlexServerChoice> {
+        val len = buf.getInt()
+        return List<PlexServerChoice>(len) {
+            FfiConverterTypePlexServerChoice.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<PlexServerChoice>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypePlexServerChoice.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<PlexServerChoice>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypePlexServerChoice.write(it, buf)
         }
     }
 }

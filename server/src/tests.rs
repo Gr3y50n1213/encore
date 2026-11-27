@@ -1382,3 +1382,308 @@ async fn a_subsonic_sign_in_is_checked_on_the_trusted_address_and_named_by_it() 
         )
     );
 }
+
+/// ADR core-0022: an Emby sign-in. The trusted address says it is Emby; Emby has no
+/// `/Users/Me`, so the token's user is the one Emby records for the companion's own
+/// session, made by the check itself. The user comes from Emby, never from the device.
+#[tokio::test]
+async fn an_emby_sign_in_is_checked_with_the_trusted_emby() {
+    use crate::auth::MediaCheck;
+    let fixtures = std::fs::read_to_string(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../tools/fixtures/emby/server.json"
+    ))
+    .unwrap();
+    let transport = Arc::new(encore_sources::FixtureTransport::from_json(&fixtures).unwrap());
+    let urls = jellyfin_urls("http://emby.local:8096").unwrap();
+    let check = JellyfinCheck::new(urls.clone(), transport.clone());
+    let server = "0b1c2d3e4f5a46b7a8c9d0e1f2a3b4c5";
+    assert_eq!(
+        check.check(server, "invented-emby-token").await,
+        Ok(CheckedUser {
+            user_id: "5e6f7a8b9c0d41e2b3c4d5e6f7a8b9c0".into(),
+            user_name: "listener".into(),
+        })
+    );
+    let sent = transport.sent();
+    let paths: Vec<&str> = sent.iter().map(|r| r.url.path()).collect();
+    assert_eq!(
+        paths,
+        [
+            "/System/Info/Public",
+            "/emby/Sessions",
+            "/emby/Users/5e6f7a8b9c0d41e2b3c4d5e6f7a8b9c0"
+        ]
+    );
+    // Asked as Emby asks: its own header, the companion's own device name.
+    let auth = sent[1]
+        .headers
+        .iter()
+        .find(|(k, _)| k == "X-Emby-Authorization")
+        .map(|(_, v)| v.clone())
+        .unwrap();
+    assert!(auth.contains("DeviceId=\"encore-server\""), "{auth}");
+    assert!(auth.contains("Client=\"Encore%20companion\""), "{auth}");
+    // Another server's ID is not this one.
+    assert_eq!(
+        check.check("someone-elses-server", "t").await,
+        Err(CheckError::UnknownServer)
+    );
+
+    // An ended token: Emby refuses it.
+    let info = json!({"ServerName": "Den", "Version": "4.10.2.0", "Id": server});
+    let ex = |path: &str, status: u16, body: Value| encore_sources::FixtureExchange {
+        origin: None,
+        method: "GET".into(),
+        path: path.into(),
+        query: Default::default(),
+        status,
+        body: Some(body),
+        body_text: None,
+        body_hex: None,
+        error: None,
+        date: None,
+    };
+    let refused = encore_sources::FixtureTransport::new(vec![
+        ex("/System/Info/Public", 200, info.clone()),
+        ex("/emby/Sessions", 401, json!({})),
+    ]);
+    let check = JellyfinCheck::new(urls.clone(), Arc::new(refused));
+    assert_eq!(check.check(server, "t").await, Err(CheckError::Rejected));
+
+    // A user record from another server than the one claimed is refused.
+    let other = encore_sources::FixtureTransport::new(vec![
+        ex("/System/Info/Public", 200, info),
+        ex(
+            "/emby/Sessions",
+            200,
+            json!([{"UserId": "u1", "DeviceId": "encore-server", "Client": "Encore companion"}]),
+        ),
+        ex(
+            "/emby/Users/u1",
+            200,
+            json!({"Id": "u1", "Name": "Sam", "ServerId": "another-server"}),
+        ),
+    ]);
+    let check = JellyfinCheck::new(urls, Arc::new(other));
+    assert_eq!(check.check(server, "t").await, Err(CheckError::Rejected));
+}
+
+/// ADR core-0022 on a real Emby (CI's `emby` job): the check names each token's own user,
+/// the administrator's too (whose `/Sessions` lists everyone), two checks at once each get
+/// their own, and a signed-out token is refused.
+#[tokio::test]
+#[ignore = "needs an Emby: EMBY_URL, EMBY_USER, EMBY_PASSWORD, EMBY_ADMIN_PASSWORD"]
+async fn emby_check_over_http() {
+    use encore_sources::jellyfin::{DeviceInfo, Flavor, JellyfinClient};
+    let env = |k: &str| std::env::var(k).unwrap_or_else(|_| panic!("set {k}"));
+    let url = url::Url::parse(&env("EMBY_URL")).unwrap();
+    let transport: Arc<dyn encore_sources::Transport> =
+        Arc::new(encore_sources::http::HttpTransport::new(None, Duration::from_secs(10)).unwrap());
+    let phone = |id: &str| {
+        JellyfinClient::new(
+            transport.clone(),
+            url.clone(),
+            DeviceInfo {
+                client: "Encore".into(),
+                device_name: "Phone".into(),
+                device_id: id.into(),
+                version: "0.1.0".into(),
+            },
+            Duration::from_secs(10),
+        )
+    };
+    let info = phone("p1").public_info().await.unwrap();
+    assert_eq!(info.flavor, Flavor::Emby);
+    let listener = phone("p1")
+        .with_flavor(Flavor::Emby)
+        .sign_in(&env("EMBY_USER"), &env("EMBY_PASSWORD"))
+        .await
+        .unwrap();
+    let admin = phone("p2")
+        .with_flavor(Flavor::Emby)
+        .sign_in("admin", &env("EMBY_ADMIN_PASSWORD"))
+        .await
+        .unwrap();
+    let check = JellyfinCheck::new(vec![url.clone()], transport.clone());
+    let who = |s: &encore_sources::jellyfin::Session| CheckedUser {
+        user_id: s.user_id.clone(),
+        user_name: s.user_name.clone(),
+    };
+    assert_eq!(
+        check.check(&info.server_id, &listener.token).await,
+        Ok(who(&listener))
+    );
+    assert_eq!(
+        check.check(&info.server_id, &admin.token).await,
+        Ok(who(&admin))
+    );
+    let (a, b) = tokio::join!(
+        check.check(&info.server_id, &admin.token),
+        check.check(&info.server_id, &listener.token)
+    );
+    assert_eq!((a, b), (Ok(who(&admin)), Ok(who(&listener))));
+    assert_eq!(
+        check.check("not-this-server", &listener.token).await,
+        Err(CheckError::UnknownServer)
+    );
+    phone("p1")
+        .with_flavor(Flavor::Emby)
+        .signed_in(listener.token.clone(), listener.user_id.clone())
+        .sign_out()
+        .await
+        .unwrap();
+    assert_eq!(
+        check.check(&info.server_id, &listener.token).await,
+        Err(CheckError::Rejected)
+    );
+    println!("the companion named both Emby users from their own tokens");
+}
+
+/// ADR core-0023, point 10: a Plex sign-in is checked on the trusted Plex server it was
+/// issued for, the account is named by that server and plex.tv's account number (the
+/// token's hash when plex.tv doesn't know the token), and a server that would let
+/// anyone in is never trusted to vouch for a token.
+#[tokio::test]
+async fn a_plex_sign_in_is_checked_on_its_trusted_server_and_never_on_an_open_one() {
+    use crate::auth::MediaCheck;
+    use encore_sources::{FixtureExchange, FixtureTransport};
+    let x = |path: &str, status: u16, body: Option<serde_json::Value>| FixtureExchange {
+        origin: None,
+        method: "GET".into(),
+        path: path.into(),
+        query: Default::default(),
+        status,
+        body,
+        body_text: None,
+        body_hex: None,
+        error: None,
+        date: None,
+    };
+    let identity = || {
+        x(
+            "/identity",
+            200,
+            Some(
+                json!({"MediaContainer": {"machineIdentifier": "fixture-machine-0001", "claimed": true}}),
+            ),
+        )
+    };
+    let token = "plex1:t=fixture-server-token&m=fixture-machine-0001";
+    let url = url::Url::parse("http://192.168.7.20:32400/").unwrap();
+    // Replayed in order: the made-up token is refused, then the device's is taken.
+    let t = Arc::new(FixtureTransport::new(vec![
+        identity(),
+        x("/library/sections", 401, None),
+        x(
+            "/library/sections",
+            200,
+            Some(json!({"MediaContainer": {"size": 0}})),
+        ),
+        x(
+            "/api/v2/user",
+            200,
+            Some(json!({"id": 4242, "uuid": "fixture-uuid", "username": "fixture-listener"})),
+        ),
+    ]));
+    let check = crate::JellyfinCheck::new(vec![url.clone()], t.clone());
+    let user = check.check("fixture-machine-0001", token).await.unwrap();
+    assert!(user.user_id.starts_with("plex:"), "{user:?}");
+    assert_eq!(user.user_id.len(), "plex:".len() + 32 + 1 + 32);
+    assert!(!user.user_id.contains("fixture-server-token"));
+    assert_eq!(user.user_name, "fixture-listener");
+    // The account names the profile: another device's token for the same account is
+    // the same companion user.
+    let other = "plex1:t=fixture-other-device-token&m=fixture-machine-0001";
+    let t2 = Arc::new(FixtureTransport::new(vec![
+        identity(),
+        x("/library/sections", 401, None),
+        x(
+            "/library/sections",
+            200,
+            Some(json!({"MediaContainer": {"size": 0}})),
+        ),
+        x(
+            "/api/v2/user",
+            200,
+            Some(json!({"id": 4242, "username": "fixture-listener"})),
+        ),
+    ]));
+    let again = crate::JellyfinCheck::new(vec![url.clone()], t2.clone())
+        .check("fixture-machine-0001", other)
+        .await
+        .unwrap();
+    assert_eq!(again.user_id, user.user_id);
+    let sent2 = t2.sent();
+    let asked = sent2
+        .iter()
+        .find(|r| r.url.path() == "/api/v2/user")
+        .cloned()
+        .expect("plex.tv was asked");
+    assert_eq!(asked.url.host_str(), Some("plex.tv"));
+    assert_eq!(
+        asked
+            .headers
+            .iter()
+            .find(|(k, _)| k == "X-Plex-Token")
+            .map(|(_, v)| v.as_str()),
+        Some("fixture-other-device-token")
+    );
+    // plex.tv doesn't know the token: named by its hash. Out of reach: try later.
+    for (status, expect_ok) in [(401u16, true), (503, false)] {
+        let t3 = Arc::new(FixtureTransport::new(vec![
+            identity(),
+            x("/library/sections", 401, None),
+            x(
+                "/library/sections",
+                200,
+                Some(json!({"MediaContainer": {"size": 0}})),
+            ),
+            x("/api/v2/user", status, None),
+        ]));
+        let got = crate::JellyfinCheck::new(vec![url.clone()], t3)
+            .check("fixture-machine-0001", token)
+            .await;
+        if expect_ok {
+            let u = got.unwrap();
+            assert_ne!(u.user_id, user.user_id);
+            assert_eq!(u.user_name, "Plex");
+        } else {
+            assert!(matches!(got, Err(CheckError::Unreachable(_))), "{got:?}");
+        }
+    }
+    let probe = &t.sent()[1];
+    let sent_token = probe
+        .headers
+        .iter()
+        .find(|(k, _)| k == "X-Plex-Token")
+        .map(|(_, v)| v.clone())
+        .unwrap();
+    assert_ne!(
+        sent_token, "fixture-server-token",
+        "the first try is a made-up token"
+    );
+
+    // A token issued for another server, or a device naming another server: no match.
+    let t = Arc::new(FixtureTransport::new(vec![identity()]));
+    let check = crate::JellyfinCheck::new(vec![url.clone()], t);
+    assert_eq!(
+        check.check("someone-elses-server", token).await,
+        Err(CheckError::UnknownServer)
+    );
+
+    // A server that takes any token can't vouch for this one.
+    let t = Arc::new(FixtureTransport::new(vec![
+        identity(),
+        x(
+            "/library/sections",
+            200,
+            Some(json!({"MediaContainer": {"size": 0}})),
+        ),
+    ]));
+    let check = crate::JellyfinCheck::new(vec![url], t);
+    assert_eq!(
+        check.check("fixture-machine-0001", token).await,
+        Err(CheckError::Unverifiable)
+    );
+}

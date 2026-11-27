@@ -11,31 +11,40 @@ use encore_sources::ranged::RangeReader;
 use encore_sources::transport::{BoxFuture, Downloaded, Progress};
 use encore_sources::{
     Capabilities, Cursor, EditOutcome, JellyfinSource, LibraryDelta, MediaSource, PlaylistEntry,
-    Result, ServerEdit, SourceKind, SubsonicSource,
+    PlexSource, Result, ServerEdit, SourceKind, SubsonicSource,
 };
 
 #[derive(Debug)]
 pub enum AnySource {
+    /// Jellyfin, or Emby: the client's flavour says which (ADR core-0022).
     Jellyfin(JellyfinSource),
     /// Navidrome and other OpenSubsonic servers (ADR core-0021).
     Subsonic(SubsonicSource),
+    /// Plex Media Server (ADR core-0023).
+    Plex(PlexSource),
 }
 
 /// What the companion needs to check who a device is (core-0009, core-0021 point 9).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CompanionCredential {
-    /// A Jellyfin access token.
+    /// A Jellyfin or Emby access token: the companion asks the trusted server whose it
+    /// is, and that server's `/System/Info/Public` says which of the two it is.
     Jellyfin(String),
     /// A Subsonic saved sign-in (`SubsonicCredentials::to_token_string`): user name and salted
     /// token or API key, never a password.
     Subsonic(String),
+    /// A Plex server token with the server's ID (`plex1:t=...&m=...`, no addresses): the
+    /// companion checks it on its trusted Plex server (ADR core-0023 point 10).
+    Plex(String),
 }
 
 impl CompanionCredential {
     /// What `/auth/exchange` takes as `media_token`: the companion tells the kinds apart.
     pub fn media_token(&self) -> &str {
         match self {
-            CompanionCredential::Jellyfin(t) | CompanionCredential::Subsonic(t) => t,
+            CompanionCredential::Jellyfin(t)
+            | CompanionCredential::Subsonic(t)
+            | CompanionCredential::Plex(t) => t,
         }
     }
 }
@@ -45,6 +54,7 @@ impl AnySource {
         match self {
             AnySource::Jellyfin(s) => s,
             AnySource::Subsonic(s) => s,
+            AnySource::Plex(s) => s,
         }
     }
 
@@ -57,6 +67,7 @@ impl AnySource {
         match self {
             AnySource::Jellyfin(s) => s.client.range_reader(item_id, runtime),
             AnySource::Subsonic(s) => s.client.range_reader(item_id, runtime),
+            AnySource::Plex(s) => s.client.range_reader(item_id, runtime),
         }
     }
 
@@ -74,6 +85,9 @@ impl AnySource {
             // placeholder or a Gravatar redirect keyed on the user's e-mail, which no
             // device should send (ADR core-0021 point 13). The initials show.
             AnySource::Subsonic(_) => Ok(None),
+            // A Plex account's picture is on plex.tv, which a device asks only to sign in
+            // and to find the server (ADR core-0023 point 3). The initials show.
+            AnySource::Plex(_) => Ok(None),
         }
     }
 
@@ -83,6 +97,9 @@ impl AnySource {
             AnySource::Jellyfin(s) => s.client.sign_out().await,
             // Subsonic has no session to end: forgetting the token here is signing out.
             AnySource::Subsonic(_) => Ok(()),
+            // A server token can't be ended from the device; forgetting it here is
+            // signing out (the account's device list on plex.tv can remove it).
+            AnySource::Plex(_) => Ok(()),
         }
     }
 
@@ -97,6 +114,14 @@ impl AnySource {
                 .client
                 .credentials()
                 .map(|c| CompanionCredential::Subsonic(c.to_token_string())),
+            AnySource::Plex(s) => s.client.credentials().map(|c| {
+                let only = encore_sources::plex::PlexCredentials::new(
+                    c.token().to_owned(),
+                    c.machine_id.clone(),
+                    Vec::new(),
+                );
+                CompanionCredential::Plex(only.to_token_string())
+            }),
         }
     }
 }
