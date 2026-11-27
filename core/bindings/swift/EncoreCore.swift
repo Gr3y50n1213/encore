@@ -6956,18 +6956,27 @@ public struct LocalFoundFile: Equatable, Hashable {
     public var size: UInt64
     public var modifiedMs: Int64
     /**
-     * A path the core can open for this call (Android: `/proc/self/fd/<n>` of a
-     * descriptor the app holds open until the call returns).
+     * A path the core can open for this call (a desktop file). Empty when `read_fd`
+     * is given.
      */
     public var readPath: String
+    /**
+     * An open file descriptor for the file, which the core takes over and closes
+     * (Android: `ParcelFileDescriptor.detachFd()`). Used instead of `read_path`.
+     */
+    public var readFd: Int32?
     /**
      * The text of a `.lrc` file with the same name beside it.
      */
     public var lrc: String?
     /**
-     * A path to `cover.jpg` or `folder.jpg` beside it, opened the same way.
+     * A path to `cover.jpg` or `folder.jpg` beside it.
      */
     public var folderCoverPath: String?
+    /**
+     * Or an open descriptor for it, taken over like `read_fd`.
+     */
+    public var folderCoverFd: Int32?
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
@@ -6976,23 +6985,32 @@ public struct LocalFoundFile: Equatable, Hashable {
          * The platform's address for the file (kept on this device only).
          */uri: String, fileName: String, size: UInt64, modifiedMs: Int64, 
         /**
-         * A path the core can open for this call (Android: `/proc/self/fd/<n>` of a
-         * descriptor the app holds open until the call returns).
+         * A path the core can open for this call (a desktop file). Empty when `read_fd`
+         * is given.
          */readPath: String, 
+        /**
+         * An open file descriptor for the file, which the core takes over and closes
+         * (Android: `ParcelFileDescriptor.detachFd()`). Used instead of `read_path`.
+         */readFd: Int32?, 
         /**
          * The text of a `.lrc` file with the same name beside it.
          */lrc: String?, 
         /**
-         * A path to `cover.jpg` or `folder.jpg` beside it, opened the same way.
-         */folderCoverPath: String?) {
+         * A path to `cover.jpg` or `folder.jpg` beside it.
+         */folderCoverPath: String?, 
+        /**
+         * Or an open descriptor for it, taken over like `read_fd`.
+         */folderCoverFd: Int32?) {
         self.folderId = folderId
         self.uri = uri
         self.fileName = fileName
         self.size = size
         self.modifiedMs = modifiedMs
         self.readPath = readPath
+        self.readFd = readFd
         self.lrc = lrc
         self.folderCoverPath = folderCoverPath
+        self.folderCoverFd = folderCoverFd
     }
 
     
@@ -7017,8 +7035,10 @@ public struct FfiConverterTypeLocalFoundFile: FfiConverterRustBuffer {
                 size: FfiConverterUInt64.read(from: &buf), 
                 modifiedMs: FfiConverterInt64.read(from: &buf), 
                 readPath: FfiConverterString.read(from: &buf), 
+                readFd: FfiConverterOptionInt32.read(from: &buf), 
                 lrc: FfiConverterOptionString.read(from: &buf), 
-                folderCoverPath: FfiConverterOptionString.read(from: &buf)
+                folderCoverPath: FfiConverterOptionString.read(from: &buf), 
+                folderCoverFd: FfiConverterOptionInt32.read(from: &buf)
         )
     }
 
@@ -7029,8 +7049,10 @@ public struct FfiConverterTypeLocalFoundFile: FfiConverterRustBuffer {
         FfiConverterUInt64.write(value.size, into: &buf)
         FfiConverterInt64.write(value.modifiedMs, into: &buf)
         FfiConverterString.write(value.readPath, into: &buf)
+        FfiConverterOptionInt32.write(value.readFd, into: &buf)
         FfiConverterOptionString.write(value.lrc, into: &buf)
         FfiConverterOptionString.write(value.folderCoverPath, into: &buf)
+        FfiConverterOptionInt32.write(value.folderCoverFd, into: &buf)
     }
 }
 

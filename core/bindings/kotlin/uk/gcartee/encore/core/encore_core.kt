@@ -9717,10 +9717,16 @@ data class LocalFoundFile (
     var `modifiedMs`: kotlin.Long
     , 
     /**
-     * A path the core can open for this call (Android: `/proc/self/fd/<n>` of a
-     * descriptor the app holds open until the call returns).
+     * A path the core can open for this call (a desktop file). Empty when `read_fd`
+     * is given.
      */
     var `readPath`: kotlin.String
+    , 
+    /**
+     * An open file descriptor for the file, which the core takes over and closes
+     * (Android: `ParcelFileDescriptor.detachFd()`). Used instead of `read_path`.
+     */
+    var `readFd`: kotlin.Int?
     , 
     /**
      * The text of a `.lrc` file with the same name beside it.
@@ -9728,9 +9734,14 @@ data class LocalFoundFile (
     var `lrc`: kotlin.String?
     , 
     /**
-     * A path to `cover.jpg` or `folder.jpg` beside it, opened the same way.
+     * A path to `cover.jpg` or `folder.jpg` beside it.
      */
     var `folderCoverPath`: kotlin.String?
+    , 
+    /**
+     * Or an open descriptor for it, taken over like `read_fd`.
+     */
+    var `folderCoverFd`: kotlin.Int?
     
 ){
     
@@ -9753,8 +9764,10 @@ public object FfiConverterTypeLocalFoundFile: FfiConverterRustBuffer<LocalFoundF
             FfiConverterULong.read(buf),
             FfiConverterLong.read(buf),
             FfiConverterString.read(buf),
+            FfiConverterOptionalInt.read(buf),
             FfiConverterOptionalString.read(buf),
             FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalInt.read(buf),
         )
     }
 
@@ -9765,8 +9778,10 @@ public object FfiConverterTypeLocalFoundFile: FfiConverterRustBuffer<LocalFoundF
             FfiConverterULong.allocationSize(value.`size`) +
             FfiConverterLong.allocationSize(value.`modifiedMs`) +
             FfiConverterString.allocationSize(value.`readPath`) +
+            FfiConverterOptionalInt.allocationSize(value.`readFd`) +
             FfiConverterOptionalString.allocationSize(value.`lrc`) +
-            FfiConverterOptionalString.allocationSize(value.`folderCoverPath`)
+            FfiConverterOptionalString.allocationSize(value.`folderCoverPath`) +
+            FfiConverterOptionalInt.allocationSize(value.`folderCoverFd`)
     )
 
     override fun write(value: LocalFoundFile, buf: ByteBuffer) {
@@ -9776,8 +9791,10 @@ public object FfiConverterTypeLocalFoundFile: FfiConverterRustBuffer<LocalFoundF
             FfiConverterULong.write(value.`size`, buf)
             FfiConverterLong.write(value.`modifiedMs`, buf)
             FfiConverterString.write(value.`readPath`, buf)
+            FfiConverterOptionalInt.write(value.`readFd`, buf)
             FfiConverterOptionalString.write(value.`lrc`, buf)
             FfiConverterOptionalString.write(value.`folderCoverPath`, buf)
+            FfiConverterOptionalInt.write(value.`folderCoverFd`, buf)
     }
 }
 
