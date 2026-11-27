@@ -427,10 +427,22 @@ impl Inner {
     ) -> Result<Option<String>, EncoreError> {
         let sources: Vec<_> = lock(&p.sources)?.values().cloned().collect();
         for s in sources {
-            if let Some(local) = s.local()
-                && let Some(uri) = local.song_keys()?.remove(song_key)
-            {
-                return Ok(Some(uri));
+            if let Some(local) = s.local() {
+                let keys = local.song_keys()?;
+                if let Some(uri) = keys.get(song_key) {
+                    return Ok(Some(uri.clone()));
+                }
+                // A file is often half a second off the server's copy: the song key's
+                // tolerance decides.
+                if let Some((_, uri)) = keys.iter().find(|(k, _)| {
+                    encore_sources::song_key::same_song(
+                        k,
+                        song_key,
+                        encore_sources::song_key::DURATION_TOLERANCE_SECONDS,
+                    )
+                }) {
+                    return Ok(Some(uri.clone()));
+                }
             }
         }
         Ok(None)

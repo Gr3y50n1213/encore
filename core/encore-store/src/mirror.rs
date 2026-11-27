@@ -5,6 +5,7 @@
 
 use std::collections::HashSet;
 
+use encore_sources::song_key::{DURATION_TOLERANCE_SECONDS, t1_parts};
 use encore_sources::{Album, Artist, ArtistCredit, LibraryDelta, Playlist, Track};
 use rusqlite::{Transaction, params};
 
@@ -114,10 +115,27 @@ impl Store {
                     .query_map([source_id], |r| r.get::<_, String>(0))?
                     .collect::<rusqlite::Result<_>>()?)
             };
-            let tracks = ids("SELECT t.source_item_id FROM tracks t
-                 WHERE t.source_id = ?1 AND EXISTS (
-                     SELECT 1 FROM tracks o JOIN sources s ON s.id = o.source_id
-                     WHERE o.song_key = t.song_key AND s.kind <> 'local')")?;
+            // The same song: the same key, or the same artist and title with lengths
+            // within the song key's tolerance (a file is often half a second off the
+            // server's copy). The range keeps the key's index in use.
+            let tracks: Vec<String> = {
+                let mut st = tx.prepare(
+                    "SELECT t.source_item_id FROM tracks t
+                     WHERE t.source_id = ?1 AND EXISTS (
+                         SELECT 1 FROM tracks o JOIN sources s ON s.id = o.source_id
+                         WHERE s.kind <> 'local' AND (
+                             o.song_key = t.song_key
+                             OR (substr(t.song_key, 1, 3) = 't1:'
+                                 AND o.song_key >= substr(t.song_key, 1, 36)
+                                 AND o.song_key < substr(t.song_key, 1, 36) || '~'
+                                 AND abs(CAST(substr(o.song_key, 37) AS INTEGER)
+                                         - CAST(substr(t.song_key, 37) AS INTEGER)) <= ?2)))",
+                )?;
+                st.query_map(params![source_id, DURATION_TOLERANCE_SECONDS as i64], |r| {
+                    r.get::<_, String>(0)
+                })?
+                .collect::<rusqlite::Result<_>>()?
+            };
             removed += remove_items(
                 &tx,
                 source_id,
@@ -149,15 +167,36 @@ impl Store {
         Ok(removed)
     }
 
-    /// The songs (of any source) with one of these song keys.
+    /// The songs (of any source) that are one of these songs: the same key, or for a
+    /// `t1` key the same artist and title within the song key's duration tolerance.
     pub fn track_ids_with_keys(&self, keys: &[String]) -> Result<HashSet<i64>> {
-        let mut st = self
+        let mut exact = self
             .conn
             .prepare_cached("SELECT id FROM tracks WHERE song_key = ?1")?;
+        let mut range = self.conn.prepare_cached(
+            "SELECT id, song_key FROM tracks WHERE song_key >= ?1 AND song_key < ?2",
+        )?;
         let mut out = HashSet::new();
         for k in keys {
-            for id in st.query_map([k], |r| r.get::<_, i64>(0))? {
-                out.insert(id?);
+            match t1_parts(k) {
+                Some((prefix, seconds)) => {
+                    let rows = range.query_map(params![prefix, format!("{prefix}~")], |r| {
+                        Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?))
+                    })?;
+                    for row in rows {
+                        let (id, key) = row?;
+                        if t1_parts(&key)
+                            .is_some_and(|(_, s)| s.abs_diff(seconds) <= DURATION_TOLERANCE_SECONDS)
+                        {
+                            out.insert(id);
+                        }
+                    }
+                }
+                None => {
+                    for id in exact.query_map([k], |r| r.get::<_, i64>(0))? {
+                        out.insert(id?);
+                    }
+                }
             }
         }
         Ok(out)
@@ -583,6 +622,25 @@ pub(crate) mod tests {
         assert_eq!(store.track_ids_with_keys(&[key]).unwrap().len(), 1);
         // Nothing to drop the second time.
         assert_eq!(store.drop_device_twins().unwrap(), 0);
+
+        // A file a second longer than the server's copy is the same song (the song
+        // key's 2 s tolerance); three seconds longer is not.
+        let mut close = track("t7", "Slow Tide", "al9", 7);
+        close.duration_ms = 201_000 + 1_000;
+        let mut far = track("t8", "Paper Lanterns", "al9", 8);
+        far.duration_ms = 202_000 + 3_000;
+        let mut more = local.clone();
+        more.full = false;
+        more.tracks = vec![close, far];
+        store.apply_delta(device, &more).unwrap();
+        store.drop_device_twins().unwrap();
+        let left = store.mirrored_item_ids(device).unwrap();
+        assert!(!left.contains("t7"), "within the tolerance: dropped");
+        assert!(left.contains("t8"), "outside it: kept");
+        let key = store.track_by_item(server, "t1").unwrap().unwrap().song_key;
+        let (prefix, secs) = encore_sources::song_key::t1_parts(&key).unwrap();
+        let shifted = format!("{prefix}{}", secs + 2);
+        assert_eq!(store.track_ids_with_keys(&[shifted]).unwrap().len(), 1);
     }
 
     pub(crate) fn sample_delta() -> LibraryDelta {

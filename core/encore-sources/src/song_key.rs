@@ -38,6 +38,18 @@ pub fn song_key(
     format!("t1:{hex}:{}", (duration_ms + 500) / 1000)
 }
 
+/// The `recap.counting.sameSongDurationToleranceSeconds` token: two `t1` keys whose
+/// durations differ by this much or less are the same song.
+pub const DURATION_TOLERANCE_SECONDS: u64 = 2;
+
+/// For a `t1` key, the part before its seconds (`t1:<hash>:`) and its seconds, so a
+/// store can find keys of the same song by range; None for an `mb:` key.
+pub fn t1_parts(key: &str) -> Option<(&str, u64)> {
+    let (hash, seconds) = split_t1(key)?;
+    let prefix_len = "t1:".len() + hash.len() + 1;
+    Some((&key[..prefix_len], seconds))
+}
+
 /// Whether two keys name the same song, allowing `tolerance_seconds` between the
 /// durations of `t1` keys.
 pub fn same_song(a: &str, b: &str, tolerance_seconds: u64) -> bool {
