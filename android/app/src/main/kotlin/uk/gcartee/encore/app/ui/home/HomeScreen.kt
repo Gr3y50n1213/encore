@@ -57,6 +57,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.layout
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -152,8 +154,15 @@ fun HomeScreen(host: CoreHost, data: HomeData, onProfile: () -> Unit, reselect: 
         PullToRefreshBox(isRefreshing = sync.running, onRefresh = { host.sync.syncNow() }) {
             LazyColumn(state = list, contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding() + (Grid.base * 2).dp)) {
                 // A greeting for the time of day, the way a listening app says hello.
-                item { PageTitleRow(greeting(), host, onProfile) }
+                // Phase 11: touch and hold the greeting to open this year's recap so far, so the
+                // story can be tried outside December (no menu or hint; it is a tester's way in).
+                item {
+                    val openRecap = uk.gcartee.encore.app.ui.recap.LocalOpenRecap.current
+                    PageTitleRow(greeting(), host, onProfile, onTitleHold = { openRecap(java.time.LocalDate.now().year) })
+                }
                 item { SyncRow(sync) }
+                // Phase 11 (board 41): the year's recap from 1 December to 8 January.
+                item { uk.gcartee.encore.app.ui.recap.RecapHomeCard(host, Modifier.padding(top = Grid.base.dp, bottom = Grid.base.dp)) }
                 if (home == null) {
                     item {
                         Box(Modifier.fillMaxWidth().height(240.dp), contentAlignment = Alignment.Center) {
@@ -190,13 +199,20 @@ fun HomeScreen(host: CoreHost, data: HomeData, onProfile: () -> Unit, reselect: 
 
 /** The title row with the profile button (board 05, item 1): a dot when changes wait to sync. */
 @Composable
-fun PageTitleRow(title: String, host: CoreHost, onProfile: () -> Unit, trailing: (@Composable () -> Unit)? = null) {
+fun PageTitleRow(title: String, host: CoreHost, onProfile: () -> Unit, trailing: (@Composable () -> Unit)? = null, onTitleHold: (() -> Unit)? = null) {
     val type = LocalEncoreType.current
     Row(
         Modifier.fillMaxWidth().topBarsPadding().padding(start = (Grid.base * 2).dp, end = (Grid.base * 2).dp, top = (Grid.base * 2).dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(title, style = type.pageTitle, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f).semantics { heading() })
+        Text(
+            title,
+            style = type.pageTitle,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f).semantics { heading() }.let { m ->
+                if (onTitleHold == null) m else m.pointerInput(onTitleHold) { detectTapGestures(onLongPress = { onTitleHold() }) }
+            },
+        )
         trailing?.invoke()
         ProfileButton(host, onProfile)
     }
@@ -580,6 +596,10 @@ fun MixesScreen(host: CoreHost, data: HomeData, onProfile: () -> Unit, contentPa
                         modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(44.dp),
                     ) { Icon(Icons.play(), contentDescription = "Play ${m.title}") }
                 }
+            }
+            // Board 23: "Your recap" below the grid when there is one (Phase 11).
+            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+                uk.gcartee.encore.app.ui.recap.RecapYearsSection(host, Modifier.padding(top = Grid.base.dp))
             }
         }
     }

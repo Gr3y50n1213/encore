@@ -200,6 +200,8 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
     var sleepTint by remember { mutableStateOf<uk.gcartee.encore.app.ui.player.FieldColours?>(null) }
     // Sleep mode (mock-up 45): over everything, until Back, its own button or a swipe down.
     var sleepMode by rememberSaveable { mutableStateOf(false) }
+    // Phase 11: the year recap's story (board 39), over everything; 0 when closed.
+    var recapYear by rememberSaveable { mutableIntStateOf(0) }
     val nowPlayingState = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
     // Encore TV: a projector's picture can be cut at its edges, so pages keep clear of them.
     val tv = uk.gcartee.encore.app.ui.tv.LocalTv.current
@@ -335,6 +337,10 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
         uk.gcartee.encore.app.ui.components.LocalDownloadProgress provides downloadProgress,
         uk.gcartee.encore.app.ui.components.LocalTopBanner provides bannerTop,
         uk.gcartee.encore.app.ui.components.LocalSongSelection provides selection,
+        uk.gcartee.encore.app.ui.recap.LocalOpenRecap provides { year: Int ->
+            nowPlaying = false
+            recapYear = year
+        },
     ) {
         if (addingAccount) {
             // Board 14, item 4: the onboarding flow; the new profile opens when sign-in succeeds.
@@ -655,6 +661,7 @@ private fun Shell(host: CoreHost, toaster: Toaster) {
                 }
             }
             if (sleepMode) uk.gcartee.encore.app.ui.player.SleepModeScreen(host, onExit = { sleepMode = false }, onSleepTimer = { sleepTint = null; sleepSheet = true })
+            if (recapYear != 0) uk.gcartee.encore.app.ui.recap.RecapStory(host, recapYear, onClose = { recapYear = 0 })
             // Toasts above everything, so one from Now Playing is seen there too: over the
             // page they sit above the mini player; over Now Playing, under its top bar. They
             // never cover controls (board 20) and take the app's own colours.
