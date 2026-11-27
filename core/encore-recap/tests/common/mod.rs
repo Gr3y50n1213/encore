@@ -341,10 +341,12 @@ pub fn input(s: &Spec) -> RecapInput {
             ai = 1.min(lib.len() - 1);
         }
         // The sound drifts: electronic artists get more plays after August.
-        if s.genres && doy > 243 && r.chance(250) {
-            if let Some(e) = lib.iter().position(|a| a.genre == "electronic") {
-                ai = e;
-            }
+        if s.genres
+            && doy > 243
+            && r.chance(250)
+            && let Some(e) = lib.iter().position(|a| a.genre == "electronic")
+        {
+            ai = e;
         }
         // The comeback artist returns in the second half; the newcomers join in.
         if doy > 180 && i % 23 == 0 {
