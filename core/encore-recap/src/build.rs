@@ -438,7 +438,7 @@ pub(crate) fn log_hash(earlier: &[&Play], this_year: &[&Play]) -> String {
             .iter()
             .map(|j| format!("{}:{}", j.line_index, j.line_start_ms))
             .collect();
-        let opt = |o: &Option<String>| o.clone().map_or_else(|| "\u{0}".to_string(), |s| s);
+        let opt = |o: &Option<String>| o.clone().unwrap_or_else(|| "\u{0}".to_string());
         let fields: [String; 15] = [
             p.song_key.clone(),
             p.title.clone(),
