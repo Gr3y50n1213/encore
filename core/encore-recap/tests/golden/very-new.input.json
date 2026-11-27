@@ -1,0 +1,236 @@
+{
+  "year": 2026,
+  "profileId": "profile-new-0002",
+  "kidProfile": false,
+  "recapOff": false,
+  "countedThroughUtcMs": 1798934400000,
+  "clearedSince": null,
+  "joinedDay": null,
+  "packs": [
+    {
+      "id": "editorial",
+      "version": 1
+    },
+    {
+      "id": "tide",
+      "version": 1
+    },
+    {
+      "id": "bloom",
+      "version": 1
+    },
+    {
+      "id": "glass",
+      "version": 1
+    }
+  ],
+  "past": [],
+  "albumPalettes": {
+    "al-0-0": [
+      "#551f93",
+      "#eb1846",
+      "#418dc5",
+      "#bd7113",
+      "#4ab217"
+    ],
+    "al-0-1": [
+      "#061bfa",
+      "#617c15",
+      "#43e4d5",
+      "#32d762",
+      "#cbceb6"
+    ],
+    "al-1-0": [
+      "#b8ef58",
+      "#8c48f0",
+      "#02d8b9",
+      "#48d490",
+      "#83b10c"
+    ],
+    "al-1-1": [
+      "#fba286",
+      "#31137c",
+      "#ccd609",
+      "#ad0b50",
+      "#79593d"
+    ],
+    "al-2-0": [
+      "#281231",
+      "#1bb289",
+      "#ee255b",
+      "#d39bc7",
+      "#aabb7a"
+    ],
+    "al-2-1": [
+      "#21ce85",
+      "#b0eb98",
+      "#bd77ed",
+      "#d76147",
+      "#4e2547"
+    ]
+  },
+  "albumTrackCounts": {
+    "al-0-0": 8,
+    "al-0-1": 5,
+    "al-1-0": 6,
+    "al-1-1": 7,
+    "al-2-0": 5,
+    "al-2-1": 5
+  },
+  "fingerprints": {
+    "t1:11eb64e52f78853355e3444209ce43c5:322": {
+      "energy": 415,
+      "valence": 378
+    },
+    "t1:1337ecb5accca374648c7e950e0fbe7c:317": {
+      "energy": 735,
+      "valence": 544
+    },
+    "t1:13bc1d95ee3539b123622ef769f30aee:285": {
+      "energy": 626,
+      "valence": 232
+    },
+    "t1:16594113dda0851cb0ddcff4e1500664:274": {
+      "energy": 417,
+      "valence": 423
+    },
+    "t1:26c707454ddfd8e6564512e787382521:197": {
+      "energy": 418,
+      "valence": 807
+    },
+    "t1:2a4d2424a43be18a19a70ce1b494472d:289": {
+      "energy": 319,
+      "valence": 272
+    },
+    "t1:2f8e012ba9e51e25790dfedade477e2f:153": {
+      "energy": 918,
+      "valence": 819
+    },
+    "t1:467879a6c27f0bfcbcc33fb7373c6461:266": {
+      "energy": 464,
+      "valence": 302
+    },
+    "t1:51ff87326daa81ceb9bb812dd9e9a854:159": {
+      "energy": 600,
+      "valence": 831
+    },
+    "t1:5522f717d405128caea8710c621af26e:188": {
+      "energy": 608,
+      "valence": 748
+    },
+    "t1:587a9642a956c8e0c88c8415107e1f97:152": {
+      "energy": 433,
+      "valence": 814
+    },
+    "t1:5d5a3940bcaa3bd7721a405101e613ca:165": {
+      "energy": 379,
+      "valence": 558
+    },
+    "t1:5e5277b96948cac80d432cc7e3a907e6:267": {
+      "energy": 396,
+      "valence": 450
+    },
+    "t1:604c0b214be83e6bbc5a83dc100f3e4e:313": {
+      "energy": 632,
+      "valence": 369
+    },
+    "t1:62738b06717cc0bbb6bcb8919958bf6e:320": {
+      "energy": 422,
+      "valence": 670
+    },
+    "t1:65c252de8d5f49f101aa52ea3b8d9b93:181": {
+      "energy": 798,
+      "valence": 496
+    },
+    "t1:6904a51d53715d4bebab806b1d721df0:174": {
+      "energy": 305,
+      "valence": 749
+    },
+    "t1:6b94feccf0d0d5db538c66161712c0f9:288": {
+      "energy": 354,
+      "valence": 365
+    },
+    "t1:71dc78a760dd02e14d97445e3af6cbae:265": {
+      "energy": 591,
+      "valence": 419
+    },
+    "t1:75d848653634cc3394a5fcce1b5539c7:282": {
+      "energy": 382,
+      "valence": 871
+    },
+    "t1:7c2e1286ccbbe183bda10918c321f383:191": {
+      "energy": 884,
+      "valence": 721
+    },
+    "t1:8461d387c01dff9157b79dc9c4ef3ff0:279": {
+      "energy": 671,
+      "valence": 584
+    },
+    "t1:84d88062a9e7a48ae6797f27ed7d64e5:306": {
+      "energy": 371,
+      "valence": 298
+    },
+    "t1:8b16071612eccc0556fbedebe3f105a1:296": {
+      "energy": 609,
+      "valence": 436
+    },
+    "t1:8c9c63b1621fb821ba4b5effeccc4533:167": {
+      "energy": 487,
+      "valence": 489
+    },
+    "t1:8e94663dcce58a67fb28c440d710d44a:264": {
+      "energy": 694,
+      "valence": 653
+    },
+    "t1:99f14d389f18dc85a55792fc9bce7ed5:174": {
+      "energy": 388,
+      "valence": 510
+    },
+    "t1:9dbca4716c818f9de686c2f9ddf24ea4:233": {
+      "energy": 621,
+      "valence": 325
+    },
+    "t1:9f7044adbed565e9587c0c7210063b41:306": {
+      "energy": 816,
+      "valence": 446
+    },
+    "t1:ce31b63b7ebb52be013e8f055b94fe50:295": {
+      "energy": 368,
+      "valence": 836
+    },
+    "t1:d4e70918b016bf46f77ff6cbecd9c246:255": {
+      "energy": 608,
+      "valence": 381
+    },
+    "t1:d64281b84f9203d9ab8d2f73d0c980d5:271": {
+      "energy": 395,
+      "valence": 614
+    },
+    "t1:e205ffe69fd4f88c5e4ded093bc6f9ef:321": {
+      "energy": 730,
+      "valence": 755
+    },
+    "t1:ecaa9f97f68701db7156a2fb284ffd8f:164": {
+      "energy": 584,
+      "valence": 763
+    },
+    "t1:ed0eb8ff18b4413c75abc1449c67bef6:304": {
+      "energy": 447,
+      "valence": 633
+    },
+    "t1:f043b987e6aeb87fd6bff7b063c28ff7:278": {
+      "energy": 465,
+      "valence": 612
+    }
+  },
+  "artistsBefore": [],
+  "hemisphere": "north",
+  "plays": [
+    {"songKey":"t1:6904a51d53715d4bebab806b1d721df0:174","title":"Rifin Zivi","artistKey":"ar-0","artist":"Thebrustys Vugos","albumKey":"al-0-1","album":"Gouloupul Drivaer","startedUtcMs":1793119740000,"utcOffsetMinutes":60,"listenedMs":174000,"durationMs":174000,"genre":"indie folk","endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:d4e70918b016bf46f77ff6cbecd9c246:255","title":"Vaevrox Stafo","artistKey":"ar-0","artist":"Thebrustys Vugos","albumKey":"al-0-0","album":"Bunal Stouvuthaex","startedUtcMs":1793620380000,"utcOffsetMinutes":60,"listenedMs":255000,"durationMs":255000,"genre":"indie folk","endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:8c9c63b1621fb821ba4b5effeccc4533:167","title":"Menour","artistKey":"ar-0","artist":"Thebrustys Vugos","albumKey":"al-0-0","album":"Bunal Stouvuthaex","startedUtcMs":1793557380000,"utcOffsetMinutes":60,"listenedMs":167000,"durationMs":167000,"genre":"indie folk","endReason":"finished","startedFrom":"playlist"},
+    {"songKey":"t1:587a9642a956c8e0c88c8415107e1f97:152","title":"Braezux Tudyvound Thoudruth","artistKey":"ar-0","artist":"Thebrustys Vugos","albumKey":"al-0-0","album":"Bunal Stouvuthaex","startedUtcMs":1793867580000,"utcOffsetMinutes":60,"listenedMs":152000,"durationMs":152000,"genre":"indie folk","endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:6904a51d53715d4bebab806b1d721df0:174","title":"Rifin Zivi","artistKey":"ar-0","artist":"Thebrustys Vugos","albumKey":"al-0-1","album":"Gouloupul Drivaer","startedUtcMs":1793858580000,"utcOffsetMinutes":60,"listenedMs":174000,"durationMs":174000,"genre":"indie folk","endReason":"finished","startedFrom":"search"},
+    {"songKey":"t1:604c0b214be83e6bbc5a83dc100f3e4e:313","title":"Brotyr","artistKey":"ar-2","artist":"Daebroun Luthuge","albumKey":"al-2-1","album":"Zathi","startedUtcMs":1793799960000,"utcOffsetMinutes":60,"listenedMs":104333,"durationMs":313000,"genre":"rock","endReason":"pausedAbandoned","startedFrom":"search"}
+  ]
+}

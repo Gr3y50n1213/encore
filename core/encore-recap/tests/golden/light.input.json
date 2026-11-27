@@ -1,0 +1,181 @@
+{
+  "year": 2026,
+  "profileId": "profile-light-0001",
+  "kidProfile": false,
+  "recapOff": false,
+  "countedThroughUtcMs": 1798934400000,
+  "clearedSince": null,
+  "joinedDay": null,
+  "packs": [
+    {
+      "id": "editorial",
+      "version": 1
+    },
+    {
+      "id": "tide",
+      "version": 1
+    },
+    {
+      "id": "bloom",
+      "version": 1
+    },
+    {
+      "id": "glass",
+      "version": 1
+    }
+  ],
+  "past": [],
+  "albumPalettes": {
+    "al-0-0": [
+      "#0621cf",
+      "#06179c",
+      "#68a488",
+      "#1b2a93",
+      "#122f2f"
+    ],
+    "al-1-0": [
+      "#09dab0",
+      "#f90180",
+      "#aec34b",
+      "#0a0be3",
+      "#52f5ba"
+    ],
+    "al-2-0": [
+      "#6e064c",
+      "#c09b64",
+      "#0e0178",
+      "#2a8bbe",
+      "#c98f60"
+    ],
+    "al-2-1": [
+      "#55f27c",
+      "#b6a7a4",
+      "#fccd10",
+      "#0ded61",
+      "#38a815"
+    ],
+    "al-3-0": [
+      "#d37121",
+      "#52e528",
+      "#4590a5",
+      "#8f50e3",
+      "#457606"
+    ],
+    "al-3-1": [
+      "#efa405",
+      "#f8dd5c",
+      "#16d8a9",
+      "#71f14f",
+      "#fdb8ec"
+    ],
+    "al-4-0": [
+      "#d35409",
+      "#0d722c",
+      "#ec122f",
+      "#7751ad",
+      "#d0c5f5"
+    ],
+    "al-5-0": [
+      "#b43d32",
+      "#67bf7a",
+      "#10d70a",
+      "#956a3d",
+      "#d50a94"
+    ],
+    "al-5-1": [
+      "#5532eb",
+      "#407287",
+      "#f939b1",
+      "#2bfa2f",
+      "#9f5c21"
+    ],
+    "al-6-0": [
+      "#a6b1af",
+      "#17bb00",
+      "#95b1a5",
+      "#3d985c",
+      "#cbe1f1"
+    ],
+    "al-6-1": [
+      "#3b9d96",
+      "#19eac3",
+      "#b55f95",
+      "#3b7136",
+      "#1d07b2"
+    ],
+    "al-7-0": [
+      "#bc54c1",
+      "#a5ee27",
+      "#a81e26",
+      "#e56ad8",
+      "#56eaa9"
+    ],
+    "al-7-1": [
+      "#7c6635",
+      "#3359a5",
+      "#d2c369",
+      "#d489ab",
+      "#bbddca"
+    ]
+  },
+  "albumTrackCounts": {
+    "al-0-0": 6,
+    "al-1-0": 6,
+    "al-2-0": 7,
+    "al-2-1": 5,
+    "al-3-0": 7,
+    "al-3-1": 8,
+    "al-4-0": 9,
+    "al-5-0": 5,
+    "al-5-1": 9,
+    "al-6-0": 8,
+    "al-6-1": 4,
+    "al-7-0": 4,
+    "al-7-1": 5
+  },
+  "fingerprints": {},
+  "artistsBefore": [],
+  "hemisphere": "north",
+  "plays": [
+    {"songKey":"t1:6518f854da71314a99c3046671ed45f5:256","title":"Klufes","artistKey":"ar-3","artist":"Tupoudou Kotend","albumKey":"al-3-0","album":"Goubrovry Doudyle","startedUtcMs":1773646140000,"utcOffsetMinutes":60,"listenedMs":256000,"durationMs":256000,"genre":"electronic","endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:6e1ef5f9d4199bfccc76bc474408194d:179","title":"Milun","artistKey":"ar-4","artist":"Didan","albumKey":"al-4-0","album":"Thethizaex Lybix","startedUtcMs":1771579260000,"utcOffsetMinutes":60,"listenedMs":179000,"durationMs":179000,"genre":"metal","endReason":"finished","startedFrom":"search"},
+    {"songKey":"t1:3230133be2ef8dd97a3de6c036c0b209:289","title":"Drubin","artistKey":"ar-3","artist":"Tupoudou Kotend","albumKey":"al-3-1","album":"Nabaefa Drafous","startedUtcMs":1771179540000,"utcOffsetMinutes":60,"listenedMs":289000,"durationMs":289000,"genre":"electronic","endReason":"finished","startedFrom":"playlist"},
+    {"songKey":"t1:33632c6ca48e58f02dec51da1dcc79c2:225","title":"Muround","artistKey":"ar-2","artist":"Reryr","albumKey":"al-2-1","album":"Kloudyth Ruthaevround","startedUtcMs":1771318380000,"utcOffsetMinutes":60,"listenedMs":225000,"durationMs":225000,"genre":"hip hop","endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:7a2ee185325fc906aa13897255962df5:231","title":"Stosyx Zoutol","artistKey":"ar-1","artist":"Dudraedath Thanedrax","albumKey":"al-1-0","album":"Brituklyr Nysur","startedUtcMs":1770826080000,"utcOffsetMinutes":60,"listenedMs":231000,"durationMs":231000,"genre":"pop","endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:90dd99d996df829fa0578ea5ddc2cf00:252","title":"Vystykax Bibrudar","artistKey":"ar-0","artist":"Rapouklin Kaeto","albumKey":"al-0-0","album":"Daedaeno Ponomur","startedUtcMs":1772980440000,"utcOffsetMinutes":60,"listenedMs":252000,"durationMs":252000,"genre":"electronic","endReason":"finished","startedFrom":"radio"},
+    {"songKey":"t1:b7e6807a94eef44dc9c672c62f9deb46:190","title":"Foufaex","artistKey":"ar-0","artist":"Rapouklin Kaeto","albumKey":"al-0-0","album":"Daedaeno Ponomur","startedUtcMs":1773841380000,"utcOffsetMinutes":60,"listenedMs":190000,"durationMs":190000,"genre":"electronic","endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:7a2ee185325fc906aa13897255962df5:231","title":"Stosyx Zoutol","artistKey":"ar-1","artist":"Dudraedath Thanedrax","albumKey":"al-1-0","album":"Brituklyr Nysur","startedUtcMs":1770719820000,"utcOffsetMinutes":60,"listenedMs":231000,"durationMs":231000,"genre":"pop","endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:e200297810b644e66cf01b7a12e70e34:259","title":"Filodroux","artistKey":"ar-0","artist":"Rapouklin Kaeto","albumKey":"al-0-0-deluxe","album":"Daedaeno Ponomur","startedUtcMs":1772517600000,"utcOffsetMinutes":60,"listenedMs":258000,"durationMs":258000,"genre":"electronic","explicit":true,"endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:10b059cb719dc660ed3cc55cda818877:252","title":"Bethol","artistKey":"ar-2","artist":"Reryr","albumKey":"al-2-0","album":"Sabruneth","startedUtcMs":1771945500000,"utcOffsetMinutes":60,"listenedMs":252000,"durationMs":252000,"genre":"hip hop","endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:b7e6807a94eef44dc9c672c62f9deb46:190","title":"Foufaex","artistKey":"ar-0","artist":"Rapouklin Kaeto","albumKey":"al-0-0","album":"Daedaeno Ponomur","startedUtcMs":1774627380000,"utcOffsetMinutes":60,"listenedMs":190000,"durationMs":190000,"genre":"electronic","endReason":"finished","startedFrom":"playlist"},
+    {"songKey":"t1:6a63aa513def4087c88847b53d3451ee:292","title":"Rygaekun Douzistis Kypoudaen","artistKey":"ar-1","artist":"Dudraedath Thanedrax","albumKey":"al-1-0-deluxe","album":"Brituklyr Nysur","startedUtcMs":1773225540000,"utcOffsetMinutes":60,"listenedMs":291000,"durationMs":291000,"genre":"pop","endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:e200297810b644e66cf01b7a12e70e34:258","title":"Filodroux","artistKey":"ar-0","artist":"Rapouklin Kaeto","albumKey":"al-0-0","album":"Daedaeno Ponomur","startedUtcMs":1772480880000,"utcOffsetMinutes":60,"listenedMs":258000,"durationMs":258000,"genre":"electronic","explicit":true,"endReason":"finished","startedFrom":"radio"},
+    {"songKey":"t1:4fbdb67e2c279dd5123c37a67478d575:165","title":"Thadrary Byklor Lyvestaend","artistKey":"ar-3","artist":"Tupoudou Kotend","albumKey":"al-3-1","album":"Nabaefa Drafous","startedUtcMs":1773423840000,"utcOffsetMinutes":60,"listenedMs":165000,"durationMs":165000,"genre":"electronic","endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:90dd99d996df829fa0578ea5ddc2cf00:252","title":"Vystykax Bibrudar","artistKey":"ar-0","artist":"Rapouklin Kaeto","albumKey":"al-0-0","album":"Daedaeno Ponomur","startedUtcMs":1772394360000,"utcOffsetMinutes":60,"listenedMs":252000,"durationMs":252000,"genre":"electronic","endReason":"finished","startedFrom":"radio"},
+    {"songKey":"t1:b7e6807a94eef44dc9c672c62f9deb46:190","title":"Foufaex","artistKey":"ar-0","artist":"Rapouklin Kaeto","albumKey":"al-0-0","album":"Daedaeno Ponomur","startedUtcMs":1770077040000,"utcOffsetMinutes":60,"listenedMs":63333,"durationMs":190000,"genre":"electronic","endReason":"pausedAbandoned","startedFrom":"album"},
+    {"songKey":"t1:1d43b5a94858e30c73744ba2cc3f7132:276","title":"Savrovus Thaegefer","artistKey":"ar-0","artist":"Rapouklin Kaeto","albumKey":"al-0-0-deluxe","album":"Daedaeno Ponomur","startedUtcMs":1772579160000,"utcOffsetMinutes":60,"listenedMs":275000,"durationMs":275000,"genre":"electronic","endReason":"finished","startedFrom":"radio"},
+    {"songKey":"t1:addd1d593aaceac50581d98e32dbde01:174","title":"Fiborox Mokledrou","artistKey":"ar-4","artist":"Didan","albumKey":"al-4-0","album":"Thethizaex Lybix","startedUtcMs":1772453700000,"utcOffsetMinutes":60,"listenedMs":174000,"durationMs":174000,"genre":"metal","endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:1d43b5a94858e30c73744ba2cc3f7132:275","title":"Savrovus Thaegefer","artistKey":"ar-0","artist":"Rapouklin Kaeto","albumKey":"al-0-0","album":"Daedaeno Ponomur","startedUtcMs":1772894160000,"utcOffsetMinutes":60,"listenedMs":275000,"durationMs":275000,"genre":"electronic","endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:dfacb84db42d4afb1f2ae15ea1dacd0a:319","title":"Gudiklaer Mutoudro Ledrily","artistKey":"ar-5","artist":"Pury Vimybry","albumKey":"al-5-1","album":"Ladrethex","startedUtcMs":1770418980000,"utcOffsetMinutes":60,"listenedMs":25302,"durationMs":319000,"genre":"soul","endReason":"skipped","startedFrom":"album"},
+    {"songKey":"t1:7a2ee185325fc906aa13897255962df5:231","title":"Stosyx Zoutol","artistKey":"ar-1","artist":"Dudraedath Thanedrax","albumKey":"al-1-0","album":"Brituklyr Nysur","startedUtcMs":1773523380000,"utcOffsetMinutes":60,"listenedMs":231000,"durationMs":231000,"genre":"pop","endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:7a2ee185325fc906aa13897255962df5:231","title":"Stosyx Zoutol","artistKey":"ar-1","artist":"Dudraedath Thanedrax","albumKey":"al-1-0","album":"Brituklyr Nysur","startedUtcMs":1772954520000,"utcOffsetMinutes":60,"listenedMs":231000,"durationMs":231000,"genre":"pop","endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:1d43b5a94858e30c73744ba2cc3f7132:276","title":"Savrovus Thaegefer","artistKey":"ar-0","artist":"Rapouklin Kaeto","albumKey":"al-0-0-deluxe","album":"Daedaeno Ponomur","startedUtcMs":1773758460000,"utcOffsetMinutes":60,"listenedMs":1357,"durationMs":275000,"genre":"electronic","endReason":"skipped","startedFrom":"playlist"},
+    {"songKey":"t1:b7e6807a94eef44dc9c672c62f9deb46:190","title":"Foufaex","artistKey":"ar-0","artist":"Rapouklin Kaeto","albumKey":"al-0-0","album":"Daedaeno Ponomur","startedUtcMs":1772477280000,"utcOffsetMinutes":60,"listenedMs":190000,"durationMs":190000,"genre":"electronic","endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:a0ecdb773c6be7f187ea3e41e9eaaaef:231","title":"Viklodou Kloudoloth","artistKey":"ar-7","artist":"Nusaste","albumKey":"al-7-0","album":"Fuvrozil Douleklael","startedUtcMs":1774768140000,"utcOffsetMinutes":120,"listenedMs":231000,"durationMs":231000,"genre":"metal","endReason":"finished","startedFrom":"radio"},
+    {"songKey":"t1:b7e6807a94eef44dc9c672c62f9deb46:190","title":"Foufaex","artistKey":"ar-0","artist":"Rapouklin Kaeto","albumKey":"al-0-0","album":"Daedaeno Ponomur","startedUtcMs":1772567820000,"utcOffsetMinutes":60,"listenedMs":2275,"durationMs":190000,"genre":"electronic","endReason":"skipped","startedFrom":"search"},
+    {"songKey":"t1:b7e6807a94eef44dc9c672c62f9deb46:190","title":"Foufaex","artistKey":"ar-0","artist":"Rapouklin Kaeto","albumKey":"al-0-0","album":"Daedaeno Ponomur","startedUtcMs":1774081440000,"utcOffsetMinutes":60,"listenedMs":190000,"durationMs":190000,"genre":"electronic","endReason":"finished","startedFrom":"playlist"},
+    {"songKey":"t1:44ec736d739900c3f3c4802012cfa792:180","title":"Thizufin","artistKey":"ar-3","artist":"Tupoudou Kotend","albumKey":"al-3-0","album":"Goubrovry Doudyle","startedUtcMs":1774553820000,"utcOffsetMinutes":60,"listenedMs":180000,"durationMs":180000,"genre":"electronic","explicit":true,"endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:e5ed43cf56d0b4fcbcb28b3fbf684e63:219","title":"Stubrytal Sogo","artistKey":"ar-3","artist":"Tupoudou Kotend","albumKey":"al-3-1","album":"Nabaefa Drafous","startedUtcMs":1773914760000,"utcOffsetMinutes":60,"listenedMs":12331,"durationMs":219000,"genre":"electronic","endReason":"skipped","startedFrom":"search"},
+    {"songKey":"t1:b7e6807a94eef44dc9c672c62f9deb46:190","title":"Foufaex","artistKey":"ar-0","artist":"Rapouklin Kaeto","albumKey":"al-0-0","album":"Daedaeno Ponomur","startedUtcMs":1769983260000,"utcOffsetMinutes":60,"listenedMs":63333,"durationMs":190000,"genre":"electronic","endReason":"pausedAbandoned","startedFrom":"album"},
+    {"songKey":"t1:d6afb95ac3122b6459af267c7398ab56:254","title":"Bodond","artistKey":"ar-5","artist":"Pury Vimybry","albumKey":"al-5-1","album":"Ladrethex","startedUtcMs":1772912940000,"utcOffsetMinutes":60,"listenedMs":254000,"durationMs":254000,"genre":"soul","endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:96be9b0ea497678dc60ab764eee62246:184","title":"Dremeth","artistKey":"ar-3","artist":"Tupoudou Kotend","albumKey":"al-3-0","album":"Goubrovry Doudyle","startedUtcMs":1770826920000,"utcOffsetMinutes":60,"listenedMs":184000,"durationMs":184000,"genre":"electronic","explicit":true,"endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:cba7377893f89e789b2a93e3a916e415:257","title":"Thuvribu Stapanund Saestoky","artistKey":"ar-2","artist":"Reryr","albumKey":"al-2-1","album":"Kloudyth Ruthaevround","startedUtcMs":1774824540000,"utcOffsetMinutes":120,"listenedMs":257000,"durationMs":257000,"genre":"hip hop","endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:7a2ee185325fc906aa13897255962df5:231","title":"Stosyx Zoutol","artistKey":"ar-1","artist":"Dudraedath Thanedrax","albumKey":"al-1-0","album":"Brituklyr Nysur","startedUtcMs":1773103560000,"utcOffsetMinutes":60,"listenedMs":231000,"durationMs":231000,"genre":"pop","endReason":"finished","startedFrom":"radio"},
+    {"songKey":"t1:b7e6807a94eef44dc9c672c62f9deb46:190","title":"Foufaex","artistKey":"ar-0","artist":"Rapouklin Kaeto","albumKey":"al-0-0","album":"Daedaeno Ponomur","startedUtcMs":1771171980000,"utcOffsetMinutes":60,"listenedMs":190000,"durationMs":190000,"genre":"electronic","endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:5b9ba0700179c38221ee664218e58849:175","title":"Simax Nethakyl","artistKey":"ar-2","artist":"Reryr","albumKey":"al-2-0","album":"Sabruneth","startedUtcMs":1774183620000,"utcOffsetMinutes":60,"listenedMs":175000,"durationMs":175000,"genre":"hip hop","endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:7a2ee185325fc906aa13897255962df5:231","title":"Stosyx Zoutol","artistKey":"ar-1","artist":"Dudraedath Thanedrax","albumKey":"al-1-0","album":"Brituklyr Nysur","startedUtcMs":1770205560000,"utcOffsetMinutes":60,"listenedMs":231000,"durationMs":231000,"genre":"pop","endReason":"finished","startedFrom":"album"},
+    {"songKey":"t1:b7e6807a94eef44dc9c672c62f9deb46:190","title":"Foufaex","artistKey":"ar-0","artist":"Rapouklin Kaeto","albumKey":"al-0-0","album":"Daedaeno Ponomur","startedUtcMs":1772958900000,"utcOffsetMinutes":60,"listenedMs":63333,"durationMs":190000,"genre":"electronic","endReason":"pausedAbandoned","startedFrom":"album"},
+    {"songKey":"t1:e5ed43cf56d0b4fcbcb28b3fbf684e63:219","title":"Stubrytal Sogo","artistKey":"ar-3","artist":"Tupoudou Kotend","albumKey":"al-3-1","album":"Nabaefa Drafous","startedUtcMs":1773411840000,"utcOffsetMinutes":60,"listenedMs":73000,"durationMs":219000,"genre":"electronic","endReason":"pausedAbandoned","startedFrom":"album"},
+    {"songKey":"t1:5a014c1e47fa9e578fd856986d49fddd:223","title":"Rirudael Stube","artistKey":"ar-6","artist":"Stufatyn","albumKey":"al-6-1","album":"Gufen Thudrae","startedUtcMs":1770446760000,"utcOffsetMinutes":60,"listenedMs":223000,"durationMs":223000,"genre":"rock","endReason":"finished","startedFrom":"playlist"}
+  ]
+}

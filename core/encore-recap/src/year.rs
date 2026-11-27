@@ -515,7 +515,6 @@ pub(crate) fn gather<'a>(input: &'a RecapInput, f: Filtered<'a>) -> Year<'a> {
                 run = None;
             }
         }
-
     }
 
     for (i, s) in y.songs.iter_mut().enumerate() {
