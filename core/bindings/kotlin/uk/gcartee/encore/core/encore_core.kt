@@ -1016,6 +1016,10 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_unlock_profile(
     ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_recap(
+    ): Int
+    external fun uniffi_encore_core_checksum_method_encorecore_recap_years(
+    ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_adventurousness(
     ): Int
     external fun uniffi_encore_core_checksum_method_encorecore_clear_listening_history(
@@ -1423,6 +1427,10 @@ internal object UniffiLib {
     ): Long
     external fun uniffi_encore_core_fn_method_encorecore_unlock_profile(`ptr`: Long,`profileId`: RustBuffer.ByValue,`pinIn`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
+    external fun uniffi_encore_core_fn_method_encorecore_recap(`ptr`: Long,`year`: Int,`packs`: RustBuffer.ByValue,`southern`: Byte,`utcOffsetMinutes`: Int,
+    ): Long
+    external fun uniffi_encore_core_fn_method_encorecore_recap_years(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_adventurousness(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_encore_core_fn_method_encorecore_clear_listening_history(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -2092,6 +2100,12 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_unlock_profile() and 0xFFFF) != 64461) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_recap() and 0xFFFF) != 27750) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_encore_core_checksum_method_encorecore_recap_years() and 0xFFFF) != 23367) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_encore_core_checksum_method_encorecore_adventurousness() and 0xFFFF) != 59213) {
@@ -3902,6 +3916,21 @@ public interface EncoreCoreInterface {
      * PINs lock it for 30 s, then longer; the reason says how long.
      */
     fun `unlockProfile`(`profileId`: kotlin.String, `pinIn`: kotlin.String?)
+    
+    /**
+     * The open profile's recap of `year` (Phase 11): the recap data document as JSON
+     * (schema 1, `docs/core/recap-engine.md`). `packs` are the design packs this app
+     * draws ("editorial", "tide", "bloom", "glass"); `southern` turns the seasons
+     * round; `utc_offset_minutes` (the device's now) dates a Clear listening history.
+     * A year built on or after 8 January is locked: kept and given back unchanged from
+     * then on. Async: a year of plays is read and counted off the caller's thread.
+     */
+    suspend fun `recap`(`year`: kotlin.Int, `packs`: List<kotlin.String>, `southern`: kotlin.Boolean, `utcOffsetMinutes`: kotlin.Int): kotlin.String
+    
+    /**
+     * The years with a kept (locked) recap on this device, newest first.
+     */
+    fun `recapYears`(): List<kotlin.Int>
     
     fun `adventurousness`(): Adventurousness
     
@@ -7257,6 +7286,56 @@ open class EncoreCore: Disposable, AutoCloseable, EncoreCoreInterface
 }
     }
     
+    
+
+    
+    /**
+     * The open profile's recap of `year` (Phase 11): the recap data document as JSON
+     * (schema 1, `docs/core/recap-engine.md`). `packs` are the design packs this app
+     * draws ("editorial", "tide", "bloom", "glass"); `southern` turns the seasons
+     * round; `utc_offset_minutes` (the device's now) dates a Clear listening history.
+     * A year built on or after 8 January is locked: kept and given back unchanged from
+     * then on. Async: a year of plays is read and counted off the caller's thread.
+     */
+    @Throws(EncoreException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `recap`(`year`: kotlin.Int, `packs`: List<kotlin.String>, `southern`: kotlin.Boolean, `utcOffsetMinutes`: kotlin.Int) : kotlin.String {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_encore_core_fn_method_encorecore_recap(
+                uniffiHandle,
+                
+        FfiConverterInt.lower(`year`),
+        FfiConverterSequenceString.lower(`packs`),
+        FfiConverterBoolean.lower(`southern`),
+        FfiConverterInt.lower(`utcOffsetMinutes`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_encore_core_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_encore_core_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_encore_core_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterString.lift(it) },
+        // Error FFI converter
+        EncoreException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * The years with a kept (locked) recap on this device, newest first.
+     */
+    @Throws(EncoreException::class)override fun `recapYears`(): List<kotlin.Int> {
+            return FfiConverterSequenceInt.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EncoreException) { _status ->
+    UniffiLib.uniffi_encore_core_fn_method_encorecore_recap_years(
+        it,
+        _status)
+}
+    }
+    )
+    }
     
 
     
@@ -17172,6 +17251,34 @@ public object FfiConverterSequenceUInt: FfiConverterRustBuffer<List<kotlin.UInt>
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterUInt.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceInt: FfiConverterRustBuffer<List<kotlin.Int>> {
+    override fun read(buf: ByteBuffer): List<kotlin.Int> {
+        val len = buf.getInt()
+        return List<kotlin.Int>(len) {
+            FfiConverterInt.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<kotlin.Int>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterInt.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<kotlin.Int>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterInt.write(it, buf)
         }
     }
 }

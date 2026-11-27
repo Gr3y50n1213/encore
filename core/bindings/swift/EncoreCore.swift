@@ -1676,6 +1676,21 @@ public protocol EncoreCoreProtocol: AnyObject, Sendable {
      */
     func unlockProfile(profileId: String, pinIn: String?) throws 
     
+    /**
+     * The open profile's recap of `year` (Phase 11): the recap data document as JSON
+     * (schema 1, `docs/core/recap-engine.md`). `packs` are the design packs this app
+     * draws ("editorial", "tide", "bloom", "glass"); `southern` turns the seasons
+     * round; `utc_offset_minutes` (the device's now) dates a Clear listening history.
+     * A year built on or after 8 January is locked: kept and given back unchanged from
+     * then on. Async: a year of plays is read and counted off the caller's thread.
+     */
+    func recap(year: Int32, packs: [String], southern: Bool, utcOffsetMinutes: Int32) async throws  -> String
+    
+    /**
+     * The years with a kept (locked) recap on this device, newest first.
+     */
+    func recapYears() throws  -> [Int32]
+    
     func adventurousness() throws  -> Adventurousness
     
     /**
@@ -4181,6 +4196,42 @@ open func unlockProfile(profileId: String, pinIn: String?)throws   {try rustCall
         FfiConverterOptionString.lower(pinIn),uniffiCallStatus
     )
 }
+}
+    
+    /**
+     * The open profile's recap of `year` (Phase 11): the recap data document as JSON
+     * (schema 1, `docs/core/recap-engine.md`). `packs` are the design packs this app
+     * draws ("editorial", "tide", "bloom", "glass"); `southern` turns the seasons
+     * round; `utc_offset_minutes` (the device's now) dates a Clear listening history.
+     * A year built on or after 8 January is locked: kept and given back unchanged from
+     * then on. Async: a year of plays is read and counted off the caller's thread.
+     */
+open func recap(year: Int32, packs: [String], southern: Bool, utcOffsetMinutes: Int32)async throws  -> String  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_encore_core_fn_method_encorecore_recap(
+                        self.uniffiCloneHandle(),FfiConverterInt32.lower(year),FfiConverterSequenceString.lower(packs),FfiConverterBool.lower(southern),FfiConverterInt32.lower(utcOffsetMinutes)
+                )
+            },
+            pollFunc: ffi_encore_core_rust_future_poll_rust_buffer,
+            completeFunc: ffi_encore_core_rust_future_complete_rust_buffer,
+            freeFunc: ffi_encore_core_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterString.lift,
+            errorHandler: FfiConverterTypeEncoreError_lift
+        )
+}
+    
+    /**
+     * The years with a kept (locked) recap on this device, newest first.
+     */
+open func recapYears()throws  -> [Int32]  {
+    return try  FfiConverterSequenceInt32.lift(try rustCallWithError(FfiConverterTypeEncoreError_lift) {
+        uniffiCallStatus in
+    uniffi_encore_core_fn_method_encorecore_recap_years(
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
 }
     
 open func adventurousness()throws  -> Adventurousness  {
@@ -17415,6 +17466,31 @@ fileprivate struct FfiConverterSequenceUInt32: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterSequenceInt32: FfiConverterRustBuffer {
+    typealias SwiftType = [Int32]
+
+    public static func write(_ value: [Int32], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterInt32.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [Int32] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [Int32]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterInt32.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterSequenceInt64: FfiConverterRustBuffer {
     typealias SwiftType = [Int64]
 
@@ -18926,6 +19002,12 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_unlock_profile() != 64461) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_recap() != 27750) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_encore_core_checksum_method_encorecore_recap_years() != 23367) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_encore_core_checksum_method_encorecore_adventurousness() != 59213) {
