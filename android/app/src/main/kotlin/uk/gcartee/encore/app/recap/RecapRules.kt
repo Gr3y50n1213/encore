@@ -91,6 +91,14 @@ object RecapFormat {
     val MONTH_LETTERS = listOf("J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
     val WEEKDAY_LETTERS = listOf("M", "T", "W", "T", "F", "S", "S")
 
+    /** "2 days · 3 hours", leaving out a part that is nought ("15 hours", not "0 days · 15 hours"). */
+    fun daysAndHours(days: Number, hours: Number, separator: String): String {
+        val d = days.toLong()
+        val h = hours.toLong()
+        fun unit(n: Long, one: String) = if (n == 1L) "1 $one" else "$n ${one}s"
+        return listOfNotNull(if (d > 0) unit(d, "day") else null, if (h > 0 || d == 0L) unit(h, "hour") else null).joinToString(separator)
+    }
+
     fun count(n: Long): String = NumberFormat.getIntegerInstance(Locale.getDefault()).format(n)
 
     /** A permille as a whole percent, rounded half up (recap-engine.md, "Units"). */
@@ -196,7 +204,7 @@ object RecapText {
                 if (d.yearLine.isNotBlank()) parts += d.yearLine
             }
             is BeatData.Minutes -> {
-                parts += "${c(d.minutes)} minutes with your music, ${d.days} days and ${d.hours} hours."
+                parts += "${c(d.minutes)} minutes with your music" + (if (d.days > 0 || d.hours > 0) ", " + RecapFormat.daysAndHours(d.days, d.hours, " and ") else "") + "."
                 parts += beat.text
                 parts += "By month: " + d.months.joinToString(", ") { "${RecapFormat.monthLong(it.month)} ${c(it.minutes)} minutes" } + "."
             }

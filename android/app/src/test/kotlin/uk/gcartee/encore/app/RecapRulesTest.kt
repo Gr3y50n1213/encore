@@ -176,4 +176,11 @@ class RecapRulesTest {
         assertEquals(GroundKind.PAPER, PackColours.groundFor("closer", 3))
         assertTrue(PackColours.groundFor("minutes", 1) != GroundKind.PAPER)
     }
+
+    @Test
+    fun days_and_hours_leave_out_a_nought() {
+        assertEquals("15 hours", uk.gcartee.encore.app.recap.RecapFormat.daysAndHours(0, 15, " · "))
+        assertEquals("1 day · 3 hours", uk.gcartee.encore.app.recap.RecapFormat.daysAndHours(1, 3, " · "))
+        assertEquals("2 days", uk.gcartee.encore.app.recap.RecapFormat.daysAndHours(2, 0, " and "))
+    }
 }

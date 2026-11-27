@@ -308,7 +308,7 @@ private fun ColumnScope.MinutesBody(env: CardEnv, d: BeatData.Minutes, enter: Fl
     val g = env.ground
     CountUp(d.minutes, env.still, env.theme.type.display.copy(fontSize = 62.sp), g.fg)
     Display(env, if (env.recap.soFar) "minutes so far." else "minutes with your music.", 20.sp, Modifier.padding(top = 8.dp), italic = true)
-    if (d.days > 0 || d.hours > 0) Label(env, "${d.days} days · ${d.hours} hours", Modifier.padding(top = 8.dp), alpha = 0.7f)
+    if (d.days > 0 || d.hours > 0) Label(env, RecapFormat.daysAndHours(d.days, d.hours, " · "), Modifier.padding(top = 8.dp), alpha = 0.7f)
     Spacer(Modifier.weight(1f))
     val months = (1..12).map { m -> d.months.firstOrNull { it.month == m }?.minutes ?: 0L }
     val peak = months.indices.maxByOrNull { months[it] }
