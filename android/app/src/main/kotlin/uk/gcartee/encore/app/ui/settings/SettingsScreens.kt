@@ -603,7 +603,7 @@ private fun ServersPage(host: CoreHost, onBack: () -> Unit, onAddServer: () -> U
                 s.name,
                 if (s.signedIn) {
                     listOfNotNull(
-                        "Jellyfin",
+                        serverKindName(s.kind),
                         "${s.songCount} songs",
                         s.lastSyncUtcMs?.let { "synced " + fmt.format(Date(it)) },
                     ).joinToString(" · ")
@@ -770,3 +770,12 @@ private fun PrivacyPage(host: CoreHost, onBack: () -> Unit, contentPadding: Padd
 
 /** Board 18: the green health dot. */
 private val HEALTHY = Color(0xFF2E7D32)
+
+/** A source's kind as people know it (CORE-API `ServerRow.kind`). */
+private fun serverKindName(kind: String): String = when (kind) {
+    "jellyfin" -> "Jellyfin"
+    "emby" -> "Emby"
+    "plex" -> "Plex"
+    "subsonic" -> "Subsonic"
+    else -> kind.replaceFirstChar(Char::uppercase)
+}
