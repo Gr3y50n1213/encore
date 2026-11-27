@@ -101,7 +101,17 @@ class CollectionWidgetsTest {
         // failed once on the API 36 phone and passed on a rerun with nothing changed).
         // Today's set is made by Home (core.home), never by the widget; this test can run
         // before anything has opened Home (API 28, run 45922326298), so it asks as Home does.
-        runBlocking { runCatching { host.core.home() } }
+        // A mix needs enough plays first: when the earlier steps left too few (API 28 again,
+        // run 45936231125: the set wasn't made), this test has nothing to tap and is skipped,
+        // not failed; the API 36 runs, with more history, still check it.
+        val shelf = runBlocking { runCatching { host.core.home() }.getOrNull() }?.madeForYou
+        if (shelf != null) {
+            Log.i(TAG, "Made for you: ${shelf.mixes.size} mixes, ${shelf.playsSoFar} of ${shelf.playsNeeded} plays")
+            assumeTrue(
+                "needs enough plays for a mix (${shelf.playsSoFar} of ${shelf.playsNeeded})",
+                shelf.mixes.isNotEmpty() || shelf.playsSoFar >= shelf.playsNeeded,
+            )
+        }
         val end = System.currentTimeMillis() + MIXES_BUILD_MS
         while (System.currentTimeMillis() < end) {
             val s = runCatching { host.core.widgetSnapshot() }.getOrNull()
