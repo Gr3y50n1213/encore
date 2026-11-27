@@ -65,8 +65,9 @@ internal fun DeviceMusicPage(host: CoreHost, onBack: () -> Unit, contentPadding:
     val type = LocalEncoreType.current
     val error = MaterialTheme.colorScheme.error
     val mutedIcon = MaterialTheme.colorScheme.onSurfaceVariant
+    val device = deviceNoun()
 
-    Page("Music on this phone", onBack, contentPadding, subtitle = "Encore plays the songs in the folders you choose.") {
+    Page("Music on this $device", onBack, contentPadding, subtitle = "Encore plays the songs in the folders you choose.") {
         look?.let { l -> item { LookCard(l) } }
         group(
             null,
@@ -77,7 +78,7 @@ internal fun DeviceMusicPage(host: CoreHost, onBack: () -> Unit, contentPadding:
                     when {
                         looking -> "Reading…"
                         !f.available -> "Not available right now"
-                        else -> "Phone storage · ${songs(f.songCount.toInt())}"
+                        else -> "${device.replaceFirstChar(Char::uppercase)} storage · ${songs(f.songCount.toInt())}"
                     },
                     icon = { Icons.folder() },
                     valueColor = if (!f.available && !looking) error else null,
@@ -117,7 +118,7 @@ internal fun DeviceMusicPage(host: CoreHost, onBack: () -> Unit, contentPadding:
                 Icon(Icons.lock(), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp).padding(top = 2.dp))
                 Spacer(Modifier.width(Grid.base.dp))
                 Text(
-                    "Encore reads only these folders, and never changes or deletes a file. Nothing from them leaves this phone.",
+                    "Encore reads only these folders, and never changes or deletes a file. Nothing from them leaves this $device.",
                     style = rowValue(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -129,7 +130,7 @@ internal fun DeviceMusicPage(host: CoreHost, onBack: () -> Unit, contentPadding:
         AlertDialog(
             onDismissRequest = { removing = null },
             title = { Text("Stop using ${f.name}?") },
-            text = { Text("Its songs leave Encore. The files stay on your phone.") },
+            text = { Text("Its songs leave Encore. The files stay on your $device.") },
             confirmButton = {
                 TextButton(onClick = { music.removeFolder(f); removing = null }) { Text("Stop using") }
             },
@@ -173,6 +174,13 @@ private fun LookCard(l: uk.gcartee.encore.app.core.LocalLook) {
     }
     Body("You can keep using Encore. New songs appear in Library as they're found.")
 }
+
+/** "phone", or "tablet" on a large screen, as Play on says "This tablet". */
+@Composable
+internal fun deviceNoun(): String =
+    if (androidx.compose.ui.platform.LocalConfiguration.current.smallestScreenWidthDp >= TABLET_DP) "tablet" else "phone"
+
+private const val TABLET_DP = 600
 
 private fun songs(n: Int) = if (n == 1) "1 song" else "%,d songs".format(n)
 

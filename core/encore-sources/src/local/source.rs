@@ -134,6 +134,26 @@ impl LocalSource {
     /// Read one file into the index. An unchanged file isn't read again. Not saved
     /// until [`LocalSource::finish_look`].
     pub fn add_file(&self, file: &FoundFile, now_ms: i64) -> Result<Added> {
+        let Ok(reader) = std::fs::File::open(&file.read_path) else {
+            return Ok(Added::Skipped);
+        };
+        let cover = file
+            .folder_cover_path
+            .as_ref()
+            .and_then(|p| std::fs::File::open(p).ok());
+        self.add_opened(file, reader, cover, now_ms)
+    }
+
+    /// The same, for a file (and folder cover) the platform has already opened: on
+    /// Android a reopened `/proc/self/fd/<n>` path is checked against storage
+    /// permissions Encore doesn't hold, while the open descriptor itself reads fine.
+    pub fn add_opened(
+        &self,
+        file: &FoundFile,
+        reader: std::fs::File,
+        folder_cover: Option<std::fs::File>,
+        now_ms: i64,
+    ) -> Result<Added> {
         if self.with(|ix| ix.is_current(&file.uri, file.size, file.modified_ms))? {
             return Ok(Added::Song);
         }
@@ -144,18 +164,14 @@ impl LocalSource {
             .file_name
             .rsplit_once('.')
             .map(|(_, e)| e.to_ascii_lowercase());
-        let reader = match std::fs::File::open(&file.read_path) {
-            Ok(r) => r,
-            Err(_) => return Ok(Added::Skipped),
-        };
         let mut tags = match read_tags(reader, ext.as_deref()) {
             Ok(t) => t,
             Err(_) => return Ok(Added::Skipped),
         };
         let cover = match tags.cover.take() {
             Some(c) => Some(self.keep_cover(&c)?),
-            None => match &file.folder_cover_path {
-                Some(p) => self.keep_folder_cover(p)?,
+            None => match folder_cover {
+                Some(f) => self.keep_folder_cover(f)?,
                 None => None,
             },
         };
@@ -227,11 +243,8 @@ impl LocalSource {
         Ok(name)
     }
 
-    fn keep_folder_cover(&self, path: &str) -> Result<Option<String>> {
+    fn keep_folder_cover(&self, mut f: std::fs::File) -> Result<Option<String>> {
         let mut data = Vec::new();
-        let Ok(mut f) = std::fs::File::open(path) else {
-            return Ok(None);
-        };
         // A folder picture bigger than 10 MB isn't a cover.
         if f.by_ref().take(10 << 20).read_to_end(&mut data).is_err() || data.is_empty() {
             return Ok(None);

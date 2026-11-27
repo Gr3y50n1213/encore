@@ -587,7 +587,7 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
                     TextButton(
                         onClick = { pickDeviceFolder.launch(null) },
                         modifier = Modifier.fillMaxWidth().padding(top = Grid.base.dp).height(48.dp),
-                    ) { Text("Use music on this phone", style = type.sectionHeader.copy(fontSize = 16.sp)) }
+                    ) { Text("Use music on this ${uk.gcartee.encore.app.ui.settings.deviceNoun()}", style = type.sectionHeader.copy(fontSize = 16.sp)) }
                 }
                 } // not Plex
                 } // no Plex step

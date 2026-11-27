@@ -599,11 +599,12 @@ private fun ServersPage(host: CoreHost, onBack: () -> Unit, onAddServer: () -> U
     val fmt = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
     val error = MaterialTheme.colorScheme.error
     val folders = remember(version) { host.localMusic.folders() }
+    val device = deviceNoun()
     Page("Servers", onBack, contentPadding, action = "Add server" to onAddServer) {
         // Mock-up 49, screen 1: the phone's music is one row among the sources.
         val deviceRow = { s: uk.gcartee.encore.core.ServerRow ->
             Row0(
-                "On this phone",
+                "On this $device",
                 listOfNotNull(
                     if (folders.size == 1) "1 folder" else "${folders.size} folders",
                     "${s.songCount} songs",
@@ -630,7 +631,7 @@ private fun ServersPage(host: CoreHost, onBack: () -> Unit, onAddServer: () -> U
                 valueColor = if (s.signedIn) null else error,
             )
         } + listOfNotNull(
-            if (hasDevice) null else Row0("Music on this phone", "Add a folder", { Icons.phone() }) { actions.open(Route.Settings("device-music")) },
+            if (hasDevice) null else Row0("Music on this $device", "Add a folder", { Icons.phone() }) { actions.open(Route.Settings("device-music")) },
             Row0("Sync now", if (sync.running) "Syncing…" else null) { host.sync.syncNow() },
         ))
         // Item 5: the companion server.

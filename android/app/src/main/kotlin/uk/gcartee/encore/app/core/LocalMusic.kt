@@ -133,27 +133,35 @@ class LocalMusic(private val context: Context, private val host: CoreHost) {
                 }
             }.getOrNull()
         }
-        val cover = f.coverDocId?.let { id -> runCatching { resolver.openFileDescriptor(DocumentsContract.buildDocumentUriUsingTree(tree, id), "r") }.getOrNull() }
+        // Open descriptors are handed over, not paths: reopening `/proc/self/fd/<n>` is
+        // checked against storage permissions Encore doesn't hold (seen on the Tab A7 Lite,
+        // 26 November 2026). The core takes each descriptor over and closes it.
+        val coverFd = f.coverDocId?.let { id ->
+            runCatching { resolver.openFileDescriptor(DocumentsContract.buildDocumentUriUsingTree(tree, id), "r")?.detachFd() }.getOrNull()
+        }
+        val fd = runCatching { resolver.openFileDescriptor(uri, "r")?.detachFd() }.getOrNull()
+        if (fd == null) {
+            coverFd?.let { runCatching { android.os.ParcelFileDescriptor.adoptFd(it).close() } }
+            return
+        }
         try {
-            resolver.openFileDescriptor(uri, "r")?.use { pfd ->
-                host.core.localAddFile(
-                    LocalFoundFile(
-                        folderId = folder.folderId,
-                        uri = uri.toString(),
-                        fileName = f.name,
-                        size = f.size.toULong(),
-                        modifiedMs = f.modified,
-                        readPath = "/proc/self/fd/${pfd.fd}",
-                        lrc = lrc,
-                        folderCoverPath = cover?.let { "/proc/self/fd/${it.fd}" },
-                    ),
-                )
-            }
+            host.core.localAddFile(
+                LocalFoundFile(
+                    folderId = folder.folderId,
+                    uri = uri.toString(),
+                    fileName = f.name,
+                    size = f.size.toULong(),
+                    modifiedMs = f.modified,
+                    readPath = "",
+                    readFd = fd,
+                    lrc = lrc,
+                    folderCoverPath = null,
+                    folderCoverFd = coverFd,
+                ),
+            )
         } catch (e: Exception) {
             // One unreadable file doesn't stop the look; it stays out of the library.
             Log.w(TAG, "a file couldn't be read", e)
-        } finally {
-            runCatching { cover?.close() }
         }
     }
 

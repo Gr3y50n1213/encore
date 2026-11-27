@@ -322,7 +322,7 @@ private fun AlbumArtistLine(album: AlbumSummary, style: androidx.compose.ui.text
     val color = MaterialTheme.colorScheme.onSurfaceVariant
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (album.onDevice) {
-            Icon(Icons.phone(), contentDescription = "On this phone", tint = color, modifier = Modifier.size(PHONE_MARK_DP.dp).padding(end = 3.dp))
+            Icon(Icons.phone(), contentDescription = "On this ${uk.gcartee.encore.app.ui.settings.deviceNoun()}", tint = color, modifier = Modifier.size(PHONE_MARK_DP.dp).padding(end = 3.dp))
         }
         Text(album.artist, style = style, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }

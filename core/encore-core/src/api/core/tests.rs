@@ -2205,8 +2205,10 @@ fn music_on_the_device_joins_the_profile() {
                 size: 1,
                 modified_ms: 1,
                 read_path: fixtures.join(name).to_string_lossy().into_owned(),
+                read_fd: None,
                 lrc: None,
                 folder_cover_path: None,
+                folder_cover_fd: None,
             })
             .unwrap();
         assert_eq!(song, *name != "make.sh", "{name}");
@@ -2256,6 +2258,44 @@ fn music_on_the_device_joins_the_profile() {
             .all(|a| a.title != "Test Tones")
     );
     assert!(fixtures.join("tagged.mp3").exists());
+}
+
+/// On Android the app hands over an open descriptor (a reopened `/proc/self/fd` path is
+/// refused there without a storage permission): the core reads from it and closes it.
+#[cfg(unix)]
+#[test]
+fn a_device_file_can_come_as_an_open_descriptor() {
+    use std::os::fd::IntoRawFd;
+    let dir = temp_dir("device-fd");
+    let (core, _) = core_on_recording(&dir);
+    core.create_device_profile("Sam".into()).unwrap();
+    let f = core
+        .add_local_folder("content://tree/Music".into(), "Music".into())
+        .unwrap();
+    let fixtures = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../encore-sources/tests/fixtures/local");
+    let fd = std::fs::File::open(fixtures.join("tagged.flac"))
+        .unwrap()
+        .into_raw_fd();
+    let added = core
+        .local_add_file(LocalFoundFile {
+            folder_id: f.folder_id,
+            uri: "content://m/fd".into(),
+            file_name: "tagged.flac".into(),
+            size: 1,
+            modified_ms: 1,
+            read_path: String::new(),
+            read_fd: Some(fd),
+            lrc: None,
+            folder_cover_path: None,
+            folder_cover_fd: None,
+        })
+        .unwrap();
+    assert!(added);
+    assert_eq!(
+        block(core.local_finish_look(f.folder_id, vec!["content://m/fd".into()])).unwrap(),
+        1
+    );
 }
 
 /// Mock-up 49, screen 5: someone with no server gets a profile with only the device's

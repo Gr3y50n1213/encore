@@ -61,6 +61,27 @@ fn local_of(source: &AnySource) -> Result<&LocalSource, EncoreError> {
     })
 }
 
+/// A file descriptor the platform hands over, now owned (and closed) here.
+#[cfg(unix)]
+fn adopt_fd(fd: i32) -> Result<std::fs::File, EncoreError> {
+    use std::os::fd::FromRawFd;
+    if fd < 0 {
+        return Err(EncoreError::Storage {
+            reason: "not an open file".into(),
+        });
+    }
+    // SAFETY: the caller hands over an open descriptor it no longer uses (Android's
+    // `ParcelFileDescriptor.detachFd()`); this `File` becomes its only owner and closes it.
+    Ok(unsafe { std::fs::File::from_raw_fd(fd) })
+}
+
+#[cfg(not(unix))]
+fn adopt_fd(_fd: i32) -> Result<std::fs::File, EncoreError> {
+    Err(EncoreError::Storage {
+        reason: "file descriptors are handed over only on Android and Apple platforms".into(),
+    })
+}
+
 fn info(f: encore_sources::local::LocalFolder, song_count: u32) -> LocalFolderInfo {
     LocalFolderInfo {
         folder_id: f.id,
@@ -169,19 +190,24 @@ impl EncoreCore {
                 reason: "Add a folder first".into(),
             });
         };
-        let added = local_of(&source)?.add_file(
-            &FoundFile {
-                folder_id: file.folder_id,
-                uri: file.uri,
-                file_name: file.file_name,
-                size: file.size,
-                modified_ms: file.modified_ms,
-                read_path: file.read_path,
-                lrc: file.lrc,
-                folder_cover_path: file.folder_cover_path,
-            },
-            now_ms(),
-        )?;
+        // Descriptors are taken over first, so they are closed whatever happens next.
+        let reader = file.read_fd.map(adopt_fd).transpose()?;
+        let cover = file.folder_cover_fd.map(adopt_fd).transpose()?;
+        let found = FoundFile {
+            folder_id: file.folder_id,
+            uri: file.uri,
+            file_name: file.file_name,
+            size: file.size,
+            modified_ms: file.modified_ms,
+            read_path: file.read_path,
+            lrc: file.lrc,
+            folder_cover_path: file.folder_cover_path,
+        };
+        let local = local_of(&source)?;
+        let added = match reader {
+            Some(r) => local.add_opened(&found, r, cover, now_ms())?,
+            None => local.add_file(&found, now_ms())?,
+        };
         Ok(added == Added::Song)
     }
 

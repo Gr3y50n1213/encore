@@ -220,13 +220,18 @@ pub struct LocalFoundFile {
     pub file_name: String,
     pub size: u64,
     pub modified_ms: i64,
-    /// A path the core can open for this call (Android: `/proc/self/fd/<n>` of a
-    /// descriptor the app holds open until the call returns).
+    /// A path the core can open for this call (a desktop file). Empty when `read_fd`
+    /// is given.
     pub read_path: String,
+    /// An open file descriptor for the file, which the core takes over and closes
+    /// (Android: `ParcelFileDescriptor.detachFd()`). Used instead of `read_path`.
+    pub read_fd: Option<i32>,
     /// The text of a `.lrc` file with the same name beside it.
     pub lrc: Option<String>,
-    /// A path to `cover.jpg` or `folder.jpg` beside it, opened the same way.
+    /// A path to `cover.jpg` or `folder.jpg` beside it.
     pub folder_cover_path: Option<String>,
+    /// Or an open descriptor for it, taken over like `read_fd`.
+    pub folder_cover_fd: Option<i32>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
