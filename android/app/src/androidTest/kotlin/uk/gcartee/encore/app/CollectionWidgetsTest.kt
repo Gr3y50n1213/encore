@@ -99,6 +99,9 @@ class CollectionWidgetsTest {
         // The tile can only start a mix the profile has. The core builds the mixes in the background
         // after a sign-in, so give it a minute before calling the replay's history too short (this
         // failed once on the API 36 phone and passed on a rerun with nothing changed).
+        // Today's set is made by Home (core.home), never by the widget; this test can run
+        // before anything has opened Home (API 28, run 45922326298), so it asks as Home does.
+        runBlocking { runCatching { host.core.home() } }
         val end = System.currentTimeMillis() + MIXES_BUILD_MS
         while (System.currentTimeMillis() < end) {
             val s = runCatching { host.core.widgetSnapshot() }.getOrNull()

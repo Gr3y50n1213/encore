@@ -154,6 +154,9 @@ jobs:
             gpu: guest
             # Not yet proven in CI: its failure is reported but doesn't fail the run, so the
             # three proven emulators decide. Remove once it has passed a few times.
+            # 26 November 2026: the image's SurfaceFlinger aborts (SIGABRT in RegionSampling)
+            # and restarts the system during or right after boot on every run, before the
+            # app is involved (runs 45910097614, 45918097446, 45922326298).
             experimental: true
           # Board 29: a tablet, for the rail, the panes and the player bar.
           - api: 36
