@@ -8960,6 +8960,7 @@ const _: fn() = || {
         let _: i64 = AlbumSummary.duration_ms;
         let _: Option<i64> = AlbumSummary.date_added_utc_ms;
         let _: bool = AlbumSummary.has_artwork;
+        let _: bool = AlbumSummary.on_device;
     }
     {
         let ArtistDetail = None::<crate::api::core::ArtistDetail>.unwrap();
@@ -9726,6 +9727,7 @@ impl SseDecode for crate::api::core::AlbumSummary {
         let mut var_durationMs = <i64>::sse_decode(deserializer);
         let mut var_dateAddedUtcMs = <Option<i64>>::sse_decode(deserializer);
         let mut var_hasArtwork = <bool>::sse_decode(deserializer);
+        let mut var_onDevice = <bool>::sse_decode(deserializer);
         return crate::api::core::AlbumSummary {
             id: var_id,
             title: var_title,
@@ -9735,6 +9737,7 @@ impl SseDecode for crate::api::core::AlbumSummary {
             duration_ms: var_durationMs,
             date_added_utc_ms: var_dateAddedUtcMs,
             has_artwork: var_hasArtwork,
+            on_device: var_onDevice,
         };
     }
 }
@@ -13227,6 +13230,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::core::AlbumSummary
             self.0.duration_ms.into_into_dart().into_dart(),
             self.0.date_added_utc_ms.into_into_dart().into_dart(),
             self.0.has_artwork.into_into_dart().into_dart(),
+            self.0.on_device.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -16365,6 +16369,7 @@ impl SseEncode for crate::api::core::AlbumSummary {
         <i64>::sse_encode(self.duration_ms, serializer);
         <Option<i64>>::sse_encode(self.date_added_utc_ms, serializer);
         <bool>::sse_encode(self.has_artwork, serializer);
+        <bool>::sse_encode(self.on_device, serializer);
     }
 }
 

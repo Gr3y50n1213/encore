@@ -1,0 +1,229 @@
+<title>Encore Music on This Phone</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Mock-up 49: music files on the phone as a source (Phase 12 stage 4), Android first.
+   Same tokens and phone frame as mock-up 48 so the two read as one set. */
+:root {
+  --bg: #f3f1f7; --ink: #1b1a22; --muted: #5d5b6b; --line: #dcd8e6;
+  --screen: #fdfbff; --surface: #f1eef8; --surface2: #e6e1f2; --on-surface: #1d1b24; --on-muted: #5f5b70;
+  --primary: #5b3fd0; --on-primary: #ffffff; --pc: #e3dcfb; --on-pc: #22105f;
+  --good: #1f7a3a; --warn: #8a5a00; --outline: #79747e; --art1: #8f7ad8; --art2: #d88f6b; --art3: #5f9e8f; --art4: #c9a640;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f0e14; --ink: #ece9f5; --muted: #a29fb4; --line: #2b2938;
+  --screen: #131219; --surface: #1c1a24; --surface2: #262331; --on-surface: #ece9f5; --on-muted: #a9a5bd;
+  --primary: #c8b8ff; --on-primary: #2a1a73; --pc: #3f3478; --on-pc: #e9e1ff;
+  --good: #7fd69a; --warn: #f0c070; --outline: #938f99; --art1: #6c58b8; --art2: #b06a4a; --art3: #3f7a6d; --art4: #9c7f2a;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0f0e14; --ink: #ece9f5; --muted: #a29fb4; --line: #2b2938;
+  --screen: #131219; --surface: #1c1a24; --surface2: #262331; --on-surface: #ece9f5; --on-muted: #a9a5bd;
+  --primary: #c8b8ff; --on-primary: #2a1a73; --pc: #3f3478; --on-pc: #e9e1ff;
+  --good: #7fd69a; --warn: #f0c070; --outline: #938f99; --art1: #6c58b8; --art2: #b06a4a; --art3: #3f7a6d; --art4: #9c7f2a;
+  color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.45;
+  padding-block: 28px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1240px; margin: 0 auto; }
+h1 { font-size: clamp(26px, 4vw, 36px); margin: 0 0 6px; letter-spacing: -0.02em; text-wrap: balance; }
+h2 { font-size: 20px; margin: 44px 0 6px; letter-spacing: -0.01em; }
+.lede { color: var(--muted); max-width: 68ch; margin: 0 0 26px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 34px 28px; align-items: start; }
+figure { margin: 0; min-width: 0; }
+.cap { margin-top: 14px; max-width: 360px; }
+.cap b { display: block; font-size: 15px; margin-bottom: 3px; }
+.cap span { color: var(--muted); font-size: 13.5px; }
+.tag { display: inline-block; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 2px 9px; margin-bottom: 8px; }
+.phone { width: 100%; max-width: 360px; min-height: 700px; background: var(--screen); border-radius: 32px; border: 1px solid var(--line); overflow: hidden; color: var(--on-surface); position: relative; }
+.status { display: flex; justify-content: space-between; font-size: 12px; padding: 12px 22px 6px; color: var(--on-muted); }
+.sc { padding: 8px 18px 24px; }
+svg { display: block; }
+.ic { width: 22px; height: 22px; }
+.top { display: flex; justify-content: space-between; align-items: center; }
+.back { width: 48px; height: 48px; border-radius: 16px; background: var(--surface); display: grid; place-items: center; }
+.pill { height: 40px; padding: 0 16px; border-radius: 20px; background: var(--pc); color: var(--on-pc); display: flex; align-items: center; font-size: 13.5px; font-weight: 600; }
+.step { font-size: 12.5px; color: var(--on-muted); }
+.title { font-size: 28px; font-weight: 500; line-height: 1.12; margin: 14px 0 4px; }
+.sub { font-size: 13px; color: var(--on-muted); margin: 0 0 16px; }
+.label { font-size: 12.5px; font-weight: 600; color: var(--primary); margin: 18px 4px 8px; }
+.ty { display: flex; gap: 3px; margin: 0 0 14px; }
+.ty div { flex: 1 1 0; min-width: 0; height: 44px; border-radius: 8px; background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 12.5px; white-space: nowrap; }
+.ty div:first-child { border-radius: 22px 8px 8px 22px; }
+.ty div:last-child { border-radius: 8px 22px 22px 8px; }
+.ty div.on { border-radius: 22px; background: var(--pc); color: var(--on-pc); font-weight: 650; }
+.fld { height: 52px; border-radius: 12px; border: 1.5px solid var(--outline); display: flex; align-items: center; padding: 0 14px; font-size: 14px; color: var(--on-muted); margin: 0 0 8px; }
+.note { font-size: 13px; color: var(--on-muted); margin: 0 2px 16px; }
+.btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; border-radius: 20px; height: 56px; font-weight: 600; font-size: 15px; background: var(--primary); color: var(--on-primary); }
+.btn.tonal { background: var(--pc); color: var(--on-pc); }
+.btn.text { background: transparent; color: var(--primary); height: 48px; }
+.stack { display: flex; flex-direction: column; gap: 8px; }
+.list { display: flex; flex-direction: column; gap: 3px; margin: 0 0 12px; }
+.row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--surface); border-radius: 8px; min-height: 64px; }
+.row:first-child { border-radius: 20px 20px 8px 8px; }
+.row:last-child { border-radius: 8px 8px 20px 20px; }
+.row:only-child { border-radius: 20px; }
+.row .t { flex: 1; min-width: 0; font-size: 15px; }
+.row .t small { display: block; font-size: 12.5px; color: var(--on-muted); }
+.row .chev { color: var(--on-muted); }
+.disc { width: 40px; height: 40px; border-radius: 14px; background: var(--surface2); display: grid; place-items: center; flex: none; color: var(--primary); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); flex: none; }
+.sw { width: 52px; height: 32px; border-radius: 16px; background: var(--primary); position: relative; flex: none; }
+.sw::after { content: ""; position: absolute; right: 4px; top: 4px; width: 24px; height: 24px; border-radius: 50%; background: var(--on-primary); }
+.priv { display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; color: var(--on-muted); margin: 10px 2px 0; }
+.priv svg { flex: none; margin-top: 1px; }
+.card { background: var(--surface); border-radius: 28px; padding: 22px 18px; margin: 6px 0 14px; }
+.big { font-size: 40px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; line-height: 1; }
+.big small { font-size: 15px; font-weight: 500; color: var(--on-muted); letter-spacing: 0; margin-left: 6px; }
+.wave { margin: 18px 0 8px; height: 14px; }
+.meta { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--on-muted); font-variant-numeric: tabular-nums; }
+.alb { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 6px; }
+.alb .a { min-width: 0; }
+.alb .cov { aspect-ratio: 1; max-width: 100%; border-radius: 18px; }
+.alb .n { font-size: 14px; margin-top: 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.alb .s { font-size: 12px; color: var(--on-muted); display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; }
+.chips { display: flex; gap: 8px; margin: 4px 0 14px; flex-wrap: wrap; }
+.chip { height: 32px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--outline); display: flex; align-items: center; font-size: 13px; }
+.chip.on { background: var(--pc); color: var(--on-pc); border-color: transparent; }
+.spec { max-width: 820px; }
+.spec ol { padding-left: 22px; margin: 8px 0 0; display: flex; flex-direction: column; gap: 10px; }
+.spec li b { font-weight: 650; }
+.q { margin-top: 30px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 18px; max-width: 820px; }
+.q h3 { margin: 0 0 6px; font-size: 16px; }
+.q ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+.q li span { color: var(--muted); }
+</style>
+
+<div class="wrap">
+<span class="tag">Encore · mock-up 49 · Phase 12 stage 4</span>
+<h1>Music on this phone</h1>
+<p class="lede">Songs stored on the phone become a source next to your server, in the same profile. They show up in Library, Search, mixes and the car like any other song, and they play without internet. Only Settings and the first-run Connect screen change. Android is shown. iOS follows the same steps in its own style.</p>
+
+<div class="grid">
+
+<figure>
+<div class="phone">
+<div class="status"><span>9:41</span><span>Wi-Fi · 100%</span></div>
+<div class="sc">
+<div class="top"><div class="back"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></div><div class="pill">Add server</div></div>
+<div class="title">Servers</div>
+<div class="label">Your sources</div>
+<div class="list">
+<div class="row"><span class="dot"></span><div class="t">Home server<small>Jellyfin · 12,340 songs · synced today 8:02</small></div></div>
+<div class="row"><span class="dot"></span><div class="t">On this phone<small>2 folders · 412 songs · checked today 9:30</small></div><svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div>
+<div class="row"><div class="t">Sync now</div></div>
+</div>
+<div class="label">Companion server</div>
+<div class="list">
+<div class="row"><div class="t">encore:8097<small>Connected</small></div></div>
+</div>
+</div>
+</div>
+<div class="cap"><b>1 · Settings, Servers</b><span>The phone's music is one row in "Your sources", next to the server. Before any folder is added the row reads "Music on this phone" with "Add a folder" under it. Tapping it opens screen 2.</span></div>
+</figure>
+
+<figure>
+<div class="phone">
+<div class="status"><span>9:41</span><span>Wi-Fi · 100%</span></div>
+<div class="sc">
+<div class="top"><div class="back"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></div></div>
+<div class="title">Music on this phone</div>
+<div class="sub">Encore plays the songs in the folders you choose.</div>
+<div class="list">
+<div class="row"><div class="disc"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div><div class="t">Music<small>Phone storage · 374 songs</small></div><svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+<div class="row"><div class="disc"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div><div class="t">Download/Albums<small>Phone storage · 38 songs</small></div><svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+</div>
+<div class="btn tonal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add a folder</div>
+<div class="label">Options</div>
+<div class="list">
+<div class="row"><div class="t">Look for new songs by itself<small>When Encore opens, and when files change</small></div><div class="sw"></div></div>
+<div class="row"><div class="t">Look again now</div></div>
+</div>
+<div class="priv"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Encore reads only these folders, and never changes or deletes a file. Nothing from them leaves this phone.</span></div>
+</div>
+</div>
+<div class="cap"><b>2 · Choosing folders</b><span>"Add a folder" opens Android's own folder picker, which starts in Music. The × on a row stops using that folder; its songs leave the library but the files stay on the phone. Removing the last folder removes the source.</span></div>
+</figure>
+
+<figure>
+<div class="phone">
+<div class="status"><span>9:41</span><span>Wi-Fi · 100%</span></div>
+<div class="sc">
+<div class="top"><div class="back"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></div></div>
+<div class="title">Music on this phone</div>
+<div class="sub">Encore plays the songs in the folders you choose.</div>
+<div class="card">
+<div class="big">212<small>of 450 files</small></div>
+<svg class="wave" viewBox="0 0 300 14" preserveAspectRatio="none" width="100%"><path d="M2 7 q 6 -6 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke="var(--primary)" stroke-width="4" stroke-linecap="round"/><path d="M144 7 H 298" stroke="var(--surface2)" stroke-width="4" stroke-linecap="round"/></svg>
+<div class="meta"><span>Finding your music</span><span>about 1 min</span></div>
+</div>
+<div class="note">You can keep using Encore. New songs appear in Library as they're found.</div>
+<div class="list">
+<div class="row"><div class="disc"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div><div class="t">Music<small>Reading…</small></div></div>
+</div>
+</div>
+</div>
+<div class="cap"><b>3 · The first look</b><span>Reading titles, artists, albums, covers and lyrics takes a while the first time, shown with the app's wavy progress bar. Later looks read only new or changed files, so they take seconds.</span></div>
+</figure>
+
+<figure>
+<div class="phone">
+<div class="status"><span>9:41</span><span>Wi-Fi · 100%</span></div>
+<div class="sc">
+<div class="title">Library</div>
+<div class="chips"><div class="chip on">Albums</div><div class="chip">Artists</div><div class="chip">Playlists</div><div class="chip">Songs</div></div>
+<div class="alb">
+<div class="a"><div class="cov" style="background:var(--art1)"></div><div class="n">Lucid Dreams</div><div class="s">BoyWithUke</div></div>
+<div class="a"><div class="cov" style="background:var(--art2)"></div><div class="n">Field Recordings</div><div class="s"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>Ana Lima</div></div>
+<div class="a"><div class="cov" style="background:var(--art3)"></div><div class="n">Mercurial</div><div class="s">chandol</div></div>
+<div class="a"><div class="cov" style="background:var(--art4)"></div><div class="n">Tape Demos</div><div class="s"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>Unknown artist</div></div>
+</div>
+</div>
+</div>
+<div class="cap"><b>4 · In the library</b><span>No new tab or filter. Albums only on the phone carry a small phone mark beside the artist, the same place downloaded albums show theirs. A song with no tags is named from its file name, under "Unknown artist", and a folder with no cover gets the usual tonal tile.</span></div>
+</figure>
+
+<figure>
+<div class="phone">
+<div class="status"><span>9:41</span><span>Wi-Fi · 100%</span></div>
+<div class="sc">
+<div class="top"><div class="back"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></div><span class="step">Step 2 of 4</span></div>
+<div class="title">Connect your server</div>
+<div class="sub">Your music stays on your server. This app only plays it.</div>
+<div class="ty"><div class="on">Jellyfin</div><div>Emby</div><div>Navidrome</div><div>Plex</div></div>
+<div class="fld">Server address</div>
+<div class="fld">Username</div>
+<div class="fld">Password</div>
+<div class="stack">
+<div class="btn">Sign in</div>
+<div class="btn text">Use music on this phone</div>
+<div class="btn text">Try a demo library</div>
+</div>
+</div>
+</div>
+<div class="cap"><b>5 · No server yet</b><span>Board 21's Connect step gains one text button, "Use music on this phone", for people with no server. It opens screen 2 and makes a profile with only the phone's music. A server can be added later from Settings.</span></div>
+</figure>
+
+</div>
+
+<h2>Behaviour</h2>
+<div class="spec">
+<ol>
+<li><b>One profile, two sources.</b> The phone's music joins the open profile next to its server, so history, likes, playlists, mixes and the companion server's sync work across both.</li>
+<li><b>The same song in both places.</b> It appears once, matched by its MusicBrainz ID, or else by artist, title and length. It plays from the phone's copy, which needs no internet and uses no data.</li>
+<li><b>What is read.</b> Title, artist, album, album artist, track and disc number, year, genre, length, the embedded cover (or a cover.jpg or folder.jpg beside the files), and lyrics from the file's tags or a matching .lrc file. MP3, FLAC, M4A (AAC and ALAC), Ogg Vorbis, Opus and WAV.</li>
+<li><b>Likes and playlists.</b> A like on a song that is only on the phone stays in Encore (and syncs through the companion server). Such a song can be added to an Encore playlist, but not to a server playlist, because the server has no copy.</li>
+<li><b>Files that change.</b> A deleted or moved file drops out of the library on the next look. Its plays stay in your history. A folder on an SD card that is taken out shows "Not available right now" and comes back when the card returns.</li>
+<li><b>Speed.</b> The first look of about 1,000 songs takes a minute or two on a mid-range phone and runs in the background. Covers are kept small, the same way server covers are cached.</li>
+</ol>
+</div>
+
+<div class="q">
+<h3>To approve</h3>
+<ul>
+<li><b>How Encore gets to the files.</b> Recommended: you pick folders in Android's folder picker (screen 2). Encore sees only those folders and their .lrc lyric files, and Android asks no extra permission. <span>The other way is Android's "Music and audio" permission, which lets Encore find every song on the phone with no folders to pick, but it also sees voice notes and recordings, and Encore can't read .lrc lyric files that way.</span></li>
+<li><b>The same song in both places plays from the phone.</b> <span>The other way plays it from the server and only uses the phone's copy when offline.</span></li>
+<li><b>"Use music on this phone" on the Connect screen</b>, for people with no server.</li>
+<li>The phone mark on albums that are only on the phone (screen 4).</li>
+</ul>
+</div>
+</div>

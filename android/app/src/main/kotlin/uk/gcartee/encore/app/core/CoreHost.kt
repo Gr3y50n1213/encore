@@ -47,6 +47,9 @@ class CoreHost private constructor(val context: Context) {
     /** Downloads' badges and offline dimming (Phase 8). */
     val downloads: Downloads by lazy { Downloads(this) }
 
+    /** Phase 12 stage 4: music files in folders the listener chose (mock-up 49). */
+    val localMusic: LocalMusic by lazy { LocalMusic(context, this) }
+
     /** The network, settled, for the core and the offline banner (Phase 8). */
     val connectivity: Connectivity by lazy { Connectivity(context, this) }
 
@@ -165,6 +168,8 @@ class CoreHost private constructor(val context: Context) {
         uk.gcartee.encore.app.downloads.DownloadScheduler.resume(context)
         // Phase 10: sound analysis when it is on, and the daily suggestion training.
         uk.gcartee.encore.app.sound.SoundScheduler.resume(context)
+        // Mock-up 49: new songs in the chosen folders are looked for when Encore opens.
+        localMusic.lookThroughAll(always = false)
     }
 
     /** Board 14: after a switch, the other profile's queue and settings load. */

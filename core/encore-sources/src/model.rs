@@ -16,6 +16,8 @@ pub enum SourceKind {
     Emby,
     /// Plex Media Server (ADR core-0023).
     Plex,
+    /// Music files on the device (ADR core-0024).
+    Local,
 }
 
 impl SourceKind {
@@ -26,6 +28,7 @@ impl SourceKind {
             SourceKind::Subsonic => "subsonic",
             SourceKind::Emby => "emby",
             SourceKind::Plex => "plex",
+            SourceKind::Local => "local",
         }
     }
 
@@ -35,6 +38,7 @@ impl SourceKind {
             "subsonic" => Some(SourceKind::Subsonic),
             "emby" => Some(SourceKind::Emby),
             "plex" => Some(SourceKind::Plex),
+            "local" => Some(SourceKind::Local),
             _ => None,
         }
     }

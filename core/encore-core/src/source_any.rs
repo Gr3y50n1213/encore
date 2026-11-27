@@ -7,11 +7,12 @@
 use std::collections::HashSet;
 
 use encore_sources::jellyfin::SyncProgress;
+use encore_sources::local::LocalSource;
 use encore_sources::ranged::RangeReader;
 use encore_sources::transport::{BoxFuture, Downloaded, Progress};
 use encore_sources::{
     Capabilities, Cursor, EditOutcome, JellyfinSource, LibraryDelta, MediaSource, PlaylistEntry,
-    PlexSource, Result, ServerEdit, SourceKind, SubsonicSource,
+    PlexSource, Result, ServerEdit, SourceError, SourceKind, SubsonicSource,
 };
 
 #[derive(Debug)]
@@ -22,6 +23,8 @@ pub enum AnySource {
     Subsonic(SubsonicSource),
     /// Plex Media Server (ADR core-0023).
     Plex(PlexSource),
+    /// Music files on the device (ADR core-0024).
+    Local(LocalSource),
 }
 
 /// What the companion needs to check who a device is (core-0009, core-0021 point 9).
@@ -55,6 +58,15 @@ impl AnySource {
             AnySource::Jellyfin(s) => s,
             AnySource::Subsonic(s) => s,
             AnySource::Plex(s) => s,
+            AnySource::Local(s) => s,
+        }
+    }
+
+    /// The device's music, when this is it.
+    pub fn local(&self) -> Option<&LocalSource> {
+        match self {
+            AnySource::Local(s) => Some(s),
+            _ => None,
         }
     }
 
@@ -68,6 +80,10 @@ impl AnySource {
             AnySource::Jellyfin(s) => s.client.range_reader(item_id, runtime),
             AnySource::Subsonic(s) => s.client.range_reader(item_id, runtime),
             AnySource::Plex(s) => s.client.range_reader(item_id, runtime),
+            // Sound analysis of the device's own files is the platform's (ADR core-0024).
+            AnySource::Local(_) => Err(SourceError::Protocol(
+                "music on this device isn't read in ranges".into(),
+            )),
         }
     }
 
@@ -88,6 +104,7 @@ impl AnySource {
             // A Plex account's picture is on plex.tv, which a device asks only to sign in
             // and to find the server (ADR core-0023 point 3). The initials show.
             AnySource::Plex(_) => Ok(None),
+            AnySource::Local(_) => Ok(None),
         }
     }
 
@@ -100,6 +117,8 @@ impl AnySource {
             // A server token can't be ended from the device; forgetting it here is
             // signing out (the account's device list on plex.tv can remove it).
             AnySource::Plex(_) => Ok(()),
+            // Nothing to sign out of.
+            AnySource::Local(_) => Ok(()),
         }
     }
 
@@ -122,6 +141,8 @@ impl AnySource {
                 );
                 CompanionCredential::Plex(only.to_token_string())
             }),
+            // No server can vouch for the device's own files.
+            AnySource::Local(_) => None,
         }
     }
 }

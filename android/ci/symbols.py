@@ -30,6 +30,8 @@ NAMES = {
     # Phase 8: downloads and offline.
     "download_done": False, "offline_pin": True, "error": False, "downloading": False,
     "notifications": False, "storage": False, "wifi": False,
+    # Phase 12 stage 4: music on this phone (mock-up 49).
+    "folder": False,
     # Polish round: "This tablet" in Play on.
     "tablet_android": False,
     # Phase 9: the sleep timer.

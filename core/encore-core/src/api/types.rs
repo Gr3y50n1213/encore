@@ -188,6 +188,52 @@ pub struct ServerRow {
     pub signed_in: bool,
 }
 
+/// A folder of the device's music (ADR core-0024, mock-up 49 screen 2). `uri` is the
+/// platform's address for it and never leaves this device.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct LocalFolderInfo {
+    pub folder_id: u32,
+    pub uri: String,
+    pub name: String,
+    pub song_count: u32,
+    /// False while the platform can't reach it ("Not available right now").
+    pub available: bool,
+}
+
+/// A file the device's index already knows, so a look can skip it when unchanged.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct LocalKnownFile {
+    pub uri: String,
+    pub size: u64,
+    pub modified_ms: i64,
+}
+
+/// One file a look found, for `local_add_file`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct LocalFoundFile {
+    pub folder_id: u32,
+    /// The platform's address for the file (kept on this device only).
+    pub uri: String,
+    pub file_name: String,
+    pub size: u64,
+    pub modified_ms: i64,
+    /// A path the core can open for this call (a desktop file). Empty when `read_fd`
+    /// is given.
+    pub read_path: String,
+    /// An open file descriptor for the file, which the core takes over and closes
+    /// (Android: `ParcelFileDescriptor.detachFd()`). Used instead of `read_path`.
+    pub read_fd: Option<i32>,
+    /// The text of a `.lrc` file with the same name beside it.
+    pub lrc: Option<String>,
+    /// A path to `cover.jpg` or `folder.jpg` beside it.
+    pub folder_cover_path: Option<String>,
+    /// Or an open descriptor for it, taken over like `read_fd`.
+    pub folder_cover_fd: Option<i32>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
 pub struct SyncResult {
@@ -232,6 +278,8 @@ pub struct AlbumSummary {
     pub duration_ms: i64,
     pub date_added_utc_ms: Option<i64>,
     pub has_artwork: bool,
+    /// Only on this device, from its own music files (mock-up 49: the phone mark).
+    pub on_device: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -2268,6 +2316,7 @@ impl From<AlbumRow> for AlbumSummary {
             duration_ms: a.duration_ms as i64,
             date_added_utc_ms: a.date_added_utc_ms,
             has_artwork: a.has_artwork,
+            on_device: a.on_device,
         }
     }
 }

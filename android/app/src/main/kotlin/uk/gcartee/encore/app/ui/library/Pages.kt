@@ -309,7 +309,8 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
                     onPlay = { actions.play(ids, 0, StartedFrom.ALBUM, album.id.toString(), album.title) },
                     onShuffle = { actions.play(ids, ids.indices.random(), StartedFrom.ALBUM, album.id.toString(), album.title, shuffle = true) },
                     onSubtitle = { detail.songs.firstOrNull()?.let(actions::goToArtist) },
-                    third = downloadButton(tint, download) { actions.tapDownload(target, album.title, download) { confirmRemove = true } },
+                    // An album on this phone has nothing to download (mock-up 49).
+                    third = if (album.onDevice) null else downloadButton(tint, download) { actions.tapDownload(target, album.title, download) { confirmRemove = true } },
                     trailing = {
                         var open by remember { mutableStateOf(false) }
                         Box {
@@ -325,12 +326,17 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
                                 uk.gcartee.encore.app.ui.components.ActionSheet(
                                     onDismiss = { open = false },
                                     header = { SheetHeader(album.title, album.artist) { Artwork(ArtworkOf.ALBUM, album.id, 56.dp, Modifier.size(56.dp), cornerRadius = 14.dp) } },
-                                    quick = listOf(
+                                    quick = listOfNotNull(
                                         uk.gcartee.encore.app.ui.components.SheetAction("Play next", next) { actions.playNext(detail.songs) },
                                         uk.gcartee.encore.app.ui.components.SheetAction("Add to queue", queue) { actions.addToQueue(detail.songs) },
-                                        // Board 13: Download becomes Remove download once kept.
-                                        uk.gcartee.encore.app.ui.components.SheetAction(if (download == null) "Download" else "Remove download", downloadIcon) {
-                                            if (download == null) actions.download(target, album.title) else confirmRemove = true
+                                        // Board 13: Download becomes Remove download once kept. An album
+                                        // on this phone has nothing to download (mock-up 49).
+                                        if (album.onDevice) {
+                                            null
+                                        } else {
+                                            uk.gcartee.encore.app.ui.components.SheetAction(if (download == null) "Download" else "Remove download", downloadIcon) {
+                                                if (download == null) actions.download(target, album.title) else confirmRemove = true
+                                            }
                                         },
                                     ),
                                     groups = listOf(

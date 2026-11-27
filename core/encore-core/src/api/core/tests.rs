@@ -2174,6 +2174,151 @@ fn the_queue_is_kept_without_a_close() {
     assert_eq!(q.up_next.first().map(|e| e.song.id), Some(songs[2].id));
 }
 
+/// Phase 12 stage 4 (ADR core-0024, mock-up 49): music files on the device join the
+/// open profile as a source, play from their own address, are marked as only on the
+/// device, open again with the profile with no token, and leave with their last folder.
+#[test]
+fn music_on_the_device_joins_the_profile() {
+    let dir = temp_dir("device-music");
+    let (core, _) = core_on_recording(&dir);
+    let s = signed_in(&core);
+    block(core.sync_library()).unwrap();
+    let before = core.servers().unwrap().len();
+    assert!(core.local_folders().unwrap().is_empty());
+
+    let f = core
+        .add_local_folder("content://tree/Music".into(), "Music".into())
+        .unwrap();
+    let fixtures = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../encore-sources/tests/fixtures/local");
+    let mut seen = Vec::new();
+    for (i, name) in ["tagged.mp3", "tagged.flac", "untagged.mp3", "make.sh"]
+        .iter()
+        .enumerate()
+    {
+        let uri = format!("content://m/{i}");
+        let song = core
+            .local_add_file(LocalFoundFile {
+                folder_id: f.folder_id,
+                uri: uri.clone(),
+                file_name: (*name).to_owned(),
+                size: 1,
+                modified_ms: 1,
+                read_path: fixtures.join(name).to_string_lossy().into_owned(),
+                read_fd: None,
+                lrc: None,
+                folder_cover_path: None,
+                folder_cover_fd: None,
+            })
+            .unwrap();
+        assert_eq!(song, *name != "make.sh", "{name}");
+        seen.push(uri);
+    }
+    assert_eq!(block(core.local_finish_look(f.folder_id, seen)).unwrap(), 3);
+    let servers = core.servers().unwrap();
+    assert_eq!(servers.len(), before + 1);
+    let device = servers.iter().find(|s| s.kind == "local").unwrap();
+    assert_eq!(device.song_count, 3);
+    assert_eq!(core.local_folders().unwrap()[0].song_count, 3);
+
+    let album = core
+        .albums(AlbumSort::Title, 0, 1000)
+        .unwrap()
+        .into_iter()
+        .find(|a| a.title == "Test Tones")
+        .expect("the device's album is in the library");
+    assert!(album.on_device);
+    assert!(
+        core.albums(AlbumSort::Title, 0, 1000)
+            .unwrap()
+            .iter()
+            .any(|a| !a.on_device),
+        "the server's albums aren't marked"
+    );
+    let song = core.album(album.id).unwrap().songs[0].clone();
+    let stream = core.stream_for(song.id, Network::Wifi).unwrap();
+    assert!(stream.local);
+    assert!(stream.url.starts_with("content://m/"), "{}", stream.url);
+    assert!(stream.headers.is_empty());
+
+    // The profile opens again with only the server's token: the device's music needs none.
+    core.close_profile().unwrap();
+    core.open_profile(s.profile_id.clone(), tokens_of(&s.profile_id))
+        .unwrap();
+    assert_eq!(core.local_folders().unwrap().len(), 1);
+    assert!(core.stream_for(song.id, Network::Wifi).unwrap().local);
+
+    // The last folder goes, and the device's music with it; the files are untouched.
+    block(core.remove_local_folder(f.folder_id)).unwrap();
+    assert_eq!(core.servers().unwrap().len(), before);
+    assert!(
+        core.albums(AlbumSort::Title, 0, 1000)
+            .unwrap()
+            .iter()
+            .all(|a| a.title != "Test Tones")
+    );
+    assert!(fixtures.join("tagged.mp3").exists());
+}
+
+/// On Android the app hands over an open descriptor (a reopened `/proc/self/fd` path is
+/// refused there without a storage permission): the core reads from it and closes it.
+#[cfg(unix)]
+#[test]
+fn a_device_file_can_come_as_an_open_descriptor() {
+    use std::os::fd::IntoRawFd;
+    let dir = temp_dir("device-fd");
+    let (core, _) = core_on_recording(&dir);
+    core.create_device_profile("Sam".into()).unwrap();
+    let f = core
+        .add_local_folder("content://tree/Music".into(), "Music".into())
+        .unwrap();
+    let fixtures = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../encore-sources/tests/fixtures/local");
+    let fd = std::fs::File::open(fixtures.join("tagged.flac"))
+        .unwrap()
+        .into_raw_fd();
+    let added = core
+        .local_add_file(LocalFoundFile {
+            folder_id: f.folder_id,
+            uri: "content://m/fd".into(),
+            file_name: "tagged.flac".into(),
+            size: 1,
+            modified_ms: 1,
+            read_path: String::new(),
+            read_fd: Some(fd),
+            lrc: None,
+            folder_cover_path: None,
+            folder_cover_fd: None,
+        })
+        .unwrap();
+    assert!(added);
+    assert_eq!(
+        block(core.local_finish_look(f.folder_id, vec!["content://m/fd".into()])).unwrap(),
+        1
+    );
+}
+
+/// Mock-up 49, screen 5: someone with no server gets a profile with only the device's
+/// music, open at once and named as asked.
+#[test]
+fn a_profile_with_only_the_devices_music() {
+    let dir = temp_dir("device-only");
+    let (core, _) = core_on_recording(&dir);
+    let made = core.create_device_profile("Sam".into()).unwrap();
+    assert!(made.token.is_empty());
+    assert_eq!(core.current_profile(), Some(made.profile_id.clone()));
+    let servers = core.servers().unwrap();
+    assert_eq!(servers.len(), 1);
+    assert_eq!(servers[0].kind, "local");
+    let f = core
+        .add_local_folder("content://tree/Music".into(), "Music".into())
+        .unwrap();
+    assert_eq!(core.local_folders().unwrap()[0].folder_id, f.folder_id);
+    let other = core.create_device_profile("  ".into()).unwrap();
+    assert_ne!(other.profile_id, made.profile_id);
+    assert_eq!(other.user_name, "Me");
+}
+
 /// Play `n` songs to the end (ids round robin), as the player would report them.
 fn listen(core: &EncoreCore, ids: &[i64], n: usize) {
     for k in 0..n {

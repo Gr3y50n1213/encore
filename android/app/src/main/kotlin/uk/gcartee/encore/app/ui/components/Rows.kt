@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -261,7 +262,8 @@ fun AlbumTile(album: AlbumSummary, onClick: () -> Unit, onLongClick: (() -> Unit
     // downloaded dims (it still opens, so songs downloaded on their own can play).
     val downloads = LocalDownloads.current
     val download = downloads.album(album.id)
-    val dim = !downloads.online && download == null
+    // An album on this phone (mock-up 49) always plays, so it never dims.
+    val dim = !downloads.online && download == null && !album.onDevice
     // Board 05: a tile presses to 0.97 on a spring instead of a flat ripple over it.
     val press = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     val pressed = press.collectIsPressedAsState().value
@@ -295,7 +297,7 @@ fun AlbumTile(album: AlbumSummary, onClick: () -> Unit, onLongClick: (() -> Unit
                     }
                     Column(Modifier.padding(start = 6.dp, end = 6.dp, top = 10.dp, bottom = 6.dp)) {
                         Text(album.title, style = type.tileTitle.copy(fontSize = 14.sp, lineHeight = 18.sp), color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(album.artist, style = type.tileSubtitle.copy(fontSize = 13.sp, lineHeight = 17.sp), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        AlbumArtistLine(album, type.tileSubtitle.copy(fontSize = 13.sp, lineHeight = 17.sp))
                     }
                 }
             }
@@ -306,10 +308,27 @@ fun AlbumTile(album: AlbumSummary, onClick: () -> Unit, onLongClick: (() -> Unit
             }
             Spacer(Modifier.size(TILE_TEXT_GAP_DP.dp))
             Text(album.title, style = type.tileTitle, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(album.artist, style = type.tileSubtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            AlbumArtistLine(album, type.tileSubtitle)
         }
     }
 }
+
+/**
+ * An album's artist, with the phone mark when the album is only on this phone
+ * (mock-up 49, screen 4), in the place downloaded albums show theirs.
+ */
+@Composable
+private fun AlbumArtistLine(album: AlbumSummary, style: androidx.compose.ui.text.TextStyle) {
+    val color = MaterialTheme.colorScheme.onSurfaceVariant
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        if (album.onDevice) {
+            Icon(Icons.phone(), contentDescription = "On this ${uk.gcartee.encore.app.ui.settings.deviceNoun()}", tint = color, modifier = Modifier.size(PHONE_MARK_DP.dp).padding(end = 3.dp))
+        }
+        Text(album.artist, style = style, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+private const val PHONE_MARK_DP = 16
 
 /** A plain list row: artists, playlists, genres. */
 @Composable

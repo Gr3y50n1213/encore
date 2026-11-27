@@ -5,6 +5,7 @@
 
 use std::collections::HashSet;
 
+use encore_sources::song_key::{DURATION_TOLERANCE_SECONDS, t1_parts};
 use encore_sources::{Album, Artist, ArtistCredit, LibraryDelta, Playlist, Track};
 use rusqlite::{Transaction, params};
 
@@ -92,6 +93,113 @@ impl Store {
         }
         tx.commit()?;
         Ok(stats)
+    }
+
+    /// A song both on a server and in the device's own files is listed once, as the
+    /// server's, and plays from the device (ADR core-0024): the device's copy leaves the
+    /// mirror, and so do the device's albums and artists it leaves empty. The device's
+    /// index keeps the file, so it comes back if the server's copy goes. Returns how
+    /// many items left.
+    pub fn drop_device_twins(&self) -> Result<usize> {
+        let tx = self.conn.unchecked_transaction()?;
+        let local: Vec<i64> = {
+            let mut st = tx.prepare("SELECT id FROM sources WHERE kind = 'local'")?;
+            st.query_map([], |r| r.get(0))?
+                .collect::<rusqlite::Result<_>>()?
+        };
+        let mut removed = 0;
+        for source_id in local {
+            let ids = |sql: &str| -> Result<Vec<String>> {
+                let mut st = tx.prepare(sql)?;
+                Ok(st
+                    .query_map([source_id], |r| r.get::<_, String>(0))?
+                    .collect::<rusqlite::Result<_>>()?)
+            };
+            // The same song: the same key, or the same artist and title with lengths
+            // within the song key's tolerance (a file is often half a second off the
+            // server's copy). The range keeps the key's index in use.
+            let tracks: Vec<String> = {
+                let mut st = tx.prepare(
+                    "SELECT t.source_item_id FROM tracks t
+                     WHERE t.source_id = ?1 AND EXISTS (
+                         SELECT 1 FROM tracks o JOIN sources s ON s.id = o.source_id
+                         WHERE s.kind <> 'local' AND (
+                             o.song_key = t.song_key
+                             OR (substr(t.song_key, 1, 3) = 't1:'
+                                 AND o.song_key >= substr(t.song_key, 1, 36)
+                                 AND o.song_key < substr(t.song_key, 1, 36) || '~'
+                                 AND abs(CAST(substr(o.song_key, 37) AS INTEGER)
+                                         - CAST(substr(t.song_key, 37) AS INTEGER)) <= ?2)))",
+                )?;
+                st.query_map(params![source_id, DURATION_TOLERANCE_SECONDS as i64], |r| {
+                    r.get::<_, String>(0)
+                })?
+                .collect::<rusqlite::Result<_>>()?
+            };
+            removed += remove_items(
+                &tx,
+                source_id,
+                &tracks.iter().map(String::as_str).collect::<Vec<_>>(),
+            )?;
+            let albums = ids("SELECT a.source_item_id FROM albums a
+                 WHERE a.source_id = ?1
+                   AND NOT EXISTS (SELECT 1 FROM tracks t WHERE t.album_id = a.id)")?;
+            removed += remove_items(
+                &tx,
+                source_id,
+                &albums.iter().map(String::as_str).collect::<Vec<_>>(),
+            )?;
+            let artists = ids(
+                "SELECT r.source_item_id FROM artists r
+                 WHERE r.source_id = ?1
+                   AND NOT EXISTS (SELECT 1 FROM track_artists ta JOIN tracks t ON t.id = ta.track_id
+                                   WHERE t.source_id = ?1 AND ta.source_item_id = r.source_item_id)
+                   AND NOT EXISTS (SELECT 1 FROM album_artists aa JOIN albums a ON a.id = aa.album_id
+                                   WHERE a.source_id = ?1 AND aa.source_item_id = r.source_item_id)",
+            )?;
+            removed += remove_items(
+                &tx,
+                source_id,
+                &artists.iter().map(String::as_str).collect::<Vec<_>>(),
+            )?;
+        }
+        tx.commit()?;
+        Ok(removed)
+    }
+
+    /// The songs (of any source) that are one of these songs: the same key, or for a
+    /// `t1` key the same artist and title within the song key's duration tolerance.
+    pub fn track_ids_with_keys(&self, keys: &[String]) -> Result<HashSet<i64>> {
+        let mut exact = self
+            .conn
+            .prepare_cached("SELECT id FROM tracks WHERE song_key = ?1")?;
+        let mut range = self.conn.prepare_cached(
+            "SELECT id, song_key FROM tracks WHERE song_key >= ?1 AND song_key < ?2",
+        )?;
+        let mut out = HashSet::new();
+        for k in keys {
+            match t1_parts(k) {
+                Some((prefix, seconds)) => {
+                    let rows = range.query_map(params![prefix, format!("{prefix}~")], |r| {
+                        Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?))
+                    })?;
+                    for row in rows {
+                        let (id, key) = row?;
+                        if t1_parts(&key)
+                            .is_some_and(|(_, s)| s.abs_diff(seconds) <= DURATION_TOLERANCE_SECONDS)
+                        {
+                            out.insert(id);
+                        }
+                    }
+                }
+                None => {
+                    for id in exact.query_map([k], |r| r.get::<_, i64>(0))? {
+                        out.insert(id?);
+                    }
+                }
+            }
+        }
+        Ok(out)
     }
 
     /// Every item ID mirrored from a source, for working out removals. A playlist made
@@ -425,6 +533,7 @@ fn remove_missing_playlists(
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+    use crate::NewSource;
     use crate::test_support::store_with_source;
     use encore_sources::PlaylistEntry;
 
@@ -457,6 +566,81 @@ pub(crate) mod tests {
             track_gain_db: Some(-6.5),
             album_gain_db: None,
         }
+    }
+
+    /// ADR core-0024: a song on a server and on the device is listed once, as the
+    /// server's; the device's album and artist it leaves empty go; the device's songs
+    /// the server doesn't have stay, and so does an album that still has one.
+    #[test]
+    fn the_devices_copy_of_a_servers_song_is_listed_once() {
+        let (store, server) = store_with_source();
+        store.apply_delta(server, &sample_delta()).unwrap();
+        let device = store
+            .add_source(&NewSource {
+                kind: "local",
+                name: "On this phone",
+                base_url: "",
+                server_id: "device",
+                server_version: None,
+                user_id: "local",
+                user_name: "",
+                pinned_cert_sha256: None,
+                created_utc_ms: 1,
+            })
+            .unwrap();
+        let mut local = sample_delta();
+        local.playlists.clear();
+        // Same album and songs, plus one song only the device has, on its own album.
+        let mut only = track("t9", "Field Notes", "al9", 9);
+        only.album_title = Some("Phone Only".into());
+        local.tracks.push(only);
+        local.albums.push(Album {
+            source_item_id: "al9".into(),
+            title: "Phone Only".into(),
+            sort_title: "Phone Only".into(),
+            album_artists: vec![credit("Ember Cove", "ar1")],
+            year: None,
+            mbid: None,
+            genres: vec![],
+            date_added_utc_ms: None,
+            has_artwork: false,
+            artwork_tag: None,
+        });
+        store.apply_delta(device, &local).unwrap();
+        assert_eq!(store.track_count(device).unwrap(), 4);
+
+        let removed = store.drop_device_twins().unwrap();
+        // Three songs and the album they leave empty; the artist still has "Field Notes".
+        assert_eq!(removed, 4);
+        assert_eq!(store.track_count(device).unwrap(), 1);
+        assert_eq!(store.track_count(server).unwrap(), 3);
+        let left = store.mirrored_item_ids(device).unwrap();
+        assert!(left.contains("t9") && left.contains("al9") && left.contains("ar1"));
+        assert!(!left.contains("al1"));
+        // The song keys find the server's copies too (offline: they play from the device).
+        let key = store.track_by_item(server, "t1").unwrap().unwrap().song_key;
+        assert_eq!(store.track_ids_with_keys(&[key]).unwrap().len(), 1);
+        // Nothing to drop the second time.
+        assert_eq!(store.drop_device_twins().unwrap(), 0);
+
+        // A file a second longer than the server's copy is the same song (the song
+        // key's 2 s tolerance); three seconds longer is not.
+        let mut close = track("t7", "Slow Tide", "al9", 7);
+        close.duration_ms = 201_000 + 1_000;
+        let mut far = track("t8", "Paper Lanterns", "al9", 8);
+        far.duration_ms = 202_000 + 3_000;
+        let mut more = local.clone();
+        more.full = false;
+        more.tracks = vec![close, far];
+        store.apply_delta(device, &more).unwrap();
+        store.drop_device_twins().unwrap();
+        let left = store.mirrored_item_ids(device).unwrap();
+        assert!(!left.contains("t7"), "within the tolerance: dropped");
+        assert!(left.contains("t8"), "outside it: kept");
+        let key = store.track_by_item(server, "t1").unwrap().unwrap().song_key;
+        let (prefix, secs) = encore_sources::song_key::t1_parts(&key).unwrap();
+        let shifted = format!("{prefix}{}", secs + 2);
+        assert_eq!(store.track_ids_with_keys(&[shifted]).unwrap().len(), 1);
     }
 
     pub(crate) fn sample_delta() -> LibraryDelta {

@@ -304,6 +304,7 @@ fun SettingsScreen(host: CoreHost, page: String, onBack: () -> Unit, onProfiles:
         "sound" -> uk.gcartee.encore.app.ui.sound.SoundAnalysisPage(host, onBack, contentPadding) // Phase 10
         "appearance" -> AppearancePage(host, onBack, contentPadding)
         "servers" -> ServersPage(host, onBack, onAddServer, contentPadding)
+        "device-music" -> DeviceMusicPage(host, onBack, contentPadding)
         "privacy" -> PrivacyPage(host, onBack, contentPadding)
         "licences" -> LicencesPage(onBack, contentPadding)
         "downloads" -> DownloadsPage(host, onBack, contentPadding)
@@ -597,13 +598,29 @@ private fun ServersPage(host: CoreHost, onBack: () -> Unit, onAddServer: () -> U
     var confirm by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
     val fmt = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
     val error = MaterialTheme.colorScheme.error
+    val folders = remember(version) { host.localMusic.folders() }
+    val device = deviceNoun()
     Page("Servers", onBack, contentPadding, action = "Add server" to onAddServer) {
+        // Mock-up 49, screen 1: the phone's music is one row among the sources.
+        val deviceRow = { s: uk.gcartee.encore.core.ServerRow ->
+            Row0(
+                "On this $device",
+                listOfNotNull(
+                    if (folders.size == 1) "1 folder" else "${folders.size} folders",
+                    "${s.songCount} songs",
+                    s.lastSyncUtcMs?.let { "checked " + fmt.format(Date(it)) },
+                ).joinToString(" · "),
+                dot = HEALTHY,
+            ) { actions.open(Route.Settings("device-music")) }
+        }
+        val hasDevice = servers.any { it.kind == "local" }
         group("Your sources", servers.map { s ->
+            if (s.kind == "local") return@map deviceRow(s)
             Row0(
                 s.name,
                 if (s.signedIn) {
                     listOfNotNull(
-                        "Jellyfin",
+                        serverKindName(s.kind),
                         "${s.songCount} songs",
                         s.lastSyncUtcMs?.let { "synced " + fmt.format(Date(it)) },
                     ).joinToString(" · ")
@@ -613,7 +630,8 @@ private fun ServersPage(host: CoreHost, onBack: () -> Unit, onAddServer: () -> U
                 dot = if (s.signedIn) HEALTHY else error,
                 valueColor = if (s.signedIn) null else error,
             )
-        } + listOf(
+        } + listOfNotNull(
+            if (hasDevice) null else Row0("Music on this $device", "Add a folder", { Icons.phone() }) { actions.open(Route.Settings("device-music")) },
             Row0("Sync now", if (sync.running) "Syncing…" else null) { host.sync.syncNow() },
         ))
         // Item 5: the companion server.
@@ -770,3 +788,12 @@ private fun PrivacyPage(host: CoreHost, onBack: () -> Unit, contentPadding: Padd
 
 /** Board 18: the green health dot. */
 private val HEALTHY = Color(0xFF2E7D32)
+
+/** A source's kind as people know it (CORE-API `ServerRow.kind`). */
+private fun serverKindName(kind: String): String = when (kind) {
+    "jellyfin" -> "Jellyfin"
+    "emby" -> "Emby"
+    "plex" -> "Plex"
+    "subsonic" -> "Subsonic"
+    else -> kind.replaceFirstChar(Char::uppercase)
+}

@@ -66,10 +66,18 @@ wait_for_packages() {
   echo "the package service never answered" >&2
   return 1
 }
+# On the API 37 image a streamed install broke ("Failure calling service package: Broken
+# pipe") three times running on every run of 26 November 2026, while the package service
+# answered: after the first failure the APK is copied over first and installed from there
+# (--no-streaming).
 install() { # apk
   for attempt in 1 2 3; do
     wait_for_packages
-    if adb install -r -t "$1"; then return 0; fi
+    if [ "$attempt" = 1 ]; then
+      if adb install -r -t "$1"; then return 0; fi
+    else
+      if adb install --no-streaming -r -t "$1"; then return 0; fi
+    fi
     echo "install of $1 failed (attempt $attempt), retrying" >&2
     sleep 10
   done
