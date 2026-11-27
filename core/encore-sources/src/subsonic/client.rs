@@ -628,6 +628,21 @@ impl SubsonicClient {
         Ok(creds)
     }
 
+    /// For an API key: whose it is, from the server's `tokenInfo` alone, never the
+    /// name saved beside the key (a device could write any name there). The companion
+    /// server names the account this way (its security review, 27 November 2026).
+    pub async fn key_owner(&self) -> Result<String> {
+        let creds = self.creds.as_ref().ok_or(SourceError::SessionExpired)?;
+        let resp = self
+            .get(self.url_with("tokenInfo", &[], Some(creds))?)
+            .await?;
+        let env = check(&resp, &SourceError::WrongCredentials)?;
+        let info: UserDto = payload(&env, "tokenInfo")?;
+        info.username.filter(|u| !u.is_empty()).ok_or_else(|| {
+            SourceError::Protocol("the server didn't say whose API key this is".into())
+        })
+    }
+
     /// `getUser` for the signed-in user, and `getAvatar` when the server answers it
     /// with a picture (one small request; a server without avatars sends an error or a
     /// placeholder, and an error gives None).

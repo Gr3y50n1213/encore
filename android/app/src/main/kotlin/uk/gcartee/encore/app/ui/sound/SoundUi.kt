@@ -138,7 +138,10 @@ fun soundState(context: Context, host: CoreHost, s: SoundStatus): SoundState {
         )
         !s.modelLoaded && s.lastStop == SoundStop.NO_MODEL -> SoundState("Can't start", "This copy of Encore is missing its sound model. Installing it again fixes that.")
         s.lastStop == SoundStop.SIGN_IN_NEEDED -> SoundState("Sign in to your server again", "Analysis needs to read your songs.")
-        !online -> SoundState("Waiting for a connection", "It carries on when this phone is back online.")
+        !online -> SoundState(
+            "Waiting for a connection",
+            "It carries on when this ${if (context.resources.configuration.smallestScreenWidthDp >= 600) "tablet" else "phone"} is back online.",
+        )
         s.settings.wifiOnly && host.network() != Network.WIFI -> SoundState("Waiting for Wi-Fi", "Analysis only runs on Wi-Fi. It carries on when you're back on it.")
         s.settings.chargingOnly && !charging -> SoundState("Waiting for the charger", "It runs while charging. $done")
         saver -> SoundState("Paused: battery saver is on", "Turn it off, or charge the phone, and it carries on.")

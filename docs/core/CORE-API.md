@@ -1,6 +1,6 @@
 # Encore core API (the contract)
 
-**Version 11** (Phase 12, 26 November 2026). Core crate version `0.1.0`.
+**Version 11** (Phase 12, 26 November 2026). Core crate version `1.0.0`.
 
 This file is the only thing the platform tracks may rely on. Every public call, event and type of the core is listed here before a platform uses it. A change that breaks a platform gets a line under "Changes" and a request in `docs/requests/` that says what to change.
 
@@ -162,6 +162,12 @@ The platform finds the files in folders the listener chose and hands each one ov
 | `local_refresh()` async | `u32` | During a long look, so songs appear as they are found. Returns the device's song count. |
 | `local_finish_look(folder_id, seen)` async | `u32` | `seen`: every file address found this time; others are gone. Brings the library up to date. Returns the device's song count. |
 | `create_device_profile(name)` | `SignedIn` | A profile with only the device's music (no server), open at once; `token` is empty. Add a folder next. |
+
+**On each platform.** The core needs only three things from the platform: a folder address it keeps as text, each file's address, size and time, and an open file or a path for each file. Playing a device song gives back its file address with `local = true`, and the platform opens that address itself.
+
+- **Android:** the folder picker's tree address (`ACTION_OPEN_DOCUMENT_TREE`, with the read grant kept), files walked through `DocumentsContract`, and each file handed over as a detached descriptor (`read_fd`). Built in `core/LocalMusic.kt`.
+- **iPhone, iPad and Mac (for the Apple app):** the folder comes from the Files folder picker (`UIDocumentPickerViewController` for folders, or `fileImporter` with `.folder`). Keep its security-scoped bookmark in the app's own storage, keyed by the folder address passed to `add_local_folder` (the folder's `file://` URL). On each look, resolve the bookmark and call `startAccessingSecurityScopedResource()`. Walk the folder with `FileManager`, and hand each file over as an open descriptor (`read_fd`, taken from `FileHandle(forReadingFrom:)` and duplicated with `dup()`, so that the core can close its own copy). Call `stopAccessingSecurityScopedResource()` when the look is done. To play, open the file URL inside the same bookmark's access. The descriptor hand-off is the same code on every Unix platform: CI tests it on Linux and compiles it for each Apple target. The Music app's own library (`MPMediaLibrary`) is not a folder, and Encore doesn't read it: its songs are DRM-protected or in iCloud.
+- **Windows and Linux:** plain paths (`read_path`, `folder_cover_path`), since a desktop app may read the folders the person picks.
 
 ### Browse (offline, synchronous)
 

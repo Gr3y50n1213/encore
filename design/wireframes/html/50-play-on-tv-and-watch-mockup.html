@@ -1,0 +1,269 @@
+<title>Encore Play on TV and Watch</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Mock-up 50: Play on a TV and the watch apps. Same tokens and phone frame as 48 and 49;
+   the TV screen uses the Encore TV look of mock-up 45. */
+:root {
+  --bg: #f3f1f7; --ink: #1b1a22; --muted: #5d5b6b; --line: #dcd8e6;
+  --screen: #fdfbff; --surface: #f1eef8; --surface2: #e6e1f2; --on-surface: #1d1b24; --on-muted: #5f5b70;
+  --primary: #5b3fd0; --on-primary: #ffffff; --pc: #e3dcfb; --on-pc: #22105f;
+  --good: #1f7a3a; --warn: #8a5a00; --outline: #79747e; --art1: #8f7ad8; --art2: #d88f6b; --art3: #5f9e8f; --art4: #c9a640;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f0e14; --ink: #ece9f5; --muted: #a29fb4; --line: #2b2938;
+  --screen: #131219; --surface: #1c1a24; --surface2: #262331; --on-surface: #ece9f5; --on-muted: #a9a5bd;
+  --primary: #c8b8ff; --on-primary: #2a1a73; --pc: #3f3478; --on-pc: #e9e1ff;
+  --good: #7fd69a; --warn: #f0c070; --outline: #938f99; --art1: #6c58b8; --art2: #b06a4a; --art3: #3f7a6d; --art4: #9c7f2a;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0f0e14; --ink: #ece9f5; --muted: #a29fb4; --line: #2b2938;
+  --screen: #131219; --surface: #1c1a24; --surface2: #262331; --on-surface: #ece9f5; --on-muted: #a9a5bd;
+  --primary: #c8b8ff; --on-primary: #2a1a73; --pc: #3f3478; --on-pc: #e9e1ff;
+  --good: #7fd69a; --warn: #f0c070; --outline: #938f99; --art1: #6c58b8; --art2: #b06a4a; --art3: #3f7a6d; --art4: #9c7f2a;
+  color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.45;
+  padding-block: 28px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1240px; margin: 0 auto; }
+h1 { font-size: clamp(26px, 4vw, 36px); margin: 0 0 6px; letter-spacing: -0.02em; text-wrap: balance; }
+h2 { font-size: 20px; margin: 44px 0 6px; letter-spacing: -0.01em; }
+.lede { color: var(--muted); max-width: 68ch; margin: 0 0 26px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 34px 28px; align-items: start; }
+figure { margin: 0; min-width: 0; }
+.cap { margin-top: 14px; max-width: 360px; }
+.cap b { display: block; font-size: 15px; margin-bottom: 3px; }
+.cap span { color: var(--muted); font-size: 13.5px; }
+.tag { display: inline-block; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 2px 9px; margin-bottom: 8px; }
+.phone { width: 100%; max-width: 360px; min-height: 700px; background: var(--screen); border-radius: 32px; border: 1px solid var(--line); overflow: hidden; color: var(--on-surface); position: relative; }
+.status { display: flex; justify-content: space-between; font-size: 12px; padding: 12px 22px 6px; color: var(--on-muted); }
+.sc { padding: 8px 18px 24px; }
+svg { display: block; }
+.ic { width: 22px; height: 22px; }
+.top { display: flex; justify-content: space-between; align-items: center; }
+.back { width: 48px; height: 48px; border-radius: 16px; background: var(--surface); display: grid; place-items: center; }
+.pill { height: 40px; padding: 0 16px; border-radius: 20px; background: var(--pc); color: var(--on-pc); display: flex; align-items: center; font-size: 13.5px; font-weight: 600; }
+.step { font-size: 12.5px; color: var(--on-muted); }
+.title { font-size: 28px; font-weight: 500; line-height: 1.12; margin: 14px 0 4px; }
+.sub { font-size: 13px; color: var(--on-muted); margin: 0 0 16px; }
+.label { font-size: 12.5px; font-weight: 600; color: var(--primary); margin: 18px 4px 8px; }
+.ty { display: flex; gap: 3px; margin: 0 0 14px; }
+.ty div { flex: 1 1 0; min-width: 0; height: 44px; border-radius: 8px; background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 12.5px; white-space: nowrap; }
+.ty div:first-child { border-radius: 22px 8px 8px 22px; }
+.ty div:last-child { border-radius: 8px 22px 22px 8px; }
+.ty div.on { border-radius: 22px; background: var(--pc); color: var(--on-pc); font-weight: 650; }
+.fld { height: 52px; border-radius: 12px; border: 1.5px solid var(--outline); display: flex; align-items: center; padding: 0 14px; font-size: 14px; color: var(--on-muted); margin: 0 0 8px; }
+.note { font-size: 13px; color: var(--on-muted); margin: 0 2px 16px; }
+.btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; border-radius: 20px; height: 56px; font-weight: 600; font-size: 15px; background: var(--primary); color: var(--on-primary); }
+.btn.tonal { background: var(--pc); color: var(--on-pc); }
+.btn.text { background: transparent; color: var(--primary); height: 48px; }
+.stack { display: flex; flex-direction: column; gap: 8px; }
+.list { display: flex; flex-direction: column; gap: 3px; margin: 0 0 12px; }
+.row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--surface); border-radius: 8px; min-height: 64px; }
+.row:first-child { border-radius: 20px 20px 8px 8px; }
+.row:last-child { border-radius: 8px 8px 20px 20px; }
+.row:only-child { border-radius: 20px; }
+.row .t { flex: 1; min-width: 0; font-size: 15px; }
+.row .t small { display: block; font-size: 12.5px; color: var(--on-muted); }
+.row .chev { color: var(--on-muted); }
+.disc { width: 40px; height: 40px; border-radius: 14px; background: var(--surface2); display: grid; place-items: center; flex: none; color: var(--primary); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); flex: none; }
+.sw { width: 52px; height: 32px; border-radius: 16px; background: var(--primary); position: relative; flex: none; }
+.sw::after { content: ""; position: absolute; right: 4px; top: 4px; width: 24px; height: 24px; border-radius: 50%; background: var(--on-primary); }
+.priv { display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; color: var(--on-muted); margin: 10px 2px 0; }
+.priv svg { flex: none; margin-top: 1px; }
+.card { background: var(--surface); border-radius: 28px; padding: 22px 18px; margin: 6px 0 14px; }
+.big { font-size: 40px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; line-height: 1; }
+.big small { font-size: 15px; font-weight: 500; color: var(--on-muted); letter-spacing: 0; margin-left: 6px; }
+.wave { margin: 18px 0 8px; height: 14px; }
+.meta { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--on-muted); font-variant-numeric: tabular-nums; }
+.alb { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 6px; }
+.alb .a { min-width: 0; }
+.alb .cov { aspect-ratio: 1; max-width: 100%; border-radius: 18px; }
+.alb .n { font-size: 14px; margin-top: 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.alb .s { font-size: 12px; color: var(--on-muted); display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; }
+.chips { display: flex; gap: 8px; margin: 4px 0 14px; flex-wrap: wrap; }
+.chip { height: 32px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--outline); display: flex; align-items: center; font-size: 13px; }
+.chip.on { background: var(--pc); color: var(--on-pc); border-color: transparent; }
+.spec { max-width: 820px; }
+.spec ol { padding-left: 22px; margin: 8px 0 0; display: flex; flex-direction: column; gap: 10px; }
+.spec li b { font-weight: 650; }
+.q { margin-top: 30px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 18px; max-width: 820px; }
+.q h3 { margin: 0 0 6px; font-size: 16px; }
+.q ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+.q li span { color: var(--muted); }
+
+.phone.np { background: linear-gradient(180deg, #3a2a6e 0%, #1c1533 60%, #120e22 100%); color: #f3efff; }
+.np .status { color: #cfc6ee; }
+.cast { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,.12); border-radius: 18px; padding: 10px 14px; font-size: 13.5px; margin: 6px 0 18px; }
+.cast b { font-weight: 650; }
+.cover { aspect-ratio: 1; max-width: 100%; border-radius: 28px; background: radial-gradient(circle at 70% 28%, #ffe9a8 0 9%, transparent 10%), linear-gradient(180deg, #ff8a5c 0 45%, #2a6f8f 46% 60%, #1b4560 61% 100%); }
+.npt { font-size: 22px; font-weight: 650; margin: 18px 0 2px; }
+.npa { font-size: 14px; color: #cfc6ee; }
+.scrub { height: 4px; border-radius: 2px; background: rgba(255,255,255,.22); margin: 18px 0 6px; position: relative; }
+.scrub::before { content: ""; position: absolute; inset: 0 58% 0 0; background: #e8ddff; border-radius: 2px; }
+.ctl { display: flex; justify-content: space-between; align-items: center; margin: 16px 6px 10px; }
+.ctl .pp { width: 76px; height: 76px; border-radius: 24px; background: #e8ddff; color: #2a1a73; display: grid; place-items: center; }
+.vol { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: #cfc6ee; margin-top: 8px; }
+.vol .bar { flex: 1; height: 6px; border-radius: 3px; background: rgba(255,255,255,.22); position: relative; }
+.vol .bar::before { content: ""; position: absolute; inset: 0 35% 0 0; background: #e8ddff; border-radius: 3px; }
+.sheet { position: absolute; inset: auto 0 0 0; background: var(--surface); border-radius: 28px 28px 0 0; padding: 10px 16px 22px; box-shadow: 0 -8px 30px rgba(0,0,0,.18); }
+.grab { width: 32px; height: 4px; border-radius: 2px; background: var(--outline); margin: 4px auto 12px; opacity: .6; }
+.sheet .row { background: var(--screen); }
+.sheet .row.on { background: var(--pc); color: var(--on-pc); }
+.sheet .row.on small { color: var(--on-pc); opacity: .8; }
+.tvbox { width: 100%; aspect-ratio: 16 / 9; max-width: 100%; container-type: inline-size; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: linear-gradient(120deg, #2a1f55, #121022 70%); color: #f3efff; position: relative; }
+.tvs { position: absolute; inset: 5cqw 5cqw 7cqw; display: flex; gap: 4cqw; align-items: center; }
+.tvs .cv { width: 30cqw; flex: none; aspect-ratio: 1; border-radius: 2.4cqw; background: radial-gradient(circle at 70% 28%, #ffe9a8 0 9%, transparent 10%), linear-gradient(180deg, #ff8a5c 0 45%, #2a6f8f 46% 60%, #1b4560 61% 100%); }
+.tvs .meta2 { font-size: 1.6cqw; color: #cfc6ee; }
+.tvs .ly { display: flex; flex-direction: column; gap: 1.4cqw; flex: 1; min-width: 0; }
+.tvs .ly div { font-size: 2.4cqw; color: rgba(243,239,255,.35); line-height: 1.2; }
+.tvs .ly div.now { font-size: 3.6cqw; color: #fff; font-weight: 650; }
+.tvfoot { position: absolute; left: 5cqw; bottom: 2.6cqw; font-size: 1.5cqw; color: #cfc6ee; display: flex; gap: 1cqw; align-items: center; }
+.tvfoot svg { width: 2cqw; height: 2cqw; }
+.watch, .tile { width: 220px; height: 220px; max-width: 100%; border-radius: 50%; background: #000; color: #f1ecff; margin: 10px auto 0; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border: 10px solid #26232e; }
+.watch .wt { font-size: 15px; font-weight: 650; max-width: 150px; }
+.watch .wa { font-size: 12px; color: #b9b2cf; }
+.watch .wl { font-size: 12px; color: #e8ddff; margin: 6px 0 4px; max-width: 150px; font-style: italic; }
+.watch .wc { display: flex; gap: 10px; align-items: center; margin-top: 8px; }
+.watch .wpp { width: 52px; height: 52px; border-radius: 18px; background: #e8ddff; color: #2a1a73; display: grid; place-items: center; }
+.watch .ring { position: absolute; inset: 4px; border-radius: 50%; border: 4px solid rgba(232,221,255,.18); border-top-color: #e8ddff; border-right-color: #e8ddff; }
+.watch .wsm { width: 36px; height: 36px; border-radius: 50%; background: #2a2735; display: grid; place-items: center; }
+.watch .wsm svg { width: 18px; height: 18px; }
+.tile { gap: 8px; }
+.tile .mx { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tile .mx div { width: 62px; height: 40px; border-radius: 14px; font-size: 10.5px; display: grid; place-items: center; color: #1b1530; font-weight: 650; }
+.pebble { width: 190px; max-width: 100%; margin: 10px auto 0; background: #3d3a44; border-radius: 34px; padding: 26px 16px; }
+.pscr { background: #f4f4ee; color: #111; height: 160px; border-radius: 4px; display: flex; flex-direction: column; justify-content: space-between; padding: 10px 22px 8px 10px; position: relative; }
+.pscr .pt { font-size: 15px; font-weight: 800; line-height: 1.1; }
+.pscr .pa { font-size: 11.5px; }
+.pscr .pl { font-size: 11.5px; font-style: italic; border-top: 2px solid #111; padding-top: 5px; }
+.pscr .pb { position: absolute; right: 0; top: 10px; bottom: 10px; display: flex; flex-direction: column; justify-content: space-between; font-size: 10px; background: #111; color: #f4f4ee; padding: 6px 3px; border-radius: 3px 0 0 3px; }
+.legend { font-size: 12px; color: var(--muted); text-align: center; margin-top: 10px; }
+</style>
+
+<div class="wrap">
+<span class="tag">Encore · mock-up 50 · after Phase 11</span>
+<h1>Play on a TV, and on your watch</h1>
+<p class="lede">Two roadmap items the owner asked for on 24 November 2026. A TV joins "Play on" beside your other devices: the TV plays the music and shows its own big-screen Encore, and the phone becomes the remote. Watches get Now Playing, the sung lyric line, Like and your mixes. Android and Wear OS are shown; the Apple versions follow in Apple's own style.</p>
+
+<h2>Play on a TV</h2>
+<div class="grid">
+
+<figure>
+<div class="phone">
+<div class="status"><span>9:41</span><span>Wi-Fi · 100%</span></div>
+<div class="sc" style="opacity:.35"><div class="cover" style="max-width:240px;margin:40px auto 0"></div></div>
+<div class="sheet">
+<div class="grab"></div>
+<div class="title" style="font-size:22px;margin:4px 4px 10px">Play on</div>
+<div class="label">This phone</div>
+<div class="list"><div class="row on"><div class="disc"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></div><div class="t">This phone<small>Playing</small></div></div></div>
+<div class="label">TVs</div>
+<div class="list">
+<div class="row"><div class="disc"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 20h8"/></svg></div><div class="t">Living room TV<small>Google TV · Encore's screen</small></div></div>
+<div class="row"><div class="disc"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="8" width="20" height="9" rx="2"/><circle cx="16" cy="12.5" r="2.5"/></svg></div><div class="t">Projector<small>Encore TV app</small></div></div>
+<div class="row"><div class="disc"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 20h8"/></svg></div><div class="t">Bedroom Roku<small>Roku · Encore's screen</small></div></div>
+<div class="row"><div class="disc"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="3" width="12" height="18" rx="3"/><circle cx="12" cy="14" r="3"/><circle cx="12" cy="7" r="1"/></svg></div><div class="t">Kitchen speaker<small>Music only</small></div></div>
+</div>
+<div class="label">Your devices</div>
+<div class="list"><div class="row"><div class="disc"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M2 20h20"/></svg></div><div class="t">Sam's laptop<small>Encore · online</small></div></div></div>
+</div>
+</div>
+<div class="cap"><b>1 · Play on, with TVs</b><span>The existing sheet gets a "TVs" group. TVs on the same Wi-Fi are found automatically: Google Cast (Chromecast, Google TV and Android TV sets and projectors), Roku, and the Encore TV app. A plain DLNA player is listed as "Music only": it plays the music without Encore's screen. The other groups don't change.</span></div>
+</figure>
+
+<figure>
+<div class="phone np">
+<div class="status"><span>9:41</span><span>Wi-Fi · 100%</span></div>
+<div class="sc">
+<div class="cast"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 20h8"/></svg><span>Playing on <b>Living room TV</b></span></div>
+<div class="cover"></div>
+<div class="npt">Slow Burn Season</div>
+<div class="npa">Marigold Ave</div>
+<div class="scrub"></div>
+<div class="meta" style="color:#cfc6ee"><span>1:24</span><span>3:41</span></div>
+<div class="ctl"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6v12L9 12zM7 6v12"/></svg><div class="pp"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 5h3v14H8zM13 5h3v14h-3z" fill="currentColor" stroke="none"/></svg></div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6v12l9-6zM17 6v12"/></svg></div>
+<div class="vol"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 20h8"/></svg><div class="bar"></div><span>TV volume</span></div>
+</div>
+</div>
+<div class="cap"><b>2 · The phone is the remote</b><span>Now Playing looks as it always does, with a band that says where the music is playing. Play, skip, seek, the queue, Like and lyrics all work. The phone's volume buttons and the slider set the TV's volume. Tap the band to open Play on again and move the music back to the phone or to another TV.</span></div>
+</figure>
+
+<figure>
+<div class="tvbox">
+<div class="tvs">
+<div class="cv"></div>
+<div class="ly">
+<div class="meta2">Marigold Ave · Slow Burn Season</div>
+<div>and the porch light hums</div>
+<div class="now">we stay till the summer is gone</div>
+<div>counting the cars on the road</div>
+<div>till the last one is home</div>
+</div>
+</div>
+<div class="tvfoot"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg><span>From Sam's phone · Up next: Glasshouse</span></div>
+</div>
+<div class="cap" style="max-width:560px"><b>3 · The TV's own screen</b><span>The TV shows Encore made for a room: the cover, large synced lyrics, and what's next. It uses the Encore TV look you approved in mock-up 45. When nobody touches anything for a while, it can switch to Sleep mode's big lyrics. The TV gets a short-lived pass that can only play this queue, never the phone's sign-in, so a TV in someone else's home keeps no access to your library.</span></div>
+</figure>
+
+</div>
+
+<h2>On your watch</h2>
+<div class="grid">
+
+<figure>
+<div class="watch"><div class="ring"></div>
+<div class="wa">Marigold Ave</div>
+<div class="wt">Slow Burn Season</div>
+<div class="wl">"we stay till the summer is gone"</div>
+<div class="wc"><div class="wsm"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6v12L9 12zM7 6v12"/></svg></div><div class="wpp"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 5h3v14H8zM13 5h3v14h-3z" fill="currentColor" stroke="none"/></svg></div><div class="wsm"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6v12l9-6zM17 6v12"/></svg></div></div>
+</div>
+<div class="legend">Wear OS · Galaxy Watch, Pixel Watch</div>
+<div class="cap"><b>4 · Now Playing</b><span>Title, artist and the line being sung, with play, pause and skip. The ring shows how far into the song you are. Turning the crown or bezel sets the volume. Swipe up for Like, Up Next and Play on. It uses Material 3 Expressive for Wear, to match the phone.</span></div>
+</figure>
+
+<figure>
+<div class="tile">
+<div style="font-size:12px;color:#b9b2cf">Encore</div>
+<div class="mx">
+<div style="background:#ffb59c">Daily 1</div><div style="background:#a9d7ff">Daily 2</div>
+<div style="background:#c8f0a8">Discover</div><div style="background:#e8ddff">Liked</div>
+</div>
+<div style="font-size:11px;color:#b9b2cf">Tap a mix to play</div>
+</div>
+<div class="legend">Wear OS tile and complication</div>
+<div class="cap"><b>5 · A tile and a complication</b><span>The tile starts one of your pinned mixes, or Liked songs, with one tap. A complication on the watch face shows the song that's playing and opens Now Playing. Like the phone's widgets, neither shows listening history while the watch is locked.</span></div>
+</figure>
+
+<figure>
+<div class="pebble"><div class="pscr">
+<div><div class="pa">Marigold Ave</div><div class="pt">Slow Burn Season</div></div>
+<div class="pl">we stay till the summer is gone</div>
+<div class="pb"><span>&#9650;</span><span>&#9679;</span><span>&#9660;</span></div>
+</div></div>
+<div class="legend">Pebble · Core Devices' new Pebbles and older ones</div>
+<div class="cap"><b>6 · Pebble</b><span>The Pebble app's own music controls already work with Encore. An Encore watchapp adds the line being sung, and Like with a long press of the middle button. Up and down skip, and a press of the middle button plays or pauses. It works on both the black-and-white and the colour screens.</span></div>
+</figure>
+
+</div>
+
+<div class="spec">
+<h2>How it works</h2>
+<ol>
+<li><b>Which TVs.</b> The most common come first: Google Cast, then Roku, then plain DLNA. On Roku, an Encore channel is installed through Roku's developer mode and started over the local network. DLNA is a fallback that plays the music without Encore's screen. An Android TV or projector with the Encore TV app shows up in the list automatically.</li>
+<li><b>Privacy.</b> The TV gets a short-lived pass that can only play the queue it was sent, never your sign-in. The pass ends when you take the music back or stop. Nothing about your library or history is stored on the TV.</li>
+<li><b>Watches.</b> One Wear OS app covers the Samsung Galaxy Watch 4 and later, the Pixel Watch and other Wear OS watches. Later, songs could be downloaded to the watch for runs without the phone. Fitbit OS watches can't take new apps: Google stops third-party apps on them on 28 November 2026.</li>
+<li><b>Nothing else changes.</b> Play on keeps its sheet, and Now Playing keeps its look apart from the band. The TV screen reuses mock-up 45.</li>
+</ol>
+</div>
+
+<div class="q">
+<h3>Questions for the owner</h3>
+<ul>
+<li>Do Play on, the TV screen and the watch apps look right? <span>(Recommended: yes, as drawn.)</span></li>
+<li>Google Cast needs Google's Cast library, which is closed source, so an F-Droid build would leave Cast out. Cast also needs a receiver registered with Google, which costs a one-time US$5, and an https page for the receiver, which the companion server can serve. <span>(Recommended: yes, Cast in the GitHub build.)</span></li>
+<li>The Wear OS app's link to the phone needs Google Play services (the Wearable Data Layer library). <span>(Recommended: yes, as Waypoint's watch app does.)</span></li>
+<li>Pebble: build the watchapp with Core Devices' current SDK, after I've checked that SDK. <span>(Recommended: yes.)</span></li>
+</ul>
+</div>
+</div>

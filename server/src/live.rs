@@ -39,6 +39,9 @@ pub const PING_EVERY: Duration = Duration::from_secs(15);
 const RECHECK_EVERY: Duration = Duration::from_secs(60);
 /// Outgoing messages queued for one slow device before it is dropped.
 const QUEUE: usize = 256;
+/// A presence message goes to every device of the profile, so it is kept small; a
+/// handoff snapshot goes by relay to one device (security review, 27 November 2026).
+pub(crate) const MAX_PRESENCE_BYTES: usize = 16 * 1024;
 
 #[derive(Debug)]
 struct Conn {
@@ -50,7 +53,8 @@ struct Conn {
 /// What the hub asks a connection's task to do.
 #[derive(Debug)]
 enum Out {
-    Text(String),
+    /// Made once and shared by every device it goes to.
+    Text(Arc<str>),
     /// The device was signed out or the profile deleted: say so and close.
     Close(&'static str),
 }
@@ -67,17 +71,18 @@ impl Hub {
         self.profiles.lock().unwrap_or_else(|p| p.into_inner())
     }
 
-    fn send_to(conn: &Conn, msg: &Value) {
+    fn send_to(conn: &Conn, msg: &Arc<str>) {
         // A full queue means the device stopped reading: it reconnects later.
-        let _ = conn.tx.try_send(Out::Text(msg.to_string()));
+        let _ = conn.tx.try_send(Out::Text(msg.clone()));
     }
 
-    /// Everyone of the profile except `except`.
+    /// Everyone of the profile except `except`. The text is made once for all of them.
     fn broadcast(&self, profile_id: i64, except: Option<&str>, msg: &Value) {
+        let text: Arc<str> = msg.to_string().into();
         if let Some(devices) = self.lock().get(&profile_id) {
             for (id, c) in devices {
                 if Some(id.as_str()) != except {
-                    Hub::send_to(c, msg);
+                    Hub::send_to(c, &text);
                 }
             }
         }
@@ -185,7 +190,9 @@ impl Hub {
                 Hub::send_to(
                     c,
                     &json!({ "type": "relay", "from": from, "msgId": msg_id,
-                             "body": body, "serverMs": now_ms() }),
+                             "body": body, "serverMs": now_ms() })
+                    .to_string()
+                    .into(),
                 );
                 true
             }
@@ -280,7 +287,7 @@ async fn run(state: Arc<AppState>, profile_id: i64, me: String, mut socket: WebS
             out = rx.recv() => {
                 match out {
                     Some(Out::Text(t)) => {
-                        if socket.send(Message::Text(t.into())).await.is_err() {
+                        if socket.send(Message::Text(String::from(&*t).into())).await.is_err() {
                             break;
                         }
                     }
@@ -319,6 +326,9 @@ fn handle(state: &AppState, profile_id: i64, me: &str, conn_id: u64, text: &str)
     };
     match v["type"].as_str() {
         Some("ping") => Some(json!({ "type": "pong", "t": v["t"], "serverMs": now_ms() })),
+        Some("presence") if text.len() > MAX_PRESENCE_BYTES => Some(
+            json!({ "type": "error", "reason": format!("A presence message is at most {MAX_PRESENCE_BYTES} bytes.") }),
+        ),
         Some("presence") if v["presence"].is_object() => {
             state
                 .live

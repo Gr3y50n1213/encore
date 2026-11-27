@@ -83,6 +83,7 @@ fun reduceMotion(): Boolean {
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun WelcomeScreen(onGetStarted: () -> Unit, onExistingProfile: (() -> Unit)?) {
+    val device = uk.gcartee.encore.app.ui.settings.deviceNoun()
     val type = LocalEncoreType.current
     val haptics = rememberHaptics()
     val still = reduceMotion()
@@ -183,7 +184,7 @@ fun WelcomeScreen(onGetStarted: () -> Unit, onExistingProfile: (() -> Unit)?) {
             title = { Text("Privacy") },
             text = {
                 Text(
-                    "Your listening is used on this phone first. Nothing is sent anywhere except the servers you add: your media server, and your own companion server if you connect one. There is no account with the app's maker, no ads and no analytics. You can export or delete everything in Settings, Privacy and data.",
+                    "Your listening is used on this $device first. Nothing is sent anywhere except the servers you add: your media server, and your own companion server if you connect one. There is no account with the app's maker, no ads and no analytics. You can export or delete everything in Settings, Privacy and data.",
                     style = type.body.copy(fontSize = 15.sp, lineHeight = 21.sp),
                 )
             },

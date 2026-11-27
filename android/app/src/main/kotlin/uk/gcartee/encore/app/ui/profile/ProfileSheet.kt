@@ -66,6 +66,7 @@ import uk.gcartee.encore.tokens.EncoreTokens.Grid
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ProfileSheet(host: CoreHost, playing: Boolean, onDismiss: () -> Unit, onSwitched: () -> Unit, onAddAccount: () -> Unit, showSettings: Boolean = true) {
+    val device = uk.gcartee.encore.app.ui.settings.deviceNoun()
     val type = LocalEncoreType.current
     val haptics = rememberHaptics()
     val actions = LocalAppActions.current
@@ -162,7 +163,7 @@ fun ProfileSheet(host: CoreHost, playing: Boolean, onDismiss: () -> Unit, onSwit
                         onDismiss = { menu = false },
                         header = { Text(p.displayName, style = type.sectionHeader) },
                         groups = listOf(listOf(uk.gcartee.encore.app.ui.components.SheetAction("Remove from this device", Icons.remove(), destructive = true) {
-                            confirm = "Remove ${p.displayName} from this phone? Their history stays on the companion server." to {
+                            confirm = "Remove ${p.displayName} from this $device? Their history stays on the companion server." to {
                                 runCatching { host.core.removeProfileFromDevice(p.profileId) }
                                     .onSuccess {
                                         p.credentials.forEach { c -> host.tokens.delete(c.key) }

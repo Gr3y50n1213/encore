@@ -63,6 +63,21 @@ class AutoLibrary(
         return Futures.immediateFuture(LibraryResult.ofItem(root, LibraryParams.Builder().setExtras(extras).build()))
     }
 
+    /**
+     * Who may use the session. It is exported so the car, the system's media controls and
+     * Bluetooth can reach it, which also lets any installed app connect, and a connected app
+     * could page through the library and the listening history (Recently played, mixes) or
+     * start songs. So only Encore itself, apps Android trusts with media (system apps, and
+     * apps the person gave notification access, as watch apps such as Pebble's have) and
+     * Android Auto are let in; any other app is turned away.
+     */
+    override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult =
+        if (controller.isTrusted || controller.packageName == context.packageName || controller.packageName in TRUSTED_CONTROLLERS) {
+            MediaSession.ConnectionResult.AcceptedResultBuilder(session).build()
+        } else {
+            MediaSession.ConnectionResult.reject()
+        }
+
     /** A controller that connects mid-song may read the playing cover (ArtworkProvider). */
     override fun onPostConnect(session: MediaSession, controller: MediaSession.ControllerInfo) {
         session.player.mediaMetadata.artworkUri?.let { ArtworkProvider.grant(context, controller.packageName, it) }
@@ -393,5 +408,12 @@ class AutoLibrary(
         const val LIKED = "liked"
         const val LIMIT = 500u
         const val SEARCH_SUPPORTED = "android.media.browse.SEARCH_SUPPORTED"
+
+        /** Let in even where Android doesn't count them as trusted (a user-installed app). */
+        val TRUSTED_CONTROLLERS = setOf(
+            "com.google.android.projection.gearhead", // Android Auto
+            "com.google.android.wearable.app", // Wear OS's phone app
+            "com.samsung.android.app.watchmanager", // Galaxy Wearable
+        )
     }
 }
