@@ -188,6 +188,47 @@ pub struct ServerRow {
     pub signed_in: bool,
 }
 
+/// A folder of the device's music (ADR core-0024, mock-up 49 screen 2). `uri` is the
+/// platform's address for it and never leaves this device.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct LocalFolderInfo {
+    pub folder_id: u32,
+    pub uri: String,
+    pub name: String,
+    pub song_count: u32,
+    /// False while the platform can't reach it ("Not available right now").
+    pub available: bool,
+}
+
+/// A file the device's index already knows, so a look can skip it when unchanged.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct LocalKnownFile {
+    pub uri: String,
+    pub size: u64,
+    pub modified_ms: i64,
+}
+
+/// One file a look found, for `local_add_file`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+pub struct LocalFoundFile {
+    pub folder_id: u32,
+    /// The platform's address for the file (kept on this device only).
+    pub uri: String,
+    pub file_name: String,
+    pub size: u64,
+    pub modified_ms: i64,
+    /// A path the core can open for this call (Android: `/proc/self/fd/<n>` of a
+    /// descriptor the app holds open until the call returns).
+    pub read_path: String,
+    /// The text of a `.lrc` file with the same name beside it.
+    pub lrc: Option<String>,
+    /// A path to `cover.jpg` or `folder.jpg` beside it, opened the same way.
+    pub folder_cover_path: Option<String>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
 pub struct SyncResult {
@@ -232,6 +273,8 @@ pub struct AlbumSummary {
     pub duration_ms: i64,
     pub date_added_utc_ms: Option<i64>,
     pub has_artwork: bool,
+    /// Only on this device, from its own music files (mock-up 49: the phone mark).
+    pub on_device: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -2268,6 +2311,7 @@ impl From<AlbumRow> for AlbumSummary {
             duration_ms: a.duration_ms as i64,
             date_added_utc_ms: a.date_added_utc_ms,
             has_artwork: a.has_artwork,
+            on_device: a.on_device,
         }
     }
 }

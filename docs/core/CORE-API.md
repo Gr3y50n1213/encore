@@ -1,6 +1,6 @@
 # Encore core API (the contract)
 
-**Version 10** (Phase 12, 26 November 2026). Core crate version `0.1.0`.
+**Version 11** (Phase 12, 26 November 2026). Core crate version `0.1.0`.
 
 This file is the only thing the platform tracks may rely on. Every public call, event and type of the core is listed here before a platform uses it. A change that breaks a platform gets a line under "Changes" and a request in `docs/requests/` that says what to change.
 
@@ -23,6 +23,7 @@ This file is the only thing the platform tracks may rely on. Every public call, 
 | 8 | 10 | Also added, nothing removed (24 November 2026). `delete_playlist`. Writes: a 403 means "not yours to change" (no longer an ended sign-in); a playlist the server refuses changes to is made again as the user's own (`docs/core` edits, `fork_playlist`); a pull never removes a playlist the server hasn't made yet. |
 | 9 | 12 | Added, nothing removed (24 November 2026, ADR core-0021). Navidrome and other OpenSubsonic servers: `check_address` also recognises them; `ServerCheck` gains `kind` (`ServerKind`: `Jellyfin`, `Subsonic`); `sign_in` signs in to either (Subsonic keeps the user name and a salted token, never the password); Quick Connect stays Jellyfin's. A platform that builds `ServerCheck` itself adds the field; one that switches over every enum adds `ServerKind`. |
 | 10 | 12 | Added, nothing removed (26 November 2026, ADRs core-0022 and core-0023). Emby: `check_address` also recognises it (from the same `/System/Info/Public` reply that names Jellyfin, so Jellyfin and Subsonic are found exactly as before); `ServerKind` gains `Emby`; `sign_in` signs in to it with a user name and password like Jellyfin; Quick Connect is Jellyfin's only (`quick_connect_start` on Emby fails with `QuickConnectDisabled`, and the source's `quick_connect` capability is off). `ServerRow.kind` and the stored source kind can be `"emby"`. Two error sentences no longer name Jellyfin only (`NotJellyfin`: "This isn't a Jellyfin, Emby or Subsonic server"; `UnsupportedVersion`: "This server runs version …"); the kinds are unchanged. A platform that switches over every `ServerKind` adds `Emby`. Plex Media Server: `check_address` also recognises it (`ServerKind::Plex`, `server_id` is its `machineIdentifier`), after Jellyfin and Subsonic and also on Plex's port 32400. Signing in is the plex.tv link: `plex_link_start`, `plex_link_wait`, `plex_sign_in`, `plex_link_cancel`; types `PlexLinkStart`, `PlexServerChoice`. `ServerRow.kind` can be "plex". A platform that switches over every `ServerKind` adds `Plex`. |
+| 11 | 12 | Added, nothing removed (26 November 2026, ADR core-0024, mock-up 49). Music files on the device as a source in the open profile: `local_folders`, `add_local_folder`, `remove_local_folder`, `set_local_folder_available`, `local_known_files`, `local_add_file`, `local_refresh`, `local_finish_look`, and `create_device_profile` for a profile with no server; types `LocalFolderInfo`, `LocalKnownFile`, `LocalFoundFile`. `ServerRow.kind` can be "local". `AlbumSummary` gains `on_device` (only on this device). `stream_for` returns `local = true` with the file's own address for the device's songs, and for a server's song whose copy is on the device; those count as playable offline in `download_marks`. A platform that builds `AlbumSummary` itself adds the field. |
 
 ## How every platform gets the core
 
@@ -145,6 +146,22 @@ The companion server is optional: without it everything works on this device and
 | `sync_library()` async | `[SyncResult]` | Every signed-in source. The first time it is a full sync, then deltas from the server's own clock (only changed items plus a removal check). Progress arrives as `SyncProgress` events ("Indexing 3,200 of 12,480"). `SessionExpired` means sign in again. |
 | `sign_out(source_id)` async | – | Revokes the token on the server and drops it here. The mirror stays. Delete the keychain entry. |
 | `remove_server(source_id)` | – | Deletes the local index of that server; nothing on the server is touched; history stays. |
+
+### Music on the device (ADR core-0024, mock-up 49)
+
+The platform finds the files in folders the listener chose and hands each one over; the core reads its tags, cover and lyrics (MP3, FLAC, M4A, Ogg Vorbis, WAV) and never changes a file. Folder and file addresses stay on the device: library IDs are hashes of them. A song both on a server and on the device is listed once, as the server's, and plays from the device.
+
+| Call | Returns | Notes |
+| --- | --- | --- |
+| `local_folders()` | `[LocalFolderInfo]` | The chosen folders with their song counts; empty when there are none. |
+| `add_local_folder(uri, name)` | `LocalFolderInfo` | `uri` is the platform's address for the folder (Android: the tree's `content://` address, with read access kept). The first folder adds the profile's device source ("local" in `servers()`). Then look through it. |
+| `remove_local_folder(folder_id)` async | – | Its songs leave the library; the files stay. The last folder removes the device source. |
+| `set_local_folder_available(folder_id, available)` | – | False while the folder can't be reached (an SD card taken out): show "Not available right now". |
+| `local_known_files(folder_id)` | `[LocalKnownFile]` | Address, size and time of each file already read, so a look hands over only new or changed ones. |
+| `local_add_file(LocalFoundFile)` | `bool` | Reads one file (call off the main thread). `read_path` is a path the core can open during the call (Android: `/proc/self/fd/<n>` of a descriptor the app holds open); `lrc` is a matching `.lrc` file's text; `folder_cover_path` a `cover.jpg` or the like beside it. False: not music Encore reads. |
+| `local_refresh()` async | `u32` | During a long look, so songs appear as they are found. Returns the device's song count. |
+| `local_finish_look(folder_id, seen)` async | `u32` | `seen`: every file address found this time; others are gone. Brings the library up to date. Returns the device's song count. |
+| `create_device_profile(name)` | `SignedIn` | A profile with only the device's music (no server), open at once; `token` is empty. Add a folder next. |
 
 ### Browse (offline, synchronous)
 

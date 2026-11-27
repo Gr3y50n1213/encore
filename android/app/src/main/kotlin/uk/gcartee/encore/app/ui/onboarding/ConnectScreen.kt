@@ -108,7 +108,19 @@ private data class QuickConnect(val code: String, val expiresAtMs: Long)
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onSignedIn: (SignedIn) -> Unit) {
+fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onSignedIn: (SignedIn) -> Unit, offerDeviceMusic: Boolean = false) {
+    // Mock-up 49, screen 5: someone with no server plays the music on this phone. The
+    // profile is made only once a folder is chosen.
+    val pickDeviceFolder = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.OpenDocumentTree(),
+    ) { tree: android.net.Uri? ->
+        if (tree != null) {
+            runCatching { host.core.createDeviceProfile("Me") }.onSuccess { signed ->
+                onSignedIn(signed)
+                host.localMusic.addFolder(tree)
+            }
+        }
+    }
     val type = LocalEncoreType.current
     val haptics = rememberHaptics()
     val scope = rememberCoroutineScope()
@@ -570,6 +582,12 @@ fun ConnectScreen(host: CoreHost, step: Int, steps: Int, onBack: () -> Unit, onS
                             }) { Text("Cancel") }
                         }
                     }
+                }
+                if (offerDeviceMusic) {
+                    TextButton(
+                        onClick = { pickDeviceFolder.launch(null) },
+                        modifier = Modifier.fillMaxWidth().padding(top = Grid.base.dp).height(48.dp),
+                    ) { Text("Use music on this phone", style = type.sectionHeader.copy(fontSize = 16.sp)) }
                 }
                 } // not Plex
                 } // no Plex step

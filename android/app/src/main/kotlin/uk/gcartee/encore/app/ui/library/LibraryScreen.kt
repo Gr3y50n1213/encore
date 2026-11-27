@@ -553,9 +553,12 @@ private fun AlbumSheet(host: CoreHost, album: uk.gcartee.encore.core.AlbumSummar
             uk.gcartee.encore.app.ui.components.SheetAction("Add to queue", queue) { actions.addToQueue(songs()) },
         ),
         groups = listOf(
-            listOf(
+            listOfNotNull(
                 uk.gcartee.encore.app.ui.components.SheetAction("Go to artist", artist) { songs().firstOrNull()?.let(actions::goToArtist) },
-                if (kept == null) {
+                // An album on this phone is already here: nothing to download (mock-up 49).
+                if (album.onDevice) {
+                    null
+                } else if (kept == null) {
                     uk.gcartee.encore.app.ui.components.SheetAction("Download", download, reason = if (downloads.online) null else "Download when you're back online") {
                         actions.download(uk.gcartee.encore.app.core.albumTarget(album.id), album.title)
                     }

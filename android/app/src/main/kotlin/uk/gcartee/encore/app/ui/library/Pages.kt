@@ -325,12 +325,17 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
                                 uk.gcartee.encore.app.ui.components.ActionSheet(
                                     onDismiss = { open = false },
                                     header = { SheetHeader(album.title, album.artist) { Artwork(ArtworkOf.ALBUM, album.id, 56.dp, Modifier.size(56.dp), cornerRadius = 14.dp) } },
-                                    quick = listOf(
+                                    quick = listOfNotNull(
                                         uk.gcartee.encore.app.ui.components.SheetAction("Play next", next) { actions.playNext(detail.songs) },
                                         uk.gcartee.encore.app.ui.components.SheetAction("Add to queue", queue) { actions.addToQueue(detail.songs) },
-                                        // Board 13: Download becomes Remove download once kept.
-                                        uk.gcartee.encore.app.ui.components.SheetAction(if (download == null) "Download" else "Remove download", downloadIcon) {
-                                            if (download == null) actions.download(target, album.title) else confirmRemove = true
+                                        // Board 13: Download becomes Remove download once kept. An album
+                                        // on this phone has nothing to download (mock-up 49).
+                                        if (album.onDevice) {
+                                            null
+                                        } else {
+                                            uk.gcartee.encore.app.ui.components.SheetAction(if (download == null) "Download" else "Remove download", downloadIcon) {
+                                                if (download == null) actions.download(target, album.title) else confirmRemove = true
+                                            }
                                         },
                                     ),
                                     groups = listOf(

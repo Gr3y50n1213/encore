@@ -91,7 +91,13 @@ object ArtworkCache {
         val key = key(context, of, id, px)
         memory.get(key)?.let { return@withContext it }
         val bytes = file(context, of, id, px)?.readBytes() ?: return@withContext null
-        val bitmap = decodeUpright(bytes, 1)?.asImageBitmap() ?: return@withContext null
+        // A cover from a music file on the phone can be thousands of pixels across
+        // (mock-up 49): decode it near the size shown, as a profile picture is.
+        val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
+        var sample = 1
+        while (opts.outWidth / (sample * 2) >= px && opts.outHeight / (sample * 2) >= px) sample *= 2
+        val bitmap = decodeUpright(bytes, sample)?.asImageBitmap() ?: return@withContext null
         memory.put(key, bitmap)
         bitmap
     }

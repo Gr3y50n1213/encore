@@ -13,6 +13,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use encore_sources::http::HttpTransport;
 use encore_sources::jellyfin::{self, DeviceInfo, JellyfinClient, ServerInfo, Session};
+use encore_sources::local::LocalSource;
 use encore_sources::plex::{
     AccountToken, PlexAccount, PlexClient, PlexCredentials, PlexIdentity, PlexPin,
     PlexServerResource, PlexTv,
@@ -271,6 +272,11 @@ impl Inner {
 
     fn store_path(&self, profile_id: &str) -> PathBuf {
         self.profiles_dir().join(profile_id).join("library.sqlite")
+    }
+
+    /// Where a profile keeps what it knows of the device's music files (ADR core-0024).
+    fn local_dir(&self, profile_id: &str) -> PathBuf {
+        self.profiles_dir().join(profile_id).join("local")
     }
 
     async fn check_address(&self, address: String) -> Result<ServerCheck, EncoreError> {
@@ -747,8 +753,19 @@ impl Inner {
         let records = store.sources()?;
         for t in tokens_in {
             if let Some(r) = records.iter().find(|r| r.id == t.source_id) {
+                if r.kind == SourceKind::Local.as_str() {
+                    continue;
+                }
                 sources.insert(r.id, Arc::new(self.source_from(r, &t.token)?));
             }
+        }
+        // The device's own music has no token: it opens with the profile (ADR core-0024).
+        for r in records
+            .iter()
+            .filter(|r| r.kind == SourceKind::Local.as_str())
+        {
+            let local = LocalSource::open(&self.local_dir(id))?;
+            sources.insert(r.id, Arc::new(crate::source_any::AnySource::Local(local)));
         }
         let seed = u64::from_le_bytes(
             Sha256::digest(format!("{id}{}", now_ms()).as_bytes())[..8]
@@ -2139,6 +2156,8 @@ impl EncoreCore {
                     removed: stats.removed as u32,
                 });
             }
+            // A song on a server and on the device is listed once (ADR core-0024).
+            lock(&p.store)?.drop_device_twins()?;
             // The companion server builds the mixes from this song list.
             let session = lock(&p.companion)?.clone();
             if let Some(s) = session {
@@ -3109,6 +3128,23 @@ impl EncoreCore {
             });
         }
         let source = self.inner.source(&p, track.source_id)?;
+        // The device's own file, or the device's copy of a server's song (ADR
+        // core-0024): it needs no network and uses no data.
+        let device_copy = match source.local() {
+            Some(local) => local.uri_of(&track.source_item_id)?,
+            None => self.inner.device_copy(&p, &track.song_key)?,
+        };
+        if let Some(url) = device_copy {
+            return Ok(StreamInfo {
+                song_id,
+                url_with_api_key: url.clone(),
+                url,
+                headers: Vec::new(),
+                may_transcode: false,
+                local: true,
+                cache_key,
+            });
+        }
         let info = source.stream_info(
             &track.source_item_id,
             &self.inner.stream_request(&store, quality)?,
@@ -3400,6 +3436,7 @@ impl EncoreCore {
 mod analysis;
 mod downloads;
 mod live;
+mod local;
 mod profiles;
 mod recs;
 // Phase 9, WP1: the sleep timer.

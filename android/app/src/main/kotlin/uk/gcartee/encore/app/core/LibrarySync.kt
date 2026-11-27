@@ -44,6 +44,11 @@ class LibrarySync(private val host: CoreHost) {
     @Volatile private var failures = 0
     @Volatile private var lastOkAt = 0L
 
+    /** The library changed without a sync (a look through the phone's music): lists reload. */
+    fun libraryChanged() {
+        _state.value = _state.value.copy(generation = _state.value.generation + 1)
+    }
+
     /** The app came to the front. */
     fun onForeground() {
         foreground = true

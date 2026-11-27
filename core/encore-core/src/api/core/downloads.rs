@@ -389,7 +389,51 @@ impl Inner {
         };
         let mut set = lock(&p.store)?.saved_download_ids()?;
         set.extend(cached);
+        set.extend(self.on_device_ids(p)?);
         Ok(Some(set))
+    }
+
+    /// The songs whose file is on the device: the device's own, and a server's whose
+    /// copy is there too (ADR core-0024). They play with no network.
+    pub(super) fn on_device_ids(&self, p: &Profile) -> Result<HashSet<i64>, EncoreError> {
+        let keys = self.device_song_keys(p)?;
+        if keys.is_empty() {
+            return Ok(HashSet::new());
+        }
+        let keys: Vec<String> = keys.into_keys().collect();
+        Ok(lock(&p.store)?.track_ids_with_keys(&keys)?)
+    }
+
+    /// Every device file's song key with its address.
+    pub(super) fn device_song_keys(
+        &self,
+        p: &Profile,
+    ) -> Result<HashMap<String, String>, EncoreError> {
+        let sources: Vec<_> = lock(&p.sources)?.values().cloned().collect();
+        let mut keys = HashMap::new();
+        for s in sources {
+            if let Some(local) = s.local() {
+                keys.extend(local.song_keys()?);
+            }
+        }
+        Ok(keys)
+    }
+
+    /// The device's copy of a song, by its key, when there is one.
+    pub(super) fn device_copy(
+        &self,
+        p: &Profile,
+        song_key: &str,
+    ) -> Result<Option<String>, EncoreError> {
+        let sources: Vec<_> = lock(&p.sources)?.values().cloned().collect();
+        for s in sources {
+            if let Some(local) = s.local()
+                && let Some(uri) = local.song_keys()?.remove(song_key)
+            {
+                return Ok(Some(uri));
+            }
+        }
+        Ok(None)
     }
 
     /// Offline, the song keys that can play, for smart picks' `only`. `store`
@@ -400,6 +444,10 @@ impl Inner {
         };
         let mut ids = store.saved_download_ids()?;
         ids.extend(cached);
+        if let Ok(p) = self.profile() {
+            let keys: Vec<String> = self.device_song_keys(&p)?.into_keys().collect();
+            ids.extend(store.track_ids_with_keys(&keys)?);
+        }
         Ok(Some(
             ids.into_iter()
                 .filter_map(|id| store.track(id).ok().map(|t| t.song_key))
@@ -1417,6 +1465,9 @@ impl EncoreCore {
             .active
             .as_ref()
             .map(|a| a.song_id);
+        // Songs whose file is on the device play offline too (ADR core-0024). Worked out
+        // before the store is held: it takes the store itself.
+        let on_device = self.inner.on_device_ids(&p)?;
         let store = lock(&p.store)?;
         let mut saved = Vec::new();
         let mut pending = Vec::new();
@@ -1430,6 +1481,8 @@ impl EncoreCore {
         }
         let mut playable: Vec<i64> = saved.clone();
         playable.extend(cached.iter().copied().filter(|id| !saved.contains(id)));
+        let listed: HashSet<i64> = playable.iter().copied().collect();
+        playable.extend(on_device.into_iter().filter(|id| !listed.contains(id)));
         Ok(DownloadMarks {
             items: self.inner.download_items(&store, active)?,
             saved_song_ids: saved,

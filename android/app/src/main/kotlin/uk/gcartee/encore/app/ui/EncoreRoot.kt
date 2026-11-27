@@ -155,7 +155,7 @@ private fun Onboarding(host: CoreHost) {
             else -> ConnectScreen(host, step = 2, steps = 2, onBack = { step = 1 }, onSignedIn = { signed ->
                 host.signedIn(signed)
                 host.sync.syncNow()
-            })
+            }, offerDeviceMusic = true)
         }
     }
 }

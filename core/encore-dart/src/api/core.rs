@@ -336,6 +336,7 @@ pub struct _AlbumSummary {
     pub duration_ms: i64,
     pub date_added_utc_ms: Option<i64>,
     pub has_artwork: bool,
+    pub on_device: bool,
 }
 
 #[frb(mirror(AlbumDetail))]

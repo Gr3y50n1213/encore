@@ -38,6 +38,8 @@ pub struct AlbumRow {
     pub duration_ms: u64,
     pub date_added_utc_ms: Option<i64>,
     pub has_artwork: bool,
+    /// From the device's own music (ADR core-0024): only on this device.
+    pub on_device: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -127,7 +129,8 @@ fn track_row(r: &Row<'_>) -> rusqlite::Result<TrackRow> {
 const ALBUM_COLS: &str = "a.id, a.source_id, a.source_item_id, a.title, a.artist_display, a.year,
      (SELECT count(*) FROM tracks t WHERE t.album_id = a.id),
      (SELECT coalesce(sum(t.duration_ms), 0) FROM tracks t WHERE t.album_id = a.id),
-     a.date_added_utc_ms, a.has_artwork";
+     a.date_added_utc_ms, a.has_artwork,
+     (SELECT s.kind = 'local' FROM sources s WHERE s.id = a.source_id)";
 
 fn album_row(r: &Row<'_>) -> rusqlite::Result<AlbumRow> {
     Ok(AlbumRow {
@@ -141,6 +144,7 @@ fn album_row(r: &Row<'_>) -> rusqlite::Result<AlbumRow> {
         duration_ms: r.get::<_, i64>(7)? as u64,
         date_added_utc_ms: r.get(8)?,
         has_artwork: r.get(9)?,
+        on_device: r.get::<_, Option<bool>>(10)?.unwrap_or(false),
     })
 }
 
