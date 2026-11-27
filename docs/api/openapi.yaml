@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Encore companion server
-  version: 0.1.0
+  version: 1.0.0
   summary: Profiles, sign-in by media-server token, the synced event log (Phase 4), the mixes (Phase 5), and the live link for handoff (Phase 7).
   description: |
     The optional companion server (plan section 5). It never stores music. Owned by

@@ -1,0 +1,236 @@
+# A release on GitHub (owner, 27 November 2026: GitHub Releases only). Pushing a tag such
+# as v1.0.0 builds, from that tag:
+#   apks          the phone app and Encore TV, signed with the owner's key, four ABIs
+#   server-files  the companion server for Windows, Linux (x64 and arm64) and macOS
+#   server-image  the companion server's image for amd64 and arm64, pushed to GHCR
+#   publish       a draft release with every file, their SHA-256 sums and the notes in
+#                 docs/releases/<tag>.md; the owner (or the lead) checks it, then publishes
+# The tag must match the version in android/app/build.gradle.kts and server/Cargo.toml.
+# core.yml and android.yml test the same commit on main; this file only builds and ships.
+#
+# Actions are pinned to commit SHAs; the comment names the release.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  NDK_VERSION: 28.2.13676358
+
+jobs:
+  version:
+    name: "The tag matches the app and server versions"
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: v
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          app="$(sed -n 's/^ *versionName = "\(.*\)"/\1/p' android/app/build.gradle.kts)"
+          server="$(sed -n '0,/^version = /s/^version = "\(.*\)"/\1/p' server/Cargo.toml)"
+          echo "tag $version, app $app, server $server"
+          test "$version" = "$app" && test "$version" = "$server"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  apks:
+    name: "Android: the phone app and Encore TV, signed"
+    needs: version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Rust (stable, with the Android targets) and the NDK
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android i686-linux-android
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION" "platforms;android-37.0" "build-tools;36.0.0" > /dev/null
+
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-read-only: true
+
+      # The owner's key, the same one android.yml signs with, so a release installs over
+      # the builds on the owner's phones. A release is never signed with the debug key.
+      - name: The signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.ENCORE_TEST_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ENCORE_TEST_KEYSTORE_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_B64" || { echo "no signing key: a release needs the owner's key" >&2; exit 1; }
+          printf '%s' "$KEYSTORE_B64" | tr -cd 'A-Za-z0-9+/=' | base64 -d > "$RUNNER_TEMP/encore.jks"
+          password="$(printf '%s' "$KEYSTORE_PASSWORD" | tr -cd 'A-Za-z0-9')"
+          echo "::add-mask::$password"
+          keytool -list -keystore "$RUNNER_TEMP/encore.jks" -storepass "$password" -alias encore-test > /dev/null
+          echo "ENCORE_TEST_KEYSTORE=$RUNNER_TEMP/encore.jks" >> "$GITHUB_ENV"
+          echo "ENCORE_TEST_KEYSTORE_PASSWORD=$password" >> "$GITHUB_ENV"
+
+      - name: Build
+        working-directory: android
+        run: ./gradlew --stacktrace -Pencore.signReleaseWithDebugKey=true assemblePhoneRelease assembleTvRelease
+
+      - name: Check alignment and the signature, and name the files
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          bt="$ANDROID_HOME/build-tools/36.0.0"
+          mkdir -p out
+          cp android/app/build/outputs/apk/phone/release/app-phone-release.apk "out/encore-$VERSION.apk"
+          cp android/app/build/outputs/apk/tv/release/app-tv-release.apk "out/encore-tv-$VERSION.apk"
+          for apk in out/*.apk; do
+            "$bt/zipalign" -c -P 16 4 "$apk"
+            # Signed with the owner's key, not Android's debug key.
+            "$bt/apksigner" verify --print-certs "$apk" | tee /dev/stderr | grep -q "CN=Android Debug" && { echo "$apk has the debug key" >&2; exit 1; }
+            "$bt/apksigner" verify "$apk"
+          done
+          rm -f "$RUNNER_TEMP/encore.jks"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-apks
+          path: out/*.apk
+          if-no-files-found: error
+
+  server-files:
+    name: "Server files: ${{ matrix.name }}"
+    needs: version
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { os: windows-latest, name: windows-x64, exe: encore-server.exe }
+          - { os: ubuntu-24.04, name: linux-x64, exe: encore-server }
+          - { os: ubuntu-24.04-arm, name: linux-arm64, exe: encore-server }
+          - { os: macos-latest, name: macos-arm64, exe: encore-server }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Rust (stable)
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - name: Build
+        working-directory: server
+        run: cargo build --release --locked -p encore-server
+
+      - name: It starts and answers /health
+        working-directory: server
+        run: |
+          data="$RUNNER_TEMP/encore-data"
+          mkdir -p "$data"
+          ENCORE_DATA_DIR="$data" ENCORE_JELLYFIN_URLS=http://127.0.0.1:9 ./target/release/${{ matrix.exe }} &
+          pid=$!
+          ok=
+          for _ in $(seq 1 30); do
+            if ./target/release/${{ matrix.exe }} health; then ok=1; break; fi
+            sleep 1
+          done
+          kill "$pid" 2>/dev/null || true
+          test -n "$ok"
+
+      - name: Pack
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          dir="encore-server-$VERSION-${{ matrix.name }}"
+          mkdir -p "$dir" out
+          cp "server/target/release/${{ matrix.exe }}" server/LICENSE docs/server/INSTALL.md "$dir/"
+          if [ "${{ matrix.name }}" = windows-x64 ]; then
+            7z a -tzip "out/$dir.zip" "$dir" > /dev/null
+          else
+            tar -czf "out/$dir.tar.gz" "$dir"
+          fi
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-server-${{ matrix.name }}
+          path: out/*
+          if-no-files-found: error
+
+  server-image:
+    name: "Server image: amd64 and arm64, to GHCR"
+    needs: version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build, check and push
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/encore-server"
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker buildx create --use --name release
+          # amd64 first, loaded and started, so a broken image is never pushed.
+          docker buildx build -f server/Dockerfile --platform linux/amd64 --load -t encore-server:check .
+          docker run -d --name check -e ENCORE_JELLYFIN_URLS=http://127.0.0.1:9 encore-server:check
+          ok=
+          for _ in $(seq 60); do
+            if docker exec check encore-server health; then ok=1; break; fi
+            sleep 1
+          done
+          test -n "$ok" || { docker logs check; exit 1; }
+          docker rm -f check
+          docker buildx build -f server/Dockerfile --platform linux/amd64,linux/arm64 \
+            --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+            --label "org.opencontainers.image.version=$VERSION" \
+            --label "org.opencontainers.image.licenses=AGPL-3.0-only" \
+            -t "$image:$VERSION" -t "$image:latest" --push .
+          docker logout ghcr.io
+
+  publish:
+    name: "A draft release with every file"
+    needs: [version, apks, server-files, server-image]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: release-*
+          path: files
+          merge-multiple: true
+
+      - name: Sums and the draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          test -f "docs/releases/$TAG.md" || { echo "docs/releases/$TAG.md is missing" >&2; exit 1; }
+          (cd files && sha256sum * > SHA256SUMS && cat SHA256SUMS)
+          gh release create "$TAG" --draft --verify-tag --title "Encore $VERSION" \
+            --notes-file "docs/releases/$TAG.md" files/*

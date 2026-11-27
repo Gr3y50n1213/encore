@@ -8,21 +8,29 @@ A free, open-source music player for your own music server, with:
 - handoff between devices;
 - a year-end recap.
 
-Platforms: iPhone, iPad, Mac, Android, Windows and Linux. Jellyfin comes first, behind a generic source layer. "Encore" is a placeholder name.
+It plays from Jellyfin, Emby, Navidrome and other OpenSubsonic servers, Plex, and folders on the phone. Planned platforms: iPhone, iPad, Mac, Android, Windows and Linux. "Encore" is a placeholder name.
 
-**Status:** in development, with no releases yet. The shared Rust core and the companion server are being built and tested first (docs/ROADMAP.md); the apps follow.
+**Status:** version 1.0.0 has the Android app, Encore TV (Android TV and projectors) and the companion server. The shared Rust core is also built and tested for Apple, Windows and Linux, whose apps come next (docs/ROADMAP.md).
+
+## Install
+
+- **Android:** download `encore-<version>.apk` from the [Releases page](https://github.com/Gr3y50n1213/encore/releases) on your phone and open it. It needs Android 9 or later. Encore TV is `encore-tv-<version>.apk`.
+- **The companion server (optional):** docs/server/INSTALL.md. It runs on Windows, macOS, Linux or Docker (`ghcr.io/gr3y50n1213/encore-server`).
+- Each file's SHA-256 is in the release's `SHA256SUMS`.
+
+Privacy: PRIVACY.md. In short, nothing goes anywhere but your own servers.
 
 ## How it fits together
 
 - **The core** (`core/`, Rust) holds everything the apps share:
-  - the Jellyfin client and an offline library mirror;
+  - the media-server clients and an offline library mirror;
   - search, the queue and the play log;
   - lyrics, album colours and playlist edits;
   - profiles, sync, smart picks and handoff.
 
   Swift and Kotlin call it through UniFFI, and Dart through flutter_rust_bridge (docs/core/CORE-API.md).
 - **The apps**: native SwiftUI on Apple devices (`apple/`), Jetpack Compose with Media3 on Android (`android/`), and Flutter on Windows and Linux (`flutter/`).
-- **The companion server** (`server/`, optional) runs next to your Jellyfin in one small Docker image, amd64 or arm64. It handles:
+- **The companion server** (`server/`, optional) runs next to your media server, as one small program or Docker image (amd64 or arm64). It handles:
   - profiles and sync across your devices;
   - the daily mixes;
   - handoff.

@@ -22,9 +22,15 @@ Please report it privately through GitHub: the repository's **Security** tab, th
   - The status page answers only on the home network.
   - The live link has size and rate limits.
 
-  For use away from home, put it behind your own https reverse proxy or VPN. Behind a proxy, every request seems to come from the proxy's address, so the status page and the sign-in rate limit see one client.
+  For use away from home, put it behind your own https reverse proxy or VPN. Behind a proxy, every request seems to come from the proxy's address, so all devices share one sign-in limit, and the status page refuses requests that came through a proxy.
+  - A lost phone: sign it out in the app's Devices list, and on your media server too. The companion trusts any sign-in the media server still accepts.
+- **The phone app**: only Android Auto, the system's media controls and apps you trusted with media (such as a watch app with notification access) can connect to Encore's media session.
 - **Privacy**: Private listening, Guest and "Learn from my listening" off record nothing. History and likes stay on your devices and your own companion server.
 
 ## Supported versions
 
-Encore is in development and has no releases yet. Fixes go to the main branch.
+Fixes go to the main branch and the next release. Only the latest release on the Releases page is supported: update to it before reporting.
+
+## Checking a download
+
+Every release lists the SHA-256 of each file in `SHA256SUMS`. The Android APKs are signed with the project's own key, so Android refuses an APK signed by anyone else as an update to the one you have.

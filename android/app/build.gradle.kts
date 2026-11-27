@@ -23,8 +23,9 @@ android {
         // Plan section 15: Android 9. Section 19: target Android 16 (API 36).
         minSdk = 28
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        // major * 10000 + minor * 100 + patch, so every release installs over the last.
+        versionCode = 10000
+        versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Package only the ABIs the core is built for: JNA's aar also carries armeabi
         // and MIPS libraries, and a device must never get an ABI without the core.
@@ -58,10 +59,11 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // No release key exists yet (it is the owner's, made before the first Play
-            // upload). For trying a release build on a phone or in CI, pass
-            // -Pencore.signReleaseWithDebugKey=true: it is signed with the test key above
-            // when there is one, else the debug key. Never for a build that leaves the house.
+            // Pass -Pencore.signReleaseWithDebugKey=true to sign with the owner's key above
+            // when there is one, else the debug key. The GitHub release (release.yml) signs
+            // with the owner's key and refuses to run without it, so the APKs on the Releases
+            // page install over the builds already on the owner's phones (owner, 27 November
+            // 2026: GitHub Releases only). A Play upload key, if Play ever comes, is separate.
             if (providers.gradleProperty("encore.signReleaseWithDebugKey").orNull == "true") {
                 signingConfig = signingConfigs.findByName("test") ?: signingConfigs.getByName("debug")
             }

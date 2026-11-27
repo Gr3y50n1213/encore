@@ -187,14 +187,14 @@ dependencies = [
 
 [[package]]
 name = "encore-recs"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "encore-sources"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "futures-util",
  "jni",
