@@ -309,7 +309,8 @@ fun AlbumScreen(host: CoreHost, albumId: Long, playingSongId: Long?, onBack: () 
                     onPlay = { actions.play(ids, 0, StartedFrom.ALBUM, album.id.toString(), album.title) },
                     onShuffle = { actions.play(ids, ids.indices.random(), StartedFrom.ALBUM, album.id.toString(), album.title, shuffle = true) },
                     onSubtitle = { detail.songs.firstOrNull()?.let(actions::goToArtist) },
-                    third = downloadButton(tint, download) { actions.tapDownload(target, album.title, download) { confirmRemove = true } },
+                    // An album on this phone has nothing to download (mock-up 49).
+                    third = if (album.onDevice) null else downloadButton(tint, download) { actions.tapDownload(target, album.title, download) { confirmRemove = true } },
                     trailing = {
                         var open by remember { mutableStateOf(false) }
                         Box {
