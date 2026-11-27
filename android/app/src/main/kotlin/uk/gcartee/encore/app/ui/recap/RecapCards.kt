@@ -64,7 +64,7 @@ import uk.gcartee.encore.app.recap.RecapText
 import uk.gcartee.encore.tokens.EncoreTokens.Recap.Motion as RecapMotion
 
 /** Room the progress segments and the top row take at the top of every card (design dp). */
-const val CHROME_DP = 40
+const val CHROME_DP = 50
 
 /** Everything one card needs to draw itself. */
 @Immutable
@@ -406,7 +406,7 @@ private fun GlassBubble(env: CardEnv, label: String, sizeDp: Float, modifier: Mo
 private fun ColumnScope.TopAlbumBody(env: CardEnv, d: BeatData.TopAlbum, enter: Float) {
     val g = env.ground
     val one = d.top.first()
-    if (env.theme.pack == PackId.EDITORIAL) CoverFrame(env.theme, g, env.motif(1), 130.dp) else Centered { CoverFrame(env.theme, g, env.motif(1), 140.dp) }
+    if (env.theme.pack == PackId.EDITORIAL) CoverFrame(env.theme, g, env.motif(1), 120.dp) else Centered { CoverFrame(env.theme, g, env.motif(1), 132.dp) }
     Spacer(Modifier.height(18.dp))
     Display(env, env.n(one.name), nameSize(one.name, 36f), maxLines = 2)
     Body(env, env.n(one.artist), Modifier.padding(top = 6.dp), size = 11.sp)

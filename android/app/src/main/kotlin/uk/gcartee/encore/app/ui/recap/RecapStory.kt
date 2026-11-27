@@ -765,7 +765,8 @@ private fun CaptureCard(env: CardEnv, recap: Recap, onDone: (Bitmap?) -> Unit) {
         Canvas(Modifier.fillMaxSize()) { drawGround(env.theme, env.ground, env.beat.shapeSeed, tideLevel(env.beat), 0f) }
         DesignScale(w.value) {
             BeatCard(env, PaddingValues(0.dp), closer = null)
-            Chrome(env.theme, env.ground, recap, StoryController(env.count, env.index), PaddingValues(0.dp), talkBack = false, resumedAt = 0, onClose = {}, export = true)
+            val still = remember(env.index) { StoryController(env.count, env.index) }
+            Chrome(env.theme, env.ground, recap, still, PaddingValues(0.dp), talkBack = false, resumedAt = 0, onClose = {}, export = true)
         }
     }
     LaunchedEffect(env.index, env.hideNames) {
