@@ -41,7 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import uk.gcartee.encore.app.core.CoreHost
 import uk.gcartee.encore.app.ui.components.Icons
-import uk.gcartee.encore.app.ui.theme.Grid
+import uk.gcartee.encore.tokens.EncoreTokens.Grid
 import uk.gcartee.encore.app.ui.theme.LocalEncoreType
 import uk.gcartee.encore.core.LocalFolderInfo
 
@@ -63,6 +63,8 @@ internal fun DeviceMusicPage(host: CoreHost, onBack: () -> Unit, contentPadding:
         tree?.let(music::addFolder)
     }
     val type = LocalEncoreType.current
+    val error = MaterialTheme.colorScheme.error
+    val mutedIcon = MaterialTheme.colorScheme.onSurfaceVariant
 
     Page("Music on this phone", onBack, contentPadding, subtitle = "Encore plays the songs in the folders you choose.") {
         look?.let { l -> item { LookCard(l) } }
@@ -78,10 +80,10 @@ internal fun DeviceMusicPage(host: CoreHost, onBack: () -> Unit, contentPadding:
                         else -> "Phone storage · ${songs(f.songCount.toInt())}"
                     },
                     icon = { Icons.folder() },
-                    valueColor = if (!f.available && !looking) MaterialTheme.colorScheme.error else null,
+                    valueColor = if (!f.available && !looking) error else null,
                     trailing = {
                         IconButton(onClick = { removing = f }, modifier = Modifier.semantics { contentDescription = "Stop using ${f.name}" }) {
-                            Icon(Icons.close(), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Icon(Icons.close(), contentDescription = null, tint = mutedIcon)
                         }
                     },
                 )

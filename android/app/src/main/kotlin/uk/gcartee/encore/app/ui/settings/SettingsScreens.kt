@@ -598,9 +598,9 @@ private fun ServersPage(host: CoreHost, onBack: () -> Unit, onAddServer: () -> U
     var confirm by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
     val fmt = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
     val error = MaterialTheme.colorScheme.error
+    val folders = remember(version) { host.localMusic.folders() }
     Page("Servers", onBack, contentPadding, action = "Add server" to onAddServer) {
         // Mock-up 49, screen 1: the phone's music is one row among the sources.
-        val folders = remember(version) { host.localMusic.folders() }
         val deviceRow = { s: uk.gcartee.encore.core.ServerRow ->
             Row0(
                 "On this phone",
