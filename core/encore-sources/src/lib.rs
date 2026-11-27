@@ -12,6 +12,7 @@
 pub mod error;
 pub mod http;
 pub mod jellyfin;
+pub mod local;
 pub mod model;
 pub mod plex;
 pub mod ranged;

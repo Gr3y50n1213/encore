@@ -589,6 +589,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "symphonia",
  "thiserror",
  "tokio",
  "tokio-rustls",

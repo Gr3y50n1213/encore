@@ -84,6 +84,20 @@ install() { # apk
   return 1
 }
 
+# API 37's SurfaceFlinger aborted in RegionSampling (the navigation bar's luma sampling,
+# SIGABRT) and took the system down under the installs (run 45918097446). Switch the
+# sampling off and restart the framework once before anything is installed.
+if [ "$sdk" -ge 37 ] 2>/dev/null; then
+  adb root >/dev/null 2>&1 && sleep 3
+  adb shell setprop debug.sf.luma_sampling 0 || true
+  adb shell stop && adb shell start
+  for _ in $(seq 1 90); do
+    [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1" ] && break
+    sleep 2
+  done
+  echo "luma sampling off: $(adb shell getprop debug.sf.luma_sampling | tr -d '\r')"
+fi
+
 echo "== 1. Instrumented tests (debug)"
 install "$debug"
 install "$tests"
