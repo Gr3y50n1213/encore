@@ -3438,6 +3438,7 @@ mod downloads;
 mod live;
 mod local;
 mod profiles;
+mod recap;
 mod recs;
 // Phase 9, WP1: the sleep timer.
 mod sleep;

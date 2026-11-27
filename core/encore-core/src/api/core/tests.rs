@@ -2662,3 +2662,27 @@ fn private_listening_ends_after_two_hours_of_silence() {
         "only the play after Private ended"
     );
 }
+
+/// Phase 11 (ADR core-0025): the recap of a year comes back as the engine's document; a
+/// year past its 8 January lock is kept and given back unchanged from then on.
+#[test]
+fn a_year_recap_is_built_and_a_past_year_is_kept() {
+    let dir = temp_dir("recap");
+    let (core, _) = core_on_recording(&dir);
+    signed_in(&core);
+    let packs = vec![
+        "editorial".to_string(),
+        "tide".into(),
+        "bloom".into(),
+        "glass".into(),
+    ];
+    let first = block(core.recap(2020, packs.clone(), false, 0)).unwrap();
+    let doc: serde_json::Value = serde_json::from_str(&first).unwrap();
+    assert_eq!(doc["schema"], 1);
+    assert_eq!(doc["year"], 2020);
+    assert_eq!(doc["kind"], "none", "no plays that year");
+    assert_eq!(doc["locked"], true);
+    assert_eq!(core.recap_years().unwrap(), vec![2020]);
+    let again = block(core.recap(2020, vec!["glass".into()], true, 60)).unwrap();
+    assert_eq!(again, first, "a kept year never changes");
+}

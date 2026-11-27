@@ -18,6 +18,7 @@ mod edits;
 mod export;
 mod mirror;
 mod playlog;
+mod recap;
 mod recs;
 mod registry;
 mod schema;
@@ -33,6 +34,7 @@ pub use edits::{EventRecord, OutboxRow, PlaylistItemRow, PlaylistRecord, UndoRow
 pub use export::{EXPORT_FORMAT, EXPORT_VERSION, ExportCounts, ExportHeader};
 pub use mirror::{ApplyStats, LOCAL_ITEM_PREFIX};
 pub use playlog::*;
+pub use recap::{ArtistBeforeRow, RecapPlayRow};
 pub use recs::{FeedbackRow, NotInterestedRow, RecsPlayRow, RecsSongRow};
 pub use registry::{DownloadFileRecord, PinRecord, Registry, RegistryProfile, SleepTimerRecord};
 pub use search::{LyricHit, SearchLimits, SearchResults, TopResult, fold_for_search};
