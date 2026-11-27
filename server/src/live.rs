@@ -41,7 +41,7 @@ const RECHECK_EVERY: Duration = Duration::from_secs(60);
 const QUEUE: usize = 256;
 /// A presence message goes to every device of the profile, so it is kept small; a
 /// handoff snapshot goes by relay to one device (security review, 27 November 2026).
-pub const MAX_PRESENCE_BYTES: usize = 16 * 1024;
+pub(crate) const MAX_PRESENCE_BYTES: usize = 16 * 1024;
 
 #[derive(Debug)]
 struct Conn {

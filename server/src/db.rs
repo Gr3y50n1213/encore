@@ -862,14 +862,13 @@ impl Db {
     /// learns from the history reads it first and writes its result only if it is
     /// unchanged ([`Db::put_unless_cleared`]).
     pub(crate) fn cleared_mark(&self, profile_id: i64) -> Result<Option<String>> {
-        Ok(self
-            .conn()
+        self.conn()
             .query_row(
                 "SELECT value FROM profile_state WHERE profile_id = ?1 AND key = ?2",
                 params![profile_id, CLEARED_KEY],
                 |r| r.get::<_, String>(0),
             )
-            .optional()?)
+            .optional()
     }
 
     /// Store a mix set (`key` None) or a profile value built from the history, unless
@@ -923,11 +922,11 @@ impl Db {
 
     /// Devices signed in to a profile now (not signed out).
     pub(crate) fn active_devices(&self, profile_id: i64) -> Result<i64> {
-        Ok(self.conn().query_row(
+        self.conn().query_row(
             "SELECT count(*) FROM devices WHERE profile_id = ?1 AND revoked_utc_ms IS NULL",
             [profile_id],
             |r| r.get(0),
-        )?)
+        )
     }
 
     pub(crate) fn status(&self) -> Result<Status> {
