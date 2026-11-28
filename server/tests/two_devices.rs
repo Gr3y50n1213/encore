@@ -165,6 +165,11 @@ fn block<T>(f: impl std::future::Future<Output = T>) -> T {
 
 /// Start a companion server on a free loopback port, on its own runtime.
 fn start_server(data: &TempDir) -> (SocketAddr, tokio::runtime::Runtime) {
+    start_server_at(data, 0)
+}
+
+/// The same on `port` (0: any free one). Dropping the runtime stops the server.
+fn start_server_at(data: &TempDir, port: u16) -> (SocketAddr, tokio::runtime::Runtime) {
     let rt = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(2)
         .enable_all()
@@ -178,7 +183,7 @@ fn start_server(data: &TempDir) -> (SocketAddr, tokio::runtime::Runtime) {
     .unwrap();
     let state = Arc::new(AppState::open(config, Arc::new(AnyToken)).unwrap());
     let listener = rt
-        .block_on(tokio::net::TcpListener::bind("127.0.0.1:0"))
+        .block_on(tokio::net::TcpListener::bind(("127.0.0.1", port)))
         .unwrap();
     let addr = listener.local_addr().unwrap();
     rt.spawn(async move {
@@ -350,6 +355,132 @@ fn a_like_on_the_phone_shows_on_the_mac_within_a_second() {
     );
     assert!(phone.are_liked(vec![song]).unwrap()[0], "local data stays");
     assert_eq!(phone.sync_status().unwrap().state, SyncState::SignedOut);
+
+    // Still signed out after the app restarts, so it can offer "Connect again".
+    phone.close_profile().unwrap();
+    phone
+        .open_profile(
+            profile,
+            vec![SourceToken {
+                source_id: 1,
+                token: "anonymized-token".into(),
+            }],
+        )
+        .unwrap();
+    assert_eq!(phone.sync_status().unwrap().state, SyncState::SignedOut);
+}
+
+/// Replace the files of `to` with those of `from` (the server must be stopped).
+fn copy_files(from: &std::path::Path, to: &std::path::Path) {
+    let files = |d: &std::path::Path| {
+        std::fs::read_dir(d)
+            .unwrap()
+            .map(|e| e.unwrap())
+            .filter(|e| e.file_type().unwrap().is_file())
+            .collect::<Vec<_>>()
+    };
+    for old in files(to) {
+        std::fs::remove_file(old.path()).unwrap();
+    }
+    for file in files(from) {
+        std::fs::copy(file.path(), to.join(file.file_name())).unwrap();
+    }
+}
+
+/// 28 November 2026: a phone that couldn't reach its companion server kept days of
+/// listening to itself and said nothing. Away, it says so and keeps everything waiting;
+/// told that the network changed, it sends at once; and when the server is restored from
+/// an older backup, it sends again what the server forgot.
+#[test]
+fn changes_wait_while_the_server_is_away_and_arrive_when_it_is_back() {
+    use encore_core::api::Network;
+    let server_dir = temp_dir("server-away");
+    let backup = temp_dir("server-backup");
+    let (addr, server) = start_server(&server_dir);
+    let url = format!("http://127.0.0.1:{}", addr.port());
+    let (_pd, phone, phone_events, _) = device("phone", addr);
+    let (_md, mac, mac_events, _) = device("mac", addr);
+    block(phone.connect_companion(url.clone())).unwrap();
+    block(mac.connect_companion(url.clone())).unwrap();
+    for e in [&phone_events, &mac_events] {
+        assert!(
+            e.wait_for(Duration::from_secs(10), |e| e
+                .sync_status
+                .as_ref()
+                .is_some_and(|s| s.state == SyncState::Idle))
+                .is_some(),
+            "sync is idle"
+        );
+    }
+
+    // The server goes away; a backup of it as it is now is restored further down.
+    drop(server);
+    copy_files(&server_dir.0, &backup.0);
+    let song = phone
+        .songs(SongSort::Title, 0, 1000)
+        .unwrap()
+        .into_iter()
+        .find(|s| !phone.are_liked(vec![s.id]).unwrap()[0])
+        .expect("a song that isn't liked yet")
+        .id;
+    phone.like(vec![song]).unwrap();
+    assert!(
+        phone_events
+            .wait_for(Duration::from_secs(10), |e| e
+                .sync_status
+                .as_ref()
+                .is_some_and(|s| s.state == SyncState::Offline))
+            .is_some(),
+        "the phone says it can't reach the server"
+    );
+    // Long enough that the next retry by itself is many seconds off.
+    std::thread::sleep(Duration::from_secs(16));
+    let status = phone.sync_status().unwrap();
+    assert_eq!(status.state, SyncState::Offline);
+    assert!(status.pending >= 1, "{status:?}");
+    assert!(
+        status
+            .reason
+            .as_deref()
+            .is_some_and(|r| r.contains("home network address")),
+        "{status:?}"
+    );
+
+    // It is back, and the platform reports the network: nothing waits for the next retry.
+    let (_, server) = start_server_at(&server_dir, addr.port());
+    for core in [&phone, &mac] {
+        core.set_connectivity(true, Network::Wifi, Vec::new())
+            .unwrap();
+    }
+    let liked = move |e: &CoreEvent| {
+        e.remote_change
+            .as_ref()
+            .is_some_and(|c| c.liked_song_ids.contains(&song))
+    };
+    assert!(
+        mac_events.wait_for(Duration::from_secs(5), liked).is_some(),
+        "the like arrives as soon as the network is reported"
+    );
+    block(phone.sync_now()).unwrap();
+    let status = phone.sync_status().unwrap();
+    assert_eq!((status.state, status.pending), (SyncState::Idle, 0));
+
+    // The server is restored from the backup, which never saw the like.
+    drop(server);
+    copy_files(&backup.0, &server_dir.0);
+    let (_, _server) = start_server_at(&server_dir, addr.port());
+    phone
+        .set_connectivity(true, Network::Wifi, Vec::new())
+        .unwrap();
+    // A device that joins now still gets it: the phone noticed and sent it again.
+    let (_td, tablet, tablet_events, _) = device("tablet", addr);
+    block(tablet.connect_companion(url)).unwrap();
+    assert!(
+        tablet_events
+            .wait_for(Duration::from_secs(30), liked)
+            .is_some(),
+        "the restored server has the like again"
+    );
 }
 
 #[test]
