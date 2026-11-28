@@ -1,0 +1,44 @@
+{
+  "name": "encore",
+  "author": "Encore",
+  "version": "1.0.0",
+  "keywords": ["pebble-app"],
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+    "displayName": "Encore",
+    "uuid": "e82e1a4a-a544-4f75-960c-c78ec6f41bc7",
+    "sdkVersion": "3",
+    "enableMultiJS": true,
+    "targetPlatforms": [
+      "aplite",
+      "basalt",
+      "chalk",
+      "diorite",
+      "emery",
+      "flint",
+      "gabbro"
+    ],
+    "watchapp": {
+      "watchface": false
+    },
+    "usesPermissions": ["LegacyPebbleKit"],
+    "messageKeys": {
+      "title": 1,
+      "artist": 2,
+      "lyric": 3,
+      "playing": 4,
+      "liked": 5,
+      "private": 6,
+      "cmd": 7
+    },
+    "resources": {
+      "media": [
+        { "type": "bitmap", "name": "ICON_PREV", "file": "images/prev.png" },
+        { "type": "bitmap", "name": "ICON_PLAY", "file": "images/play.png" },
+        { "type": "bitmap", "name": "ICON_PAUSE", "file": "images/pause.png" },
+        { "type": "bitmap", "name": "ICON_NEXT", "file": "images/next.png" }
+      ]
+    }
+  }
+}

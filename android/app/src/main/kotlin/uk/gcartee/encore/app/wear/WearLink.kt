@@ -18,6 +18,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import uk.gcartee.encore.app.core.CoreHost
 import uk.gcartee.encore.app.notifications.LiveUpdates
+import uk.gcartee.encore.app.pebble.PebbleLink
 import uk.gcartee.encore.app.playback.PlaybackHub
 import uk.gcartee.encore.app.playback.PlayerState
 import uk.gcartee.encore.app.widgets.SnapshotPrivacy
@@ -54,6 +55,10 @@ import uk.gcartee.encore.wearlink.awaitOrNull
  * - Lyrics are read only for a song the library says has lyrics (`Song.hasLyrics`), the
  *   way the lyrics view reads them, so a watch never starts a lookup the phone wouldn't.
  *
+ * Stage W2 (docs/adr/android-0009-pebble.md): the same Now Playing goes to the Encore
+ * watchapp on a Pebble ([PebbleLink]), built here once for both, on the same changes and
+ * within the same limit of two sends a second. The Pebble gets no cover and no mixes.
+ *
  * Started by CoreHost, like WidgetSync: it runs only where the core already runs.
  */
 object WearLink {
@@ -66,6 +71,9 @@ object WearLink {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     @Volatile private var attached = false
     @Volatile private var watchNearby = false
+
+    /** A Wear OS watch with Encore is reachable, or the Pebble watchapp is open. */
+    private fun anyWatch(): Boolean = watchNearby || PebbleLink.active
 
     private val nowSignal = Channel<Unit>(Channel.CONFLATED)
     private val mixesSignal = Channel<Unit>(Channel.CONFLATED)
@@ -92,18 +100,22 @@ object WearLink {
         if (attached) return
         attached = true
         val context = host.context.applicationContext
-        if (!WearGms.available(context)) return
-        val capabilities = Wearable.getCapabilityClient(context)
-        scope.launch {
-            val info = capabilities.getCapability(Paths.WATCH_CAPABILITY, CapabilityClient.FILTER_REACHABLE).awaitOrNull()
-            watchChanged(host, info?.nodes?.isNotEmpty() == true)
+        val gms = WearGms.available(context)
+        val pebble = PebbleLink.attach(context) { pebbleOpened(host) }
+        if (!gms && !pebble) return
+        if (gms) {
+            val capabilities = Wearable.getCapabilityClient(context)
+            scope.launch {
+                val info = capabilities.getCapability(Paths.WATCH_CAPABILITY, CapabilityClient.FILTER_REACHABLE).awaitOrNull()
+                watchChanged(host, info?.nodes?.isNotEmpty() == true)
+            }
+            runCatching {
+                capabilities.addListener({ info -> watchChanged(host, info.nodes.isNotEmpty()) }, Paths.WATCH_CAPABILITY)
+            }.onFailure { Log.w(TAG, "No capability listener: ${it.javaClass.simpleName}") }
         }
-        runCatching {
-            capabilities.addListener({ info -> watchChanged(host, info.nodes.isNotEmpty()) }, Paths.WATCH_CAPABILITY)
-        }.onFailure { Log.w(TAG, "No capability listener: ${it.javaClass.simpleName}") }
 
         scope.launch { PlaybackHub.state.collect { onState(host, it) } }
-        scope.launch { host.queue.collect { if (watchNearby) nowSignal.trySend(Unit) } }
+        scope.launch { host.queue.collect { if (anyWatch()) nowSignal.trySend(Unit) } }
         scope.launch { host.privateListening.collect { if (watchNearby) mixesSignal.trySend(Unit) } }
         scope.launch {
             host.events.collect { event ->
@@ -111,28 +123,31 @@ object WearLink {
                     EventKind.WIDGET_SNAPSHOT_CHANGED -> {
                         // A cover saved since, or a privacy change: read the snapshot again.
                         if (cover?.bytes == null) cover = null
-                        if (watchNearby) {
-                            nowSignal.trySend(Unit)
-                            mixesSignal.trySend(Unit)
-                        }
+                        if (anyWatch()) nowSignal.trySend(Unit)
+                        if (watchNearby) mixesSignal.trySend(Unit)
                     }
                     // Another device liked or unliked something.
                     EventKind.REMOTE_CHANGE -> {
                         liked = null
-                        if (watchNearby) nowSignal.trySend(Unit)
+                        if (anyWatch()) nowSignal.trySend(Unit)
                     }
                     else -> Unit
                 }
             }
         }
-        scope.launch { sendLoop(nowSignal) { publishNow(host, context) } }
-        scope.launch { sendLoop(mixesSignal) { publishMixes(host, context) } }
+        scope.launch { sendLoop(nowSignal, ::anyWatch) { publishNow(host, context, gms) } }
+        if (gms) scope.launch { sendLoop(mixesSignal, { watchNearby }) { publishMixes(host, context) } }
     }
 
     /** After the watch liked or unliked the song: read it again and tell the watch. */
     internal fun likedChanged() {
         liked = null
-        if (watchNearby) nowSignal.trySend(Unit)
+        if (anyWatch()) nowSignal.trySend(Unit)
+    }
+
+    /** The Pebble watchapp opened: send it everything, without restarting the position's clock. */
+    private fun pebbleOpened(host: CoreHost) {
+        refresh(host, state)
     }
 
     private fun watchChanged(host: CoreHost, nearby: Boolean) {
@@ -149,7 +164,10 @@ object WearLink {
     private fun onState(host: CoreHost, s: PlayerState) {
         state = s
         stateAt = SystemClock.elapsedRealtime()
-        if (!watchNearby) return
+        if (anyWatch()) refresh(host, s)
+    }
+
+    private fun refresh(host: CoreHost, s: PlayerState) {
         val song = s.entry?.song
         if (song?.id != lyricsFor) loadLyrics(host, song)
         scheduleLine(s)
@@ -187,10 +205,10 @@ object WearLink {
         }
     }
 
-    private suspend fun sendLoop(signal: Channel<Unit>, send: suspend () -> Boolean) {
+    private suspend fun sendLoop(signal: Channel<Unit>, wanted: () -> Boolean, send: suspend () -> Boolean) {
         val throttle = Throttle(MIN_INTERVAL_MS)
         for (ignored in signal) {
-            if (!watchNearby) continue
+            if (!wanted()) continue
             val wait = throttle.delayFor(SystemClock.elapsedRealtime())
             if (wait > 0) delay(wait)
             val sent = runCatching { send() }
@@ -200,8 +218,15 @@ object WearLink {
         }
     }
 
-    private suspend fun publishNow(host: CoreHost, context: Context): Boolean {
+    /** Builds Now Playing once and gives it to each watch that is there. */
+    private suspend fun publishNow(host: CoreHost, context: Context, gms: Boolean): Boolean {
         val now = buildNow(host, context)
+        val toPebble = PebbleLink.send(context, now)
+        val toWear = gms && watchNearby && publishWear(host, context, now)
+        return toPebble || toWear
+    }
+
+    private suspend fun publishWear(host: CoreHost, context: Context, now: NowPlaying): Boolean {
         val bytes = state.entry?.song?.let { coverBytes(host, context, it.id) }
         // A cover saved after the song started goes out too, though nothing else changed.
         if (!now.needsSendAfter(lastNow) && (bytes != null) == lastHadCover) return false

@@ -24,6 +24,13 @@
          players receive on the Wi-Fi's multicast address while Play on is open. -->
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 
+    <!-- Stage W2 (pebble/PebbleLink.kt, ADR android-0009): whether a Pebble app is installed,
+         Core Devices' or the original, so the Pebble watchapp link runs only with one. -->
+    <queries>
+        <package android:name="coredevices.coreapp" />
+        <package android:name="com.getpebble.android.basalt" />
+    </queries>
+
     <application
         android:name=".EncoreApp"
         android:allowBackup="false"
