@@ -37,6 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
@@ -53,12 +54,19 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import uk.gcartee.encore.app.core.CoreHost
+import uk.gcartee.encore.app.playback.tv.TvDevice
+import uk.gcartee.encore.app.playback.tv.TvKind
+import uk.gcartee.encore.app.playback.tv.TvOutput
+import uk.gcartee.encore.app.playback.tv.isTvPlatform
 import uk.gcartee.encore.app.core.userMessage
 import uk.gcartee.encore.app.ui.components.GroupRow
 import uk.gcartee.encore.app.ui.components.Haptic
@@ -100,6 +108,36 @@ fun OutputSheet(host: CoreHost, playingHere: Boolean, onDismiss: () -> Unit) {
     LaunchedEffect(Unit) {
         host.events.collect { e -> if (e.kind == uk.gcartee.encore.core.EventKind.DEVICES_CHANGED) version++ }
     }
+    // Mock-up 50, screen 1: TVs on the Wi-Fi are looked for while the sheet is open.
+    DisposableEffect(Unit) {
+        TvOutput.startDiscovery(context)
+        onDispose { TvOutput.stopDiscovery() }
+    }
+    val tvActive by TvOutput.active.collectAsState()
+    val lit = playingHere && tvActive == null
+
+    // Item 5: the snapshot goes there; this device fades out once it starts.
+    fun handOff(dev: OutputDevice) {
+        if (dev.state == DeviceState.OFFLINE) {
+            haptics.perform(Haptic.Reject)
+            actions.toaster.show("${dev.name} is offline")
+            return
+        }
+        moving = dev.deviceId
+        scope.launch {
+            // A TV playing from here first gives the music back, so the snapshot is this phone's.
+            TvOutput.playHere(play = false)
+            runCatching { host.core.handOffTo(dev.deviceId) }
+                .onSuccess {
+                    haptics.perform(Haptic.Confirm)
+                    // Like Spotify: this device now controls the music there.
+                    uk.gcartee.encore.app.playback.RemoteControl.start(dev.deviceId)
+                    onDismiss()
+                }
+                .onFailure { haptics.perform(Haptic.Reject); actions.toaster.show(it.userMessage()) }
+            moving = null
+        }
+    }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -121,22 +159,27 @@ fun OutputSheet(host: CoreHost, playingHere: Boolean, onDismiss: () -> Unit) {
                 GroupRow(
                     first = true,
                     last = false,
-                    color = if (playingHere) scheme.secondaryContainer else scheme.surfaceContainerHigh,
-                    contentColor = if (playingHere) scheme.onSecondaryContainer else scheme.onSurface,
-                    onClick = if (controlling == null) null else ({
-                        uk.gcartee.encore.app.playback.RemoteControl.playHere { actions.toaster.show(it.userMessage()) }
+                    color = if (lit) scheme.secondaryContainer else scheme.surfaceContainerHigh,
+                    contentColor = if (lit) scheme.onSecondaryContainer else scheme.onSurface,
+                    // Mock-up 50: while a TV plays, this row brings the music back at the TV's place.
+                    onClick = if (controlling == null && tvActive == null) null else ({
+                        if (tvActive != null) {
+                            TvOutput.playHere()
+                        } else {
+                            uk.gcartee.encore.app.playback.RemoteControl.playHere { actions.toaster.show(it.userMessage()) }
+                        }
                         haptics.perform(Haptic.Confirm)
                         onDismiss()
                     }),
                 ) {
                     IconDisc(
                         if (tablet) Icons.tablet() else Icons.phone(),
-                        color = if (playingHere) scheme.primary else scheme.surfaceContainerHighest,
-                        tint = if (playingHere) scheme.onPrimary else scheme.onSurfaceVariant,
+                        color = if (lit) scheme.primary else scheme.surfaceContainerHighest,
+                        tint = if (lit) scheme.onPrimary else scheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.width((Grid.base * 2).dp))
                     Text(if (tablet) "This tablet" else "This phone", style = rowTitle, modifier = Modifier.weight(1f))
-                    if (playingHere) LevelBars(scheme.onSecondaryContainer)
+                    if (lit) LevelBars(scheme.onSecondaryContainer)
                 }
                 // Item 4: Android's own media output switcher (Bluetooth, speakers).
                 GroupRow(first = false, last = true, onClick = {
@@ -153,6 +196,10 @@ fun OutputSheet(host: CoreHost, playingHere: Boolean, onDismiss: () -> Unit) {
             }
             Spacer(Modifier.height((Grid.base * 2.5f).dp))
             val d = devices
+            // Mock-up 50, screen 1: the TVs group (Cast, the Encore TV app, DLNA players).
+            val encoreTvs = d?.takeIf { it.state == OutputState.READY }?.devices.orEmpty()
+                .filter { !it.thisDevice && isTvPlatform(it.platform) }
+            TvGroup(encoreTvs, rowTitle, moving, onDismiss, ::handOff)
             when {
                 d == null || d.state == OutputState.NO_COMPANION ->
                     OutputNote(Icons.devices(), "Connect a companion server in Settings to move music between your devices.")
@@ -161,8 +208,9 @@ fun OutputSheet(host: CoreHost, playingHere: Boolean, onDismiss: () -> Unit) {
                 d.state == OutputState.UNREACHABLE ->
                     OutputNote(Icons.wifi(), d.reason ?: "The companion server can't be reached.", action = "Retry") { version++ }
                 else -> {
-                    val others = d.devices.filter { !it.thisDevice }
-                    Text(
+                    // TVs with the Encore TV app are in the TVs group above.
+                    val others = d.devices.filter { !it.thisDevice && !isTvPlatform(it.platform) }
+                    if (others.isNotEmpty()) Text(
                         "Your other devices",
                         style = type.groupLabel,
                         color = scheme.onSurfaceVariant,
@@ -177,26 +225,7 @@ fun OutputSheet(host: CoreHost, playingHere: Boolean, onDismiss: () -> Unit) {
                                     first = i == 0,
                                     last = i == others.lastIndex,
                                     modifier = Modifier.alpha(if (offline) OFFLINE_ALPHA else 1f),
-                                    onClick = {
-                                        if (offline) {
-                                            haptics.perform(Haptic.Reject)
-                                            actions.toaster.show("${dev.name} is offline")
-                                        } else {
-                                            // Item 5: the snapshot goes there; this device fades out once it starts.
-                                            moving = dev.deviceId
-                                            scope.launch {
-                                                runCatching { host.core.handOffTo(dev.deviceId) }
-                                                    .onSuccess {
-                                                        haptics.perform(Haptic.Confirm)
-                                                        // Like Spotify: this device now controls the music there.
-                                                        uk.gcartee.encore.app.playback.RemoteControl.start(dev.deviceId)
-                                                        onDismiss()
-                                                    }
-                                                    .onFailure { haptics.perform(Haptic.Reject); actions.toaster.show(it.userMessage()) }
-                                                moving = null
-                                            }
-                                        }
-                                    },
+                                    onClick = { handOff(dev) },
                                     onLongClick = { haptics.perform(Haptic.LongPress); menu = true },
                                 ) {
                                     IconDisc(if (dev.platform == "android" || dev.platform == "ios") Icons.phone() else Icons.computer())
@@ -252,6 +281,137 @@ fun OutputSheet(host: CoreHost, playingHere: Boolean, onDismiss: () -> Unit) {
         )
     }
 }
+
+/**
+ * Mock-up 50, screen 1: the "TVs" group. Google Cast devices ("Chromecast" or their model), TVs
+ * and projectors with the Encore TV app (handoff moves the music there, T4), and DLNA players
+ * ("Music only"). The TV playing now is lit; tapping another moves the music there through the
+ * phone's relay (ADR android-0007). While it looks and nothing is found yet, it says so.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun TvGroup(
+    encoreTvs: List<OutputDevice>,
+    rowTitle: androidx.compose.ui.text.TextStyle,
+    moving: String?,
+    onDismiss: () -> Unit,
+    onHandOff: (OutputDevice) -> Unit,
+) {
+    val type = LocalEncoreType.current
+    val scheme = MaterialTheme.colorScheme
+    val context = LocalContext.current
+    val actions = LocalAppActions.current
+    val haptics = rememberHaptics()
+    val found by TvOutput.devices.collectAsState()
+    val searching by TvOutput.searching.collectAsState()
+    val onWifi by TvOutput.onWifi.collectAsState()
+    val active by TvOutput.active.collectAsState()
+    val connecting by TvOutput.connecting.collectAsState()
+    var asked by remember { mutableStateOf<String?>(null) }
+    val tvBuild = uk.gcartee.encore.app.ui.tv.LocalTv.current
+    // The TV asked for has started: the sheet's job is done.
+    LaunchedEffect(active?.id) {
+        if (active != null && active?.id == asked) onDismiss()
+    }
+    if (tvBuild && encoreTvs.isEmpty()) return
+    // ADR android-0007's order: Cast, the Encore TV app, then DLNA.
+    val cast = found.filter { it.kind == TvKind.CAST }
+    val dlna = found.filter { it.kind == TvKind.DLNA }
+    val roku = found.filter { it.kind == TvKind.ROKU }
+    val count = cast.size + encoreTvs.size + roku.size + dlna.size
+    Text(
+        "TVs",
+        style = type.groupLabel,
+        color = scheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = Grid.base.dp, bottom = Grid.base.dp).semantics { heading() },
+    )
+    if (count == 0) {
+        GroupRow(first = true, last = true) {
+            IconDisc(if (onWifi) Icons.tv() else Icons.wifi())
+            Spacer(Modifier.width((Grid.base * 2).dp))
+            Text(
+                when {
+                    !onWifi -> "Connect to Wi-Fi to find TVs."
+                    searching -> "Looking for TVs on this Wi-Fi"
+                    else -> "No TVs found on this Wi-Fi."
+                },
+                style = type.body,
+                color = scheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            if (searching && onWifi) LoadingIndicator(Modifier.size(MOVING_DP.dp), color = scheme.primary)
+        }
+        Spacer(Modifier.height((Grid.base * 2.5f).dp))
+        return
+    }
+    fun play(tv: TvDevice) {
+        if (active?.id == tv.id) return
+        haptics.perform(Haptic.Tick)
+        asked = tv.id
+        uk.gcartee.encore.app.playback.PlaybackHub.withPlayback(context) {
+            TvOutput.playOn(tv) { message ->
+                haptics.perform(Haptic.Reject)
+                actions.toaster.show(message)
+            }
+        }
+    }
+    val rows = buildList {
+        cast.forEach { tv -> add(TvRow(tv.id, tv.name, tv.subtitle, if (tv.video) TvIcon.Tv else TvIcon.Speaker, false) { play(tv) }) }
+        encoreTvs.forEach { dev ->
+            val offline = dev.state == DeviceState.OFFLINE
+            add(TvRow(dev.deviceId, dev.name, if (offline) "Encore TV app · Offline" else "Encore TV app", TvIcon.Tv, offline) { onHandOff(dev) })
+        }
+        roku.forEach { tv -> add(TvRow(tv.id, tv.name, tv.subtitle, TvIcon.Tv, false) { play(tv) }) }
+        dlna.forEach { tv -> add(TvRow(tv.id, tv.name, tv.subtitle, TvIcon.Speaker, false) { play(tv) }) }
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(SHEET_ROW_GAP_DP.dp)) {
+        rows.forEachIndexed { index, r ->
+            key(r.id) {
+                val on = active?.id == r.id
+                GroupRow(
+                    first = index == 0,
+                    last = index == rows.lastIndex,
+                    color = if (on) scheme.secondaryContainer else scheme.surfaceContainerHigh,
+                    contentColor = if (on) scheme.onSecondaryContainer else scheme.onSurface,
+                    modifier = Modifier
+                        .alpha(if (r.offline) OFFLINE_ALPHA else 1f)
+                        .semantics { if (on) stateDescription = "Playing" },
+                    onClick = r.onClick,
+                ) {
+                    IconDisc(
+                        if (r.icon == TvIcon.Tv) Icons.tv() else Icons.speaker(),
+                        color = if (on) scheme.primary else scheme.surfaceContainerHighest,
+                        tint = if (on) scheme.onPrimary else scheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.width((Grid.base * 2).dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(r.name, style = rowTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            r.subtitle,
+                            style = type.body,
+                            color = if (on) scheme.onSecondaryContainer.copy(alpha = 0.8f) else scheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    when {
+                        connecting == r.id || moving == r.id -> {
+                            Spacer(Modifier.width(Grid.base.dp))
+                            LoadingIndicator(Modifier.size(MOVING_DP.dp), color = scheme.primary)
+                        }
+                        on -> LevelBars(scheme.onSecondaryContainer)
+                    }
+                }
+            }
+        }
+    }
+    Spacer(Modifier.height((Grid.base * 2.5f).dp))
+}
+
+private enum class TvIcon { Tv, Speaker }
+
+/** One row of the TVs group. */
+private class TvRow(val id: String, val name: String, val subtitle: String, val icon: TvIcon, val offline: Boolean, val onClick: () -> Unit)
 
 /** Why there are no other devices to play on, as a card in the sheet's own look. */
 @Composable

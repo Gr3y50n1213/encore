@@ -7,7 +7,8 @@
      for downloads the person starts, and POST_NOTIFICATIONS, optional, asked in
      context after the board 25 primer when the first download starts. None is asked
      at launch. -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -19,6 +20,9 @@
     <!-- Phase 9: install-time, approved by the owner. Lets a download the person started
          show as a Live Update on Android 16 QPR1 and later (notifications/LiveUpdates.kt). -->
     <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
+    <!-- Play on a TV (ADR android-0007, T2): install-time. Lets the SSDP search for DLNA
+         players receive on the Wi-Fi's multicast address while Play on is open. -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 
     <application
         android:name=".EncoreApp"
@@ -189,6 +193,24 @@
                 android:name="android.service.quicksettings.ACTIVE_TILE"
                 android:value="true" />
         </service>
+
+        <!-- Google's Cast library would report its own usage to Google through Play services'
+             data-transport "cct" backend. Encore sends nothing to anyone (plan section 12):
+             the backend's registration is removed, so the transport finds no backend and
+             drops those events on the phone. The classes stay, because Cast refers to them. -->
+        <service
+            android:name="com.google.android.datatransport.runtime.backends.TransportBackendDiscovery"
+            tools:node="merge">
+            <meta-data
+                android:name="backend:com.google.android.datatransport.cct.CctBackendFactory"
+                tools:node="remove" />
+        </service>
+
+        <!-- Play on a TV (ADR android-0007, T3): Google Cast with the Default Media Receiver.
+             The framework starts only when Play on looks for TVs. -->
+        <meta-data
+            android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
+            android:value="uk.gcartee.encore.app.playback.tv.EncoreCastOptions" />
 
         <!-- Stage W1: commands from the Encore watch app (wear/WearCommandService.kt,
              ADR android-0008). Exported because Google Play services binds it; the listener

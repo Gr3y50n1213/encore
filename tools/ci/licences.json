@@ -11,6 +11,13 @@
     "Zlib": "permissive"
   },
   "serverOnly": {},
+  "androidOnly": {
+    "_about": "Not read by check_licences.py (Cargo only): the Android app's Gradle libraries are listed in android/THIRD_PARTY_LICENSES.md. Recorded here because one is not open source.",
+    "Android-SDK-License": {
+      "libraries": "com.google.android.gms:play-services-cast-framework 23.0.0 and the Google Play services and Google data transport libraries it brings",
+      "why": "Google Cast for Play on a TV (docs/adr/android-0007-play-on-a-tv.md), approved by the owner on 27 November 2026; closed source, shipped only in the GitHub build, which already needs Google Play services for Android Auto. Their POMs declare the Android Software Development Kit License."
+    }
+  },
   "undeclared": {
     "allo-isolate": {
       "licence": "Apache-2.0",

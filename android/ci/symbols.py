@@ -38,6 +38,8 @@ NAMES = {
     "bedtime": False,
     # Renaming a playlist (owner, 24 November 2026).
     "edit": False,
+    # Play on a TV (mock-up 50): the TVs group, and the TV volume on Now Playing.
+    "tv": False, "volume_up": False,
 }
 BASE = "https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/{n}/materialsymbolsrounded/{n}{f}_24px.svg"
 TEMPLATE = """<?xml version="1.0" encoding="utf-8"?>

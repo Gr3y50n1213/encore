@@ -1,0 +1,17 @@
+# Encore for Roku (ADR android-0007, plan T5): plays what the Encore app on a phone
+# sends it over the home network, and shows what is playing. Installed through the
+# Roku's developer mode; started and driven by the phone through Roku's External
+# Control Protocol (ECP). It never signs in anywhere and stores nothing.
+title=Encore
+subtitle=Music from the Encore app on your phone
+major_version=1
+minor_version=0
+build_version=1
+mm_icon_focus_hd=pkg:/images/icon_hd.png
+mm_icon_focus_fhd=pkg:/images/icon_fhd.png
+splash_screen_fhd=pkg:/images/splash_fhd.png
+splash_screen_hd=pkg:/images/splash_fhd.png
+splash_color=#14121C
+splash_min_time=600
+ui_resolutions=fhd
+supports_input_launch=1

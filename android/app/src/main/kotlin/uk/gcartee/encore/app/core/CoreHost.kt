@@ -37,7 +37,8 @@ class CoreHost private constructor(val context: Context) {
             dataDir = File(context.filesDir, "core").apply { mkdirs() }.absolutePath,
             deviceId = deviceId(context),
             deviceName = deviceName(context),
-            platform = "android",
+            // Encore TV says so, so Play on lists it among the TVs (ADR android-0007, T4).
+            platform = if (uk.gcartee.encore.app.ui.tv.isTv(context)) "android-tv" else "android",
         ),
     )
 

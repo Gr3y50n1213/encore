@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import uk.gcartee.encore.app.core.CoreHost
+import uk.gcartee.encore.app.playback.tv.TvTarget
 import uk.gcartee.encore.core.ArtworkOf
 import uk.gcartee.encore.core.CoreEvent
 import uk.gcartee.encore.core.EndReason
@@ -67,7 +68,8 @@ data class PlayerState(
 @OptIn(UnstableApi::class)
 class CorePlayback(
     private val host: CoreHost,
-    private val exo: ExoPlayer,
+    /** This phone's own player. */
+    private val local: ExoPlayer,
     private val headers: ConcurrentHashMap<String, Map<String, String>>,
     private val scope: CoroutineScope,
     /** The rolling cache holds the song under this cache key whole ([RollingCache.isWhole]). */
@@ -76,6 +78,15 @@ class CorePlayback(
     private val deviceVolume: DeviceVolume? = null,
 ) : Player.Listener {
     private val core get() = host.core
+    /**
+     * The player the music plays on: [local], or a TV's while one has the music
+     * (ADR android-0007, [moveTo]). Everything below drives whichever it is.
+     */
+    private var exo: Player = local
+    /** The TV the music is on, with the relay's addresses for its songs; null: this phone. */
+    private var output: TvTarget? = null
+    /** Just after a move: the new player's first position report isn't a seek by the listener. */
+    private var movedAt = 0L
     private val clock = ListenClock { SystemClock.elapsedRealtime() }
     /** The play the core was told about (`playback_started`), by queue uid. */
     private var startedUid: Long? = null
@@ -144,6 +155,62 @@ class CorePlayback(
         }
         exo.removeListener(this)
     }
+
+    /**
+     * ADR android-0007: the music moves to a TV ([target]) or back to this phone (null), at the
+     * same song and position, playing if it was ([play] null) or as [play] says. The play goes
+     * on: it isn't closed or started again, so a song heard on the TV is logged once, from
+     * this phone (Phase 7's rule, the device that plays logs). The old player stops; ExoPlayer
+     * gives up audio focus when it stops. Main thread.
+     */
+    fun moveTo(target: TvTarget?, play: Boolean? = null) {
+        val to = target?.player ?: local
+        val from = exo
+        if (to === from) {
+            output = target
+            return
+        }
+        val settling = pendingSettle != null
+        val position = if (settling) 0L else from.currentPosition.coerceAtLeast(0)
+        val playing = play ?: (from.playWhenReady || pendingPlay)
+        pendingSettle?.cancel()
+        pendingSettle = null
+        pendingPlay = false
+        scanJob?.cancel()
+        scanJob = null
+        abortFade()
+        main.removeCallbacksAndMessages(null)
+        tidyPending = false
+        // The old player's own reports of its stop aren't the listener's pause.
+        from.removeListener(this)
+        clock.playing(false)
+        from.pause()
+        from.stop()
+        from.clearMediaItems()
+        pendingSeekMs = null
+        pendingSeekUid = null
+        transcodeKeys.clear()
+        output = target
+        exo = to
+        to.addListener(this)
+        // A skip in the next seconds reads as the change of output, never as a dislike.
+        if (startedUid != null) runCatching { core.playbackInterrupted(InterruptionKind.OUTPUT_CHANGED) }
+        Log.i(TAG, if (target == null) "music back on this device" else "music moved to a TV")
+        val current = runCatching { core.queue().current }.getOrNull()
+        val item = current?.let(::mediaItem)
+        if (current == null || item == null) {
+            publish()
+            return
+        }
+        movedAt = SystemClock.elapsedRealtime()
+        to.setMediaItem(item, position)
+        to.prepare()
+        to.playWhenReady = playing
+        publish(current)
+    }
+
+    /** A TV has the music (Now Playing's band; the volume keys move the TV's volume). */
+    val onTv: Boolean get() = output != null
 
     // --- Actions from the app's own buttons (origin Button) and the media session. ---
 
@@ -427,7 +494,11 @@ class CorePlayback(
             // Spotify's does, and what is reported is that volume.
             RemoteCommandKind.SET_VOLUME -> c.level?.let { level ->
                 val dv = deviceVolume
-                if (dv == null) {
+                if (output != null && exo.isCommandAvailable(Player.COMMAND_SET_DEVICE_VOLUME_WITH_FLAGS)) {
+                    // Playing on a TV: the TV's own volume, as the phone's keys do.
+                    val info = exo.deviceInfo
+                    exo.setDeviceVolume((info.minVolume + level.coerceIn(0.0, 1.0) * (info.maxVolume - info.minVolume)).toInt(), 0)
+                } else if (dv == null) {
                     setVolume(level.toFloat())
                 } else {
                     dv.set(level)
@@ -737,6 +808,8 @@ class CorePlayback(
         }
         if (ownSeek) {
             ownSeek = false
+        } else if (SystemClock.elapsedRealtime() - movedAt < MOVE_QUIET_MS) {
+            // The new player (a TV) settling at the position it was handed: not a seek.
         } else if (startedUid != null) {
             core.playbackSeeked(old.positionMs, new.positionMs)
         }
@@ -778,6 +851,8 @@ class CorePlayback(
         if (exo.isPlaying && startedUid != null) {
             core.playbackProgress(exo.currentPosition, clock.listenedMs)
         }
+        // A TV playing a long song asks the relay for nothing for a while: not idle.
+        if (exo.isPlaying) output?.touch()
         // The volume keys and the system's slider change it too: follow it each second.
         reportDeviceVolume()
         // Phase 9: the sleep timer's fade while playing; its end while paused.
@@ -952,8 +1027,10 @@ class CorePlayback(
         if (songOfUid.size > SONGS_REMEMBERED) songOfUid.clear()
         songOfUid[entry.uid] = entry.song.id
         // A transcoded song the rolling cache already holds whole (played before) opens
-        // from there at once: its length is known, so it can seek from the start.
-        val transcoded = !info.local && info.mayTranscode
+        // from there at once: its length is known, so it can seek from the start. On a TV the
+        // relay reads it (through the same cache), so none of this applies there.
+        val tv = output
+        val transcoded = tv == null && !info.local && info.mayTranscode
         if (transcoded) transcodeKeys.add(info.cacheKey)
         val uri = if (transcoded && wholeInCache(info.cacheKey)) {
             headers[info.url + WHOLE] = headers.getValue(info.url)
@@ -965,7 +1042,7 @@ class CorePlayback(
         // The cover goes out as this app's own address (ArtworkProvider), never the
         // server's: the session's metadata is read by other apps, and the car can't send
         // the server's sign-in header (its Now Playing card stayed grey without a cover).
-        return MediaItem.Builder()
+        val item = MediaItem.Builder()
             .setMediaId("$UID_PREFIX${entry.uid}")
             .setUri(uri)
             // The rolling cache's name for it (no token); a downloaded file isn't cached.
@@ -983,6 +1060,8 @@ class CorePlayback(
                     .build(),
             )
             .build()
+        // A TV gets the relay's addresses for the song and its cover, never the server's.
+        return if (tv == null) item else tv.item(entry, info, item)
     }
 
     private fun currentUid(): Long? = exo.currentMediaItem?.mediaId?.toUidOrNull()
@@ -1024,6 +1103,8 @@ class CorePlayback(
         private const val FADE_STEPS = 16
         /** Phase 9: the sleep timer's fade sets the volume about 16 times a second. */
         private const val FADE_STEP_MS = 62L
+        /** After a move to or from a TV, position changes for this long are the move's own. */
+        private const val MOVE_QUIET_MS = 3_000L
 
         fun String.toUidOrNull(): Long? = removePrefix(UID_PREFIX).toLongOrNull()
     }

@@ -1,0 +1,41 @@
+# The Encore channel for Roku (roku/, ADR android-0007, plan T5): checks that every
+# SceneGraph XML file is well formed and every script the components name exists, then
+# packs the channel as the zip a Roku in developer mode installs. No Roku tools run here;
+# the channel is tried on the owner's Roku.
+#
+# Actions are pinned to commit SHAs; the comment names the release.
+name: roku
+
+on:
+  push:
+    branches: [main]
+    paths: ["roku/**", ".github/workflows/roku.yml"]
+  pull_request:
+    paths: ["roku/**", ".github/workflows/roku.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: "Roku channel: check and pack"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check the channel
+        run: python3 -I -B tools/ci/check_roku.py roku
+
+      - name: Pack
+        run: |
+          mkdir -p out
+          (cd roku && zip -q -r -X ../out/encore-roku.zip manifest source components images)
+          unzip -l out/encore-roku.zip
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: encore-roku
+          path: out/encore-roku.zip
+          if-no-files-found: error

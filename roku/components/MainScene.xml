@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- What plays: the cover, the song, the artist, and which phone it comes from, on the
+     dark ground of Encore TV (mock-up 45). The phone is the remote; the Roku remote's own
+     play and pause keys work too. -->
+<component name="MainScene" extends="Scene">
+    <interface>
+        <field id="command" type="assocarray" onChange="onCommand" />
+    </interface>
+    <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
+    <children>
+        <Rectangle id="ground" width="1920" height="1080" color="0x14121CFF" />
+        <Poster id="cover" translation="[160,240]" width="600" height="600" loadDisplayMode="scaleToFit" />
+        <Label id="artist" translation="[860,420]" width="900" font="font:MediumSystemFont" color="0xCFC6EEFF" />
+        <Label id="title" translation="[860,470]" width="900" height="200" wrap="true" maxLines="2" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
+        <Label id="album" translation="[860,640]" width="900" font="font:SmallSystemFont" color="0xA9A5BDFF" />
+        <Label id="status" translation="[160,960]" width="1600" font="font:SmallSystemFont" color="0xA9A5BDFF" text="Waiting for the Encore app on your phone" />
+        <Audio id="player" />
+    </children>
+</component>
