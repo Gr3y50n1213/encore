@@ -7,6 +7,11 @@
     <issue id="NewApi">
         <ignore path="**/core/bindings/kotlin/**" />
     </issue>
+    <!-- Appcompat (it comes with Google's Cast library, ADR android-0007) asks for app:tint,
+         but the widget preview layouts are RemoteViews, which only know android:tint. -->
+    <issue id="UseAppTint">
+        <ignore path="**/res/layout/*_widget_preview.xml" />
+    </issue>
     <!-- Plan section 19: target API 36 on purpose; compileSdk is 37 for Material 3 1.5. -->
     <issue id="OldTargetApi" severity="ignore" />
 </lint>

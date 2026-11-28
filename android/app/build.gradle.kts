@@ -380,6 +380,12 @@ dependencies {
     // Play on a TV (ADR android-0007): Media3's Cast player and Google's Cast framework.
     implementation(libs.media3.cast)
     implementation(libs.play.services.cast.framework)
+    // Google's Cast library reports usage to Google through its data-transport "cct"
+    // backend. Encore sends nothing to anyone (plan section 12), so that backend is left
+    // out: the Cast library's own events are then dropped on the phone (ADR android-0007).
+    configurations.all {
+        exclude(group = "com.google.android.datatransport", module = "transport-backend-cct")
+    }
     // Phase 9 (WP6): home-screen widgets.
     implementation(libs.glance.appwidget)
     implementation(libs.glance.material3)
