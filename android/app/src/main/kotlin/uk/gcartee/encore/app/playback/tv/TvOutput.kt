@@ -76,7 +76,7 @@ object TvOutput {
     private const val ROKU_SEARCH_MS = 3_000L
 
     /** An error's words without any address in them, for the log. */
-    private fun masked(message: String?): String = (message ?: "").replace(Regex("\d+\.\d+\.\d+\.\d+"), "<address>").take(160)
+    private fun masked(message: String?): String = (message ?: "").replace(Regex("""\d+\.\d+\.\d+\.\d+"""), "<address>").take(160)
 
     /** This phone's name ("Sam's phone"), which the Roku shows as where the music comes from. */
     private fun phoneName(context: Context): String =
