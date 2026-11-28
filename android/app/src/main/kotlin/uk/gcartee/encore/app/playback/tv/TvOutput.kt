@@ -75,6 +75,9 @@ object TvOutput {
     /** Longer than the search's MX (2 s), which a Roku waits up to before answering. */
     private const val ROKU_SEARCH_MS = 3_000L
 
+    /** An error's words without any address in them, for the log. */
+    private fun masked(message: String?): String = (message ?: "").replace(Regex("\d+\.\d+\.\d+\.\d+"), "<address>").take(160)
+
     /** This phone's name ("Sam's phone"), which the Roku shows as where the music comes from. */
     private fun phoneName(context: Context): String =
         runCatching { android.provider.Settings.Global.getString(context.contentResolver, android.provider.Settings.Global.DEVICE_NAME) }
@@ -231,7 +234,7 @@ object TvOutput {
                 rokuInfo[key]
             } else {
                 runCatching { Roku.info(base) }
-                    .onFailure { Log.i(TAG, "a Roku's details couldn't be read: ${it.javaClass.simpleName}") }
+                    .onFailure { Log.i(TAG, "a Roku's details couldn't be read: ${it.javaClass.simpleName} ${masked(it.message)}") }
                     .getOrNull()
                     .also { rokuInfo[key] = it }
             } ?: continue
