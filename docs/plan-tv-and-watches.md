@@ -27,9 +27,11 @@ As before, every build and test runs in CI, and the phones and the tablet are us
   - a tile with up to four chips (the pinned mixes, then Liked songs) and "Tap a mix to play", and a complication with the playing song that opens Now Playing.
 
   The Wearable Data Layer carries it from the phone: two DataItems, sent only while a watch with Encore is reachable and at most twice a second, and commands back as messages. A locked watch shows no titles, only "Encore" and the controls. Guest, a PIN and Private listening send no mixes. Material 3 Expressive for Wear. CI builds, lints and tests it; the look, the bezel, the tile, the complication and the lock rules wait for the owner's Galaxy Watch 5.
-- [ ] **W2. Pebble:**
-  - a watchapp in C (title, artist, the lyric line, Like on a long press of the middle button), built with the Pebble SDK in CI;
-  - on the phone, PebbleKit Android AppMessages through the owner's Pebble app (Core Devices' app keeps PebbleKit's AppMessage working).
+- [x] **W2. Pebble** (`pebble/`; ADR android-0009, 27 November 2026):
+  - a watchapp in C as screen 6: the artist, the title in bold, a rule and the lyric line in italics (slanted by the app, as the Pebble's fonts have none), and an action bar with previous, play or pause and next; a long press of the middle button likes or unlikes the song. It builds with Core Devices' Pebble SDK 4.44 in CI for all seven platforms (aplite, basalt, chalk, diorite, emery, flint, gabbro), and releases carry the .pbw;
+  - on the phone, PebbleKit Android's AppMessage broadcasts written by hand (no library; `app/.../pebble/`), through Core Devices' Pebble app or the original one. They are sent only with a Pebble app installed and while the watchapp is open, from the same Now Playing as the Wear link, on the same changes and at most twice a second. The buttons map to the Wear watch's commands.
+
+  A Pebble has no lock, so with "Hide listening history while locked" on, it shows a song only while it plays, otherwise "Encore" and the controls. No cover, mixes or next song go to it. Core's app asks the person to allow "Legacy PebbleKit" for Encore. CI builds the .pbw and tests the phone's side on the JVM. Nothing has run on a watch or the emulator: the owner has no Pebble.
 
 ## Only the owner can do
 

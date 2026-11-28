@@ -1,0 +1,45 @@
+# The Encore watchapp for Pebble (pebble/, stage W2, ADR android-0009): builds it with Core
+# Devices' Pebble SDK for every Pebble, black-and-white and colour, round and rectangular,
+# and uploads the .pbw the Pebble app installs. tools/ci/build_pebble.sh pins and lists the
+# build tools (uv, pebble-tool, the SDK and its toolchain); they build the .pbw and are never
+# shipped with Encore. No watch or emulator runs here: the owner has no Pebble, so the
+# watchapp is built, not tried.
+#
+# Actions are pinned to commit SHAs; the comment names the release.
+name: pebble
+
+on:
+  push:
+    branches: [main]
+    paths: ["pebble/**", "tools/ci/build_pebble.sh", ".github/workflows/pebble.yml"]
+  pull_request:
+    paths: ["pebble/**", "tools/ci/build_pebble.sh", ".github/workflows/pebble.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pebble-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: "Pebble watchapp: build the .pbw"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+
+      - name: Build
+        run: tools/ci/build_pebble.sh
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: encore-pebble
+          path: pebble/build/*.pbw
+          if-no-files-found: error
