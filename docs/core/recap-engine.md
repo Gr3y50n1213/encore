@@ -1,6 +1,6 @@
 # Year recap (Phase 11, engine only)
 
-A draft section for CORE-API.md, to be folded in when the recap is wired into the core API, the store and the server. Nothing here is exposed through `encore-core` or the bindings yet. Design: plan sections 10 and 25, boards 39 to 41, ADR core-0025.
+The engine's input and output, field by field. The core's calls that use it are in CORE-API.md, "Year recap" (API 12). Design: plan sections 10 and 25, boards 39 to 41, ADR core-0025.
 
 ## Calls (crate `encore-recap`)
 
