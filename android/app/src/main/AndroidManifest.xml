@@ -7,7 +7,8 @@
      for downloads the person starts, and POST_NOTIFICATIONS, optional, asked in
      context after the board 25 primer when the first download starts. None is asked
      at launch. -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -191,6 +192,18 @@
             <meta-data
                 android:name="android.service.quicksettings.ACTIVE_TILE"
                 android:value="true" />
+        </service>
+
+        <!-- Google's Cast library would report its own usage to Google through Play services'
+             data-transport "cct" backend. Encore sends nothing to anyone (plan section 12):
+             the backend's registration is removed, so the transport finds no backend and
+             drops those events on the phone. The classes stay, because Cast refers to them. -->
+        <service
+            android:name="com.google.android.datatransport.runtime.backends.TransportBackendDiscovery"
+            tools:node="merge">
+            <meta-data
+                android:name="backend:com.google.android.datatransport.cct.CctBackendFactory"
+                tools:node="remove" />
         </service>
 
         <!-- Play on a TV (ADR android-0007, T3): Google Cast with the Default Media Receiver.
