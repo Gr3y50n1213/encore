@@ -24,6 +24,23 @@ class RokuTest {
     }
 
     @Test
+    fun a_roku_says_what_it_still_needs() {
+        fun info(mode: String?, developer: Boolean) = "<device-info>" +
+            (mode?.let { "<ecp-setting-mode>$it</ecp-setting-mode>" } ?: "") +
+            "<developer-enabled>$developer</developer-enabled></device-info>"
+        val withChannel = """<apps><app id="12" type="appl">Netflix</app><app id="dev" type="appl">Encore</app></apps>"""
+        val without = """<apps><app id="12" type="appl">Netflix</app></apps>"""
+        // As a new Roku TV comes: control limited (its app list refused) and developer mode off.
+        assertEquals(setOf(Roku.Need.CONTROL, Roku.Need.CHANNEL), Roku.needs(info("limited", false), null))
+        assertEquals(setOf(Roku.Need.CONTROL), Roku.needs(info("limited", true), null))
+        assertEquals(setOf(Roku.Need.CHANNEL), Roku.needs(info("enabled", true), without))
+        assertEquals(emptySet<Roku.Need>(), Roku.needs(info("enabled", true), withChannel))
+        assertEquals(emptySet<Roku.Need>(), Roku.needs(info("permissive", true), withChannel))
+        // An older Roku has no such setting; an app list that couldn't be read blocks nothing.
+        assertEquals(emptySet<Roku.Need>(), Roku.needs(info(null, true), null))
+    }
+
+    @Test
     fun the_channel_is_given_plain_encoded_parameters() {
         assertEquals(
             "url=http%3A%2F%2F192.168.1.5%3A41234%2Fab%2Fsong%2F0&title=Slow%20Burn%20%26%20Co",

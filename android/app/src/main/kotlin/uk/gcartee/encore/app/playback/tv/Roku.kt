@@ -28,6 +28,35 @@ object Roku {
         return Info(id, unescape(name), tag("model-name")?.let(::unescape))
     }
 
+    /** What a Roku still needs before Encore can play on it. */
+    enum class Need {
+        /** Its "Control by mobile apps" setting refuses commands from the phone. */
+        CONTROL,
+
+        /** The Encore channel isn't installed (or developer mode, which installs it, is off). */
+        CHANNEL,
+    }
+
+    /** What this Roku still needs, asked now. Throws when it doesn't answer. */
+    fun check(base: URL): Set<Need> {
+        val deviceInfo = get(URL(base, "query/device-info"))
+        // A Roku that limits control refuses its app list: that isn't "no channel".
+        val apps = runCatching { get(URL(base, "query/apps")) }.getOrNull()
+        return needs(deviceInfo, apps)
+    }
+
+    /** Pure, for tests: from `query/device-info`, and `query/apps` when the Roku gives it. */
+    fun needs(deviceInfo: String, apps: String?): Set<Need> {
+        fun value(name: String) = Regex("<$name>([^<]*)</$name>").find(deviceInfo)?.groupValues?.get(1)?.trim()?.lowercase()
+        val control = value("ecp-setting-mode")
+        val noDeveloper = value("developer-enabled") == "false"
+        val notListed = apps != null && "<apps" in apps && !Regex("<app id=\"$CHANNEL\"").containsMatchIn(apps)
+        return buildSet {
+            if (control == "limited" || control == "disabled") add(Need.CONTROL)
+            if (noDeveloper || notListed) add(Need.CHANNEL)
+        }
+    }
+
     /** Whether the Encore channel is the one on screen now. */
     fun channelOpen(base: URL): Boolean =
         Regex("<app id=\"$CHANNEL\"").containsMatchIn(get(URL(base, "query/active-app")))

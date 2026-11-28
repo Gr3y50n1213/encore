@@ -39,8 +39,8 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -54,7 +54,10 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,11 +66,13 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import uk.gcartee.encore.app.core.CoreHost
+import uk.gcartee.encore.app.core.userMessage
+import uk.gcartee.encore.app.playback.tv.Roku
 import uk.gcartee.encore.app.playback.tv.TvDevice
 import uk.gcartee.encore.app.playback.tv.TvKind
 import uk.gcartee.encore.app.playback.tv.TvOutput
+import uk.gcartee.encore.app.playback.tv.TvSetup
 import uk.gcartee.encore.app.playback.tv.isTvPlatform
-import uk.gcartee.encore.app.core.userMessage
 import uk.gcartee.encore.app.ui.components.GroupRow
 import uk.gcartee.encore.app.ui.components.Haptic
 import uk.gcartee.encore.app.ui.components.IconDisc
@@ -307,6 +312,7 @@ private fun TvGroup(
     val onWifi by TvOutput.onWifi.collectAsState()
     val active by TvOutput.active.collectAsState()
     val connecting by TvOutput.connecting.collectAsState()
+    val setup by TvOutput.setup.collectAsState()
     var asked by remember { mutableStateOf<String?>(null) }
     val tvBuild = uk.gcartee.encore.app.ui.tv.LocalTv.current
     // The TV asked for has started: the sheet's job is done.
@@ -405,8 +411,53 @@ private fun TvGroup(
             }
         }
     }
+    // In the sheet itself: a toast would sit behind it.
+    setup?.let { s ->
+        Spacer(Modifier.height(Grid.base.dp))
+        TvSetupNote(s) { found.firstOrNull { it.id == s.id }?.let(::play) }
+    }
     Spacer(Modifier.height((Grid.base * 2.5f).dp))
 }
+
+/** What a Roku still needs before it can play, with the full steps and "Try again". */
+@Composable
+private fun TvSetupNote(setup: TvSetup, onRetry: () -> Unit) {
+    val type = LocalEncoreType.current
+    val scheme = MaterialTheme.colorScheme
+    val links = LocalUriHandler.current
+    val actions = LocalAppActions.current
+    GroupRow(first = true, last = true, color = scheme.tertiaryContainer, contentColor = scheme.onTertiaryContainer) {
+        Column(
+            Modifier
+                .weight(1f)
+                .semantics { liveRegion = LiveRegionMode.Polite },
+            verticalArrangement = Arrangement.spacedBy(Grid.base.dp),
+        ) {
+            Text("${setup.name} needs a one-time setup", style = type.songRowTitle)
+            if (Roku.Need.CONTROL in setup.needs) {
+                Text(
+                    "On the Roku, open Settings, System, Advanced system settings, Control by mobile apps, " +
+                        "and choose Enabled (under Network access on some Rokus).",
+                    style = type.body,
+                )
+            }
+            if (Roku.Need.CHANNEL in setup.needs) {
+                Text(
+                    "Add the Encore channel: turn on the Roku's developer mode, then upload encore-roku.zip to it from a computer.",
+                    style = type.body,
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(Grid.base.dp)) {
+                FilledTonalButton(onClick = onRetry) { Text("Try again") }
+                TextButton(onClick = {
+                    runCatching { links.openUri(ROKU_STEPS) }.onFailure { actions.toaster.show("No app here can open web pages") }
+                }) { Text("All the steps") }
+            }
+        }
+    }
+}
+
+private const val ROKU_STEPS = "https://github.com/Gr3y50n1213/encore/blob/main/roku/README.md"
 
 private enum class TvIcon { Tv, Speaker }
 
