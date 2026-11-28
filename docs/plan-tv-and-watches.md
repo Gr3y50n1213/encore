@@ -1,0 +1,40 @@
+# Plan: Play on a TV, and the watch apps (mock-up 50)
+
+The owner approved mock-up 50 in full on 27 November 2026, including Google's Cast library, Google Play services for the Wear OS link, and Core Devices' Pebble SDK. The Windows and Linux app comes after this. Decisions: ADR android-0007 (TV). The watch ADR is written at stage W1.
+
+As before, every build and test runs in CI, and the phones and the tablet are used when they are free. Tick each step as it lands.
+
+## Play on a TV
+
+- [ ] **T1. The relay and the TV player.**
+  - The phone's relay: a per-session pass, Range support, and the queue's songs only (ADR android-0007).
+  - A Media3 `SimpleBasePlayer` that drives a remote renderer.
+  - Encore's session switches to it and back without a restart, keeping the position.
+  - The "TVs" group in Play on (mock-up 50, screen 1).
+  - The "Playing on <TV>" band and TV volume on Now Playing (screen 2).
+- [ ] **T2. DLNA renderers** ("Music only"): SSDP discovery and AVTransport and RenderingControl SOAP. Tests against a recorded renderer in CI.
+- [ ] **T3. Google Cast** with the Default Media Receiver: `media3-cast` and Google's Cast framework, from the relay's addresses. The covers and titles come from the relay too.
+- [ ] **T4. The Encore TV app as a target.** It is already a "Your devices" entry through the companion. It gets the TV icon and "Encore TV app" in the TVs group, and handoff moves the music.
+- [ ] **T5. Roku:** SSDP plus ECP, and an Encore channel (BrightScript, SceneGraph) built as a zip in CI. The owner installs it in developer mode.
+- [ ] **T6. Encore's own Cast receiver page:** the mock-up 45 look with synced lyrics, served by the companion over https. It needs the owner's Cast registration (US$5).
+
+## Watches
+
+- [ ] **W1. Wear OS app** (a `wear` module):
+  - Now Playing with the lyric line;
+  - play, pause and skip;
+  - crown volume;
+  - Like, Up Next and Play on;
+  - a tile with pinned mixes, and a complication.
+
+  The Wearable Data Layer carries it from the phone, and nothing is shown while the watch is locked. Material 3 Expressive for Wear.
+- [ ] **W2. Pebble:**
+  - a watchapp in C (title, artist, the lyric line, Like on a long press of the middle button), built with the Pebble SDK in CI;
+  - on the phone, PebbleKit Android AppMessages through the owner's Pebble app (Core Devices' app keeps PebbleKit's AppMessage working).
+
+## Only the owner can do
+
+- Say which TVs and watches are at home to test with: a Chromecast or Google TV, the Roku model, the Galaxy Watch 5, the Pebble model.
+- Roku: turn on developer mode (Home three times, Up twice, Right, Left, Right, Left, Right on the remote) and choose a password, for sideloading.
+- Cast: register a Cast receiver app with Google (one-time US$5) when T6 is reached.
+- Galaxy Watch: turn on developer options and Wi-Fi debugging, so builds can be installed.
