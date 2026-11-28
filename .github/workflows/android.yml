@@ -103,13 +103,6 @@ jobs:
 
       # Temporary (play-on-tv): the release build's libraries and their POM licences, for
       # android/THIRD_PARTY_LICENSES.md (android/ci/pom_licences.py). Removed before merging.
-      - name: Release dependency licences
-        if: ${{ always() }}
-        working-directory: android
-        run: |
-          ./gradlew -q :app:dependencies --configuration phoneReleaseRuntimeClasspath > "$RUNNER_TEMP/deps.txt"
-          python3 -I -B ci/pom_licences.py "$RUNNER_TEMP/deps.txt" "$HOME/.gradle"
-
       - name: Upload the APKs
         if: ${{ always() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
