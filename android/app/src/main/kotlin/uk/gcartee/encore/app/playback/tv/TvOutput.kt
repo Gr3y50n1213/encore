@@ -72,8 +72,8 @@ fun isTvPlatform(platform: String): Boolean {
 object TvOutput {
     private const val TAG = "TvOutput"
     private const val SEARCH_MS = 3_000L
-    /** Rokus answer within a second (Roku's ECP guide). */
-    private const val ROKU_SEARCH_MS = 1_500L
+    /** Longer than the search's MX (2 s), which a Roku waits up to before answering. */
+    private const val ROKU_SEARCH_MS = 3_000L
 
     /** This phone's name ("Sam's phone"), which the Roku shows as where the music comes from. */
     private fun phoneName(context: Context): String =
