@@ -26,7 +26,7 @@ import uk.gcartee.encore.core.QueueEntry
 import uk.gcartee.encore.core.StreamInfo
 
 /** The kinds of TV in Play on's "TVs" group (ADR android-0007's order). */
-enum class TvKind { CAST, DLNA }
+enum class TvKind { CAST, DLNA, ROKU }
 
 /** A TV found on the Wi-Fi. */
 data class TvDevice(
@@ -72,6 +72,13 @@ fun isTvPlatform(platform: String): Boolean {
 object TvOutput {
     private const val TAG = "TvOutput"
     private const val SEARCH_MS = 3_000L
+    /** Rokus answer within a second (Roku's ECP guide). */
+    private const val ROKU_SEARCH_MS = 1_500L
+
+    /** This phone's name ("Sam's phone"), which the Roku shows as where the music comes from. */
+    private fun phoneName(context: Context): String =
+        runCatching { android.provider.Settings.Global.getString(context.contentResolver, android.provider.Settings.Global.DEVICE_NAME) }
+            .getOrNull()?.takeIf { it.isNotBlank() } ?: android.os.Build.MODEL
     private const val SEARCH_EVERY_MS = 12_000L
 
     /** What the playback service gives: the switch, and its data sources for the relay. */
@@ -97,6 +104,11 @@ object TvOutput {
     private var searchJob: Job? = null
     private var castFound = emptyList<TvDevice>()
     private var dlnaFound = emptyList<TvDevice>()
+    private var rokuFound = emptyList<TvDevice>()
+    /** A Roku's ECP address (`http://<roku>:8060/`) by its id in [TvDevice]. */
+    private val rokuById = HashMap<String, java.net.URL>()
+    /** Rokus already asked their name, by ECP address. */
+    private val rokuInfo = HashMap<String, Roku.Info?>()
     private val dlnaById = HashMap<String, DlnaDevice>()
     private val descriptions = HashMap<String, DlnaDevice?>()
 
@@ -152,7 +164,8 @@ object TvOutput {
         searchJob = scope.launch {
             while (isActive) {
                 val found = withContext(Dispatchers.IO) { runCatching { searchDlna(app) }.getOrDefault(emptyList()) }
-                dlnaFound = found
+                dlnaFound = found.filter { it.kind == TvKind.DLNA }
+                rokuFound = found.filter { it.kind == TvKind.ROKU }
                 publish()
                 _searching.value = false
                 delay(SEARCH_EVERY_MS)
@@ -171,7 +184,7 @@ object TvOutput {
     }
 
     private fun publish() {
-        _devices.value = (castFound + dlnaFound).distinctBy { it.id }
+        _devices.value = (castFound + rokuFound + dlnaFound).distinctBy { it.id }
         if (_devices.value.isNotEmpty()) _searching.value = false
     }
 
@@ -182,9 +195,9 @@ object TvOutput {
         if (wifi == null) return emptyList()
         val manager = context.applicationContext.getSystemService(WifiManager::class.java) ?: return emptyList()
         val lock = manager.createMulticastLock("Encore TV search").apply { setReferenceCounted(false) }
-        val hits = try {
+        val (hits, rokus) = try {
             lock.acquire()
-            Ssdp.search(wifi, SEARCH_MS)
+            Ssdp.search(wifi, SEARCH_MS) to Ssdp.search(wifi, ROKU_SEARCH_MS, Roku.SEARCH_TARGET)
         } finally {
             if (lock.isHeld) lock.release()
         }
@@ -202,6 +215,24 @@ object TvOutput {
             val id = "dlna:${device.id}"
             synchronized(dlnaById) { dlnaById[id] = device }
             out += TvDevice(id, device.name, TvKind.DLNA, "Music only", video = false)
+        }
+        // Rokus (plan T5): the Encore channel shows the song; a Roku that is also a DLNA
+        // renderer is listed once, as a Roku.
+        for (hit in rokus) {
+            val base = java.net.URL(hit.location, "/")
+            val key = base.toString()
+            val info = if (rokuInfo.containsKey(key)) {
+                rokuInfo[key]
+            } else {
+                runCatching { Roku.info(base) }
+                    .onFailure { Log.i(TAG, "a Roku's details couldn't be read: ${it.javaClass.simpleName}") }
+                    .getOrNull()
+                    .also { rokuInfo[key] = it }
+            } ?: continue
+            val id = "roku:${info.id}"
+            synchronized(rokuById) { rokuById[id] = base }
+            out.removeAll { it.kind == TvKind.DLNA && it.name == info.name }
+            out += TvDevice(id, info.name, TvKind.ROKU, "Roku · Encore's screen", video = true)
         }
         return out
     }
@@ -237,6 +268,16 @@ object TvOutput {
                     val player = TvPlayer(renderer, onLost = { lost(device.id) })
                     begin(device, player, relay, wasPlaying)
                 }
+                TvKind.ROKU -> {
+                    val base = synchronized(rokuById) { rokuById[device.id] }
+                    if (base == null) {
+                        relay.close()
+                        return@launch fail("${device.name} can't be reached")
+                    }
+                    val renderer = RokuRenderer(base, device.name, from = phoneName(h.context))
+                    val player = TvPlayer(renderer, onLost = { lost(device.id) })
+                    begin(device, player, relay, wasPlaying)
+                }
                 TvKind.CAST -> CastTvs.connect(
                     h.context,
                     device.id.removePrefix("cast:"),
@@ -255,7 +296,7 @@ object TvOutput {
         val h = host
         if (h == null) {
             relay.close()
-            if (device.kind == TvKind.DLNA) player.release()
+            if (device.kind != TvKind.CAST) player.release()
             _connecting.value = null
             return
         }
@@ -331,7 +372,7 @@ object TvOutput {
         s.player.removeListener(s.listener)
         s.relay.close()
         when (s.device.kind) {
-            TvKind.DLNA -> s.player.release()
+            TvKind.DLNA, TvKind.ROKU -> s.player.release()
             TvKind.CAST -> host?.context?.let(CastTvs::disconnect)
         }
     }

@@ -317,7 +317,8 @@ private fun TvGroup(
     // ADR android-0007's order: Cast, the Encore TV app, then DLNA.
     val cast = found.filter { it.kind == TvKind.CAST }
     val dlna = found.filter { it.kind == TvKind.DLNA }
-    val count = cast.size + encoreTvs.size + dlna.size
+    val roku = found.filter { it.kind == TvKind.ROKU }
+    val count = cast.size + encoreTvs.size + roku.size + dlna.size
     Text(
         "TVs",
         style = type.groupLabel,
@@ -360,6 +361,7 @@ private fun TvGroup(
             val offline = dev.state == DeviceState.OFFLINE
             add(TvRow(dev.deviceId, dev.name, if (offline) "Encore TV app · Offline" else "Encore TV app", TvIcon.Tv, offline) { onHandOff(dev) })
         }
+        roku.forEach { tv -> add(TvRow(tv.id, tv.name, tv.subtitle, TvIcon.Tv, false) { play(tv) }) }
         dlna.forEach { tv -> add(TvRow(tv.id, tv.name, tv.subtitle, TvIcon.Speaker, false) { play(tv) }) }
     }
     Column(verticalArrangement = Arrangement.spacedBy(SHEET_ROW_GAP_DP.dp)) {

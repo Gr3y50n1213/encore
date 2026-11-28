@@ -75,12 +75,12 @@ object Ssdp {
      * Sends the search three times from [bind] (the Wi-Fi address) and collects answers for
      * [timeoutMs]. Blocking: never on the main thread. The caller holds a multicast lock.
      */
-    fun search(bind: Inet4Address, timeoutMs: Long): List<SsdpHit> {
+    fun search(bind: Inet4Address, timeoutMs: Long, target: String = RENDERER): List<SsdpHit> {
         val found = LinkedHashMap<String, SsdpHit>()
         DatagramSocket(null).use { socket ->
             socket.reuseAddress = true
             socket.bind(InetSocketAddress(bind, 0))
-            val message = searchMessage().toByteArray(Charsets.US_ASCII)
+            val message = searchMessage(target).toByteArray(Charsets.US_ASCII)
             val group = InetSocketAddress(InetAddress.getByName(GROUP), PORT)
             repeat(3) { socket.send(DatagramPacket(message, message.size, group)) }
             val end = System.currentTimeMillis() + timeoutMs
@@ -96,7 +96,7 @@ object Ssdp {
                     break
                 }
                 val text = String(packet.data, 0, packet.length, Charsets.ISO_8859_1)
-                parseResponse(text)?.let { found.putIfAbsent(it.usn.substringBefore("::"), it) }
+                parseResponse(text, target)?.let { found.putIfAbsent(it.usn.substringBefore("::"), it) }
             }
         }
         return found.values.toList()

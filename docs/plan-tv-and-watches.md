@@ -15,7 +15,7 @@ As before, every build and test runs in CI, and the phones and the tablet are us
 - [ ] **T2. DLNA renderers** ("Music only"): SSDP discovery and AVTransport and RenderingControl SOAP. Tests against a recorded renderer in CI.
 - [ ] **T3. Google Cast** with the Default Media Receiver: `media3-cast` and Google's Cast framework, from the relay's addresses. The covers and titles come from the relay too.
 - [ ] **T4. The Encore TV app as a target.** It is already a "Your devices" entry through the companion. It gets the TV icon and "Encore TV app" in the TVs group, and handoff moves the music.
-- [ ] **T5. Roku:** SSDP plus ECP, and an Encore channel (BrightScript, SceneGraph) built as a zip in CI. The owner installs it in developer mode.
+- [ ] **T5. Roku** (channel in `roku/`, PR 4; the phone side, `playback/tv/Roku.kt`, on `play-on-tv`; to try on the owner's Roku in developer mode): SSDP plus ECP, and an Encore channel (BrightScript, SceneGraph) built as a zip in CI. The owner installs it in developer mode.
 - [ ] **T6. Encore's own Cast receiver page:** the mock-up 45 look with synced lyrics, served by the companion over https. It needs the owner's Cast registration (US$5).
 
 ## Watches
