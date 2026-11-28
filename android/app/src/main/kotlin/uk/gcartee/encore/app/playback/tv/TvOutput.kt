@@ -163,7 +163,11 @@ object TvOutput {
         }
         searchJob = scope.launch {
             while (isActive) {
-                val found = withContext(Dispatchers.IO) { runCatching { searchDlna(app) }.getOrDefault(emptyList()) }
+                val found = withContext(Dispatchers.IO) {
+                    runCatching { searchDlna(app) }
+                        .onFailure { Log.i(TAG, "the TV search failed: ${it.javaClass.simpleName}") }
+                        .getOrDefault(emptyList())
+                }
                 dlnaFound = found.filter { it.kind == TvKind.DLNA }
                 rokuFound = found.filter { it.kind == TvKind.ROKU }
                 publish()
@@ -201,6 +205,8 @@ object TvOutput {
         } finally {
             if (lock.isHeld) lock.release()
         }
+        // Counts only, never addresses: what the search found on this Wi-Fi.
+        Log.i(TAG, "TV search: Wi-Fi network ${LocalNet.wifi != null}, private address ${LocalNetwork.isLocalHost(wifi.hostAddress ?: "")}, renderers ${hits.size}, Rokus ${rokus.size}")
         val out = ArrayList<TvDevice>()
         for (hit in hits) {
             val key = hit.location.toString()
