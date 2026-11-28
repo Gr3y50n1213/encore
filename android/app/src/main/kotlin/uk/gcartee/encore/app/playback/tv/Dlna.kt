@@ -97,6 +97,7 @@ object Ssdp {
         val found = LinkedHashMap<String, SsdpHit>()
         DatagramSocket(null).use { socket ->
             socket.reuseAddress = true
+            LocalNet.bind(socket)
             socket.bind(InetSocketAddress(bind, 0))
             val message = searchMessage(target).toByteArray(Charsets.US_ASCII)
             if (sweep) {
@@ -395,7 +396,7 @@ object HttpSoap : SoapTransport {
 
     override fun post(url: URL, soapAction: String, body: String): SoapReply {
         if (!LocalNetwork.isLocal(url)) throw IOException("not on the local network")
-        val connection = url.openConnection() as HttpURLConnection
+        val connection = LocalNet.open(url)
         try {
             connection.instanceFollowRedirects = false
             connection.connectTimeout = TIMEOUT_MS
@@ -420,7 +421,7 @@ object HttpSoap : SoapTransport {
     /** GETs a description document from the local network. */
     fun get(url: URL): String {
         if (!LocalNetwork.isLocal(url)) throw IOException("not on the local network")
-        val connection = url.openConnection() as HttpURLConnection
+        val connection = LocalNet.open(url)
         try {
             connection.instanceFollowRedirects = false
             connection.connectTimeout = TIMEOUT_MS

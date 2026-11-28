@@ -71,7 +71,7 @@ object Roku {
 
     private fun get(url: URL): String {
         check(LocalNetwork.isLocal(url))
-        val c = url.openConnection() as HttpURLConnection
+        val c = LocalNet.open(url)
         try {
             c.connectTimeout = TIMEOUT_MS
             c.readTimeout = TIMEOUT_MS
@@ -85,7 +85,7 @@ object Roku {
 
     private fun post(url: URL) {
         check(LocalNetwork.isLocal(url))
-        val c = url.openConnection() as HttpURLConnection
+        val c = LocalNet.open(url)
         try {
             c.requestMethod = "POST"
             c.connectTimeout = TIMEOUT_MS
