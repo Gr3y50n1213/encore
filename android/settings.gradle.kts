@@ -34,3 +34,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "encore-android"
 include(":app")
+// Stage W1: the Wear OS app (docs/adr/android-0008-wear-os-app.md).
+include(":wear")

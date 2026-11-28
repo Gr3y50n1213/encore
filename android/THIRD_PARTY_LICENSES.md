@@ -11,6 +11,7 @@ Rule: nothing linked into the app may be copyleft stronger than MPL-2.0.
 - **Assets:** Inter 4.1, `res/font/inter_variable.ttf` (SIL Open Font License 1.1, text read; the licence ships in `assets/licenses/Inter-OFL.txt`); Material Symbols Rounded icons, `res/drawable/sym_*.xml` and the placeholder launcher note (Apache-2.0), made by `android/ci/symbols.py` from google/material-design-icons.
 - **Phase 9 (11 November 2026), Jetpack Glance 1.2.0 for the home-screen widgets (approved by the owner):** read from the POMs of glance-appwidget and glance-material3 and everything they pull in. Glance brings WorkManager 2.7.1, Room 2.2.5 (WorkManager's), DataStore 1.0.0 and SQLite, all Apache-2.0, and `glance-appwidget-external-protobuf`, Google's Protocol Buffers runtime repackaged inside Glance, whose POM declares BSD-3-Clause (permissive, within the rule above). Versions are the ones the POMs ask for; where the app already has a newer line, Gradle uses that (lifecycle is aligned to 2.10.0, the Kotlin standard library to 2.4.21). Run `android/ci/pom_licences.py` on the next CI dependency tree to confirm the resolved versions.
 - **Phase 10 (23 November 2026), the sound model:** `assets/sound/yamnet-v1.bin` is Google's YAMNet (Apache-2.0), converted from MediaPipe's published file by `tools/sound-spike/export_yamnet.py` (format change only); its NOTICE ships beside it in `assets/sound/NOTICE` (docs/adr/core-0019). No new library: the job uses the platform JobScheduler.
+- **Stage W1 (27 November 2026), the Wear OS app and its link to the phone (approved by the owner with mock-up 50):** read from the POMs on Google's Maven of `play-services-wearable` 20.0.1, Wear Compose Material 3 and Foundation 1.7.2, Tiles 1.6.2, ProtoLayout and ProtoLayout Material 3 1.4.2 and `watchface-complications-data-source-ktx` 1.3.0, and everything they pull in. The Play services libraries (wearable, base, basement, tasks) are under Google's **Android Software Development Kit License** (developer.android.com/studio/terms), as their POMs declare: closed source, not copyleft, so within the rule above; `tools/ci/licences.json` records the review under `androidOnly`. Everything else they bring is AndroidX or Kotlin under Apache-2.0, except `protolayout-external-protobuf`, Google's Protocol Buffers runtime repackaged inside ProtoLayout (BSD-3-Clause), as with Glance. The phone app gains only the Play services libraries and four small AndroidX libraries they need (below). The watch app's list is its own section at the end. Run `android/ci/pom_licences.py` over `./gradlew :wear:dependencies --configuration releaseRuntimeClasspath` on the next CI tree to confirm the resolved versions.
 - **Not shipped:** build tools (Android Gradle plugin, Kotlin compiler, Gradle) and test libraries (JUnit 4, EPL-1.0; AndroidX Test, Apache-2.0) never go into the APK.
 
 ## In the release APK
@@ -71,6 +72,7 @@ Rule: nothing linked into the app may be copyleft stronger than MPL-2.0.
 | androidx.core:core-ktx | 1.19.1 | Apache-2.0 |
 | androidx.core:core-remoteviews | 1.1.0 | Apache-2.0 |
 | androidx.core:core-viewtree | 1.0.0 | Apache-2.0 |
+| androidx.customview:customview | 1.0.0 | Apache-2.0 |
 | androidx.customview:customview-poolingcontainer | 1.0.0 | Apache-2.0 |
 | androidx.datastore:datastore | 1.0.0 | Apache-2.0 |
 | androidx.datastore:datastore-core | 1.0.0 | Apache-2.0 |
@@ -78,6 +80,7 @@ Rule: nothing linked into the app may be copyleft stronger than MPL-2.0.
 | androidx.datastore:datastore-preferences-core | 1.0.0 | Apache-2.0 |
 | androidx.emoji2:emoji2 | 1.4.0 | Apache-2.0 |
 | androidx.exifinterface:exifinterface | 1.3.6 | Apache-2.0 |
+| androidx.fragment:fragment | 1.1.0 | Apache-2.0 |
 | androidx.glance:glance | 1.2.0 | Apache-2.0 |
 | androidx.glance:glance-appwidget | 1.2.0 | Apache-2.0 |
 | androidx.glance:glance-appwidget-external-protobuf | 1.2.0 | BSD-3-Clause (Protocol Buffers, repackaged) |
@@ -105,6 +108,7 @@ Rule: nothing linked into the app may be copyleft stronger than MPL-2.0.
 | androidx.lifecycle:lifecycle-viewmodel-ktx | 2.10.0 | Apache-2.0 |
 | androidx.lifecycle:lifecycle-viewmodel-savedstate | 2.10.0 | Apache-2.0 |
 | androidx.lifecycle:lifecycle-viewmodel-savedstate-android | 2.10.0 | Apache-2.0 |
+| androidx.loader:loader | 1.0.0 | Apache-2.0 |
 | androidx.media:media | 1.7.0 | Apache-2.0 |
 | androidx.media3:media3-common | 1.11.1 | Apache-2.0 |
 | androidx.media3:media3-container | 1.11.1 | Apache-2.0 |
@@ -131,11 +135,16 @@ Rule: nothing linked into the app may be copyleft stronger than MPL-2.0.
 | androidx.startup:startup-runtime | 1.1.1 | Apache-2.0 |
 | androidx.tracing:tracing | 1.2.0 | Apache-2.0 |
 | androidx.versionedparcelable:versionedparcelable | 1.1.1 | Apache-2.0 |
+| androidx.viewpager:viewpager | 1.0.0 | Apache-2.0 |
 | androidx.window:window | 1.5.0 | Apache-2.0 |
 | androidx.window:window-core | 1.5.0 | Apache-2.0 |
 | androidx.window:window-core-android | 1.5.0 | Apache-2.0 |
 | androidx.work:work-runtime | 2.7.1 | Apache-2.0 |
 | androidx.work:work-runtime-ktx | 2.7.1 | Apache-2.0 |
+| com.google.android.gms:play-services-base | 18.5.0 | Android Software Development Kit License (Play services, stage W1) |
+| com.google.android.gms:play-services-basement | 18.9.0 | Android Software Development Kit License (Play services, stage W1) |
+| com.google.android.gms:play-services-tasks | 18.2.0 | Android Software Development Kit License (Play services, stage W1) |
+| com.google.android.gms:play-services-wearable | 20.0.1 | Android Software Development Kit License (Play services, stage W1) |
 | com.google.guava:failureaccess | 1.0.2 | Apache-2.0 |
 | com.google.guava:guava | 33.3.1-android | Apache-2.0 |
 | com.google.guava:listenablefuture | 9999.0-empty-to-avoid-conflict-with-guava | Apache-2.0 |
@@ -151,3 +160,19 @@ Rule: nothing linked into the app may be copyleft stronger than MPL-2.0.
 | org.jetbrains.kotlinx:kotlinx-serialization-core-jvm | 1.7.3 | Apache-2.0 |
 | org.jspecify:jspecify | 1.0.0 | Apache-2.0 |
 | org.rustls:rustls-platform-verifier | 0.2.0 | MIT OR Apache-2.0 (README; the POM declares none) |
+
+## In the watch APK (stage W1, `android/wear`)
+
+The Wear OS app links no Rust core and none of the phone app's media libraries. Its own choices:
+
+| Library | Version | Licence |
+| --- | --- | --- |
+| androidx.wear.compose:compose-material3 | 1.7.2 | Apache-2.0 |
+| androidx.wear.compose:compose-foundation | 1.7.2 | Apache-2.0 |
+| androidx.wear.tiles:tiles | 1.6.2 | Apache-2.0 |
+| androidx.wear.protolayout:protolayout | 1.4.2 | Apache-2.0 |
+| androidx.wear.protolayout:protolayout-material3 | 1.4.2 | Apache-2.0 |
+| androidx.wear.watchface:watchface-complications-data-source-ktx | 1.3.0 | Apache-2.0 |
+| com.google.android.gms:play-services-wearable | 20.0.1 | Android Software Development Kit License |
+
+What they bring, read from their POMs: the Wear libraries' own parts (`compose-material-core`, `wear-core`, `tiles-proto`, `protolayout-expression`, `protolayout-expression-pipeline`, `protolayout-material-core`, `protolayout-proto`, `watchface-complications`, `watchface-complications-data`, `watchface-complications-data-source`), Compose, AndroidX and Kotlin libraries as in the phone app's table, `graphics-shapes`, `concurrent-futures` and Guava's `listenablefuture` 1.0, all Apache-2.0; `androidx.wear.protolayout:protolayout-external-protobuf` 1.4.2, BSD-3-Clause (Protocol Buffers, repackaged); and Play services base 18.5.0, basement 18.9.0 and tasks 18.2.0, Android Software Development Kit License. The same shared Activity Compose, Core KTX and coroutines versions as the phone app are used. The icons are copies of the phone app's Material Symbols drawables (Apache-2.0) and its launcher icon.
