@@ -35,6 +35,8 @@ class TvPlayer(
     private val renderer: Renderer,
     /** The TV hasn't answered for [LOST_AFTER] polls in a row. Called on the main thread. */
     private val onLost: () -> Unit,
+    /** The TV refused the session's first song, so nothing will play. Called on the main thread. */
+    private val onRefused: () -> Unit = {},
     looper: Looper = Looper.getMainLooper(),
 ) : SimpleBasePlayer(looper) {
     private class Item(val uid: Long, val media: MediaItem)
@@ -68,6 +70,9 @@ class TvPlayer(
     private var failures = 0
     private var polls = 0
     private var released = false
+    /** On [io] only: the TV has taken a song, and the owner of this player was told it never did. */
+    private var taken = false
+    private var toldRefused = false
 
     private val commands = Player.Commands.Builder()
         .addAll(
@@ -328,7 +333,16 @@ class TvPlayer(
         if (playbackState != Player.STATE_IDLE) playbackState = Player.STATE_BUFFERING
         val play = playWhenReady
         send {
-            renderer.setUri(url, meta)
+            try {
+                renderer.setUri(url, meta)
+            } catch (e: Exception) {
+                if (!taken && !toldRefused) {
+                    toldRefused = true
+                    handler.post { if (!released) onRefused() }
+                }
+                throw e
+            }
+            taken = true
             // Most TVs can't seek before they play: play, seek, then pause if paused.
             if (play || fromMs > SEEK_MIN_MS) renderer.play()
             if (fromMs > SEEK_MIN_MS) renderer.seek(fromMs)

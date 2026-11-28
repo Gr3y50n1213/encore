@@ -42,6 +42,9 @@ data class TvDevice(
 /** The TV the music is playing on now, for Now Playing's band and TV volume (screen 2). */
 data class ActiveTv(val id: String, val name: String, val kind: TvKind, val volume: Float, val canSetVolume: Boolean)
 
+/** A TV that was asked to play and first needs setting up (a Roku). */
+data class TvSetup(val id: String, val name: String, val needs: Set<Roku.Need>)
+
 /**
  * Where CorePlayback plays while a TV has the music: the TV's player, and the TV's copy of
  * each song with the relay's addresses.
@@ -130,6 +133,10 @@ object TvOutput {
     private val _active = MutableStateFlow<ActiveTv?>(null)
     val active: StateFlow<ActiveTv?> = _active.asStateFlow()
 
+    private val _setup = MutableStateFlow<TvSetup?>(null)
+    /** The TV last asked for that can't play until it is set up, for Play on to explain. */
+    val setup: StateFlow<TvSetup?> = _setup.asStateFlow()
+
     private val _connecting = MutableStateFlow<String?>(null)
     /** The TV being connected to, for the row's progress. */
     val connecting: StateFlow<String?> = _connecting.asStateFlow()
@@ -188,6 +195,7 @@ object TvOutput {
         searchJob = null
         CastTvs.stopDiscovery()
         _searching.value = false
+        _setup.value = null
     }
 
     private fun publish() {
@@ -253,8 +261,7 @@ object TvOutput {
         val h = host ?: return onFailure("Play something first, then choose a TV")
         if (session?.device?.id == device.id || _connecting.value != null) return
         val wasPlaying = h.playing()
-        // From one TV to another: back here (paused) first, then on to the new one.
-        if (session != null) playHere(play = false)
+        _setup.value = null
         _connecting.value = device.id
         scope.launch {
             fun fail(message: String) {
@@ -263,6 +270,20 @@ object TvOutput {
             }
             val wifi = withContext(Dispatchers.IO) { wifiAddress(h.context) }
             if (wifi == null) return@launch fail("Connect to Wi-Fi to play on a TV")
+            // A Roku says whether it can play at all; ask before the music leaves where it is.
+            if (device.kind == TvKind.ROKU) {
+                val base = synchronized(rokuById) { rokuById[device.id] }
+                val needs = base?.let { withContext(Dispatchers.IO) { runCatching { Roku.check(it) }.getOrNull() } }
+                    ?: return@launch fail("${device.name} can't be reached")
+                if (needs.isNotEmpty()) {
+                    Log.i(TAG, "the Roku isn't set up yet: ${needs.joinToString()}")
+                    _connecting.value = null
+                    _setup.value = TvSetup(device.id, device.name, needs)
+                    return@launch
+                }
+            }
+            // From one TV to another: back here (paused) first, then on to the new one.
+            if (session != null) playHere(play = false)
             val relay = withContext(Dispatchers.IO) {
                 runCatching { PhoneRelay(wifi, log = { Log.i(TAG, it) }).start() }.getOrNull()
             } ?: return@launch fail("Encore couldn't share the music on this Wi-Fi")
@@ -274,7 +295,7 @@ object TvOutput {
                         return@launch fail("${device.name} can't be reached")
                     }
                     val renderer = DlnaRenderer(dlna, HttpSoap) { Xml.newPullParser() }
-                    val player = TvPlayer(renderer, onLost = { lost(device.id) })
+                    val player = TvPlayer(renderer, onLost = { lost(device.id) }, onRefused = { refused(device, onFailure) })
                     begin(device, player, relay, wasPlaying)
                 }
                 TvKind.ROKU -> {
@@ -284,7 +305,7 @@ object TvOutput {
                         return@launch fail("${device.name} can't be reached")
                     }
                     val renderer = RokuRenderer(base, device.name, from = phoneName(h.context))
-                    val player = TvPlayer(renderer, onLost = { lost(device.id) })
+                    val player = TvPlayer(renderer, onLost = { lost(device.id) }, onRefused = { refused(device, onFailure) })
                     begin(device, player, relay, wasPlaying)
                 }
                 TvKind.CAST -> CastTvs.connect(
@@ -370,6 +391,13 @@ object TvOutput {
     /** The TV stopped answering (DLNA): the music comes back here, paused. */
     private fun lost(id: String) {
         if (session?.device?.id == id) playHere(play = false)
+    }
+
+    /** The TV wouldn't take the first song: the music comes back here, paused, and says so. */
+    private fun refused(device: TvDevice, onFailure: (String) -> Unit) {
+        if (session?.device?.id != device.id) return
+        playHere(play = false)
+        onFailure("${device.name} wouldn't start the music, so it's back here, paused.")
     }
 
     /** The Cast session ended from elsewhere (the TV's remote, Google Home). */

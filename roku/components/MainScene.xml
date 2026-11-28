@@ -4,7 +4,8 @@
      play and pause keys work too. -->
 <component name="MainScene" extends="Scene">
     <interface>
-        <field id="command" type="assocarray" onChange="onCommand" />
+        <!-- alwaysNotify: the same command twice (play, say, after the Roku remote paused) still acts. -->
+        <field id="command" type="assocarray" onChange="onCommand" alwaysNotify="true" />
     </interface>
     <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
     <children>
