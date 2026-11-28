@@ -175,6 +175,8 @@ class CoreHost private constructor(val context: Context) {
         uk.gcartee.encore.app.downloads.DownloadScheduler.resume(context)
         // Phase 10: sound analysis when it is on, and the daily suggestion training.
         uk.gcartee.encore.app.sound.SoundScheduler.resume(context)
+        // Sync with a companion server carries on while the app is closed.
+        uk.gcartee.encore.app.sync.CompanionSync.resume(context)
         // Mock-up 49: new songs in the chosen folders are looked for when Encore opens.
         localMusic.lookThroughAll(always = false)
     }

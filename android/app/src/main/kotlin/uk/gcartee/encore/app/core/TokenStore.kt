@@ -1,5 +1,6 @@
 package uk.gcartee.encore.app.core
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
@@ -19,6 +20,7 @@ import javax.crypto.spec.GCMParameterSpec
 class TokenStore(context: Context) {
     private val prefs = context.getSharedPreferences("tokens", Context.MODE_PRIVATE)
 
+    @SuppressLint("ApplySharedPref")
     fun save(credentialKey: String, token: String) {
         if (token.isEmpty()) {
             delete(credentialKey)
@@ -27,7 +29,9 @@ class TokenStore(context: Context) {
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, key())
         val sealed = cipher.iv + cipher.doFinal(token.toByteArray(Charsets.UTF_8))
-        prefs.edit().putString(credentialKey, Base64.encodeToString(sealed, Base64.NO_WRAP)).apply()
+        // On disk before returning: a rotated token that is lost if the process ends here
+        // would leave only one the server has already used up.
+        prefs.edit().putString(credentialKey, Base64.encodeToString(sealed, Base64.NO_WRAP)).commit()
     }
 
     /** Null when there is none, or when it can no longer be opened (the key was reset). */

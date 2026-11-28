@@ -8,8 +8,8 @@ use std::net::IpAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use encore_sources::Transport;
 use encore_sources::transport::{Method, Request};
+use encore_sources::{SourceError, Transport};
 use encore_store::{InEvent, OutEvent};
 use serde_json::{Value, json};
 use url::{Host, Url};
@@ -98,6 +98,35 @@ fn is_local(host: Host<&str>) -> bool {
                     .any(|s| d.ends_with(s))
         }
     }
+}
+
+/// An address inside a Tailscale network.
+fn through_tailscale(url: &Url) -> bool {
+    match url.host() {
+        Some(Host::Ipv4(v4)) => {
+            let o = v4.octets();
+            o[0] == 100 && (o[1] & 0xC0) == 64
+        }
+        Some(Host::Ipv6(v6)) => v6.segments()[..3] == [0xfd7a, 0x115c, 0xa1e0],
+        Some(Host::Domain(d)) => d
+            .trim_end_matches('.')
+            .to_ascii_lowercase()
+            .ends_with(".ts.net"),
+        None => false,
+    }
+}
+
+/// What a person reads when the companion server can't be reached, with what to check
+/// for the kind of address it has.
+fn unreachable_reason(base: &Url, why: &str) -> String {
+    let check = if through_tailscale(base) {
+        " This address works through Tailscale, so check that Tailscale is on."
+    } else if base.host().is_some_and(is_local) {
+        " This is a home network address, so check this device is on that network."
+    } else {
+        ""
+    };
+    format!("Can't reach the companion server: {why}.{check}")
 }
 
 /// The companion's address as the user typed it: https anywhere, plain http only
@@ -200,7 +229,13 @@ impl Client {
                 timeout,
             })
             .await
-            .map_err(|e| CompanionError::Unreachable(e.to_string()))?;
+            .map_err(|e| {
+                let why = match e {
+                    SourceError::Unreachable(u) => u.to_string(),
+                    other => other.to_string(),
+                };
+                CompanionError::Unreachable(unreachable_reason(&self.base, &why))
+            })?;
         let value: Value = if resp.body.is_empty() {
             Value::Null
         } else {
@@ -550,6 +585,26 @@ impl Client {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_unreachable_server_says_what_to_check() {
+        let say = |address: &str| unreachable_reason(&companion_url(address).unwrap(), "no answer");
+        for address in [
+            "https://pc.tail1234.ts.net:8443",
+            "100.101.2.3:8097",
+            "http://[fd7a:115c:a1e0::5]:8097",
+        ] {
+            assert!(
+                say(address).contains("check that Tailscale is on"),
+                "{address}"
+            );
+        }
+        assert!(say("192.168.1.10:8097").contains("home network address"));
+        assert_eq!(
+            say("music.example.com"),
+            "Can't reach the companion server: no answer."
+        );
+    }
 
     #[test]
     fn plain_http_only_on_the_home_network() {

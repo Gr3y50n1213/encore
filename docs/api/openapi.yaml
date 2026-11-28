@@ -55,7 +55,7 @@ components:
         access_expires_utc_ms: { type: integer, format: int64 }
         refresh_token:
           type: string
-          description: Keep it in the keychain. Each use returns a new one; reusing an old one revokes the device (except a retry within 2 minutes while its replacement is unused).
+          description: Keep it in the keychain. Each use returns a new one; reusing an old one revokes the device (except a retry within 7 days while its replacement is unused).
     Event:
       type: object
       required: [id, kind, hlc, payload, created_utc_ms]

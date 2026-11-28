@@ -105,6 +105,8 @@ import uk.gcartee.encore.core.MixSummary
 import uk.gcartee.encore.core.Song
 import uk.gcartee.encore.core.StartedFrom
 import uk.gcartee.encore.tokens.EncoreTokens.Grid
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /** Home's data, shared by Home and Mixes; yesterday's set shows while a new one builds. */
 class HomeData(private val host: CoreHost) {
@@ -161,6 +163,7 @@ fun HomeScreen(host: CoreHost, data: HomeData, onProfile: () -> Unit, reselect: 
                     PageTitleRow(greeting(), host, onProfile, onTitleHold = { openRecap(java.time.LocalDate.now().year) })
                 }
                 item { SyncRow(sync) }
+                item { CompanionStalled(host) }
                 // Phase 11 (board 41): the year's recap from 1 December to 8 January.
                 item { uk.gcartee.encore.app.ui.recap.RecapHomeCard(host, Modifier.padding(top = Grid.base.dp, bottom = Grid.base.dp)) }
                 if (home == null) {
@@ -311,9 +314,11 @@ private fun MadeForYou(home: Home, data: HomeData, onOpenMix: (String) -> Unit, 
 }
 
 @Composable
-private fun Notice(title: String, line: String, learning: Boolean = false) {
+private fun Notice(title: String, line: String, learning: Boolean = false, onClick: (() -> Unit)? = null) {
     val type = LocalEncoreType.current
-    Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = (Grid.base * 2).dp)) {
+    val shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp)
+    val tap = if (onClick == null) Modifier else Modifier.clip(shape).clickable(onClickLabel = "Open Servers and sources", onClick = onClick)
+    Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = shape, modifier = Modifier.fillMaxWidth().padding(horizontal = (Grid.base * 2).dp).then(tap)) {
         Row(Modifier.padding((Grid.base * 2).dp), verticalAlignment = Alignment.CenterVertically) {
             if (learning) {
                 LearningOrb(Modifier.size(NOTICE_ORB_DP.dp))
@@ -325,6 +330,30 @@ private fun Notice(title: String, line: String, learning: Boolean = false) {
                 Text(line, style = type.body.copy(fontSize = 14.sp, lineHeight = 20.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+    }
+}
+
+/**
+ * Said on Home when sync with the companion server has stopped for a day, or the server
+ * signed this device out: otherwise nothing tells you until you look. Opens Servers.
+ */
+@Composable
+private fun CompanionStalled(host: CoreHost) {
+    val actions = LocalAppActions.current
+    var status by remember { mutableStateOf<uk.gcartee.encore.core.SyncStatus?>(null) }
+    LaunchedEffect(Unit) {
+        status = withContext(Dispatchers.IO) { runCatching { host.core.syncStatus() }.getOrNull() }
+        host.events.collect { e -> if (e.kind == uk.gcartee.encore.core.EventKind.SYNC_STATUS_CHANGED) e.syncStatus?.let { status = it } }
+    }
+    val st = status ?: return
+    if (!uk.gcartee.encore.app.ui.settings.syncStalled(st.state, st.lastSyncedUtcMs, System.currentTimeMillis())) return
+    val since = st.lastSyncedUtcMs?.let { java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT).format(java.util.Date(it)) }
+    Box(Modifier.padding(vertical = Grid.base.dp)) {
+        Notice(
+            if (since == null) "Your devices aren't syncing" else "Not synced since $since",
+            st.reason ?: "The companion server can't be reached.",
+            onClick = { actions.open(Route.Settings("servers")) },
+        )
     }
 }
 

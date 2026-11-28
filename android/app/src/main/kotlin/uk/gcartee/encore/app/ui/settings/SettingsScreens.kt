@@ -40,6 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ToggleButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -596,6 +597,11 @@ private fun ServersPage(host: CoreHost, onBack: () -> Unit, onAddServer: () -> U
     val servers = remember(version) { runCatching { host.core.servers() }.getOrDefault(emptyList()) }
     val sync by host.sync.state.collectAsState()
     var status by remember(version) { mutableStateOf(runCatching { host.core.syncStatus() }.getOrNull()) }
+    // The row follows sync while the page is open.
+    LaunchedEffect(Unit) {
+        host.events.collect { e -> if (e.kind == uk.gcartee.encore.core.EventKind.SYNC_STATUS_CHANGED) e.syncStatus?.let { status = it } }
+    }
+    val context = LocalContext.current
     var companion by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
     val fmt = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
@@ -656,19 +662,52 @@ private fun ServersPage(host: CoreHost, onBack: () -> Unit, onAddServer: () -> U
                     androidx.compose.material3.FilledTonalButton(modifier = Modifier.align(Alignment.End).padding(horizontal = (Grid.base * 2).dp, vertical = Grid.base.dp), enabled = companion.isNotBlank(), onClick = {
                         scope.launch {
                             runCatching { host.core.connectCompanion(companion.trim()) }
-                                .onSuccess { status = it; version++; actions.toaster.show("Connected. Sync runs by itself.") }
+                                .onSuccess {
+                                    status = it
+                                    version++
+                                    uk.gcartee.encore.app.sync.CompanionSync.resume(context)
+                                    actions.toaster.show("Connected. Sync runs by itself.")
+                                }
                                 .onFailure { actions.toaster.show(it.userMessage()) }
                         }
                     }) { Text("Connect") }
                 }
             }
         } else {
-            group("Companion server", listOf(
-                Row0(st.serverUrl ?: "Companion", listOfNotNull(st.state.name.lowercase().replaceFirstChar(Char::uppercase), if (st.pending > 0u) "${st.pending} waiting to sync" else null, st.reason).joinToString(" · "), { Icons.devices() }),
-                Row0("Sync now", null, { Icons.sync() }) { scope.launch { runCatching { host.core.syncNow() }.onSuccess { status = it } } },
+            val signedOut = st.state == SyncState.SIGNED_OUT
+            val url = st.serverUrl
+            group("Companion server", listOfNotNull(
+                Row0(url ?: "Companion", companionLine(st.state, st.pending.toLong(), st.lastSyncedUtcMs?.let { fmt.format(Date(it)) }), { Icons.devices() }),
+                if (signedOut && url != null) {
+                    Row0("Connect again", st.reason, { Icons.sync() }) {
+                        scope.launch {
+                            runCatching { host.core.connectCompanion(url) }
+                                .onSuccess {
+                                    status = it
+                                    version++
+                                    uk.gcartee.encore.app.sync.CompanionSync.resume(context)
+                                    actions.toaster.show("Connected. Sync runs by itself.")
+                                }
+                                .onFailure { actions.toaster.show(it.userMessage()) }
+                        }
+                    }
+                } else {
+                    Row0("Sync now", st.reason, { Icons.sync() }) {
+                        scope.launch {
+                            runCatching { host.core.syncNow() }
+                                .onSuccess { status = it }
+                                .onFailure { actions.toaster.show(it.userMessage()) }
+                        }
+                    }
+                },
                 Row0("Disconnect", "Everything stays on this $device", { Icons.logout() }, destructive = true) {
                     confirm = "Stop syncing with the companion server? Nothing on this $device is deleted." to {
-                        scope.launch { runCatching { host.core.disconnectCompanion() }.onSuccess { version++ } }
+                        scope.launch {
+                            runCatching { host.core.disconnectCompanion() }.onSuccess {
+                                uk.gcartee.encore.app.sync.CompanionSync.resume(context)
+                                version++
+                            }
+                        }
                     }
                 },
             ))

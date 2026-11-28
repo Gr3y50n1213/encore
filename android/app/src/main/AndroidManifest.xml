@@ -82,6 +82,12 @@
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
+        <!-- Companion sync while the app is closed (sync/CompanionSyncJob.kt). -->
+        <service
+            android:name=".sync.CompanionSyncJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
         <!-- Phase 10: sound analysis and suggestion training run as jobs (sound/SoundScheduler.kt). -->
         <service
             android:name=".sound.SoundJobService"
