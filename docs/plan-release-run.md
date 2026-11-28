@@ -21,8 +21,8 @@ Work goes on the branch `release-run`. Tick each step as it lands, and note the 
 
 ## R2. Tests
 
-- [ ] Core CI on main: every source kind against a real server (Jellyfin replay, Navidrome, Plex, Emby), Windows, Apple, Android ABIs, the server image end to end.
-- [ ] Android CI on main: lint, unit tests, emulators (API 28, 36 phone, 36 tablet).
+- [x] Core CI: every source kind against a real server (Jellyfin replay, Navidrome, Plex, Emby), Windows, Apple, Android ABIs, the server image end to end (PR 1, all green before the merge).
+- [x] Android CI: lint, unit tests, emulators (API 28, 36 phone, 36 tablet) green; API 37's emulator image still breaks by itself.
 - [x] The companion server: CI end to end (run 46071413388: image on amd64 and arm64, Navidrome, Plex, Emby, Windows), then the live Windows service updated to 1.0.0 (backup before-release-run-20261127) and checked locally and over the tailnet; the status page refuses requests through the tailnet proxy (403) and answers locally.
 - [ ] A full pass on the tablet (and on the S20 FE when free), against the section 24 list in `docs/android/PLAN-ANDROID.md`:
   - every screen;
@@ -41,7 +41,7 @@ Work goes on the branch `release-run`. Tick each step as it lands, and note the 
 
 ## R3. iOS readiness (core only)
 
-- [ ] The Apple CI job stays green (iOS, Simulator, macOS, XCFramework).
+- [x] The Apple CI job stays green (iOS, Simulator, macOS, XCFramework).
 - [x] CORE-API says how Apple hands over phone music (a security-scoped folder URL; files passed as open descriptors, the same `read_fd` path).
 - [x] Nothing in the core is Android-only without an Apple twin or a note: the only Android-only code is the certificate verifier's one-time JVM setup, which Apple's verifier does not need.
 
@@ -61,13 +61,13 @@ Work goes on the branch `release-run`. Tick each step as it lands, and note the 
   - a changelog;
   - SECURITY.md's supported versions.
 - [x] THIRD_PARTY_LICENSES matches the About screen (the page reads the same file, bundled; every Symphonia crate stage 4 brought is listed).
-- [ ] Tag, check the release page, and install the release APK over the test build on the tablet.
+- [x] Tag, check the release page, and install the release APK over the test build on the tablet: v1.0.0 published 27 November 2026 (release run 46081323974); the APK's SHA-256 matched and it installed over the owner-key build; the image pulls without sign-in.
 
 ## R5. Phase 11: year-end recap
 
-- [ ] `encore-recap` engine, golden files, parity on every platform (plan section 25).
-- [ ] The Android screens follow boards 39 to 41, which the plan already decided (DECISIONS.md), so no new mock-up.
-- [ ] Engine being built on branch `phase11-recap`, then the core API, the store's rollups, the server job and the Android screens.
+- [x] `encore-recap` engine, golden files, parity on every platform (plan section 25): the golden files are byte for byte the same on Linux x64 and arm64, Windows and macOS (recap.yml); 101,266 plays in 460 ms, 34 KB.
+- [x] The Android screens follow boards 39 to 41, which the plan already decided (DECISIONS.md), so no new mock-up.
+- [ ] Core call `recap` and `recap_years` (branch `phase11-recap`) and the Android screens (`phase11-android`): built; the store's rollups and the server job still to do.
 
 ## R6 to R8. After the recap
 

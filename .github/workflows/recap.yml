@@ -1,0 +1,87 @@
+# The year recap engine (core/encore-recap, Phase 11, ADR core-0025). Its rule is that
+# the same input gives the same bytes on every platform, so its tests (golden files,
+# properties, 100,000 plays under 100 KB) run on Linux x64 and arm64, Windows and macOS
+# against the same committed golden files. When they differ or are missing, the job
+# writes fresh ones (UPDATE_GOLDEN=1) and uploads them for review; nothing is committed
+# by CI. `make check-core` in core.yml runs the same tests on Linux too.
+#
+# Actions are pinned to commit SHAs; the comment names the release.
+name: recap
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "core/encore-recap/**"
+      - ".github/workflows/recap.yml"
+  pull_request:
+    paths:
+      - "core/encore-recap/**"
+      - ".github/workflows/recap.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recap-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+
+jobs:
+  engine:
+    name: "Recap engine: ${{ matrix.name }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04, name: linux-x64, lint: true }
+          - { os: ubuntu-24.04-arm, name: linux-arm64, lint: false }
+          - { os: windows-latest, name: windows-x64, lint: false }
+          - { os: macos-latest, name: macos-arm64, lint: false }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+        working-directory: core
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Rust (stable, with rustfmt and clippy)
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt,clippy
+          rustup default stable
+
+      - name: Tests against the committed golden files
+        id: test
+        run: cargo test -p encore-recap --locked
+
+      - name: 100,000 plays, timed
+        if: ${{ matrix.lint }}
+        run: cargo test -p encore-recap --locked --release -- --ignored timing --nocapture
+
+      - name: Fresh golden files (only when the tests failed)
+        if: ${{ failure() && steps.test.outcome == 'failure' }}
+        run: |
+          UPDATE_GOLDEN=1 cargo test -p encore-recap --locked --test golden || true
+          # A second run against what was just written: the engine agrees with itself.
+          cargo test -p encore-recap --locked --test golden
+
+      - name: Upload the fresh golden files
+        if: ${{ failure() && steps.test.outcome == 'failure' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: recap-golden-${{ matrix.name }}
+          path: core/encore-recap/tests/golden
+          if-no-files-found: warn
+
+      # After the tests, whatever they found, so one run shows every problem.
+      - name: Format and lint
+        if: ${{ always() && matrix.lint }}
+        run: |
+          cargo fmt -p encore-recap -- --check
+          cargo clippy -p encore-recap --all-targets --locked -- -D warnings

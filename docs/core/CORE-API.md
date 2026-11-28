@@ -1,6 +1,6 @@
 # Encore core API (the contract)
 
-**Version 11** (Phase 12, 26 November 2026). Core crate version `1.0.0`.
+**Version 12** (Phase 11, 27 November 2026). Core crate version `1.0.0`.
 
 This file is the only thing the platform tracks may rely on. Every public call, event and type of the core is listed here before a platform uses it. A change that breaks a platform gets a line under "Changes" and a request in `docs/requests/` that says what to change.
 
@@ -24,6 +24,7 @@ This file is the only thing the platform tracks may rely on. Every public call, 
 | 9 | 12 | Added, nothing removed (24 November 2026, ADR core-0021). Navidrome and other OpenSubsonic servers: `check_address` also recognises them; `ServerCheck` gains `kind` (`ServerKind`: `Jellyfin`, `Subsonic`); `sign_in` signs in to either (Subsonic keeps the user name and a salted token, never the password); Quick Connect stays Jellyfin's. A platform that builds `ServerCheck` itself adds the field; one that switches over every enum adds `ServerKind`. |
 | 10 | 12 | Added, nothing removed (26 November 2026, ADRs core-0022 and core-0023). Emby: `check_address` also recognises it (from the same `/System/Info/Public` reply that names Jellyfin, so Jellyfin and Subsonic are found exactly as before); `ServerKind` gains `Emby`; `sign_in` signs in to it with a user name and password like Jellyfin; Quick Connect is Jellyfin's only (`quick_connect_start` on Emby fails with `QuickConnectDisabled`, and the source's `quick_connect` capability is off). `ServerRow.kind` and the stored source kind can be `"emby"`. Two error sentences no longer name Jellyfin only (`NotJellyfin`: "This isn't a Jellyfin, Emby or Subsonic server"; `UnsupportedVersion`: "This server runs version …"); the kinds are unchanged. A platform that switches over every `ServerKind` adds `Emby`. Plex Media Server: `check_address` also recognises it (`ServerKind::Plex`, `server_id` is its `machineIdentifier`), after Jellyfin and Subsonic and also on Plex's port 32400. Signing in is the plex.tv link: `plex_link_start`, `plex_link_wait`, `plex_sign_in`, `plex_link_cancel`; types `PlexLinkStart`, `PlexServerChoice`. `ServerRow.kind` can be "plex". A platform that switches over every `ServerKind` adds `Plex`. |
 | 11 | 12 | Added, nothing removed (26 November 2026, ADR core-0024, mock-up 49). Music files on the device as a source in the open profile: `local_folders`, `add_local_folder`, `remove_local_folder`, `set_local_folder_available`, `local_known_files`, `local_add_file`, `local_refresh`, `local_finish_look`, and `create_device_profile` for a profile with no server; types `LocalFolderInfo`, `LocalKnownFile`, `LocalFoundFile`. `ServerRow.kind` can be "local". `AlbumSummary` gains `on_device` (only on this device). `stream_for` returns `local = true` with the file's own address for the device's songs, and for a server's song whose copy is on the device; those count as playable offline in `download_marks`. A platform that builds `AlbumSummary` itself adds the field. |
+| 12 | 11 | The year recap: `recap(year, packs, southern, utc_offset_minutes)` (async) gives the recap data document as JSON, and `recap_years()` lists the kept years. Nothing earlier changed. |
 
 ## How every platform gets the core
 
@@ -168,6 +169,17 @@ The platform finds the files in folders the listener chose and hands each one ov
 - **Android:** the folder picker's tree address (`ACTION_OPEN_DOCUMENT_TREE`, with the read grant kept), files walked through `DocumentsContract`, and each file handed over as a detached descriptor (`read_fd`). Built in `core/LocalMusic.kt`.
 - **iPhone, iPad and Mac (for the Apple app):** the folder comes from the Files folder picker (`UIDocumentPickerViewController` for folders, or `fileImporter` with `.folder`). Keep its security-scoped bookmark in the app's own storage, keyed by the folder address passed to `add_local_folder` (the folder's `file://` URL). On each look, resolve the bookmark and call `startAccessingSecurityScopedResource()`. Walk the folder with `FileManager`, and hand each file over as an open descriptor (`read_fd`, taken from `FileHandle(forReadingFrom:)` and duplicated with `dup()`, so that the core can close its own copy). Call `stopAccessingSecurityScopedResource()` when the look is done. To play, open the file URL inside the same bookmark's access. The descriptor hand-off is the same code on every Unix platform: CI tests it on Linux and compiles it for each Apple target. The Music app's own library (`MPMediaLibrary`) is not a folder, and Encore doesn't read it: its songs are DRM-protected or in iCloud.
 - **Windows and Linux:** plain paths (`read_path`, `folder_cover_path`), since a desktop app may read the folders the person picks.
+
+### Year recap (Phase 11, ADR core-0025, boards 39 to 41)
+
+The engine is the crate `encore-recap`: the same plays, year and packs give the same bytes on every platform and on the server (CI checks the golden files on Linux x64 and arm64, Windows and macOS). Each app draws the document natively. The document, field by field, is in `docs/core/recap-engine.md`.
+
+| Call | Returns | Notes |
+| --- | --- | --- |
+| `recap(year, packs, southern, utc_offset_minutes)` async | `String` (JSON) | The open profile's recap of `year`, counted through now. `packs` are the design packs the app draws (`editorial`, `tide`, `bloom`, `glass`). `southern` turns the seasons round. `utc_offset_minutes` is the device's offset now, which dates a Clear listening history ("Since 3 Aug"). Kind `none` for Guest and under 10 plays. A year built on or after 8 January is locked: it is kept and given back unchanged from then on. |
+| `recap_years()` | `[i32]` | The years with a kept recap on this device, newest first. |
+
+Every device's plays arrive in the profile's store through sync, so any device can build the recap with the server off. Not built yet: the companion server's own job and archive, the synced card position, and sound fingerprints for the mood arc (until then the mood arc beat is left out).
 
 ### Browse (offline, synchronous)
 

@@ -293,7 +293,7 @@ impl Store {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     pub(crate) fn event(id: &str, hlc: &str) -> PlayEventRecord {

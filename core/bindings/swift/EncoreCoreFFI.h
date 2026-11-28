@@ -1039,6 +1039,16 @@ uint64_t uniffi_encore_core_fn_method_encorecore_switch_profile(uint64_t ptr, Ru
 void uniffi_encore_core_fn_method_encorecore_unlock_profile(uint64_t ptr, RustBuffer profile_id, RustBuffer pin_in, RustCallStatus *_Nonnull out_status
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_RECAP
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_RECAP
+uint64_t uniffi_encore_core_fn_method_encorecore_recap(uint64_t ptr, int32_t year, RustBuffer packs, int8_t southern, int32_t utc_offset_minutes
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_RECAP_YEARS
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_RECAP_YEARS
+RustBuffer uniffi_encore_core_fn_method_encorecore_recap_years(uint64_t ptr, RustCallStatus *_Nonnull out_status
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_ADVENTUROUSNESS
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_FN_METHOD_ENCORECORE_ADVENTUROUSNESS
 RustBuffer uniffi_encore_core_fn_method_encorecore_adventurousness(uint64_t ptr, RustCallStatus *_Nonnull out_status
@@ -2444,6 +2454,18 @@ uint16_t uniffi_encore_core_checksum_method_encorecore_switch_profile(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_UNLOCK_PROFILE
 #define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_UNLOCK_PROFILE
 uint16_t uniffi_encore_core_checksum_method_encorecore_unlock_profile(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_RECAP
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_RECAP
+uint16_t uniffi_encore_core_checksum_method_encorecore_recap(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_RECAP_YEARS
+#define UNIFFI_FFIDEF_UNIFFI_ENCORE_CORE_CHECKSUM_METHOD_ENCORECORE_RECAP_YEARS
+uint16_t uniffi_encore_core_checksum_method_encorecore_recap_years(void
     
 );
 #endif

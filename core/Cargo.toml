@@ -34,6 +34,7 @@ flutter_rust_bridge = "=2.13.0"
 
 encore-core = { path = "encore-core", default-features = false }
 encore-lyrics = { path = "encore-lyrics" }
+encore-recap = { path = "encore-recap" }
 encore-recs = { path = "encore-recs" }
 encore-analysis = { path = "encore-analysis" }
 encore-sources = { path = "encore-sources" }

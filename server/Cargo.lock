@@ -316,6 +316,7 @@ version = "1.0.0"
 dependencies = [
  "encore-analysis",
  "encore-lyrics",
+ "encore-recap",
  "encore-recs",
  "encore-sources",
  "encore-store",
@@ -338,6 +339,16 @@ dependencies = [
  "quick-xml",
  "serde",
  "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "encore-recap"
+version = "1.0.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
  "thiserror",
 ]
 
