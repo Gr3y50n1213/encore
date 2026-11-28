@@ -29,6 +29,13 @@ playServicesCast = "23.0.0"
 # Phase 9 (WP6, approved by the owner): home-screen widgets. Glance 1.2.0 is the latest
 # stable line; it brings WorkManager, Room and DataStore with it (THIRD_PARTY_LICENSES.md).
 glance = "1.2.0"
+# Stage W1 (approved by the owner, 27 November 2026; ADR android-0008): the Wear OS app and
+# its link to the phone. Each is the latest stable release on Google's Maven that day.
+playServicesWearable = "20.0.1"
+wearCompose = "1.7.2"
+wearTiles = "1.6.2"
+wearProtolayout = "1.4.2"
+wearWatchface = "1.3.0"
 junit = "4.13.2"
 androidxTestExt = "1.3.0"
 androidxTestRunner = "1.7.0"
@@ -54,6 +61,13 @@ media3-cast = { group = "androidx.media3", name = "media3-cast", version.ref = "
 play-services-cast-framework = { group = "com.google.android.gms", name = "play-services-cast-framework", version.ref = "playServicesCast" }
 glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
 glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
+play-services-wearable = { group = "com.google.android.gms", name = "play-services-wearable", version.ref = "playServicesWearable" }
+wear-compose-material3 = { group = "androidx.wear.compose", name = "compose-material3", version.ref = "wearCompose" }
+wear-compose-foundation = { group = "androidx.wear.compose", name = "compose-foundation", version.ref = "wearCompose" }
+wear-tiles = { group = "androidx.wear.tiles", name = "tiles", version.ref = "wearTiles" }
+wear-protolayout = { group = "androidx.wear.protolayout", name = "protolayout", version.ref = "wearProtolayout" }
+wear-protolayout-material3 = { group = "androidx.wear.protolayout", name = "protolayout-material3", version.ref = "wearProtolayout" }
+wear-complications-data-source-ktx = { group = "androidx.wear.watchface", name = "watchface-complications-data-source-ktx", version.ref = "wearWatchface" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestExt" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }

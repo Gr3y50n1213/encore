@@ -23,5 +23,9 @@
       "licence": "Apache-2.0",
       "why": "its Cargo.toml declares none; its LICENSE file is Apache-2.0 (read 6 November 2026)"
     }
+  },
+  "androidOnly": {
+    "_about": "Licences reviewed for the Android and Wear OS apps only (android/THIRD_PARTY_LICENSES.md), never for the core or the server; check_licences.py does not read this section, which records the review. Stage W1, 27 November 2026.",
+    "LicenseRef-Android-SDK-License": "Google Play services client libraries (play-services-wearable 20.0.1 and the base, basement and tasks libraries it brings), under Google's Android Software Development Kit License (developer.android.com/studio/terms), as their POMs declare. Closed source but not copyleft; the owner approved Play services for the Wear OS link (mock-up 50, 27 November 2026). An F-Droid build, if one ever comes, leaves them out."
   }
 }

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The tile picker's preview of the Mixes tile (mock-up 50, screen 5): four mix chips on black. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="192dp"
+    android:height="192dp"
+    android:viewportWidth="192"
+    android:viewportHeight="192">
+    <path
+        android:fillColor="#000000"
+        android:pathData="M96,0a96,96 0,1 0,0.1 0Z" />
+    <path
+        android:fillColor="#FFB59C"
+        android:pathData="M42,62h38a12,12 0,0 1,12 12v12a12,12 0,0 1,-12 12h-38a12,12 0,0 1,-12 -12v-12a12,12 0,0 1,12 -12Z" />
+    <path
+        android:fillColor="#A9D7FF"
+        android:pathData="M112,62h38a12,12 0,0 1,12 12v12a12,12 0,0 1,-12 12h-38a12,12 0,0 1,-12 -12v-12a12,12 0,0 1,12 -12Z" />
+    <path
+        android:fillColor="#C8F0A8"
+        android:pathData="M42,104h38a12,12 0,0 1,12 12v12a12,12 0,0 1,-12 12h-38a12,12 0,0 1,-12 -12v-12a12,12 0,0 1,12 -12Z" />
+    <path
+        android:fillColor="#E8DDFF"
+        android:pathData="M112,104h38a12,12 0,0 1,12 12v12a12,12 0,0 1,-12 12h-38a12,12 0,0 1,-12 -12v-12a12,12 0,0 1,12 -12Z" />
+</vector>

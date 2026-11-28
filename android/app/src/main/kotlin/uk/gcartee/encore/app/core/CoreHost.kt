@@ -112,6 +112,12 @@ class CoreHost private constructor(val context: Context) {
         uk.gcartee.encore.app.widgets.WidgetSync.attach(this)
     }
 
+    // Stage W1: the Wear OS watch app's Now Playing and mixes, sent only while a watch with
+    // Encore is reachable (wear/WearLink.kt, ADR android-0008).
+    init {
+        uk.gcartee.encore.app.wear.WearLink.attach(this)
+    }
+
     /** At launch: opens the last profile with its tokens from the Keystore. */
     fun openLastProfile(): Boolean {
         val id = core.lastActiveProfile() ?: return false

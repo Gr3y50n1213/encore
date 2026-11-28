@@ -199,6 +199,22 @@
             android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
             android:value="uk.gcartee.encore.app.playback.tv.EncoreCastOptions" />
 
+        <!-- Stage W1: commands from the Encore watch app (wear/WearCommandService.kt,
+             ADR android-0008). Exported because Google Play services binds it; the listener
+             checks the caller is Play services, and the Data Layer only delivers messages
+             from the same app signed with the same key. -->
+        <service
+            android:name=".wear.WearCommandService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data
+                    android:scheme="wear"
+                    android:host="*"
+                    android:path="/encore/cmd" />
+            </intent-filter>
+        </service>
+
         <!-- Android Auto: a media app (res/xml/automotive_app_desc.xml). -->
         <meta-data
             android:name="com.google.android.gms.car.application"

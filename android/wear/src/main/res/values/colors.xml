@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The phone app's icon colour (app/src/main/res/values/ic_launcher.xml), for the same icon. -->
+    <color name="ic_launcher_background">#5B3FC4</color>
+</resources>

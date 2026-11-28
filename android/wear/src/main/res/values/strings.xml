@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Stage W1: the watch app's words (mock-up 50, screens 4 and 5). app_name comes from the
+     core's brand constant (build.gradle.kts). -->
+<resources>
+    <string name="open_on_phone">Open %1$s on your phone</string>
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="next">Next song</string>
+    <string name="previous">Previous song</string>
+    <string name="like">Like</string>
+    <string name="liked">Liked</string>
+    <string name="unlike">Remove from Liked songs</string>
+    <string name="up_next">Up next</string>
+    <string name="cover">Album cover</string>
+    <string name="progress">%1$d%% through the song</string>
+    <string name="volume_hint">Turn the crown or bezel for volume</string>
+    <string name="tile_label">Mixes</string>
+    <string name="tile_hint">Tap a mix to play</string>
+    <string name="tile_locked">Unlock your watch to see your mixes</string>
+    <string name="tile_empty">Open %1$s on your phone</string>
+    <string name="tile_liked">Liked</string>
+    <string name="complication_label">Now playing</string>
+</resources>

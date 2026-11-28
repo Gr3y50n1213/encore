@@ -122,6 +122,7 @@ jobs:
             android/app/build/outputs/apk/phone/release/app-phone-release.apk
             android/app/build/outputs/apk/androidTest/phone/debug/app-phone-debug-androidTest.apk
             android/app/build/outputs/apk/tv/release/app-tv-release.apk
+            android/wear/build/outputs/apk/release/wear-release.apk
           retention-days: 14
           if-no-files-found: warn
 
@@ -130,7 +131,9 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: encore-android-lint
-          path: android/app/build/reports
+          path: |
+            android/app/build/reports
+            android/wear/build/reports
           retention-days: 7
 
   emulator:
