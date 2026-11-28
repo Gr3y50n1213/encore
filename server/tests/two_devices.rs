@@ -735,7 +735,9 @@ fn playback_moves_between_devices_and_is_counted_once() {
     assert!(took < Duration::from_secs(1), "{took:?}");
     assert_eq!(info.entry.as_ref().unwrap().song.title, songs[0].title);
     assert!(info.playing && info.unknown_songs == 0);
-    assert!((30_000..32_000).contains(&pos), "{pos}");
+    // The position goes with the music (it was 30 s, plus what played on the way),
+    // not back to the start. A slow CI machine took 2.7 s (Windows, 27 November 2026).
+    assert!((30_000..35_000).contains(&pos), "{pos}");
     assert!(
         phone_events
             .wait_nth(Duration::from_secs(2), 1, |e| e.kind

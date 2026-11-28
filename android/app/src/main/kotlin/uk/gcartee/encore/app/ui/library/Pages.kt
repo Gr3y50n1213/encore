@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import uk.gcartee.encore.app.ui.components.topBarsPadding
@@ -166,8 +167,9 @@ private fun Header(
                 it,
                 style = type.nowPlayingSubtitle,
                 color = tint.content.copy(alpha = 0.86f),
+                // At least Android's 48 dp touch target (release pass, 27 November 2026: it was 40).
                 modifier = Modifier
-                    .let { m -> if (onSubtitle != null) m.clickable(onClick = onSubtitle) else m }
+                    .let { m -> if (onSubtitle != null) m.clickable(onClick = onSubtitle).heightIn(min = 48.dp) else m }
                     .padding(vertical = Grid.base.dp),
             )
         }
