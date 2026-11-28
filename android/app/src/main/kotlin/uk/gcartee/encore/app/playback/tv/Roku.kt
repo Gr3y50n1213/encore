@@ -63,12 +63,19 @@ object Roku {
     private fun unescape(s: String) =
         s.replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&apos;", "'").replace("&amp;", "&")
 
+    /** The Roku said no (403): a report its settings don't allow. */
+    class Refused : IOException("the Roku refused")
+
+    /** Whether the Roku answers at all (its active app), for when reports are refused. */
+    fun reachable(base: URL): Boolean = runCatching { get(URL(base, "query/active-app")) }.isSuccess
+
     private fun get(url: URL): String {
         check(LocalNetwork.isLocal(url))
         val c = url.openConnection() as HttpURLConnection
         try {
             c.connectTimeout = TIMEOUT_MS
             c.readTimeout = TIMEOUT_MS
+            if (c.responseCode == HttpURLConnection.HTTP_FORBIDDEN) throw Refused()
             if (c.responseCode !in 200..299) throw IOException("the Roku answered ${c.responseCode}")
             return c.inputStream.use { it.readBytes().toString(Charsets.UTF_8) }
         } finally {
@@ -108,6 +115,26 @@ class RokuRenderer(
     private var level = MAX_VOLUME / 2
     private var lastUri: String? = null
 
+    /**
+     * Some Rokus refuse `query/media-player` ("Control by mobile apps" set to Limited, seen on
+     * the owner's: 403). Then Encore keeps its own clock of what it told the channel: playing
+     * or paused, and the position from when it last started or moved.
+     */
+    private var reportRefused = false
+    private var ownState = RendererState.NO_MEDIA
+    private var ownPositionMs = 0L
+    private var ownSinceMs = 0L
+    private var ownDurationMs = 0L
+
+    private fun own(state: RendererState, positionMs: Long = ownNow()) {
+        ownPositionMs = positionMs
+        ownSinceMs = android.os.SystemClock.elapsedRealtime()
+        ownState = state
+    }
+
+    private fun ownNow(): Long =
+        if (ownState == RendererState.PLAYING) ownPositionMs + (android.os.SystemClock.elapsedRealtime() - ownSinceMs) else ownPositionMs
+
     override fun setUri(url: String, meta: TvMeta) {
         val params = buildMap {
             put("url", url)
@@ -125,17 +152,29 @@ class RokuRenderer(
             Roku.launch(base, params)
         }
         lastUri = url
+        ownDurationMs = meta.durationMs
+        own(RendererState.PLAYING, 0L)
     }
 
-    override fun play() = Roku.input(base, mapOf("action" to "play"))
+    override fun play() {
+        Roku.input(base, mapOf("action" to "play"))
+        own(RendererState.PLAYING)
+    }
 
-    override fun pause() = Roku.input(base, mapOf("action" to "pause"))
+    override fun pause() {
+        Roku.input(base, mapOf("action" to "pause"))
+        own(RendererState.PAUSED)
+    }
 
-    override fun seek(positionMs: Long) = Roku.input(base, mapOf("action" to "seek", "pos" to positionMs.toString()))
+    override fun seek(positionMs: Long) {
+        Roku.input(base, mapOf("action" to "seek", "pos" to positionMs.toString()))
+        own(ownState, positionMs)
+    }
 
     override fun stop() {
         lastUri = null
         Roku.input(base, mapOf("action" to "stop"))
+        own(RendererState.STOPPED, 0L)
     }
 
     override fun setVolume(level: Int) {
@@ -146,8 +185,22 @@ class RokuRenderer(
     }
 
     override fun poll(withVolume: Boolean): RendererStatus {
-        val (state, pos, dur) = Roku.mediaPlayer(base)
-        return RendererStatus(state, pos, dur, if (withVolume) level else null)
+        if (!reportRefused) {
+            try {
+                val (state, pos, dur) = Roku.mediaPlayer(base)
+                return RendererStatus(state, pos, dur, if (withVolume) level else null)
+            } catch (e: Roku.Refused) {
+                reportRefused = true
+            }
+        }
+        // Encore's own clock; the song ends when its length has played.
+        if (!Roku.reachable(base)) throw java.io.IOException("the Roku can't be reached")
+        var now = ownNow()
+        if (ownState == RendererState.PLAYING && ownDurationMs > 0 && now >= ownDurationMs) {
+            own(RendererState.STOPPED, ownDurationMs)
+            now = ownDurationMs
+        }
+        return RendererStatus(ownState, now, ownDurationMs, if (withVolume) level else null)
     }
 
     private companion object {
