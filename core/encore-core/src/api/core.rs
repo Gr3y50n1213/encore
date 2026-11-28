@@ -1824,6 +1824,8 @@ impl EncoreCore {
                 let st = lock(&p.store)?;
                 st.set_setting(sync_loop::URL_KEY, base.as_str())?;
                 st.set_setting(sync_loop::DEVICE_KEY, &device)?;
+                // This server may be new, or restored: everything made here goes to it.
+                st.resend_all(&inner.config.device_id)?;
             }
             sync_loop::credential(&inner, tokens.refresh.clone());
             if let Some(old) = lock(&p.companion)?.take() {
@@ -1949,12 +1951,25 @@ impl EncoreCore {
         let url = lock(&p.store)?
             .setting(sync_loop::URL_KEY)?
             .filter(|u| !u.is_empty());
+        // An address kept with nothing syncing: the server stopped accepting this
+        // device, or its saved sign-in is gone. (Disconnect clears the address.)
+        let (state, reason) = match url {
+            Some(_) => (
+                SyncState::SignedOut,
+                Some(
+                    "This device is no longer signed in to the companion server. \
+                     Connect again to carry on syncing."
+                        .to_owned(),
+                ),
+            ),
+            None => (SyncState::NotConnected, None),
+        };
         Ok(SyncStatus {
-            state: SyncState::NotConnected,
+            state,
             pending,
             last_synced_utc_ms: sync_loop::last_synced(&p),
             server_url: url.map(|u| u.trim_end_matches('/').to_owned()),
-            reason: None,
+            reason,
         })
     }
 
@@ -1968,13 +1983,21 @@ impl EncoreCore {
                 .ok_or_else(|| EncoreError::NotFound {
                     reason: "This profile isn't connected to a companion server".into(),
                 })?;
-            sync_loop::push_all(&inner, &p, &s)
-                .await
-                .map_err(sync_loop::into_error)?;
-            while sync_loop::pull_once(&inner, &p, &s, 0)
-                .await
-                .map_err(sync_loop::into_error)?
-            {}
+            // Anything waiting to retry tries now as well.
+            s.retry_now();
+            let sent = sync_loop::push_all(&inner, &p, &s).await;
+            let problem = sent.as_ref().err().map(|e| e.reason().to_owned());
+            sync_loop::report(&inner, &p, &s, sync_loop::Way::Send, problem);
+            sent.map_err(sync_loop::into_error)?;
+            let received = loop {
+                match sync_loop::pull_once(&inner, &p, &s, 0).await {
+                    Ok(true) => {}
+                    other => break other,
+                }
+            };
+            let problem = received.as_ref().err().map(|e| e.reason().to_owned());
+            sync_loop::report(&inner, &p, &s, sync_loop::Way::Receive, problem);
+            received.map_err(sync_loop::into_error)?;
             Ok(s.status())
         })
         .await

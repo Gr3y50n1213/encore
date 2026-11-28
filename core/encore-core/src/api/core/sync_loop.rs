@@ -5,8 +5,11 @@
 //!   woken by each edit, and checks every 30 s for plays);
 //! - the puller keeps one long-poll pull open, so another device's like arrives
 //!   within a second, and applies what comes;
-//! - both back off while the server can't be reached, and stop when the server
-//!   no longer accepts the device (local data stays).
+//! - both back off while the server can't be reached, try again at once when
+//!   told the network changed ([`Session::retry_now`]), and stop when the server
+//!   no longer accepts the device (local data stays);
+//! - the status says Offline while either side fails, and "last synced" moves on
+//!   only while both work.
 //!
 //! Tokens: the access token lives only in memory; the refresh token is in the
 //! app's keychain, handed over in `open_profile` and handed back by a
@@ -34,9 +37,26 @@ pub(crate) struct Session {
     pub(super) server_device_id: String,
     tokens: tokio::sync::Mutex<Tokens>,
     wake: tokio::sync::Notify,
+    /// Bumped to make every loop that is waiting to retry try now.
+    retry: tokio::sync::watch::Sender<u64>,
+    problems: Mutex<Problems>,
     stopped: AtomicBool,
     tasks: Mutex<Vec<tokio::task::JoinHandle<()>>>,
     status: Mutex<SyncStatus>,
+}
+
+/// What last went wrong in each direction; None while it works.
+#[derive(Default)]
+struct Problems {
+    send: Option<String>,
+    receive: Option<String>,
+}
+
+/// A direction of the sync.
+#[derive(Clone, Copy)]
+pub(super) enum Way {
+    Send,
+    Receive,
 }
 
 impl std::fmt::Debug for Session {
@@ -60,6 +80,8 @@ impl Session {
             server_device_id,
             tokens: tokio::sync::Mutex::new(tokens),
             wake: tokio::sync::Notify::new(),
+            retry: tokio::sync::watch::Sender::new(0),
+            problems: Mutex::new(Problems::default()),
             stopped: AtomicBool::new(false),
             tasks: Mutex::new(Vec::new()),
             status: Mutex::new(SyncStatus {
@@ -75,6 +97,25 @@ impl Session {
     /// Something changed here: send it soon.
     pub(super) fn wake(&self) {
         self.wake.notify_one();
+    }
+
+    /// The network came back or changed, or the app came to the front: every loop
+    /// that is waiting to try again tries now.
+    pub(super) fn retry_now(&self) {
+        self.retry.send_modify(|n| *n = n.wrapping_add(1));
+    }
+
+    /// Each loop's own view of [`Session::retry_now`].
+    pub(super) fn retries(&self) -> tokio::sync::watch::Receiver<u64> {
+        self.retry.subscribe()
+    }
+
+    /// Whether something isn't getting through.
+    pub(super) fn has_problem(&self) -> bool {
+        self.problems
+            .lock()
+            .map(|p| p.send.is_some() || p.receive.is_some())
+            .unwrap_or(false)
     }
 
     pub(super) fn stop(&self) {
@@ -192,7 +233,11 @@ pub(super) async fn access(
     let mut t = s.tokens.lock().await;
     if force || t.access.is_empty() || t.access_expires_utc_ms - now_ms() < 120_000 {
         let fresh = s.client.refresh(&t.refresh).await?;
-        credential(inner, fresh.refresh.clone());
+        // A closed session (another profile was opened) must not hand its token to
+        // the app as the open profile's. The server lets the old one be tried again.
+        if !s.stopped() {
+            credential(inner, fresh.refresh.clone());
+        }
         *t = fresh;
     }
     Ok(t.access.clone())
@@ -276,6 +321,14 @@ pub(super) async fn pull_once(
     .await?;
     if s.stopped() {
         return Ok(false);
+    }
+    // The server's log is behind what this device has seen: it was restored from a
+    // backup or set up anew. Send this device's changes again; it ignores what it has.
+    if pulled.cursor < cursor {
+        let st = local(lock(&p.store))?;
+        local(st.resend_all(&inner.config.device_id))?;
+        drop(st);
+        s.wake();
     }
     if pulled.events.is_empty() {
         if pulled.cursor != cursor {
@@ -383,22 +436,49 @@ fn signed_out(inner: &Inner, p: &Profile, s: &Session, reason: String) {
     set_status(inner, p, s, SyncState::SignedOut, Some(reason), false);
 }
 
-async fn rest(s: &Session, seconds: u64) {
-    tokio::select! {
-        _ = tokio::time::sleep(Duration::from_secs(seconds)) => {}
-        _ = s.wake.notified() => {}
+/// One direction worked, or didn't, and the status follows both.
+pub(super) fn report(inner: &Inner, p: &Profile, s: &Session, way: Way, problem: Option<String>) {
+    let reason = {
+        let Ok(mut all) = s.problems.lock() else {
+            return;
+        };
+        match way {
+            Way::Send => all.send = problem,
+            Way::Receive => all.receive = problem,
+        }
+        all.send.clone().or_else(|| all.receive.clone())
+    };
+    match reason {
+        Some(r) => set_status(inner, p, s, SyncState::Offline, Some(r), false),
+        None => set_status(inner, p, s, SyncState::Idle, None, true),
     }
+}
+
+/// Wait `seconds` before trying again, less if told to retry now. True when told.
+pub(super) async fn pause(retries: &mut tokio::sync::watch::Receiver<u64>, seconds: u64) -> bool {
+    tokio::select! {
+        _ = tokio::time::sleep(Duration::from_secs(seconds)) => false,
+        told = retries.changed() => told.is_ok(),
+    }
+}
+
+/// The next wait after a failure: doubling to a minute, from the start again when the
+/// network changed.
+pub(super) fn next_backoff(backoff: u64, told: bool) -> u64 {
+    if told { 1 } else { (backoff * 2).min(60) }
 }
 
 async fn pusher(inner: Arc<Inner>, p: Arc<Profile>, s: Arc<Session>) {
     let mut backoff = 1;
+    let mut retries = s.retries();
     while !s.stopped() {
         match push_all(&inner, &p, &s).await {
             Ok(_) => {
                 backoff = 1;
-                set_status(&inner, &p, &s, SyncState::Idle, None, true);
+                report(&inner, &p, &s, Way::Send, None);
                 tokio::select! {
                     _ = s.wake.notified() => {}
+                    _ = retries.changed() => {}
                     _ = tokio::time::sleep(Duration::from_secs(30)) => {}
                 }
                 // Let a burst of changes go as one push.
@@ -406,16 +486,13 @@ async fn pusher(inner: Arc<Inner>, p: Arc<Profile>, s: Arc<Session>) {
             }
             Err(CompanionError::SignedOut(r)) => return signed_out(&inner, &p, &s, r),
             Err(e) => {
-                set_status(
-                    &inner,
-                    &p,
-                    &s,
-                    SyncState::Offline,
-                    Some(e.reason().to_owned()),
-                    false,
-                );
-                rest(&s, backoff).await;
-                backoff = (backoff * 2).min(60);
+                report(&inner, &p, &s, Way::Send, Some(e.reason().to_owned()));
+                // A new change tries at once too.
+                let told = tokio::select! {
+                    told = pause(&mut retries, backoff) => told,
+                    _ = s.wake.notified() => false,
+                };
+                backoff = next_backoff(backoff, told);
             }
         }
     }
@@ -423,26 +500,25 @@ async fn pusher(inner: Arc<Inner>, p: Arc<Profile>, s: Arc<Session>) {
 
 async fn puller(inner: Arc<Inner>, p: Arc<Profile>, s: Arc<Session>) {
     let mut backoff = 1;
+    let mut wait = PULL_WAIT_S;
+    let mut retries = s.retries();
     while !s.stopped() {
-        match pull_once(&inner, &p, &s, PULL_WAIT_S).await {
+        match pull_once(&inner, &p, &s, wait).await {
             Ok(more) => {
                 backoff = 1;
+                wait = PULL_WAIT_S;
                 if !more {
-                    set_status(&inner, &p, &s, SyncState::Idle, None, true);
+                    report(&inner, &p, &s, Way::Receive, None);
                 }
             }
             Err(CompanionError::SignedOut(r)) => return signed_out(&inner, &p, &s, r),
             Err(e) => {
-                set_status(
-                    &inner,
-                    &p,
-                    &s,
-                    SyncState::Offline,
-                    Some(e.reason().to_owned()),
-                    false,
-                );
-                tokio::time::sleep(Duration::from_secs(backoff)).await;
-                backoff = (backoff * 2).min(60);
+                report(&inner, &p, &s, Way::Receive, Some(e.reason().to_owned()));
+                // The first try after a failure answers at once, so the status clears
+                // as soon as the server is back.
+                wait = 0;
+                let told = pause(&mut retries, backoff).await;
+                backoff = next_backoff(backoff, told);
             }
         }
     }

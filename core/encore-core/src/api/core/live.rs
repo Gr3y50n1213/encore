@@ -1028,6 +1028,7 @@ impl Inner {
 /// and the puller). Reconnects with backoff; stops with the session.
 pub(super) async fn run(inner: Arc<Inner>, p: Arc<Profile>, s: Arc<Session>) {
     let mut backoff = 1;
+    let mut retries = s.retries();
     loop {
         if s.is_stopped() {
             return;
@@ -1072,8 +1073,8 @@ pub(super) async fn run(inner: Arc<Inner>, p: Arc<Profile>, s: Arc<Session>) {
             }
         }
         inner.emit_devices(&p);
-        tokio::time::sleep(Duration::from_secs(backoff)).await;
-        backoff = (backoff * 2).min(60);
+        let told = sync_loop::pause(&mut retries, backoff).await;
+        backoff = sync_loop::next_backoff(backoff, told);
     }
 }
 

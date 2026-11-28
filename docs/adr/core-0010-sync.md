@@ -29,6 +29,12 @@ Jellyfin already holds playlists and favourites, and Phase 3's outbox writes the
   - **Playlists.** Jellyfin is the truth. A playlist event names its media server and the playlist's ID there. The receiving device re-reads that playlist from Jellyfin, and suggests a library sync for a playlist it doesn't have yet. Two offline edits to one playlist both land: adds are kept, and removes go by entry ID.
   - Unknown kinds are skipped (a newer app may send more), and so is anything malformed.
 - **Failure.** Unreachable, 5xx, 408 or 429 means `Offline`: back off from 1 s to 60 s and retry; changes wait locally. 401 means refresh once, then `SignedOut`. The status and the count still waiting reach the UI as `SyncStatusChanged`, and other devices' changes as `RemoteChange`.
+- **Staying in step** (added 28 November 2026, after a phone went three and a half days without syncing and nothing said so):
+  - Every loop that is waiting to retry tries at once when the app reports its network (`set_connectivity`: on each change and when the app comes forward), and likes and playlist edits go to the media server when the device is back online or on a different kind of network.
+  - The status says Offline while either direction fails, and "last synced" moves on only while both work.
+  - A pull whose cursor goes backwards means the server was restored or set up anew (the server starts a cursor past its log from zero). The device sends all its own changes again, as it also does on every connect; the server ignores what it holds.
+  - A kept address with no session reads as signed out, so the app can offer to connect again.
+  - Android also syncs about once an hour while the app is closed, and Home says when nothing has got through for a day.
 - **Switching profiles** pushes what's waiting for up to `profiles.switchFlushSeconds` (3 s); anything left goes the next time that profile opens.
 
 ## Consequences

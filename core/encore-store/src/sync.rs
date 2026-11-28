@@ -235,6 +235,21 @@ impl Store {
         )?)
     }
 
+    /// Count everything this device made as not sent: the companion server may not
+    /// have it (it was restored from a backup, set up anew, or this device connects
+    /// again). A server that holds an event already ignores it.
+    pub fn resend_all(&self, own_device: &str) -> Result<()> {
+        self.in_transaction(|s| {
+            for table in ["play_events", "lyric_jumps", "events"] {
+                s.conn.execute(
+                    &format!("UPDATE {table} SET synced = 0 WHERE device_id = ?1"),
+                    [own_device],
+                )?;
+            }
+            Ok(())
+        })
+    }
+
     /// The server holds these now.
     pub fn mark_sent(&self, sent: &[OutEvent]) -> Result<()> {
         self.in_transaction(|s| {

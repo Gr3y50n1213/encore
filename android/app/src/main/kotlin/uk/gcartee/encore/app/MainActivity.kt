@@ -60,6 +60,8 @@ class MainActivity : ComponentActivity() {
         super.onStart()
         if (host.profileOpen.value) PlaybackHub.connect(this)
         host.sync.onForeground()
+        // Sync that was waiting to try again tries as the app comes forward.
+        if (host.profileOpen.value) host.connectivity.report()
     }
 
     /** The download notification opens Settings › Downloads. */

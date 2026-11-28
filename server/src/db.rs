@@ -88,8 +88,8 @@ CREATE TABLE access_tokens (
 );
 -- Refresh tokens rotate: each is used once. A used one coming back means it was
 -- copied, so the device is revoked (stolen-token detection), except a retry: the
--- same token again within 2 minutes while its replacement is still unused (the
--- app lost the reply, say, or crashed before saving the new token).
+-- same token again while its replacement is still unused (the app lost the reply,
+-- say, or crashed before saving the new token), within RETRY_WINDOW_MS.
 CREATE TABLE refresh_tokens (
     hash             TEXT    PRIMARY KEY,
     device_id        TEXT    NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
@@ -125,7 +125,10 @@ pub(crate) const CLEARED_KEY: &str = "clearedBeforeUtcMs";
 pub(crate) const RANKER_KEY: &str = "trainedRanker";
 
 /// How long the same refresh token may be retried while its replacement is unused.
-pub(crate) const RETRY_WINDOW_MS: i64 = 120_000;
+/// A week: a phone that lost a reply may be away from the server for days, and must
+/// not find itself signed out when it returns. A replacement that a retry supersedes
+/// counts as used from then on, so whoever still holds it gets the device revoked.
+pub(crate) const RETRY_WINDOW_MS: i64 = 7 * 24 * 60 * 60 * 1000;
 
 /// A refresh token's device, expiry, use, the device's revocation, profile and
 /// app device ID.
@@ -421,9 +424,12 @@ impl Db {
                 tx.commit()?;
                 return Ok(Refreshed::Reused);
             }
+            // The replacement that never arrived is spent: anyone presenting it later
+            // is told apart from the device that retried.
             tx.execute(
-                "DELETE FROM refresh_tokens WHERE hash = (SELECT replaced_by FROM refresh_tokens WHERE hash = ?1)",
-                [hash(refresh_token)],
+                "UPDATE refresh_tokens SET used_utc_ms = ?2
+                 WHERE hash = (SELECT replaced_by FROM refresh_tokens WHERE hash = ?1)",
+                params![hash(refresh_token), now],
             )?;
         }
         if revoked.is_some() || expires <= now {
@@ -649,6 +655,14 @@ impl Db {
         limit: u32,
     ) -> Result<(Vec<Event>, i64, bool)> {
         let c = self.conn();
+        // A cursor past anything this log ever held comes from before it was restored
+        // from a backup or set up anew: start over, and the device sees it went back.
+        let highest: i64 = c.query_row(
+            "SELECT coalesce((SELECT seq FROM sqlite_sequence WHERE name = 'events'), 0)",
+            [],
+            |r| r.get(0),
+        )?;
+        let cursor = if cursor > highest { 0 } else { cursor };
         let mut st = c.prepare_cached(
             "SELECT seq, id, device_id, kind, hlc, version, payload, created_utc_ms
              FROM events WHERE profile_id = ?1 AND seq > ?2 ORDER BY seq LIMIT ?3",
@@ -1060,15 +1074,11 @@ mod tests {
         );
         assert!(db.authed(&t2.access, 11).unwrap().is_some());
 
-        // The same token again soon, its replacement unused: a retry (the app lost
-        // the reply), so a new pair, and the unused replacement stops working.
+        // The same token again, its replacement unused: a retry (the app lost the
+        // reply), so a new pair, and the unused replacement is spent.
         let Refreshed::Ok { tokens: t3, .. } = db.refresh(&t.refresh, 12, TTL).unwrap() else {
             panic!("a retry")
         };
-        assert!(matches!(
-            db.refresh(&t2.refresh, 13, TTL).unwrap(),
-            Refreshed::Invalid
-        ));
         let Refreshed::Ok { tokens: t4, .. } = db.refresh(&t3.refresh, 14, TTL).unwrap() else {
             panic!("refresh")
         };
@@ -1083,12 +1093,45 @@ mod tests {
             db.refresh(&t4.refresh, 17, TTL).unwrap(),
             Refreshed::Invalid
         ));
-        // A retry long after is theft too.
+        assert!(matches!(
+            db.refresh(&t2.refresh, 18, TTL).unwrap(),
+            Refreshed::Invalid
+        ));
+
+        // The replacement a retry spent, presented by someone: two hold this device's
+        // sign-in, so it is revoked.
         let db = Db::open_in_memory();
         let (_, t) = signed_in(&db, "d1");
-        db.refresh(&t.refresh, 10, TTL).unwrap();
+        let Refreshed::Ok { tokens: lost, .. } = db.refresh(&t.refresh, 10, TTL).unwrap() else {
+            panic!("refresh")
+        };
+        db.refresh(&t.refresh, 11, TTL).unwrap();
         assert!(matches!(
-            db.refresh(&t.refresh, 10 + RETRY_WINDOW_MS + 1, TTL)
+            db.refresh(&lost.refresh, 12, TTL).unwrap(),
+            Refreshed::Reused
+        ));
+        assert!(db.devices(1).unwrap()[0].revoked);
+
+        // A phone that comes back hours later with the old token still gets in.
+        let long = (TTL.0, 30 * 24 * 60 * 60 * 1000);
+        let db = Db::open_in_memory();
+        let p = db.upsert_profile("srv", "user-1", "Sam", 0).unwrap();
+        let (_, t) = db.sign_in_device(p, "d1", "Phone", "ios", 0, long).unwrap();
+        db.refresh(&t.refresh, 10, long).unwrap();
+        assert!(matches!(
+            db.refresh(&t.refresh, 10 + 3 * 60 * 60 * 1000, long)
+                .unwrap(),
+            Refreshed::Ok { .. }
+        ));
+
+        // A retry after the window is theft too.
+        let long = (TTL.0, 30 * 24 * 60 * 60 * 1000);
+        let db = Db::open_in_memory();
+        let p = db.upsert_profile("srv", "user-1", "Sam", 0).unwrap();
+        let (_, t) = db.sign_in_device(p, "d1", "Phone", "ios", 0, long).unwrap();
+        db.refresh(&t.refresh, 10, long).unwrap();
+        assert!(matches!(
+            db.refresh(&t.refresh, 10 + RETRY_WINDOW_MS + 1, long)
                 .unwrap(),
             Refreshed::Reused
         ));
@@ -1139,6 +1182,16 @@ mod tests {
         db.push(&phone, &[event("e1", 3)], 3).unwrap();
         let (got, _, _) = db.pull(&mac, cursor, 100).unwrap();
         assert_eq!((got.len(), got[0].version), (1, 3));
+        // A cursor from before the log was restored or made anew starts over.
+        let (got, restored, _) = db.pull(&mac, cursor + 1_000, 100).unwrap();
+        assert_eq!(got.len(), 2);
+        assert!(restored < cursor + 1_000);
+        let empty = Db::open_in_memory();
+        let (someone, _) = signed_in(&empty, "mac");
+        assert_eq!(
+            empty.pull(&someone, 50, 100).unwrap(),
+            (Vec::new(), 0, false)
+        );
         // Paging.
         let (got, c1, more) = db.pull(&mac, 0, 1).unwrap();
         assert_eq!((got.len(), more), (1, true));

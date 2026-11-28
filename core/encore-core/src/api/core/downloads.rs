@@ -1674,17 +1674,32 @@ impl EncoreCore {
             Some(p) => self.inner.cached_ids_of(&*lock(&p.store)?, &cached_keys),
             None => HashSet::new(),
         };
-        let changed = {
+        let (changed, reconnected) = {
             let mut c = lock(&self.inner.connectivity)?;
             let changed = c.online != online || c.cached_ids != ids;
+            // Back online, or a different kind of network.
+            let reconnected = online && (!c.online || c.network != network);
             c.online = online;
             c.network = network;
             c.cached_keys = cached_keys;
             c.cached_ids = ids;
-            changed
+            (changed, reconnected)
         };
         if let Some(p) = profile {
             self.inner.refresh_playable(&p)?;
+            if online {
+                // Sync that is waiting to try again tries now: this is called when the
+                // network changes (a VPN turning on too) and when the app comes forward.
+                if let Some(s) = lock(&p.companion)?.as_ref()
+                    && (reconnected || s.has_problem())
+                {
+                    s.retry_now();
+                }
+                // Likes and playlist edits made offline go to the media server.
+                if reconnected {
+                    self.send_soon();
+                }
+            }
         }
         if changed {
             self.inner.emit_downloads_changed();
