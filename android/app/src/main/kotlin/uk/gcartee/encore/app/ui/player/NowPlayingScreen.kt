@@ -146,6 +146,8 @@ fun NowPlayingScreen(
     var endOfQueue by remember { mutableStateOf(false) }
     val playingFrom by host.playingFrom.collectAsState()
     val remoteDevice by uk.gcartee.encore.app.playback.RemoteControl.device.collectAsState()
+    // Mock-up 50, screen 2: a TV has the music (ADR android-0007).
+    val tvActive by uk.gcartee.encore.app.playback.tv.TvOutput.active.collectAsState()
     val privateOn by host.privateListening.collectAsState()
     val remoteChanges by host.remoteChanges.collectAsState()
     LaunchedEffect(remoteChanges, song.id) { liked = actions.isLiked(song) }
@@ -246,6 +248,8 @@ fun NowPlayingScreen(
                     moreSheet()
                 }
             }
+            // Mock-up 50, screen 2: "Playing on <TV>" under the top bar; a tap opens Play on.
+            tvActive?.let { t -> if (!dense) TvBand(t, content, onOpen = { onOutput(colours) }, Modifier.padding(bottom = Grid.base.dp)) }
             val artArea: @Composable (Modifier) -> Unit = { m ->
                 AnimatedContent(
                     targetState = panel,
@@ -376,6 +380,13 @@ fun NowPlayingScreen(
                     remoteDevice?.let { d ->
                         Spacer(Modifier.height(if (dense) Grid.base.dp else (Grid.base * 1.5f).dp))
                         RemoteCapsule(d, content)
+                    }
+                    // Mock-up 50, screen 2: the TV's volume under the controls (and the band, on
+                    // a phone on its side, where there is no top bar).
+                    tvActive?.let { t ->
+                        Spacer(Modifier.height(if (dense) Grid.base.dp else (Grid.base * 1.5f).dp))
+                        if (dense) TvBand(t, content, onOpen = { onOutput(colours) }, Modifier.padding(bottom = 4.dp))
+                        TvVolume(t, content)
                     }
                     Spacer(Modifier.height(if (dense) (Grid.base * 1.5f).dp else (Grid.base * 3).dp))
                     // Item 8: Lyrics, Output and Queue, one connected group.

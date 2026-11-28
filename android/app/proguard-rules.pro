@@ -32,3 +32,7 @@
 # Now Playing's content in them. Kept as they are, the classes stay apart.
 -keep class * extends androidx.glance.appwidget.GlanceAppWidget { <init>(); }
 -keep class * extends androidx.glance.appwidget.GlanceAppWidgetReceiver { <init>(); }
+
+# Play on a TV (ADR android-0007): the Cast framework makes the options provider by its name
+# in the manifest (OPTIONS_PROVIDER_CLASS_NAME).
+-keep class uk.gcartee.encore.app.playback.tv.EncoreCastOptions { <init>(); }

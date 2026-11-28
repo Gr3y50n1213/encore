@@ -74,6 +74,9 @@ object Icons {
     @Composable fun tablet(): Painter = painterResource(R.drawable.sym_tablet_android)
     @Composable fun computer(): Painter = painterResource(R.drawable.sym_computer)
     @Composable fun speaker(): Painter = painterResource(R.drawable.sym_speaker)
+    // Play on a TV (mock-up 50).
+    @Composable fun tv(): Painter = painterResource(R.drawable.sym_tv)
+    @Composable fun volume(): Painter = painterResource(R.drawable.sym_volume_up)
     // Phase 8: downloads and offline.
     @Composable fun downloadDone(): Painter = painterResource(R.drawable.sym_download_done)
     @Composable fun saved(): Painter = painterResource(R.drawable.sym_offline_pin_fill)

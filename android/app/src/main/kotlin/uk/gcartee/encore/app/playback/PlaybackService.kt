@@ -31,6 +31,12 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.Dispatchers
 import uk.gcartee.encore.app.MainActivity
 import uk.gcartee.encore.app.core.CoreHost
+import uk.gcartee.encore.app.playback.tv.DataSourceSong
+import uk.gcartee.encore.app.playback.tv.PhoneRelay
+import uk.gcartee.encore.app.playback.tv.TvOutput
+import uk.gcartee.encore.app.playback.tv.TvTarget
+import uk.gcartee.encore.core.StreamInfo
+import kotlinx.coroutines.launch
 import uk.gcartee.encore.core.SkipOrigin
 import uk.gcartee.encore.core.appName
 
@@ -46,8 +52,20 @@ class PlaybackService : MediaLibraryService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var session: MediaLibrarySession? = null
     private var playback: CorePlayback? = null
+    private var exo: ExoPlayer? = null
     /** Request headers by URL: stream and artwork URLs need the server's auth header. */
     private val headers = ConcurrentHashMap<String, Map<String, String>>()
+    /** The relay reads songs as the player does: headers, the rolling cache, downloads (ADR android-0007). */
+    private val relaySource: DataSource.Factory by lazy { dataSourceFactory() }
+    /** Grants the playing song's cover to the car, Bluetooth and the system's media controls. */
+    private val coverGrants = object : Player.Listener {
+        override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+            val art = mediaMetadata.artworkUri ?: return
+            if (art.scheme != "content") return
+            val readers = COVER_READERS + session?.connectedControllers.orEmpty().map { it.packageName }
+            readers.forEach { ArtworkProvider.grant(this@PlaybackService, it, art) }
+        }
+    }
 
 
     override fun onCreate() {
@@ -72,6 +90,7 @@ class PlaybackService : MediaLibraryService() {
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
+        this.exo = exo
         // Debug builds (and CI's emulators) log every player event: no addresses, no titles.
         if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) {
             exo.addAnalyticsListener(EventLogger("EncorePlayer"))
@@ -80,43 +99,7 @@ class PlaybackService : MediaLibraryService() {
         playback = core
         PlaybackHub.attach(core)
 
-        val sessionPlayer = object : ForwardingPlayer(exo) {
-            override fun getAvailableCommands(): Player.Commands =
-                super.getAvailableCommands().buildUpon()
-                    .addAll(
-                        Player.COMMAND_SEEK_TO_NEXT,
-                        Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,
-                        Player.COMMAND_SEEK_TO_PREVIOUS,
-                        Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,
-                    )
-                    .build()
-
-            override fun isCommandAvailable(command: Int): Boolean =
-                command in TRANSPORT || super.isCommandAvailable(command)
-
-            override fun seekToNext() = core.next(origin())
-            override fun seekToNextMediaItem() = core.next(origin())
-            override fun seekToPrevious() = core.previous(origin())
-            override fun seekToPreviousMediaItem() = core.previous(origin())
-            override fun play() = core.play()
-
-            // The lock screen's, the car's and Bluetooth's seeks go the app's way
-            // (CorePlayback.seekTo). The session offers them only when ExoPlayer can seek:
-            // for a transcode that's from the second song on, opened from the cache.
-            override fun seekTo(positionMs: Long) = core.seekTo(positionMs)
-            override fun seekTo(mediaItemIndex: Int, positionMs: Long) {
-                if (mediaItemIndex == exo.currentMediaItemIndex) core.seekTo(positionMs) else super.seekTo(mediaItemIndex, positionMs)
-            }
-
-            // A car or another controller chose something: AutoLibrary has already
-            // built the queue in the core; load its current song (never the list).
-            override fun setMediaItems(mediaItems: MutableList<MediaItem>) = core.loadCurrent()
-            override fun setMediaItems(mediaItems: MutableList<MediaItem>, resetPosition: Boolean) = core.loadCurrent()
-            override fun setMediaItems(mediaItems: MutableList<MediaItem>, startIndex: Int, startPositionMs: Long) = core.loadCurrent()
-            override fun setMediaItem(mediaItem: MediaItem) = core.loadCurrent()
-            override fun setMediaItem(mediaItem: MediaItem, resetPosition: Boolean) = core.loadCurrent()
-            override fun setMediaItem(mediaItem: MediaItem, startPositionMs: Long) = core.loadCurrent()
-        }
+        val sessionPlayer = sessionPlayer(exo, core)
 
         session = MediaLibrarySession.Builder(this, sessionPlayer, AutoLibrary(this, host, scope) { playback })
             .setSessionActivity(
@@ -138,13 +121,75 @@ class PlaybackService : MediaLibraryService() {
         // The playing song's cover is this app's own address (ArtworkProvider): the car,
         // Bluetooth and the system's media controls read it themselves, so each is allowed
         // to read that one cover, like every controller that is connected.
-        exo.addListener(object : Player.Listener {
-            override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
-                val art = mediaMetadata.artworkUri ?: return
-                val readers = COVER_READERS + session?.connectedControllers.orEmpty().map { it.packageName }
-                readers.forEach { ArtworkProvider.grant(this@PlaybackService, it, art) }
+        exo.addListener(coverGrants)
+
+        // ADR android-0007: Play on a TV. The session's player becomes the TV's, so the lock
+        // screen, the notification, Bluetooth buttons and the volume keys drive the TV.
+        TvOutput.attach(object : TvOutput.Host {
+            override val context: android.content.Context get() = this@PlaybackService
+
+            override fun move(target: TvTarget?, play: Boolean?) {
+                val corePlayback = playback ?: return
+                val local = exo ?: return
+                val before = (session?.player as? ForwardingPlayer)?.wrappedPlayer
+                corePlayback.moveTo(target, play)
+                val now = target?.player ?: local
+                if (before != null && before !== local && before !== now) before.removeListener(coverGrants)
+                if (now !== local && now !== before) now.addListener(coverGrants)
+                session?.player = sessionPlayer(now, corePlayback)
             }
+
+            override fun songSource(info: StreamInfo, type: String): PhoneRelay.Source =
+                DataSourceSong(relaySource, android.net.Uri.parse(info.url), if (info.local) null else info.cacheKey, type)
+
+            override fun playing(): Boolean = session?.player?.playWhenReady == true
         })
+        // A handoff to another Encore device ends a TV's session.
+        scope.launch {
+            host.events.collect { if (it.kind == uk.gcartee.encore.core.EventKind.HANDOFF_CONFIRMED) TvOutput.handedOff() }
+        }
+    }
+
+    /**
+     * The session's view of [player] (ExoPlayer, or a TV's): every Next and Previous from the
+     * lock screen, the car and Bluetooth goes through the core with its origin (board 42).
+     */
+    private fun sessionPlayer(player: Player, core: CorePlayback): Player = object : ForwardingPlayer(player) {
+        override fun getAvailableCommands(): Player.Commands =
+            super.getAvailableCommands().buildUpon()
+                .addAll(
+                    Player.COMMAND_SEEK_TO_NEXT,
+                    Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,
+                    Player.COMMAND_SEEK_TO_PREVIOUS,
+                    Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,
+                )
+                .build()
+
+        override fun isCommandAvailable(command: Int): Boolean =
+            command in TRANSPORT || super.isCommandAvailable(command)
+
+        override fun seekToNext() = core.next(origin())
+        override fun seekToNextMediaItem() = core.next(origin())
+        override fun seekToPrevious() = core.previous(origin())
+        override fun seekToPreviousMediaItem() = core.previous(origin())
+        override fun play() = core.play()
+
+        // The lock screen's, the car's and Bluetooth's seeks go the app's way
+        // (CorePlayback.seekTo). The session offers them only when ExoPlayer can seek:
+        // for a transcode that's from the second song on, opened from the cache.
+        override fun seekTo(positionMs: Long) = core.seekTo(positionMs)
+        override fun seekTo(mediaItemIndex: Int, positionMs: Long) {
+            if (mediaItemIndex == player.currentMediaItemIndex) core.seekTo(positionMs) else super.seekTo(mediaItemIndex, positionMs)
+        }
+
+        // A car or another controller chose something: AutoLibrary has already
+        // built the queue in the core; load its current song (never the list).
+        override fun setMediaItems(mediaItems: MutableList<MediaItem>) = core.loadCurrent()
+        override fun setMediaItems(mediaItems: MutableList<MediaItem>, resetPosition: Boolean) = core.loadCurrent()
+        override fun setMediaItems(mediaItems: MutableList<MediaItem>, startIndex: Int, startPositionMs: Long) = core.loadCurrent()
+        override fun setMediaItem(mediaItem: MediaItem) = core.loadCurrent()
+        override fun setMediaItem(mediaItem: MediaItem, resetPosition: Boolean) = core.loadCurrent()
+        override fun setMediaItem(mediaItem: MediaItem, startPositionMs: Long) = core.loadCurrent()
     }
 
     /** Who sent the transport command being handled, for the skip's origin (board 42, rule 15). */
@@ -206,10 +251,11 @@ class PlaybackService : MediaLibraryService() {
         widgetStarts.release() // Phase 9 (WP6)
         PlaybackHub.detach()
         playback?.stop()
-        session?.run {
-            player.release()
-            release()
-        }
+        // ADR android-0007: the TV's session (the relay's pass, a Cast session) ends with the service.
+        TvOutput.detach()
+        session?.release()
+        exo?.release()
+        exo = null
         session = null
         scope.cancel()
         super.onDestroy()

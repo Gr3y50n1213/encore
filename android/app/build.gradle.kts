@@ -377,6 +377,9 @@ dependencies {
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.session)
     implementation(libs.media3.datasource)
+    // Play on a TV (ADR android-0007): Media3's Cast player and Google's Cast framework.
+    implementation(libs.media3.cast)
+    implementation(libs.play.services.cast.framework)
     // Phase 9 (WP6): home-screen widgets.
     implementation(libs.glance.appwidget)
     implementation(libs.glance.material3)

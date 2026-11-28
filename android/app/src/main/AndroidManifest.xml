@@ -19,6 +19,9 @@
     <!-- Phase 9: install-time, approved by the owner. Lets a download the person started
          show as a Live Update on Android 16 QPR1 and later (notifications/LiveUpdates.kt). -->
     <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
+    <!-- Play on a TV (ADR android-0007, T2): install-time. Lets the SSDP search for DLNA
+         players receive on the Wi-Fi's multicast address while Play on is open. -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 
     <application
         android:name=".EncoreApp"
@@ -189,6 +192,12 @@
                 android:name="android.service.quicksettings.ACTIVE_TILE"
                 android:value="true" />
         </service>
+
+        <!-- Play on a TV (ADR android-0007, T3): Google Cast with the Default Media Receiver.
+             The framework starts only when Play on looks for TVs. -->
+        <meta-data
+            android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
+            android:value="uk.gcartee.encore.app.playback.tv.EncoreCastOptions" />
 
         <!-- Android Auto: a media app (res/xml/automotive_app_desc.xml). -->
         <meta-data
