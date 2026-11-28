@@ -613,6 +613,7 @@ fun MixesScreen(host: CoreHost, data: HomeData, onProfile: () -> Unit, contentPa
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun MixesLearning(host: CoreHost, plays: Int, needed: Int, onProfile: () -> Unit, contentPadding: PaddingValues) {
+    val device = uk.gcartee.encore.app.ui.settings.deviceNoun()
     val type = LocalEncoreType.current
     val actions = LocalAppActions.current
     val scheme = MaterialTheme.colorScheme
@@ -627,7 +628,7 @@ private fun MixesLearning(host: CoreHost, plays: Int, needed: Int, onProfile: ()
         Text("Encore is learning your taste", style = type.collectionTitle.copy(fontSize = LEARNING_TITLE_SP.sp), textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(horizontal = (Grid.base * 4).dp))
         Spacer(Modifier.height(Grid.base.dp))
         Text(
-            "Keep listening and your mixes will appear here. They're made on this phone, from what you play.",
+            "Keep listening and your mixes will appear here. They're made on this $device, from what you play.",
             style = type.body.copy(fontSize = 15.sp, lineHeight = 21.sp),
             color = scheme.onSurfaceVariant,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,

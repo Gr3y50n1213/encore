@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -546,7 +547,10 @@ private fun ArtworkArea(
                             onMenu()
                         },
                         onLongClickLabel = "More options",
-                    ),
+                    )
+                    // TalkBack names the cover; tapping it plays or pauses (release pass,
+                    // 27 November 2026: it was read as "unlabelled").
+                    .semantics { contentDescription = "Cover of ${entry?.song?.title.orEmpty()}" },
             ) {
                 Artwork(ArtworkOf.SONG, id, side, Modifier.fillMaxSize(), cornerRadius = ART_RADIUS_DP.dp)
             }

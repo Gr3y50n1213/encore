@@ -213,7 +213,9 @@ fun LazyListScope.group(title: String?, rows: List<Row0>) {
                 // It keeps to one line and never squeezes the title off the row.
                 r.right?.let { Text(it, style = rowValue(), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.padding(start = Grid.base.dp, end = Grid.base.dp).widthIn(max = RIGHT_MAX_DP.dp)) }
                 when {
-                    r.trailing != null -> r.trailing.invoke()
+                    // A switch or button on the right is named by its row, so TalkBack says
+                    // "Learn from my listening, switch, on" (release pass, 27 November 2026).
+                    r.trailing != null -> Box(Modifier.semantics(mergeDescendants = true) { contentDescription = r.title }) { r.trailing.invoke() }
                     r.onClick != null && !r.destructive -> Icon(Icons.chevron(), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -640,7 +642,7 @@ private fun ServersPage(host: CoreHost, onBack: () -> Unit, onAddServer: () -> U
             item { Label("Companion server") }
             item {
                 Column {
-                    Body("Optional. It syncs history, likes and playlists between your devices and makes handoff possible. Without it everything works on this phone alone.")
+                    Body("Optional. It syncs history, likes and playlists between your devices and makes handoff possible. Without it everything works on this $device alone.")
                     OutlinedTextField(
                         companion,
                         { companion = it },
@@ -664,8 +666,8 @@ private fun ServersPage(host: CoreHost, onBack: () -> Unit, onAddServer: () -> U
             group("Companion server", listOf(
                 Row0(st.serverUrl ?: "Companion", listOfNotNull(st.state.name.lowercase().replaceFirstChar(Char::uppercase), if (st.pending > 0u) "${st.pending} waiting to sync" else null, st.reason).joinToString(" · "), { Icons.devices() }),
                 Row0("Sync now", null, { Icons.sync() }) { scope.launch { runCatching { host.core.syncNow() }.onSuccess { status = it } } },
-                Row0("Disconnect", "Everything stays on this phone", { Icons.logout() }, destructive = true) {
-                    confirm = "Stop syncing with the companion server? Nothing on this phone is deleted." to {
+                Row0("Disconnect", "Everything stays on this $device", { Icons.logout() }, destructive = true) {
+                    confirm = "Stop syncing with the companion server? Nothing on this $device is deleted." to {
                         scope.launch { runCatching { host.core.disconnectCompanion() }.onSuccess { version++ } }
                     }
                 },
@@ -684,6 +686,7 @@ private fun ServersPage(host: CoreHost, onBack: () -> Unit, onAddServer: () -> U
 
 @Composable
 private fun PrivacyPage(host: CoreHost, onBack: () -> Unit, contentPadding: PaddingValues) {
+    val device = deviceNoun()
     val actions = LocalAppActions.current
     val context = LocalContext.current
     val haptics = rememberHaptics()
@@ -731,7 +734,7 @@ private fun PrivacyPage(host: CoreHost, onBack: () -> Unit, contentPadding: Padd
         ))
         // Item 6: destructive rows apart and red.
         group(null, listOf(
-            Row0("Clear listening history", "On this phone, the companion server and every device", { Icons.history() }, destructive = true) { confirmClear = true },
+            Row0("Clear listening history", "On this $device, the companion server and every device", { Icons.history() }, destructive = true) { confirmClear = true },
             Row0("Delete this profile everywhere", "Its history, likes, playlists and learned taste", { Icons.delete() }, destructive = true) {
                 haptics.perform(Haptic.Reject)
                 deleting = true
@@ -761,7 +764,7 @@ private fun PrivacyPage(host: CoreHost, onBack: () -> Unit, contentPadding: Padd
             title = { Text("Delete ${profile.displayName} everywhere?") },
             text = {
                 Column {
-                    Text("This deletes the profile's history, likes, playlists, recaps, learned taste, tokens and downloads, on this phone, the companion server and every device signed in to it. Your Jellyfin account and music are never touched. Export first if you want a copy.")
+                    Text("This deletes the profile's history, likes, playlists, recaps, learned taste, tokens and downloads, on this $device, the companion server and every device signed in to it. Your Jellyfin account and music are never touched. Export first if you want a copy.")
                     Spacer(Modifier.height(Grid.base.dp))
                     OutlinedTextField(typed, { typed = it }, placeholder = { Text("Type ${profile.displayName}") }, singleLine = true)
                 }
