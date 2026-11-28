@@ -351,6 +351,8 @@ androidComponents {
             addStaticSourceDirectory(coreRoot.dir("bindings/kotlin").asFile.absolutePath)
             addStaticSourceDirectory(coreRoot.dir("bindings/kotlin-android").asFile.absolutePath)
             addStaticSourceDirectory(coreRoot.dir("bindings/tokens").asFile.absolutePath)
+            // Stage W1: the phone-watch protocol, shared with the wear module (ADR android-0008).
+            addStaticSourceDirectory(rootProject.layout.projectDirectory.dir("wearlink/src").asFile.absolutePath)
         }
         variant.sources.assets?.addGeneratedSourceDirectory(licenceAssets, LicenceAssets::outputDir)
         variant.sources.assets?.addGeneratedSourceDirectory(soundModelAssets, SoundModelAssets::outputDir)
@@ -380,6 +382,8 @@ dependencies {
     // Phase 9 (WP6): home-screen widgets.
     implementation(libs.glance.appwidget)
     implementation(libs.glance.material3)
+    // Stage W1 (approved by the owner, 27 November 2026): the Wear OS link (ADR android-0008).
+    implementation(libs.play.services.wearable)
 
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)

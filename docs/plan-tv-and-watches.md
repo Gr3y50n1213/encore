@@ -20,14 +20,13 @@ As before, every build and test runs in CI, and the phones and the tablet are us
 
 ## Watches
 
-- [ ] **W1. Wear OS app** (a `wear` module):
-  - Now Playing with the lyric line;
-  - play, pause and skip;
-  - crown volume;
-  - Like, Up Next and Play on;
-  - a tile with pinned mixes, and a complication.
+- [x] **W1. Wear OS app** (the `wear` module; ADR android-0008, 27 November 2026):
+  - Now Playing as screen 4: artist, title, the lyric line in italics, previous, play or pause and next, and a progress ring;
+  - the crown or bezel sets the phone's volume;
+  - swipe up for Like and Up Next (the next song's title). Play on is left out: the phone can't open its sheet from the background (ADR android-0008);
+  - a tile with up to four chips (the pinned mixes, then Liked songs) and "Tap a mix to play", and a complication with the playing song that opens Now Playing.
 
-  The Wearable Data Layer carries it from the phone, and nothing is shown while the watch is locked. Material 3 Expressive for Wear.
+  The Wearable Data Layer carries it from the phone: two DataItems, sent only while a watch with Encore is reachable and at most twice a second, and commands back as messages. A locked watch shows no titles, only "Encore" and the controls. Guest, a PIN and Private listening send no mixes. Material 3 Expressive for Wear. CI builds, lints and tests it; the look, the bezel, the tile, the complication and the lock rules wait for the owner's Galaxy Watch 5.
 - [ ] **W2. Pebble:**
   - a watchapp in C (title, artist, the lyric line, Like on a long press of the middle button), built with the Pebble SDK in CI;
   - on the phone, PebbleKit Android AppMessages through the owner's Pebble app (Core Devices' app keeps PebbleKit's AppMessage working).

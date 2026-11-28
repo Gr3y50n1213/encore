@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Stage W1 (ADR android-0008): the phone app publishes Now Playing only while a watch with
+     this capability is reachable. Kept from resource shrinking: only Play services reads it. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@array/android_wear_capabilities">
+    <string-array name="android_wear_capabilities" translatable="false">
+        <item>encore_watch</item>
+    </string-array>
+</resources>
