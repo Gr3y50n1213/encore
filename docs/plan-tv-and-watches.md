@@ -34,7 +34,7 @@ As before, every build and test runs in CI, and the phones and the tablet are us
 
 ## Only the owner can do
 
-- Say which TVs and watches are at home to test with: a Chromecast or Google TV, the Roku model, the Galaxy Watch 5, the Pebble model.
+- At home to test with (owner, 27 November 2026): a Roku TV, the projector with Encore TV, and a Galaxy Watch 5. No Cast device and no Pebble, so Cast and Pebble are tested in CI only.
 - Roku: turn on developer mode (Home three times, Up twice, Right, Left, Right, Left, Right on the remote) and choose a password, for sideloading.
 - Cast: register a Cast receiver app with Google (one-time US$5) when T6 is reached.
 - Galaxy Watch: turn on developer options and Wi-Fi debugging, so builds can be installed.
