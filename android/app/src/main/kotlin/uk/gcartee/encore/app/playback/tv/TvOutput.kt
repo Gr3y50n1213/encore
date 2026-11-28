@@ -72,8 +72,11 @@ fun isTvPlatform(platform: String): Boolean {
 object TvOutput {
     private const val TAG = "TvOutput"
     private const val SEARCH_MS = 3_000L
-    /** Rokus answer within a second (Roku's ECP guide). */
-    private const val ROKU_SEARCH_MS = 1_500L
+    /** Longer than the search's MX (2 s), which a Roku waits up to before answering. */
+    private const val ROKU_SEARCH_MS = 3_000L
+
+    /** An error's words without any address in them, for the log. */
+    private fun masked(message: String?): String = (message ?: "").replace(Regex("""\d+\.\d+\.\d+\.\d+"""), "<address>").take(160)
 
     /** This phone's name ("Sam's phone"), which the Roku shows as where the music comes from. */
     private fun phoneName(context: Context): String =
@@ -163,7 +166,11 @@ object TvOutput {
         }
         searchJob = scope.launch {
             while (isActive) {
-                val found = withContext(Dispatchers.IO) { runCatching { searchDlna(app) }.getOrDefault(emptyList()) }
+                val found = withContext(Dispatchers.IO) {
+                    runCatching { searchDlna(app) }
+                        .onFailure { Log.i(TAG, "the TV search failed: ${it.javaClass.simpleName}") }
+                        .getOrDefault(emptyList())
+                }
                 dlnaFound = found.filter { it.kind == TvKind.DLNA }
                 rokuFound = found.filter { it.kind == TvKind.ROKU }
                 publish()
@@ -201,6 +208,8 @@ object TvOutput {
         } finally {
             if (lock.isHeld) lock.release()
         }
+        // Counts only, never addresses: what the search found on this Wi-Fi.
+        Log.i(TAG, "TV search: Wi-Fi network ${LocalNet.wifi != null}, private address ${LocalNetwork.isLocalHost(wifi.hostAddress ?: "")}, renderers ${hits.size}, Rokus ${rokus.size}")
         val out = ArrayList<TvDevice>()
         for (hit in hits) {
             val key = hit.location.toString()
@@ -225,7 +234,7 @@ object TvOutput {
                 rokuInfo[key]
             } else {
                 runCatching { Roku.info(base) }
-                    .onFailure { Log.i(TAG, "a Roku's details couldn't be read: ${it.javaClass.simpleName}") }
+                    .onFailure { Log.i(TAG, "a Roku's details couldn't be read: ${it.javaClass.simpleName} ${masked(it.message)}") }
                     .getOrNull()
                     .also { rokuInfo[key] = it }
             } ?: continue

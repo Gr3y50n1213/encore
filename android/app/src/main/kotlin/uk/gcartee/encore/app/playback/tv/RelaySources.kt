@@ -122,13 +122,47 @@ internal fun audioTypeOf(container: String?): String = when (container?.lowercas
  * The phone's IPv4 address on Wi-Fi, which the relay binds to and SSDP searches from; null when
  * the phone isn't on Wi-Fi (a TV can't reach it then).
  */
+/**
+ * The Wi-Fi network the TVs are on. With a VPN running (Tailscale, say), Android sends an
+ * app's traffic through the VPN, local addresses included, so the TV search and every request
+ * to a TV are tied to the Wi-Fi network itself (seen on the owner's tablet, 27 November 2026:
+ * the Roku answered the shell, never the app).
+ */
+object LocalNet {
+    @Volatile
+    var wifi: android.net.Network? = null
+
+    /** A connection over the Wi-Fi network, whatever the default network is. */
+    fun open(url: java.net.URL): java.net.HttpURLConnection =
+        (wifi?.openConnection(url) ?: url.openConnection()) as java.net.HttpURLConnection
+
+    fun bind(socket: java.net.DatagramSocket) {
+        wifi?.let { runCatching { it.bindSocket(socket) } }
+    }
+}
+
+/** The Wi-Fi network, also kept in [LocalNet] for the TV search and requests. */
+fun wifiNetwork(context: Context): android.net.Network? {
+    val connectivity = context.getSystemService(ConnectivityManager::class.java) ?: return null
+    @Suppress("DEPRECATION")
+    val networks = listOfNotNull(connectivity.activeNetwork) + connectivity.allNetworks.toList()
+    return networks.distinct().firstOrNull { n ->
+        connectivity.getNetworkCapabilities(n)?.let {
+            it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) && !it.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+        } == true
+    }.also { LocalNet.wifi = it }
+}
+
 fun wifiAddress(context: Context): Inet4Address? {
+    wifiNetwork(context)
     val connectivity = context.getSystemService(ConnectivityManager::class.java) ?: return null
     @Suppress("DEPRECATION") // allNetworks: the Wi-Fi may not be the default network (a VPN, say).
     val networks = listOfNotNull(connectivity.activeNetwork) + connectivity.allNetworks.toList()
     for (network in networks.distinct()) {
         val caps = connectivity.getNetworkCapabilities(network) ?: continue
-        if (!caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) continue
+        // A VPN reports the transport under it too: its address (a tailnet's 100.x) is not the
+        // Wi-Fi's, and TVs can't reach it.
+        if (!caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) continue
         val address = connectivity.getLinkProperties(network)?.linkAddresses
             ?.map { it.address }
             ?.filterIsInstance<Inet4Address>()

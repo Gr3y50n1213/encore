@@ -74,15 +74,40 @@ object Ssdp {
     /**
      * Sends the search three times from [bind] (the Wi-Fi address) and collects answers for
      * [timeoutMs]. Blocking: never on the main thread. The caller holds a multicast lock.
+     *
+     * Some home routers don't pass multicast between Wi-Fi and the TV (the owner's, 27
+     * November 2026: a Roku answered a search sent to it directly, never the multicast one).
+     * When the multicast search finds nothing, the same search is sent to each address of the
+     * phone's /24 network once, and the answers are collected the same way. Only while Play on
+     * looks for TVs; one small UDP packet per address.
      */
     fun search(bind: Inet4Address, timeoutMs: Long, target: String = RENDERER): List<SsdpHit> {
+        val found = searchOnce(bind, timeoutMs, target, sweep = false)
+        return found.ifEmpty { searchOnce(bind, timeoutMs, target, sweep = true) }
+    }
+
+    /** The addresses of [own]'s /24 network, without the network, broadcast and [own] itself. */
+    fun sweepTargets(own: Inet4Address): List<InetAddress> {
+        val b = own.address
+        return (1..254).filter { it != (b[3].toInt() and 0xFF) }
+            .map { InetAddress.getByAddress(byteArrayOf(b[0], b[1], b[2], it.toByte())) }
+    }
+
+    private fun searchOnce(bind: Inet4Address, timeoutMs: Long, target: String, sweep: Boolean): List<SsdpHit> {
         val found = LinkedHashMap<String, SsdpHit>()
         DatagramSocket(null).use { socket ->
             socket.reuseAddress = true
+            LocalNet.bind(socket)
             socket.bind(InetSocketAddress(bind, 0))
             val message = searchMessage(target).toByteArray(Charsets.US_ASCII)
-            val group = InetSocketAddress(InetAddress.getByName(GROUP), PORT)
-            repeat(3) { socket.send(DatagramPacket(message, message.size, group)) }
+            if (sweep) {
+                for (host in sweepTargets(bind)) {
+                    runCatching { socket.send(DatagramPacket(message, message.size, InetSocketAddress(host, PORT))) }
+                }
+            } else {
+                val group = InetSocketAddress(InetAddress.getByName(GROUP), PORT)
+                repeat(3) { socket.send(DatagramPacket(message, message.size, group)) }
+            }
             val end = System.currentTimeMillis() + timeoutMs
             val buffer = ByteArray(4096)
             while (true) {
@@ -371,7 +396,7 @@ object HttpSoap : SoapTransport {
 
     override fun post(url: URL, soapAction: String, body: String): SoapReply {
         if (!LocalNetwork.isLocal(url)) throw IOException("not on the local network")
-        val connection = url.openConnection() as HttpURLConnection
+        val connection = LocalNet.open(url)
         try {
             connection.instanceFollowRedirects = false
             connection.connectTimeout = TIMEOUT_MS
@@ -396,7 +421,7 @@ object HttpSoap : SoapTransport {
     /** GETs a description document from the local network. */
     fun get(url: URL): String {
         if (!LocalNetwork.isLocal(url)) throw IOException("not on the local network")
-        val connection = url.openConnection() as HttpURLConnection
+        val connection = LocalNet.open(url)
         try {
             connection.instanceFollowRedirects = false
             connection.connectTimeout = TIMEOUT_MS
